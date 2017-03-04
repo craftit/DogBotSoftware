@@ -83,10 +83,12 @@ endif
 #
 
 # Define project name here
-PROJECT = ch
+PROJECT = BMCV2
 
 # Imported source files and paths
 CHIBIOS = /Users/charles/src/arm/ChibiOS_16.1.7
+STDPERIPH = ../ext/STM32F4xx_DSP_StdPeriph_Lib/Libraries/STM32F4xx_StdPeriph_Driver
+
 # Startup files.
 include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
 # HAL-OSAL files (optional).
@@ -121,7 +123,10 @@ CSRC = $(STARTUPSRC) \
 		   coms_serial.c \
 		   do_adc.c \
 		   drv8503.c \
-       pwm.c
+       do_pwm.c \
+       $(STDPERIPH)/src/stm32f4xx_tim.c \
+       $(STDPERIPH)/src/stm32f4xx_rcc.c \
+       $(STDPERIPH)/src/misc.c \
  			
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -150,11 +155,15 @@ TCPPSRC =
 # List ASM source files here
 ASMSRC = $(STARTUPASM) $(PORTASM) $(OSALASM)
 
-INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
+INCDIR = \
+         $(STDPERIPH)/inc \
+         ../ext/STM32F4xx_DSP_StdPeriph_Lib/Libraries/CMSIS/Device/ST/STM32F4xx/Include \
+         $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(TESTINC) \
          $(CHIBIOS)/os/various \
-         $(CHIBIOS)/os/hal/lib/streams
-
+         $(CHIBIOS)/os/hal/lib/streams 
+         
+         
 #
 # Project, sources and paths
 ##############################################################################
@@ -203,7 +212,8 @@ CPPWARN = -Wall -Wextra -Wundef
 #
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS =
+UDEFS = 
+#-DSTM32F40_41xxx=1
 
 # Define ASM defines here
 UADEFS =

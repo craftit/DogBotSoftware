@@ -2,6 +2,6 @@
 #define PWM_HEADER 1
 
 
-void InitPWM(void);
+int InitPWM(void);
 
 #endif

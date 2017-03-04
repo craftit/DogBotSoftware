@@ -193,6 +193,13 @@ static void cmd_doDrvTest(BaseSequentialStream *chp, int argc, char *argv[]) {
   Drv8503Test();
 }
 
+static void cmd_doPWM(BaseSequentialStream *chp, int argc, char *argv[]) {
+  (void)argv;
+  (void)argc;
+  chprintf(chp, "Testing PWM... \r\n");
+  InitPWM();
+}
+
 
 
 static const ShellCommand commands[] = {
@@ -202,6 +209,7 @@ static const ShellCommand commands[] = {
   {"write", cmd_write},
   {"diag", cmd_doDiag},
   {"drvtest", cmd_doDrvTest},
+  {"pwm", cmd_doPWM},
   {NULL, NULL}
 };
 

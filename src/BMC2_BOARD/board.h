@@ -281,9 +281,9 @@
                                      PIN_MODE_ANALOG(GPIOA_PIN5) |     \
                                      PIN_MODE_ANALOG(GPIOA_PIN6) |           \
                                      PIN_MODE_INPUT(GPIOA_PIN7) |           \
-                                     PIN_MODE_OUTPUT(GPIOA_PIN8) |           \
-                                     PIN_MODE_OUTPUT(GPIOA_PIN9) |           \
-                                     PIN_MODE_OUTPUT(GPIOA_PIN10) |          \
+                                     PIN_MODE_ALTERNATE(GPIOA_PIN8) |           \
+                                     PIN_MODE_ALTERNATE(GPIOA_PIN9) |           \
+                                     PIN_MODE_ALTERNATE(GPIOA_PIN10) |          \
                                      PIN_MODE_ALTERNATE(GPIOA_OTG_FS_DM) |  \
                                      PIN_MODE_ALTERNATE(GPIOA_OTG_FS_DP) |  \
                                      PIN_MODE_ALTERNATE(GPIOA_SWDIO) |      \
@@ -313,9 +313,9 @@
                                      PIN_OSPEED_HIGH(GPIOA_PIN5) |   \
                                      PIN_OSPEED_HIGH(GPIOA_PIN6) |          \
                                      PIN_OSPEED_HIGH(GPIOA_PIN7) |          \
-                                     PIN_OSPEED_MEDIUM(GPIOA_PIN8) |          \
-                                     PIN_OSPEED_MEDIUM(GPIOA_PIN9) |          \
-                                     PIN_OSPEED_MEDIUM(GPIOA_PIN10) |         \
+                                     PIN_OSPEED_HIGH(GPIOA_PIN8) |          \
+                                     PIN_OSPEED_HIGH(GPIOA_PIN9) |          \
+                                     PIN_OSPEED_HIGH(GPIOA_PIN10) |         \
                                      PIN_OSPEED_HIGH(GPIOA_OTG_FS_DM) |     \
                                      PIN_OSPEED_HIGH(GPIOA_OTG_FS_DP) |     \
                                      PIN_OSPEED_HIGH(GPIOA_SWDIO) |         \
@@ -361,9 +361,9 @@
                                      PIN_AFIO_AF(GPIOA_PIN5, 0U) |     \
                                      PIN_AFIO_AF(GPIOA_PIN6, 0U) |          \
                                      PIN_AFIO_AF(GPIOA_PIN7, 0U))
-#define VAL_GPIOA_AFRH              (PIN_AFIO_AF(GPIOA_PIN8, 0U) |          \
-                                     PIN_AFIO_AF(GPIOA_PIN9, 0U) |          \
-                                     PIN_AFIO_AF(GPIOA_PIN10, 0U) |         \
+#define VAL_GPIOA_AFRH              (PIN_AFIO_AF(GPIOA_PIN8, 1U) |          \
+                                     PIN_AFIO_AF(GPIOA_PIN9, 1U) |          \
+                                     PIN_AFIO_AF(GPIOA_PIN10, 1U) |         \
                                      PIN_AFIO_AF(GPIOA_OTG_FS_DM, 10U) |    \
                                      PIN_AFIO_AF(GPIOA_OTG_FS_DP, 10U) |    \
                                      PIN_AFIO_AF(GPIOA_SWDIO, 0U) |         \

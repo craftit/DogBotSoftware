@@ -1,4 +1,5 @@
 build
+.dep
 
 # Compiled Object files
 *.slo
