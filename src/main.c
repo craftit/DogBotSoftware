@@ -196,10 +196,42 @@ static void cmd_doDrvTest(BaseSequentialStream *chp, int argc, char *argv[]) {
 static void cmd_doPWM(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void)argv;
   (void)argc;
-  chprintf(chp, "Testing PWM... \r\n");
+  chprintf(chp, "Initialise PWM... \r\n");
   InitPWM();
+  PWMCal(chp);
 }
 
+static void cmd_doPWMStop(BaseSequentialStream *chp, int argc, char *argv[]) {
+  (void)argv;
+  (void)argc;
+  chprintf(chp, "Stopping PWM... \r\n");
+  PWMStop();
+}
+
+static void cmd_doPWMRun(BaseSequentialStream *chp, int argc, char *argv[]) {
+  (void)argv;
+  (void)argc;
+  chprintf(chp, "Run PWM... \r\n");
+  PWMRun();
+}
+
+static void cmd_doADC(BaseSequentialStream *chp, int argc, char *argv[]) {
+  (void)argv;
+  (void)argc;
+  chprintf(chp, "Testing ADC... \r\n");
+  while(true) {
+    adcsample_t *samples = ReadADCs();
+    chprintf(chp, "%d",samples[0]);
+    for(int i =1;i < 14;i++) {
+      chprintf(chp, ",\t%d",samples[i]);
+    }
+    chprintf(chp, "\r\n");
+    chThdSleepMilliseconds(10);
+    if (!palReadPad(GPIOB, GPIOA_PIN2)) {
+      break;
+    }
+  }
+}
 
 
 static const ShellCommand commands[] = {
@@ -210,6 +242,9 @@ static const ShellCommand commands[] = {
   {"diag", cmd_doDiag},
   {"drvtest", cmd_doDrvTest},
   {"pwm", cmd_doPWM},
+  {"stop", cmd_doPWMStop},
+  {"run", cmd_doPWMRun},
+  {"adc", cmd_doADC},
   {NULL, NULL}
 };
 

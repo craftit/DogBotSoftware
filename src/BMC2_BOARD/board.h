@@ -403,9 +403,9 @@
                                      PIN_MODE_INPUT(GPIOB_PIN10) |          \
                                      PIN_MODE_INPUT(GPIOB_PIN11) |          \
                                      PIN_MODE_OUTPUT(GPIOB_PIN12) |          \
-                                     PIN_MODE_OUTPUT(GPIOB_PIN13) |          \
-                                     PIN_MODE_OUTPUT(GPIOB_PIN14) |          \
-                                     PIN_MODE_OUTPUT(GPIOB_PIN15))
+                                     PIN_MODE_ALTERNATE(GPIOB_PIN13) |          \
+                                     PIN_MODE_ALTERNATE(GPIOB_PIN14) |          \
+                                     PIN_MODE_ALTERNATE(GPIOB_PIN15))
 #define VAL_GPIOB_OTYPER            (PIN_OTYPE_PUSHPULL(GPIOB_PIN0) |       \
                                      PIN_OTYPE_PUSHPULL(GPIOB_PIN1) |       \
                                      PIN_OTYPE_PUSHPULL(GPIOB_PIN2) |       \
@@ -483,9 +483,9 @@
                                      PIN_AFIO_AF(GPIOB_PIN10, 4U) |         \
                                      PIN_AFIO_AF(GPIOB_PIN11, 4U) |         \
                                      PIN_AFIO_AF(GPIOB_PIN12, 0U) |         \
-                                     PIN_AFIO_AF(GPIOB_PIN13, 0U) |         \
-                                     PIN_AFIO_AF(GPIOB_PIN14, 0U) |         \
-                                     PIN_AFIO_AF(GPIOB_PIN15, 0U))
+                                     PIN_AFIO_AF(GPIOB_PIN13, 1U) |         \
+                                     PIN_AFIO_AF(GPIOB_PIN14, 1U) |         \
+                                     PIN_AFIO_AF(GPIOB_PIN15, 1U))
 
 /*
  * GPIOC setup:
