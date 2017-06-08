@@ -8,6 +8,7 @@ int InitPWM(void);
 int PWMRun(void);
 int PWMStop(void);
 int PWMCal(BaseSequentialStream *chp);
+int PWMSVMScan(BaseSequentialStream *chp);
 
 void PWMUpdateDrive(int phase,int power);
 

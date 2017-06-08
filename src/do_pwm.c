@@ -1,4 +1,8 @@
 
+#define ARM_MATH_CM4
+#define __FPU_PRESENT 1
+#include <arm_math.h>
+
 #include <stdint.h>
 #include "hal.h"
 #include "pwm.h"
@@ -6,14 +10,15 @@
 #include "chprintf.h"
 
 #define SYSTEM_CORE_CLOCK               168000000
-
+#define TIM_1_8_PERIOD_CLOCKS (2047)
 
 static bool g_pwmThreadRunning = false;
 
 static THD_WORKING_AREA(waThreadPWM, 128);
 
-int g_phaseAngles[12][3];
+void PWMUpdateDrivePhase(int pa,int pb,int pc);
 
+int g_phaseAngles[12][3];
 
 static int g_drivePhase = 0;
 
@@ -103,10 +108,72 @@ static int PWMMode(enum PinStateT ps)
 
 volatile bool g_pwmRun = true;
 
+//--------------------------------
+// Test functions
+//--------------------------------
+#include "svm.h"
+
+#define TIM_1_8_CLOCK_HZ (SYSTEM_CORE_CLOCK/4)
+#define CURRENT_MEAS_PERIOD ((float)(2*TIM_1_8_PERIOD_CLOCKS)/(float)TIM_1_8_CLOCK_HZ)
+
+float g_vbus_voltage = 12.0;
+
+
+static void queue_modulation_timings(float mod_alpha, float mod_beta) {
+#if 0
+    float tA = 0, tB = 0, tC = 0;
+    SVM(mod_alpha, mod_beta, &tA, &tB, &tC);
+    uint16_t a = (uint16_t)(tA * (float)TIM_1_8_PERIOD_CLOCKS);
+    uint16_t b = (uint16_t)(tB * (float)TIM_1_8_PERIOD_CLOCKS);
+    uint16_t c = (uint16_t)(tC * (float)TIM_1_8_PERIOD_CLOCKS);
+#else
+    uint32_t a = 0,b = 0,c = 0;
+    svm2(mod_alpha, mod_beta,TIM_1_8_PERIOD_CLOCKS,&a, &b, &c);
+#endif
+    PWMUpdateDrivePhase(a,b,c);
+}
+
+static void queue_voltage_timings(float v_alpha, float v_beta) {
+    float vfactor = 1.0f / ((2.0f / 3.0f) * g_vbus_voltage);
+    float mod_alpha = vfactor * v_alpha;
+    float mod_beta = vfactor * v_beta;
+    queue_modulation_timings(mod_alpha, mod_beta);
+}
+
+static void scan_motor_loop(float omega, float voltage_magnitude) {
+  while (g_pwmRun) {
+#if 0
+    PWMUpdateDrivePhase(
+        TIM_1_8_PERIOD_CLOCKS/2,
+        TIM_1_8_PERIOD_CLOCKS/2,
+        TIM_1_8_PERIOD_CLOCKS/2
+        );
+    chThdSleepMicroseconds(CURRENT_MEAS_PERIOD*1000000);
+#else
+        for (float ph = 0.0f; ph < 2.0f * M_PI; ph += omega * CURRENT_MEAS_PERIOD) {
+          chThdSleepMicroseconds(CURRENT_MEAS_PERIOD*1000000);
+          //osSignalWait(M_SIGNAL_PH_CURRENT_MEAS, osWaitForever);
+          float v_alpha = voltage_magnitude * arm_cos_f32(ph);
+          float v_beta  = voltage_magnitude * arm_sin_f32(ph);
+          queue_modulation_timings(v_alpha, v_beta);
+        }
+#endif
+        if (!palReadPad(GPIOB, GPIOA_PIN2)) {
+          break;
+        }
+    }
+}
+
+
+
 static THD_FUNCTION(ThreadPWM, arg) {
 
   (void)arg;
   chRegSetThreadName("pwm");
+
+#if 0
+  scan_motor_loop(2.0,0.1);
+#else
   //int phase = 0;
   while (g_pwmRun) {
 #if 0
@@ -116,12 +183,22 @@ static THD_FUNCTION(ThreadPWM, arg) {
 #else
     adcsample_t *vals = ReadADCs();
     float angle = hallToAngle(&vals[9]);
+
+#if 1
     angle += 5.5;
     if(angle < 0) angle += 24.0;
     if(angle > 24) angle -= 24.0;
     int phase = angle / 2;
+    PWMUpdateDrive(phase,500);
+#else
+    float pangle = angle * M_PI * 2.0 / 24.0;
+    //pangle += M_PI/2.0;
+    float voltage_magnitude = 0.1;
+    float v_alpha = voltage_magnitude * arm_cos_f32(pangle);
+    float v_beta  = voltage_magnitude * arm_sin_f32(pangle);
+    queue_modulation_timings(v_alpha, v_beta);
+#endif
 
-    PWMUpdateDrive(phase,400);
 #endif
     chThdSleepMicroseconds(5);
     if (!palReadPad(GPIOB, GPIOA_PIN2)) {
@@ -129,10 +206,9 @@ static THD_FUNCTION(ThreadPWM, arg) {
     }
   }
   PWMUpdateDrive(12,0);
+#endif
   g_pwmThreadRunning = false;
 }
-
-
 
 int InitPWM(void)
 {
@@ -192,7 +268,7 @@ int InitPWM(void)
 
   uint16_t psc = 0; // (SYSTEM_CORE_CLOCK / 80000000) - 1;
   tim->PSC  = psc;
-  tim->ARR  = 2048 - 1; // This should give about 20KHz
+  tim->ARR  = TIM_1_8_PERIOD_CLOCKS; // This should give about 20KHz
   tim->CR2  = 0;
   /* Output enables and polarities setup.*/
   uint16_t ccer = 0;
@@ -225,6 +301,31 @@ int InitPWM(void)
   return 0;
 }
 
+void PWMUpdateDrivePhase(int pa,int pb,int pc)
+{
+  stm32_tim_t *tim = (stm32_tim_t *)TIM1_BASE;
+#if 1
+  tim->CCER  =
+      (STM32_TIM_CCER_CC1E | STM32_TIM_CCER_CC1NE ) |
+      (STM32_TIM_CCER_CC2E | STM32_TIM_CCER_CC2NE ) |
+      (STM32_TIM_CCER_CC3E | STM32_TIM_CCER_CC3NE );
+  tim->CCMR1 = STM32_TIM_CCMR1_OC1M(6) |
+      STM32_TIM_CCMR1_OC1PE |
+      STM32_TIM_CCMR1_OC2M(6) |
+      STM32_TIM_CCMR1_OC2PE;
+  tim->CCMR2 =
+    STM32_TIM_CCMR2_OC3M(6) |
+    STM32_TIM_CCMR2_OC3PE |
+    STM32_TIM_CCMR2_OC4M(6) |
+    STM32_TIM_CCMR2_OC4PE;
+  tim->CCR[0] = pa;
+  tim->CCR[1] = pb;
+  tim->CCR[2] = pc;
+
+  tim->EGR = STM32_TIM_EGR_COMG;
+#endif
+}
+
 int PWMRun()
 {
   palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
@@ -244,6 +345,52 @@ int PWMStop()
 }
 
 float hallToAngleDebug(adcsample_t *sensors,int *nearest,int *n0,int *n1,int *n2);
+
+int PWMSVMScan(BaseSequentialStream *chp)
+{
+  palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
+
+  while(true) {
+    float voltage_magnitude = 0.12;
+    float omega = 1.0;
+
+    for (float ph = 0.0f; ph < 2.0f * M_PI; ph += omega * CURRENT_MEAS_PERIOD) {
+      chThdSleepMicroseconds(5);
+      //osSignalWait(M_SIGNAL_PH_CURRENT_MEAS, osWaitForever);
+      float v_alpha = voltage_magnitude * arm_cos_f32(ph);
+      float v_beta  = voltage_magnitude * arm_sin_f32(ph);
+
+#if 1
+      float tA = 0, tB = 0, tC = 0;
+      SVM(v_alpha, v_beta, &tA, &tB, &tC);
+      uint16_t a = (uint16_t)(tA * (float)TIM_1_8_PERIOD_CLOCKS);
+      uint16_t b = (uint16_t)(tB * (float)TIM_1_8_PERIOD_CLOCKS);
+      uint16_t c = (uint16_t)(tC * (float)TIM_1_8_PERIOD_CLOCKS);
+#else
+      uint32_t a = 0,b = 0,c = 0;
+      svm2(v_alpha,v_beta,TIM_1_8_PERIOD_CLOCKS,&a,&b,&c);
+#endif
+
+      chprintf(chp, "PWM: %d %d  ->   %d %d %d   \r\n",(int)(v_alpha*1000.0),(int)(v_beta*1000.0),
+          (int)a,(int)b,(int)c);
+
+      queue_modulation_timings(v_alpha, v_beta);
+
+      if (!palReadPad(GPIOB, GPIOA_PIN2)) {
+        break;
+      }
+    }
+    if (!palReadPad(GPIOB, GPIOA_PIN2)) {
+      break;
+    }
+  }
+
+
+  palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
+  return 0;
+
+}
+
 
 int PWMCal(BaseSequentialStream *chp)
 {
@@ -277,8 +424,6 @@ int PWMCal(BaseSequentialStream *chp)
       break;
     }
   }
-
-
 
   palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
   return 0;

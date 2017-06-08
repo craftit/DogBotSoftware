@@ -124,6 +124,7 @@ CSRC = $(STARTUPSRC) \
 		   do_adc.c \
 		   drv8503.c \
        do_pwm.c \
+       svm.c \
        $(STDPERIPH)/src/stm32f4xx_tim.c \
        $(STDPERIPH)/src/stm32f4xx_rcc.c \
        $(STDPERIPH)/src/misc.c \
@@ -222,10 +223,10 @@ UADEFS =
 UINCDIR =
 
 # List the user directory to look for the libraries here
-ULIBDIR =
+ULIBDIR = .
 
 # List all user libraries here
-ULIBS =
+ULIBS = -larm_cortexM4lf_math
 
 #
 # End of user defines

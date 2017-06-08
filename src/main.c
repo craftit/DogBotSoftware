@@ -22,6 +22,7 @@
 
 #include "usbcfg.h"
 #include "pwm.h"
+#include "drv8503.h"
 
 /*
  * This is a periodic thread that does absolutely nothing except flashing
@@ -154,9 +155,6 @@ static void cmd_write(BaseSequentialStream *chp, int argc, char *argv[]) {
 
 extern int DoADC(void);
 extern void InitADC(void);
-extern uint16_t Drv8503ReadStatus(void);
-extern uint16_t Drv8503Test(void);
-extern uint16_t Drv8503ReadRegister(uint16_t addr);
 
 static void cmd_doDiag(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void)argv;
@@ -193,6 +191,14 @@ static void cmd_doDrvTest(BaseSequentialStream *chp, int argc, char *argv[]) {
   Drv8503Test();
 }
 
+static void cmd_doScan(BaseSequentialStream *chp, int argc, char *argv[]) {
+  (void)argv;
+  (void)argc;
+  chprintf(chp, "Scan SVM... \r\n");
+  InitPWM();
+  PWMSVMScan(chp);
+}
+
 static void cmd_doPWM(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void)argv;
   (void)argc;
@@ -213,6 +219,13 @@ static void cmd_doPWMRun(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void)argc;
   chprintf(chp, "Run PWM... \r\n");
   PWMRun();
+}
+
+static void cmd_doPWMInit(BaseSequentialStream *chp, int argc, char *argv[]) {
+  (void)argv;
+  (void)argc;
+  chprintf(chp, "Init PWM... \r\n");
+  InitPWM();
 }
 
 static void cmd_doADC(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -242,6 +255,8 @@ static const ShellCommand commands[] = {
   {"diag", cmd_doDiag},
   {"drvtest", cmd_doDrvTest},
   {"pwm", cmd_doPWM},
+  {"scan", cmd_doScan },
+  {"init", cmd_doPWMInit},
   {"stop", cmd_doPWMStop},
   {"run", cmd_doPWMRun},
   {"adc", cmd_doADC},

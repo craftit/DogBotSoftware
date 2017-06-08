@@ -1,6 +1,7 @@
 
 #include "ch.h"
 #include "hal.h"
+#include "drv8503.h"
 
 /*
  * Low speed SPI configuration (328.125kHz, CPHA=0, CPOL=0, MSb first).
@@ -55,9 +56,6 @@ uint16_t Drv8503ReadStatus(void)
   return ret;
 }
 
-#define DRV8503_FLIP_OTSD  (1U<<10)
-#define DRV8503_EN_SNS_CLAMP (1U<<7)
-#define DRV8503_CLR_FLTS (1U<<2)
 
 void Drv8503Init(void)
 {
