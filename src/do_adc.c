@@ -1,6 +1,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "pwm.h"
+#include "chbsem.h"
 
 #include "stm32f4xx_adc.h"
 #include "stm32f4xx_rcc.h"
@@ -21,7 +22,7 @@ void InitADC(void) {
   ADC_CommonInit(&ADC_CommonInitStructure);
 
   ADC_InitStructure.ADC_Resolution = ADC_Resolution_12b;
-  ADC_InitStructure.ADC_ScanConvMode = DISABLE;
+  ADC_InitStructure.ADC_ScanConvMode = ENABLE;
   ADC_InitStructure.ADC_ContinuousConvMode = DISABLE; // ENABLE;
   ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_None;
   ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T1_CC1;
@@ -32,40 +33,43 @@ void InitADC(void) {
   ADC_Init(ADC3, &ADC_InitStructure);
 
   // ADC1
-  ADC_InjectedChannelConfig(ADC1,ADC_Channel_3, 1, ADC_SampleTime_3Cycles);
-  ADC_InjectedSequencerLengthConfig(ADC1,1);
+  ADC_InjectedChannelConfig(ADC1,ADC_Channel_10, 1, ADC_SampleTime_15Cycles);
+  ADC_InjectedChannelConfig(ADC1,ADC_Channel_3, 2, ADC_SampleTime_15Cycles);
+  ADC_InjectedSequencerLengthConfig(ADC1,2);
 
   ADC_ExternalTrigInjectedConvConfig(ADC1, ADC_ExternalTrigInjecConv_T1_TRGO);
   ADC_ExternalTrigInjectedConvEdgeConfig(ADC1, ADC_ExternalTrigInjecConvEdge_Rising);
 
-#if 0
   // ADC2
 
-  ADC_InjectedChannelConfig(ADC2,ADC_Channel_4, 1, ADC_SampleTime_3Cycles);
-  ADC_InjectedSequencerLengthConfig(ADC2,1);
+  ADC_InjectedChannelConfig(ADC2,ADC_Channel_11, 1, ADC_SampleTime_15Cycles);
+  ADC_InjectedChannelConfig(ADC2,ADC_Channel_4, 2, ADC_SampleTime_15Cycles);
+  ADC_InjectedSequencerLengthConfig(ADC2,2);
 
-  ADC_ExternalTrigInjectedConvConfig(ADC2, ADC_ExternalTrigInjecConv_T1_CC4);
+  ADC_ExternalTrigInjectedConvConfig(ADC2, ADC_ExternalTrigInjecConv_T1_TRGO);
   ADC_ExternalTrigInjectedConvEdgeConfig(ADC2, ADC_ExternalTrigInjecConvEdge_Rising);
 
   // ADC3
 
-  ADC_InjectedChannelConfig(ADC3,ADC_Channel_5, 1, ADC_SampleTime_3Cycles);
-  ADC_InjectedSequencerLengthConfig(ADC3,1);
+  ADC_InjectedChannelConfig(ADC3,ADC_Channel_12, 1, ADC_SampleTime_15Cycles);
+  ADC_InjectedChannelConfig(ADC3,ADC_Channel_5, 2, ADC_SampleTime_15Cycles);
+  ADC_InjectedSequencerLengthConfig(ADC3,2);
 
   ADC_ExternalTrigInjectedConvConfig(ADC3, ADC_ExternalTrigInjecConv_T1_TRGO);
   ADC_ExternalTrigInjectedConvEdgeConfig(ADC3, ADC_ExternalTrigInjecConvEdge_Rising);
-#endif
+
   nvicEnableVector(STM32_ADC_NUMBER, STM32_ADC_IRQ_PRIORITY);
 
-
   ADC_ITConfig(ADC1,ADC_IT_JEOC,ENABLE);
+  ADC_ITConfig(ADC2,ADC_IT_JEOC,ENABLE);
+  ADC_ITConfig(ADC3,ADC_IT_JEOC,ENABLE);
   ADC_ITConfig(ADC1,ADC_IT_EOC,ENABLE);
 
   palSetPad(GPIOB, GPIOB_PIN12); // on
 
-  ADC_SoftwareStartInjectedConv(ADC1);
-
   ADC_Cmd(ADC1,ENABLE);
+  ADC_Cmd(ADC2,ENABLE);
+  ADC_Cmd(ADC3,ENABLE);
 
 }
 
@@ -73,14 +77,14 @@ int g_currentSample = 0;
 static uint8_t g_samplesDone[16];
 static uint16_t g_samples[16];
 
-void adc_inj_int_handler(void)
-{
-  // Get injected value
-  uint16_t value = ADC_GetInjectedConversionValue(ADC1,0);
-
-}
+uint16_t g_current[3];
+uint16_t g_hall[3];
+int g_adcInjCount = 0;
 
 bool g_pinToggle = false;
+
+BSEMAPHORE_DECL(g_adcInjectedDataReady,0);
+BSEMAPHORE_DECL(g_adcDataReady,0);
 
 OSAL_IRQ_HANDLER(STM32_ADC_HANDLER) {
   //uint32_t sr;
@@ -96,9 +100,26 @@ OSAL_IRQ_HANDLER(STM32_ADC_HANDLER) {
   }
 
 #if 1
+  int count  = 0;
   if(ADC_GetITStatus(ADC1, ADC_IT_JEOC) == SET) {
     ADC_ClearITPendingBit(ADC1, ADC_IT_JEOC);
-    adc_inj_int_handler();
+    g_current[0] = ADC_GetInjectedConversionValue(ADC1,ADC_InjectedChannel_1);
+    g_hall[0] = ADC_GetInjectedConversionValue(ADC1,ADC_InjectedChannel_2);
+    count++;
+  }
+
+  if(ADC_GetITStatus(ADC2, ADC_IT_JEOC) == SET) {
+    ADC_ClearITPendingBit(ADC2, ADC_IT_JEOC);
+    g_current[1] = ADC_GetInjectedConversionValue(ADC2,ADC_InjectedChannel_1);
+    g_hall[1] = ADC_GetInjectedConversionValue(ADC2,ADC_InjectedChannel_2);
+    count++;
+  }
+
+  if(ADC_GetITStatus(ADC3, ADC_IT_JEOC) == SET) {
+    ADC_ClearITPendingBit(ADC3, ADC_IT_JEOC);
+    g_current[2] = ADC_GetInjectedConversionValue(ADC3,ADC_InjectedChannel_1);
+    g_hall[2] = ADC_GetInjectedConversionValue(ADC3,ADC_InjectedChannel_2);
+    count++;
   }
 
   if(ADC_GetITStatus(ADC1, ADC_IT_EOC) == SET) {
@@ -106,11 +127,17 @@ OSAL_IRQ_HANDLER(STM32_ADC_HANDLER) {
     g_samples[g_currentSample] = ADC_GetConversionValue(ADC1);
     g_samplesDone[g_currentSample] = 1;
     ADC_ClearFlag(ADC1,ADC_FLAG_EOC);
+    chBSemSignalI(&g_adcDataReady);
     //adc_inj_int_handler();
   }
 
   if(ADC_GetITStatus(ADC1, ADC_IT_OVR) == SET) {
     ADC_ClearITPendingBit(ADC1, ADC_IT_OVR);
+  }
+
+  if(count > 0) {
+    g_adcInjCount = count;
+    chBSemSignalI(&g_adcInjectedDataReady);
   }
 #endif
   OSAL_IRQ_EPILOGUE();
@@ -132,11 +159,9 @@ uint16_t *ReadADCs(void) {
     g_currentSample = i;
     ADC_SoftwareStartConv(ADC1);
     g_samplesDone[i] = 0;
-    for(int i = 0;i < 100;i++) {
-      chThdSleepMicroseconds(100);
-      if(g_samplesDone[i] != 0)
-        break;
-    }
+    msg_t state = chBSemWaitTimeout(&g_adcDataReady,1000);
+    if(state != MSG_OK)
+      break; // Timeout or Reset
     //g_samples[i] = ADC_GetConversionValue(ADC1);
     //ADC_ClearFlag(ADC1,ADC_FLAG_EOC);
   }

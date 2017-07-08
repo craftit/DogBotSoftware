@@ -248,6 +248,45 @@ static void cmd_doADC(BaseSequentialStream *chp, int argc, char *argv[]) {
   }
 }
 
+extern uint16_t g_current[3];
+extern uint16_t g_hall[3];
+extern binary_semaphore_t g_adcInjectedDataReady;
+extern int g_adcInjCount;
+
+static void cmd_doPhase(BaseSequentialStream *chp, int argc, char *argv[]) {
+  msg_t ret = MSG_OK;
+  (void)argv;
+  (void)argc;
+  chprintf(chp, "Testing phase measurements... \r\n");
+  //for(int i = 0;i < 2;i++)
+  InitPWM();
+  while(true)
+  {
+    ret = chBSemWaitTimeout(&g_adcInjectedDataReady,100);
+    if(ret == MSG_TIMEOUT) {
+      chprintf(chp, "Timeout");
+      break;
+    }
+    if(ret == MSG_RESET) {
+      chprintf(chp, "Reset");
+      break;
+    }
+    chprintf(chp, "%d : %d %d %d / %d %d %d \r\n",
+        g_adcInjCount,
+        g_current[0],
+        g_current[1],
+        g_current[2],
+        g_hall[0],
+        g_hall[1],
+        g_hall[2]
+        );
+    //chThdSleepMilliseconds(100);
+    if (!palReadPad(GPIOB, GPIOA_PIN2)) {
+      break;
+    }
+  }
+}
+
 
 static const ShellCommand commands[] = {
   {"mem", cmd_mem},
@@ -262,6 +301,7 @@ static const ShellCommand commands[] = {
   {"stop", cmd_doPWMStop},
   {"run", cmd_doPWMRun},
   {"adc", cmd_doADC},
+  {"phase",cmd_doPhase},
   {NULL, NULL}
 };
 

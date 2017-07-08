@@ -41,6 +41,8 @@ int InitPWM_ADC(void)
 
 
 
+
+
 static bool g_pwmThreadRunning = false;
 
 static THD_WORKING_AREA(waThreadPWM, 128);
@@ -169,6 +171,7 @@ static void queue_voltage_timings(float v_alpha, float v_beta) {
     queue_modulation_timings(mod_alpha, mod_beta);
 }
 
+
 static void scan_motor_loop(float omega, float voltage_magnitude) {
   while (g_pwmRun) {
 #if 0
@@ -193,6 +196,10 @@ static void scan_motor_loop(float omega, float voltage_magnitude) {
     }
 }
 
+extern binary_semaphore_t g_adcInjectedDataReady;
+extern uint16_t g_current[3];
+extern uint16_t g_hall[3];
+
 
 
 static THD_FUNCTION(ThreadPWM, arg) {
@@ -210,9 +217,10 @@ static THD_FUNCTION(ThreadPWM, arg) {
     phase += 1;
     if(phase >= 12) phase = 0;
 #else
-    uint16_t *vals = ReadADCs();
-    float angle = hallToAngle(&vals[9]);
-
+    //uint16_t *vals = ReadADCs();
+    //float angle = hallToAngle(&vals[9]);
+    chBSemWait(&g_adcInjectedDataReady);
+    float angle = hallToAngle(g_hall);
 #if 1
     angle += 5.5;
     if(angle < 0) angle += 24.0;
@@ -324,7 +332,7 @@ int InitPWM(void)
   tim->CCR[0] = 200;
   tim->CCR[1] = 200;
   tim->CCR[2] = 200;
-  tim->CCR[3] = 200; // TIM_1_8_PERIOD_CLOCKS - 16;
+  tim->CCR[3] = TIM_1_8_PERIOD_CLOCKS - 16;
 
   tim->CR2  = STM32_TIM_CR2_CCPC | STM32_TIM_CR2_MMS(7); // Use the COMG bit to update.
 
