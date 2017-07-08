@@ -127,6 +127,7 @@ CSRC = $(STARTUPSRC) \
        svm.c \
        $(STDPERIPH)/src/stm32f4xx_tim.c \
        $(STDPERIPH)/src/stm32f4xx_rcc.c \
+       $(STDPERIPH)/src/stm32f4xx_adc.c \
        $(STDPERIPH)/src/misc.c \
  			
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
@@ -214,7 +215,7 @@ CPPWARN = -Wall -Wextra -Wundef
 
 # List all user C define here, like -D_DEBUG=1
 UDEFS = 
-#-DSTM32F40_41xxx=1
+# -DSTM32F40_41xxx=1
 
 # Define ASM defines here
 UADEFS =

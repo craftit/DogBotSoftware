@@ -12,9 +12,9 @@ int PWMSVMScan(BaseSequentialStream *chp);
 
 void PWMUpdateDrive(int phase,int power);
 
-extern adcsample_t *ReadADCs(void);
+extern uint16_t *ReadADCs(void);
 
-float hallToAngle(adcsample_t *sensors);
+float hallToAngle(uint16_t *sensors);
 
 
 #endif

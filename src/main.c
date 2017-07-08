@@ -232,8 +232,10 @@ static void cmd_doADC(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void)argv;
   (void)argc;
   chprintf(chp, "Testing ADC... \r\n");
-  while(true) {
-    adcsample_t *samples = ReadADCs();
+  //for(int i = 0;i < 2;i++)
+  while(true)
+  {
+    uint16_t *samples = ReadADCs();
     chprintf(chp, "%d",samples[0]);
     for(int i =1;i < 14;i++) {
       chprintf(chp, ",\t%d",samples[i]);

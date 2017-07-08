@@ -2,9 +2,216 @@
 #include "hal.h"
 #include "pwm.h"
 
+#include "stm32f4xx_adc.h"
+#include "stm32f4xx_rcc.h"
+
+void InitADC(void) {
+  ADC_InitTypeDef ADC_InitStructure;
+  ADC_CommonInitTypeDef ADC_CommonInitStructure;
+
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC2, ENABLE);
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC3, ENABLE);
+
+  /* ADC Common configuration *************************************************/
+  ADC_CommonInitStructure.ADC_Mode = ADC_Mode_Independent;
+  ADC_CommonInitStructure.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_6Cycles;
+  ADC_CommonInitStructure.ADC_DMAAccessMode = ADC_DMAAccessMode_Disabled;
+  ADC_CommonInitStructure.ADC_Prescaler = ADC_Prescaler_Div4;
+  ADC_CommonInit(&ADC_CommonInitStructure);
+
+  ADC_InitStructure.ADC_Resolution = ADC_Resolution_12b;
+  ADC_InitStructure.ADC_ScanConvMode = DISABLE;
+  ADC_InitStructure.ADC_ContinuousConvMode = DISABLE; // ENABLE;
+  ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_None;
+  ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T1_CC1;
+  ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
+  ADC_InitStructure.ADC_NbrOfConversion = 1;
+  ADC_Init(ADC1, &ADC_InitStructure);
+  ADC_Init(ADC2, &ADC_InitStructure);
+  ADC_Init(ADC3, &ADC_InitStructure);
+
+  // ADC1
+  ADC_InjectedChannelConfig(ADC1,ADC_Channel_3, 1, ADC_SampleTime_3Cycles);
+  ADC_InjectedSequencerLengthConfig(ADC1,1);
+
+  ADC_ExternalTrigInjectedConvConfig(ADC1, ADC_ExternalTrigInjecConv_T1_TRGO);
+  ADC_ExternalTrigInjectedConvEdgeConfig(ADC1, ADC_ExternalTrigInjecConvEdge_Rising);
+
+#if 0
+  // ADC2
+
+  ADC_InjectedChannelConfig(ADC2,ADC_Channel_4, 1, ADC_SampleTime_3Cycles);
+  ADC_InjectedSequencerLengthConfig(ADC2,1);
+
+  ADC_ExternalTrigInjectedConvConfig(ADC2, ADC_ExternalTrigInjecConv_T1_CC4);
+  ADC_ExternalTrigInjectedConvEdgeConfig(ADC2, ADC_ExternalTrigInjecConvEdge_Rising);
+
+  // ADC3
+
+  ADC_InjectedChannelConfig(ADC3,ADC_Channel_5, 1, ADC_SampleTime_3Cycles);
+  ADC_InjectedSequencerLengthConfig(ADC3,1);
+
+  ADC_ExternalTrigInjectedConvConfig(ADC3, ADC_ExternalTrigInjecConv_T1_TRGO);
+  ADC_ExternalTrigInjectedConvEdgeConfig(ADC3, ADC_ExternalTrigInjecConvEdge_Rising);
+#endif
+  nvicEnableVector(STM32_ADC_NUMBER, STM32_ADC_IRQ_PRIORITY);
+
+
+  ADC_ITConfig(ADC1,ADC_IT_JEOC,ENABLE);
+  ADC_ITConfig(ADC1,ADC_IT_EOC,ENABLE);
+
+  palSetPad(GPIOB, GPIOB_PIN12); // on
+
+  ADC_SoftwareStartInjectedConv(ADC1);
+
+  ADC_Cmd(ADC1,ENABLE);
+
+}
+
+int g_currentSample = 0;
+static uint8_t g_samplesDone[16];
+static uint16_t g_samples[16];
+
+void adc_inj_int_handler(void)
+{
+  // Get injected value
+  uint16_t value = ADC_GetInjectedConversionValue(ADC1,0);
+
+}
+
+bool g_pinToggle = false;
+
+OSAL_IRQ_HANDLER(STM32_ADC_HANDLER) {
+  //uint32_t sr;
+
+  OSAL_IRQ_PROLOGUE();
+
+  if(g_pinToggle) {
+    palSetPad(GPIOB, GPIOB_PIN12); // on
+    g_pinToggle = false;
+  } else {
+    palClearPad(GPIOB, GPIOB_PIN12); // off
+    g_pinToggle = true;
+  }
+
+#if 1
+  if(ADC_GetITStatus(ADC1, ADC_IT_JEOC) == SET) {
+    ADC_ClearITPendingBit(ADC1, ADC_IT_JEOC);
+    adc_inj_int_handler();
+  }
+
+  if(ADC_GetITStatus(ADC1, ADC_IT_EOC) == SET) {
+    ADC_ClearITPendingBit(ADC1, ADC_IT_EOC);
+    g_samples[g_currentSample] = ADC_GetConversionValue(ADC1);
+    g_samplesDone[g_currentSample] = 1;
+    ADC_ClearFlag(ADC1,ADC_FLAG_EOC);
+    //adc_inj_int_handler();
+  }
+
+  if(ADC_GetITStatus(ADC1, ADC_IT_OVR) == SET) {
+    ADC_ClearITPendingBit(ADC1, ADC_IT_OVR);
+  }
+#endif
+  OSAL_IRQ_EPILOGUE();
+}
+
+
+uint16_t *ReadADCs(void) {
+
+  static int g_convSeq[13] =  {
+      ADC_Channel_0,ADC_Channel_1,ADC_Channel_2,
+      ADC_Channel_3,ADC_Channel_4,ADC_Channel_5,
+      ADC_Channel_6,ADC_Channel_8,ADC_Channel_9,
+      ADC_Channel_10,ADC_Channel_11,ADC_Channel_12,
+      ADC_Channel_15
+  };
+
+  for(int i = 0;i < 12;i++) {
+    ADC_RegularChannelConfig(ADC1,g_convSeq[i],1,ADC_SampleTime_3Cycles);
+    g_currentSample = i;
+    ADC_SoftwareStartConv(ADC1);
+    g_samplesDone[i] = 0;
+    for(int i = 0;i < 100;i++) {
+      chThdSleepMicroseconds(100);
+      if(g_samplesDone[i] != 0)
+        break;
+    }
+    //g_samples[i] = ADC_GetConversionValue(ADC1);
+    //ADC_ClearFlag(ADC1,ADC_FLAG_EOC);
+  }
+
+  return g_samples;
+}
+
+int DoADC(void)
+{
+
+
+  return g_samples[0];
+}
+
+
+#if 0
+/* ADC1 init function */
+void MX_ADC1_Init(void)
+{
+  ADC_ChannelConfTypeDef sConfig;
+  ADC_InjectionConfTypeDef sConfigInjected;
+
+    /**Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
+    */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc1.Init.ScanConvMode = DISABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+    /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+    */
+  sConfig.Channel = ADC_CHANNEL_5;
+  sConfig.Rank = 1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+    /**Configures for the selected ADC injected channel its corresponding rank in the sequencer and its sample time
+    */
+  sConfigInjected.InjectedChannel = ADC_CHANNEL_0;
+  sConfigInjected.InjectedRank = 1;
+  sConfigInjected.InjectedNbrOfConversion = 1;
+  sConfigInjected.InjectedSamplingTime = ADC_SAMPLETIME_3CYCLES;
+  sConfigInjected.ExternalTrigInjecConvEdge = ADC_EXTERNALTRIGINJECCONVEDGE_RISING;
+  sConfigInjected.ExternalTrigInjecConv = ADC_EXTERNALTRIGINJECCONV_T1_CC4;
+  sConfigInjected.AutoInjectedConv = DISABLE;
+  sConfigInjected.InjectedDiscontinuousConvMode = DISABLE;
+  sConfigInjected.InjectedOffset = 0;
+  if (HAL_ADCEx_InjectedConfigChannel(&hadc1, &sConfigInjected) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+}
+
+#endif
+
+
+#if 0
 #define ADC_GRP1_NUM_CHANNELS   1
 #define ADC_GRP1_BUF_DEPTH      8
-
 
 static adcsample_t samples1[ADC_GRP1_NUM_CHANNELS * ADC_GRP1_BUF_DEPTH];
 
@@ -111,3 +318,4 @@ adcsample_t *ReadADCs(void) {
 
   return samples2;
 }
+#endif

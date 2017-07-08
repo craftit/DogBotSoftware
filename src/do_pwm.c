@@ -12,6 +12,35 @@
 #define SYSTEM_CORE_CLOCK               168000000
 #define TIM_1_8_PERIOD_CLOCKS (2047)
 
+#include "stm32f4xx_adc.h"
+
+#if 0
+#include "stm32f4xx_adc.h"
+#include "ch.h"
+#include "isr_vector_table.h"
+#include "mc_interface.h"
+#include "servo.h"
+#include "hw.h"
+#endif
+
+
+
+
+
+int InitPWM_ADC(void)
+{
+#if 0
+  ADC_ITConfig(ADC1,ADC_IT_JEOC,ENABLE);
+  ADC_ITConfig(ADC1,ADC_IT_EOC,ENABLE);
+
+  palSetPad(GPIOB, GPIOB_PIN12); // on
+#endif
+
+  return 0;
+}
+
+
+
 static bool g_pwmThreadRunning = false;
 
 static THD_WORKING_AREA(waThreadPWM, 128);
@@ -120,7 +149,7 @@ float g_vbus_voltage = 12.0;
 
 
 static void queue_modulation_timings(float mod_alpha, float mod_beta) {
-#if 0
+#if 1
     float tA = 0, tB = 0, tC = 0;
     SVM(mod_alpha, mod_beta, &tA, &tB, &tC);
     uint16_t a = (uint16_t)(tA * (float)TIM_1_8_PERIOD_CLOCKS);
@@ -181,7 +210,7 @@ static THD_FUNCTION(ThreadPWM, arg) {
     phase += 1;
     if(phase >= 12) phase = 0;
 #else
-    adcsample_t *vals = ReadADCs();
+    uint16_t *vals = ReadADCs();
     float angle = hallToAngle(&vals[9]);
 
 #if 1
@@ -210,6 +239,7 @@ static THD_FUNCTION(ThreadPWM, arg) {
   g_pwmThreadRunning = false;
 }
 
+
 int InitPWM(void)
 {
   g_drivePhase = 0;
@@ -227,7 +257,7 @@ int InitPWM(void)
     cs->m_ccmr2 =
         STM32_TIM_CCMR2_OC3M(PWMMode(cs->m_pinState[4])) |
         STM32_TIM_CCMR2_OC3PE |
-        STM32_TIM_CCMR2_OC4M(6) |
+        STM32_TIM_CCMR2_OC4M(6) | // PWM Mode
         STM32_TIM_CCMR2_OC4PE;
 
     int ccer = 0;
@@ -243,6 +273,7 @@ int InitPWM(void)
       }
       ccer |= nv << (i * 2);
     }
+    ccer |= STM32_TIM_CCER_CC1E | STM32_TIM_CCER_CC1P;
     cs->m_ccer = ccer;
   }
 
@@ -293,10 +324,15 @@ int InitPWM(void)
   tim->CCR[0] = 200;
   tim->CCR[1] = 200;
   tim->CCR[2] = 200;
+  tim->CCR[3] = 200; // TIM_1_8_PERIOD_CLOCKS - 16;
 
-  tim->CR2  = STM32_TIM_CR2_CCPC; // Use the COMG bit to update.
+  tim->CR2  = STM32_TIM_CR2_CCPC | STM32_TIM_CR2_MMS(7); // Use the COMG bit to update.
 
   palSetPad(GPIOC, GPIOC_PIN13); // Wake
+
+  InitPWM_ADC();
+
+  //palSetPad(GPIOB, GPIOB_PIN12); // Turn on flag pin
 
   return 0;
 }
@@ -344,7 +380,7 @@ int PWMStop()
   return 0;
 }
 
-float hallToAngleDebug(adcsample_t *sensors,int *nearest,int *n0,int *n1,int *n2);
+float hallToAngleDebug(uint16_t *sensors,int *nearest,int *n0,int *n1,int *n2);
 
 int PWMSVMScan(BaseSequentialStream *chp)
 {
@@ -400,7 +436,7 @@ int PWMCal(BaseSequentialStream *chp)
   for(int phase = 0;phase < 12;phase++) {
     PWMUpdateDrive(phase,200);
     chThdSleepMilliseconds(1000);
-    adcsample_t *vals = ReadADCs();
+    uint16_t *vals = ReadADCs();
     g_phaseAngles[phase][0] = vals[9];
     g_phaseAngles[phase][1] = vals[10];
     g_phaseAngles[phase][2] = vals[11];
@@ -411,7 +447,7 @@ int PWMCal(BaseSequentialStream *chp)
   PWMUpdateDrive(12,0);
 
   while(true) {
-    adcsample_t *vals = ReadADCs();
+    uint16_t *vals = ReadADCs();
     int nearest,n0,n1,n2;
     float angle = hallToAngleDebug(&vals[9],&nearest,&n0,&n1,&n2);
 
@@ -445,7 +481,7 @@ inline float mysqrtf(float op1)
    return (result);
 }
 
-float hallToAngle(adcsample_t *sensors)
+float hallToAngle(uint16_t *sensors)
 {
   int distTable[12];
   int phase = 0;
@@ -484,7 +520,7 @@ float hallToAngle(adcsample_t *sensors)
   return angle;
 }
 
-float hallToAngleDebug(adcsample_t *sensors,int *nearest,int *n0,int *n1,int *n2)
+float hallToAngleDebug(uint16_t *sensors,int *nearest,int *n0,int *n1,int *n2)
 {
   int distTable[12];
   int phase = 0;
