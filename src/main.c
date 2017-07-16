@@ -204,7 +204,7 @@ static void cmd_doPWM(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void)argc;
   chprintf(chp, "Initialise PWM... \r\n");
   InitPWM();
-  PWMCal(chp);
+  PWMCalSVM(chp);
 }
 
 static void cmd_doPWMStop(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -248,11 +248,6 @@ static void cmd_doADC(BaseSequentialStream *chp, int argc, char *argv[]) {
   }
 }
 
-extern uint16_t g_current[3];
-extern uint16_t g_hall[3];
-extern binary_semaphore_t g_adcInjectedDataReady;
-extern int g_adcInjCount;
-
 static void cmd_doPhase(BaseSequentialStream *chp, int argc, char *argv[]) {
   msg_t ret = MSG_OK;
   (void)argv;
@@ -273,9 +268,9 @@ static void cmd_doPhase(BaseSequentialStream *chp, int argc, char *argv[]) {
     }
     chprintf(chp, "%d : %d %d %d / %d %d %d \r\n",
         g_adcInjCount,
-        g_current[0],
-        g_current[1],
-        g_current[2],
+        g_currentADCValue[0],
+        g_currentADCValue[1],
+        g_currentADCValue[2],
         g_hall[0],
         g_hall[1],
         g_hall[2]

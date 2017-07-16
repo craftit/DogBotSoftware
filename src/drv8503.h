@@ -20,6 +20,7 @@ extern uint16_t Drv8503Test(void);
 
 // ------------------------------------------------------
 // Register 0xA : Shunt Amplifier Control
+#define DRV8503_REG_SHUNT_AMPLIFIER_CONTROL (0xAU)
 
 // Blanking
 #define DRV8503_CS_BLANK_OFF   (0U)

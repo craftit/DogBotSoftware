@@ -8,6 +8,8 @@
 #include "pwm.h"
 #include <math.h>
 #include "chprintf.h"
+#include "drv8503.h"
+
 
 #define SYSTEM_CORE_CLOCK               168000000
 #define TIM_1_8_PERIOD_CLOCKS (2047)
@@ -38,9 +40,6 @@ int InitPWM_ADC(void)
 
   return 0;
 }
-
-
-
 
 
 static bool g_pwmThreadRunning = false;
@@ -148,6 +147,9 @@ volatile bool g_pwmRun = true;
 #define CURRENT_MEAS_PERIOD ((float)(2*TIM_1_8_PERIOD_CLOCKS)/(float)TIM_1_8_CLOCK_HZ)
 
 float g_vbus_voltage = 12.0;
+float g_currentZeroOffset[3] = { 0,0,0} ;
+float g_current[3] = { 0,0,0} ;
+float g_shuntADCValue2Amps = 0.0;
 
 
 static void queue_modulation_timings(float mod_alpha, float mod_beta) {
@@ -196,16 +198,214 @@ static void scan_motor_loop(float omega, float voltage_magnitude) {
     }
 }
 
-extern binary_semaphore_t g_adcInjectedDataReady;
-extern uint16_t g_current[3];
-extern uint16_t g_hall[3];
 
+#if 0
+static float phase_current_from_adcval(Motor_t* motor, uint32_t ADCValue) {
+    int adcval_bal = (int)ADCValue - (1<<11);
+    float amp_out_volt = (3.3f/(float)(1<<12)) * (float)adcval_bal;
+    float shunt_volt = amp_out_volt * motor->phase_current_rev_gain;
+    float current = shunt_volt * motor->shunt_conductance;
+    return current;
+}
+#endif
+
+void ShuntCalibration(void)
+{
+  // Enable shunt calibration mode.
+
+  Drv8503SetRegister(DRV8503_REG_SHUNT_AMPLIFIER_CONTROL,
+      DRV8503_DC_CAL_CH1 |
+      DRV8503_DC_CAL_CH2 |
+      DRV8503_DC_CAL_CH3
+      );
+
+  float ampGain = 10.0; // V/V gain
+  float shuntResistance = 0.001;
+
+  g_shuntADCValue2Amps  = (3.3f/((float)(1<<12) * ampGain * shuntResistance));
+
+  // Wait a little for things to settle. Shouldn't need more than one,
+  // but paranoia rules.
+  for(int i = 0;i < 3;i++) {
+    chBSemWait(&g_adcInjectedDataReady);
+  }
+
+  // Make
+  for(int j = 0;j < 3;j++)
+    g_currentZeroOffset[j] = 0;
+
+  // Sample values.
+
+  float sums[3] = { 0,0,0 };
+  int samples = 8;
+  for(int i = 0;i < samples;i++) {
+    chBSemWait(&g_adcInjectedDataReady);
+    for(int j = 0;j < 3;j++)
+      sums[i] += ((float) g_currentADCValue[j]) * g_shuntADCValue2Amps ;
+  }
+
+  for(int j = 0;j < 3;j++)
+    g_currentZeroOffset[j] = sums[j] / (float) samples;
+
+  // Disable calibration mode.
+  Drv8503SetRegister(DRV8503_REG_SHUNT_AMPLIFIER_CONTROL,
+      0
+      );
+
+}
+
+
+
+
+static bool FOC_current(float Id_des, float Iq_des) {
+  //Current_control_t* ictrl = &motor->current_control;
+
+  // Clarke transform
+  // float Ialpha = -motor->current_meas.phB - motor->current_meas.phC;
+  //  float Ibeta = one_by_sqrt3 * (motor->current_meas.phB - motor->current_meas.phC);
+
+#if 0
+    // Park transform
+    float c = arm_cos_f32(motor->rotor.phase);
+    float s = arm_sin_f32(motor->rotor.phase);
+    float Id = c*Ialpha + s*Ibeta;
+    float Iq = c*Ibeta  - s*Ialpha;
+
+    // Current error
+    float Ierr_d = Id_des - Id;
+    float Ierr_q = Iq_des - Iq;
+
+    // TODO look into feed forward terms (esp omega, since PI pole maps to RL tau)
+    // Apply PI control
+    float Vd = ictrl->v_current_control_integral_d + Ierr_d * ictrl->p_gain;
+    float Vq = ictrl->v_current_control_integral_q + Ierr_q * ictrl->p_gain;
+
+    float vfactor = 1.0f / ((2.0f / 3.0f) * vbus_voltage);
+    float mod_d = vfactor * Vd;
+    float mod_q = vfactor * Vq;
+
+    // Vector modulation saturation, lock integrator if saturated
+    // TODO make maximum modulation configurable
+    float mod_scalefactor = 0.80f * sqrt3_by_2 * 1.0f/sqrtf(mod_d*mod_d + mod_q*mod_q);
+    if (mod_scalefactor < 1.0f)
+    {
+        mod_d *= mod_scalefactor;
+        mod_q *= mod_scalefactor;
+        // TODO make decayfactor configurable
+        ictrl->v_current_control_integral_d *= 0.99f;
+        ictrl->v_current_control_integral_q *= 0.99f;
+    } else {
+        ictrl->v_current_control_integral_d += Ierr_d * (ictrl->i_gain * CURRENT_MEAS_PERIOD);
+        ictrl->v_current_control_integral_q += Ierr_q * (ictrl->i_gain * CURRENT_MEAS_PERIOD);
+    }
+
+    // Compute estimated bus current
+    ictrl->Ibus = mod_d * Id + mod_q * Iq;
+
+    // If this is last motor, update brake resistor duty
+    // if (motor == &motors[num_motors-1]) {
+    // Above check doesn't work if last motor is executing voltage control
+    // TODO trigger this update in control_motor_loop instead,
+    // and make voltage control a control mode in it.
+        float Ibus_sum = 0.0f;
+        for (int i = 0; i < num_motors; ++i) {
+            Ibus_sum += motors[i].current_control.Ibus;
+        }
+        // Note: function will clip negative values to 0.0f
+        update_brake_current(-Ibus_sum);
+    // }
+
+    // Inverse park transform
+    float mod_alpha = c*mod_d - s*mod_q;
+    float mod_beta  = c*mod_q + s*mod_d;
+
+    // Apply SVM
+    queue_modulation_timings(motor, mod_alpha, mod_beta);
+
+    // Check we meet deadlines after queueing
+    if(!(check_timing(motor) < motor->control_deadline)){
+        motor->error = ERROR_FOC_TIMING;
+        return false;
+    }
+#endif
+    return true;
+}
+#if 0
+static void control_motor_loop(Motor_t* motor) {
+    while (motor->enable_control) {
+        if(osSignalWait(M_SIGNAL_PH_CURRENT_MEAS, PH_CURRENT_MEAS_TIMEOUT).status != osEventSignal){
+            motor->error = ERROR_FOC_MEASUREMENT_TIMEOUT;
+            break;
+        }
+        update_rotor(&motor->rotor);
+
+        // Position control
+        // TODO Decide if we want to use encoder or pll position here
+        float vel_des = motor->vel_setpoint;
+        if (motor->control_mode >= CTRL_MODE_POSITION_CONTROL) {
+            float pos_err = motor->pos_setpoint - motor->rotor.pll_pos;
+            vel_des += motor->pos_gain * pos_err;
+        }
+
+        // Velocity limiting
+        float vel_lim = motor->vel_limit;
+        if (vel_des >  vel_lim) vel_des =  vel_lim;
+        if (vel_des < -vel_lim) vel_des = -vel_lim;
+
+        // Velocity control
+        float Iq = motor->current_setpoint;
+        float v_err = vel_des - motor->rotor.pll_vel;
+        if (motor->control_mode >=  CTRL_MODE_VELOCITY_CONTROL) {
+            Iq += motor->vel_gain * v_err;
+        }
+
+        // Velocity integral action before limiting
+        Iq += motor->vel_integrator_current;
+
+        // Apply motor direction correction
+        Iq *= motor->rotor.motor_dir;
+
+        // Current limiting
+        float Ilim = motor->current_control.current_lim;
+        bool limited = false;
+        if (Iq > Ilim) {
+            limited = true;
+            Iq = Ilim;
+        }
+        if (Iq < -Ilim) {
+            limited = true;
+            Iq = -Ilim;
+        }
+
+        // Velocity integrator (behaviour dependent on limiting)
+        if (motor->control_mode < CTRL_MODE_VELOCITY_CONTROL ) {
+            // reset integral if not in use
+            motor->vel_integrator_current = 0.0f;
+        } else {
+            if (limited) {
+                // TODO make decayfactor configurable
+                motor->vel_integrator_current *= 0.99f;
+            } else {
+                motor->vel_integrator_current += (motor->vel_integrator_gain * CURRENT_MEAS_PERIOD) * v_err;
+            }
+        }
+
+        // Execute current command
+        if(!FOC_current(motor, 0.0f, Iq)){
+            break; // in case of error exit loop, motor->error has been set by FOC_current
+        }
+    }
+}
+#endif
 
 
 static THD_FUNCTION(ThreadPWM, arg) {
 
   (void)arg;
   chRegSetThreadName("pwm");
+
+  // This is quick, so may as well do it every time.
+  ShuntCalibration();
 
 #if 0
   scan_motor_loop(2.0,0.1);
@@ -221,15 +421,15 @@ static THD_FUNCTION(ThreadPWM, arg) {
     //float angle = hallToAngle(&vals[9]);
     chBSemWait(&g_adcInjectedDataReady);
     float angle = hallToAngle(g_hall);
-#if 1
+#if 0
     angle += 5.5;
     if(angle < 0) angle += 24.0;
     if(angle > 24) angle -= 24.0;
     int phase = angle / 2;
     PWMUpdateDrive(phase,500);
 #else
-    float pangle = angle * M_PI * 2.0 / 24.0;
-    //pangle += M_PI/2.0;
+    float pangle = angle;
+    pangle += M_PI/2.0;
     float voltage_magnitude = 0.1;
     float v_alpha = voltage_magnitude * arm_cos_f32(pangle);
     float v_beta  = voltage_magnitude * arm_sin_f32(pangle);
@@ -435,33 +635,85 @@ int PWMSVMScan(BaseSequentialStream *chp)
 
 }
 
+void DisplayAngle(BaseSequentialStream *chp);
+
 
 int PWMCal(BaseSequentialStream *chp)
 {
   palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
 
-
   for(int phase = 0;phase < 12;phase++) {
     PWMUpdateDrive(phase,200);
     chThdSleepMilliseconds(1000);
-    uint16_t *vals = ReadADCs();
-    g_phaseAngles[phase][0] = vals[9];
-    g_phaseAngles[phase][1] = vals[10];
-    g_phaseAngles[phase][2] = vals[11];
 
-    chprintf(chp, "Cal %d : %04d %04d %04d   \r\n",phase,vals[9],vals[10],vals[11]);
+    // Sync to avoid reading variables when they're being updated.
+    chBSemWait(&g_adcInjectedDataReady);
+
+    g_phaseAngles[phase][0] = g_hall[0];
+    g_phaseAngles[phase][1] = g_hall[1];
+    g_phaseAngles[phase][2] = g_hall[2];
+
+    chprintf(chp, "Cal %d : %04d %04d %04d   \r\n",phase,g_hall[0],g_hall[1],g_hall[2]);
   }
 
   PWMUpdateDrive(12,0);
 
+  palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
+  DisplayAngle(chp);
+  return 0;
+}
+
+int PWMCalSVM(BaseSequentialStream *chp)
+{
+  palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
+
+  float voltage_magnitude = 0.12;
+
+  for(int phase = 0;phase < 12*7;phase++) {
+    int phaseStep = phase % 12;
+    float phaseAngle = (float) phase * M_PI * 2.0 / 12.0;
+    float v_alpha = voltage_magnitude * arm_cos_f32(phaseAngle);
+    float v_beta  = voltage_magnitude * arm_sin_f32(phaseAngle);
+
+    queue_modulation_timings(v_alpha, v_beta);
+
+    // Wait for position to settle
+    chThdSleepMilliseconds(1000);
+
+    // Sync to avoid reading variables when they're being updated.
+    chBSemWait(&g_adcInjectedDataReady);
+
+    g_phaseAngles[phaseStep][0] += g_hall[0];
+    g_phaseAngles[phaseStep][1] += g_hall[1];
+    g_phaseAngles[phaseStep][2] += g_hall[2];
+
+    chprintf(chp, "Cal %d : %04d %04d %04d   \r\n",phase,g_hall[0],g_hall[1],g_hall[2]);
+  }
+
+  for(int i = 0;i < 12;i++) {
+    g_phaseAngles[i][0] /= 7;
+    g_phaseAngles[i][1] /= 7;
+    g_phaseAngles[i][2] /= 7;
+    chprintf(chp, "Cal %d : %04d %04d %04d   \r\n",
+        i,g_phaseAngles[i][0],g_phaseAngles[i][1],g_phaseAngles[i][2]);
+  }
+  PWMUpdateDrive(12,0);
+
+  palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
+  //DisplayAngle(chp);
+  return 0;
+}
+
+void DisplayAngle(BaseSequentialStream *chp)
+{
   while(true) {
-    uint16_t *vals = ReadADCs();
     int nearest,n0,n1,n2;
-    float angle = hallToAngleDebug(&vals[9],&nearest,&n0,&n1,&n2);
+    float angle = hallToAngleDebug(g_hall,&nearest,&n0,&n1,&n2);
 
     int phase = angle * 10;
 
-    chprintf(chp, "Read %4d : %04d %04d %04d  Ne:%d n0:%d n1:%d n2:%d \r\n",phase,vals[9],vals[10],vals[11],nearest,n0,n1,n2);
+    chprintf(chp, "Read %4d : %04d %04d %04d  Ne:%d n0:%d n1:%d n2:%d \r\n",
+        phase,g_hall[0],g_hall[1],g_hall[2],nearest,n0,n1,n2);
     chThdSleepMilliseconds(50);
 
     if (!palReadPad(GPIOB, GPIOA_PIN2)) {
@@ -469,10 +721,7 @@ int PWMCal(BaseSequentialStream *chp)
     }
   }
 
-  palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
-  return 0;
 }
-
 
 inline int sqr(int val)
 {
@@ -523,9 +772,9 @@ float hallToAngle(uint16_t *sensors)
     float nextDist = mysqrtf(nextDist2);
     angle += nearDist / (nextDist + nearDist);
   }
-  //if(angle < 0) angle += 24;
-  //if(angle > 24) angle -= 24;
-  return angle;
+  if(angle < 0.0) angle += 24.0;
+  if(angle > 24.0) angle -= 24.0;
+  return angle * M_PI * 2.0 / 24.0;
 }
 
 float hallToAngleDebug(uint16_t *sensors,int *nearest,int *n0,int *n1,int *n2)
@@ -566,9 +815,9 @@ float hallToAngleDebug(uint16_t *sensors,int *nearest,int *n0,int *n1,int *n2)
     float nextDist = mysqrtf(nextDist2);
     angle += nearDist / (nextDist + nearDist);
   }
-  //if(angle < 0) angle += 24;
-  //if(angle > 24) angle -= 24;
-  return angle;
+  if(angle < 0.0) angle += 24.0;
+  if(angle > 24.0) angle -= 24.0;
+  return angle * M_PI * 2.0 / 24.0;
 }
 
 
