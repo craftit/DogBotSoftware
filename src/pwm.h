@@ -23,5 +23,11 @@ extern float g_currentZeroOffset[3];
 extern uint16_t g_hall[3];
 extern int g_adcInjCount;
 
+extern int g_phaseAngles[12][3];
+
+extern float g_current[3];
+extern float g_phaseAngle;
+extern float g_current_Ibus;
+
 
 #endif

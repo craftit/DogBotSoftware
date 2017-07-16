@@ -23,6 +23,8 @@
 #include "usbcfg.h"
 #include "pwm.h"
 #include "drv8503.h"
+#include "eeprom.h"
+#include "storedconf.h"
 
 /*
  * This is a periodic thread that does absolutely nothing except flashing
@@ -49,6 +51,7 @@ static THD_FUNCTION(Thread1, arg) {
 #include "ch.h"
 #include "hal.h"
 #include "test.h"
+#include "storedconf.h"
 
 #include "shell.h"
 #include "chprintf.h"
@@ -202,7 +205,7 @@ static void cmd_doScan(BaseSequentialStream *chp, int argc, char *argv[]) {
 static void cmd_doPWM(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void)argv;
   (void)argc;
-  chprintf(chp, "Initialise PWM... \r\n");
+  chprintf(chp, "Initialise PWM and calibrate... \r\n");
   InitPWM();
   PWMCalSVM(chp);
 }
@@ -226,6 +229,13 @@ static void cmd_doPWMInit(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void)argc;
   chprintf(chp, "Init PWM... \r\n");
   InitPWM();
+
+  chprintf(chp, "Shunt zero %d %d %d \r\n",
+      (int) (g_currentZeroOffset[0] * 100.0),
+      (int) (g_currentZeroOffset[1] * 100.0),
+      (int) (g_currentZeroOffset[2] * 100.0)
+  );
+
 }
 
 static void cmd_doADC(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -282,6 +292,88 @@ static void cmd_doPhase(BaseSequentialStream *chp, int argc, char *argv[]) {
   }
 }
 
+bool g_eeInitDone = false;
+struct StoredConfigT g_storedConfig;
+
+static void cmd_eeInit(BaseSequentialStream *chp, int argc, char *argv[])
+{
+  (void)argv;
+  (void)argc;
+  if(!g_eeInitDone) {
+    chprintf(chp, "Init starting \r\n");
+    StoredConf_Init();
+  }
+  chprintf(chp, "Init done \r\n");
+}
+
+static void cmd_eeLoad(BaseSequentialStream *chp, int argc, char *argv[])
+{
+  (void)argv;
+  (void)argc;
+  uint16_t ret = 0;
+  if(!g_eeInitDone) {
+    chprintf(chp, "Init starting \r\n");
+    StoredConf_Init();
+    g_eeInitDone = true;
+  }
+  chprintf(chp, "Init complete \r\n");
+
+  if(!StoredConf_Load(&g_storedConfig)) {
+    chprintf(chp, "No stored configuration found \r\n",(int) ret);
+  }
+  for(int i = 0;i < 12;i++) {
+    g_phaseAngles[i][0] = g_storedConfig.phaseAngles[i][0];
+    g_phaseAngles[i][1] = g_storedConfig.phaseAngles[i][1];
+    g_phaseAngles[i][2] = g_storedConfig.phaseAngles[i][2];
+    chprintf(chp, "Phase: %d %d %d \r\n",g_phaseAngles[i][0],g_phaseAngles[i][1],g_phaseAngles[i][2]);
+  }
+
+  chprintf(chp, "Initalised system ok %d \r\n",(int) g_storedConfig.controllerId);
+}
+
+static void cmd_eeSave(BaseSequentialStream *chp, int argc, char *argv[])
+{
+  (void)argv;
+  (void)argc;
+  uint16_t ret = 0;
+  if(!g_eeInitDone) {
+    StoredConf_Init();
+    g_eeInitDone = true;
+  }
+  g_storedConfig.configState = 1;
+  g_storedConfig.controllerId = 2;
+  for(int i = 0;i < 12;i++) {
+    g_storedConfig.phaseAngles[i][0] = g_phaseAngles[i][0];
+    g_storedConfig.phaseAngles[i][1] = g_phaseAngles[i][1];
+    g_storedConfig.phaseAngles[i][2] = g_phaseAngles[i][2];
+  }
+  if(!StoredConf_Save(&g_storedConfig)) {
+    chprintf(chp, "No stored configuration found \r\n",(int) ret);
+    return ;
+  }
+
+}
+
+static void cmd_doDump(BaseSequentialStream *chp, int argc, char *argv[]) {
+  (void)argv;
+  (void)argc;
+  chprintf(chp, "Dump \r\n");
+  //for(int i = 0;i < 2;i++)
+  while(true)
+  {
+    chprintf(chp, "%d %d %d - Angle: %d  Current: %d  \r\n",
+        (int) (g_current[0] * 1000.0),
+        (int) (g_current[1] * 1000.0),
+        (int) (g_current[2] * 1000.0),
+        (int) (g_phaseAngle * 1000.0),
+        (int) (g_current_Ibus * 1000.0)
+        );
+    chThdSleepMilliseconds(20);
+    if (!palReadPad(GPIOB, GPIOA_PIN2)) {
+      break;
+    }
+  }
+}
 
 static const ShellCommand commands[] = {
   {"mem", cmd_mem},
@@ -297,6 +389,10 @@ static const ShellCommand commands[] = {
   {"run", cmd_doPWMRun},
   {"adc", cmd_doADC},
   {"phase",cmd_doPhase},
+  {"eeinit",cmd_eeInit},
+  {"load",cmd_eeLoad},
+  {"save",cmd_eeSave},
+  {"dump",cmd_doDump},
   {NULL, NULL}
 };
 
@@ -334,6 +430,10 @@ int main(void) {
   InitUSB();
 
   Drv8503Init();
+
+  g_eeInitDone = true;
+  StoredConf_Init();
+  StoredConf_Load(&g_storedConfig);
 
   /*
    * Shell manager initialization.

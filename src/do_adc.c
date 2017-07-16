@@ -82,7 +82,6 @@ int16_t g_currentADCValue[3];
 uint16_t g_hall[3];
 int g_adcInjCount = 0;
 
-bool g_pinToggle = false;
 
 BSEMAPHORE_DECL(g_adcInjectedDataReady,0);
 BSEMAPHORE_DECL(g_adcDataReady,0);
@@ -92,19 +91,12 @@ OSAL_IRQ_HANDLER(STM32_ADC_HANDLER) {
 
   OSAL_IRQ_PROLOGUE();
 
-  if(g_pinToggle) {
-    palSetPad(GPIOB, GPIOB_PIN12); // on
-    g_pinToggle = false;
-  } else {
-    palClearPad(GPIOB, GPIOB_PIN12); // off
-    g_pinToggle = true;
-  }
 
 #if 1
   int count  = 0;
   if(ADC_GetITStatus(ADC1, ADC_IT_JEOC) == SET) {
     ADC_ClearITPendingBit(ADC1, ADC_IT_JEOC);
-    g_currentADCValue[0] = ADC_GetInjectedConversionValue(ADC1,ADC_InjectedChannel_1);
+    g_currentADCValue[2] = ADC_GetInjectedConversionValue(ADC1,ADC_InjectedChannel_1);
     g_hall[0] = ADC_GetInjectedConversionValue(ADC1,ADC_InjectedChannel_2);
     count++;
   }
@@ -118,7 +110,7 @@ OSAL_IRQ_HANDLER(STM32_ADC_HANDLER) {
 
   if(ADC_GetITStatus(ADC3, ADC_IT_JEOC) == SET) {
     ADC_ClearITPendingBit(ADC3, ADC_IT_JEOC);
-    g_currentADCValue[2] = ADC_GetInjectedConversionValue(ADC3,ADC_InjectedChannel_1);
+    g_currentADCValue[0] = ADC_GetInjectedConversionValue(ADC3,ADC_InjectedChannel_1);
     g_hall[2] = ADC_GetInjectedConversionValue(ADC3,ADC_InjectedChannel_2);
     count++;
   }

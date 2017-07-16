@@ -103,7 +103,11 @@ include $(CHIBIOS)/os/rt/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
 include $(CHIBIOS)/test/rt/test.mk
 
 # Define linker script file here
-LDSCRIPT= $(STARTUPLD)/STM32F405xG.ld
+#LDSCRIPT= $(STARTUPLD)/STM32F405xG.ld
+
+# Define linker script file here
+#LDSCRIPT= ld_eeprom_emu.ld
+LDSCRIPT= STM32F405xG.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -125,9 +129,12 @@ CSRC = $(STARTUPSRC) \
 		   drv8503.c \
        do_pwm.c \
        svm.c \
+       eeprom.c \
+       storedconf.c \
        $(STDPERIPH)/src/stm32f4xx_tim.c \
        $(STDPERIPH)/src/stm32f4xx_rcc.c \
        $(STDPERIPH)/src/stm32f4xx_adc.c \
+       $(STDPERIPH)/src/stm32f4xx_flash.c \
        $(STDPERIPH)/src/misc.c \
  			
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
