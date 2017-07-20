@@ -130,6 +130,7 @@ OSAL_IRQ_HANDLER(STM32_ADC_HANDLER) {
 
   if(count > 0) {
     g_adcInjCount = count;
+    palSetPad(GPIOB, GPIOB_PIN12); // Flag data captured
     chBSemSignalI(&g_adcInjectedDataReady);
   }
 #endif

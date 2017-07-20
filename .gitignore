@@ -1,5 +1,8 @@
 build
 .dep
+.project
+.cproject
+.DS_Store
 
 # Compiled Object files
 *.slo

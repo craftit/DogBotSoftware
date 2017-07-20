@@ -354,8 +354,18 @@ static void compute_state(void)
 #endif
 
   // Compute motor currents;
-  for(int i = 0;i < 3;i++)
-    g_current[i] = ((float) g_currentADCValue[i] * g_shuntADCValue2Amps) - g_currentZeroOffset[i];
+  // Make sure they sum to zero
+  float sum = 0;
+  float tmpCurrent[3];
+  for(int i = 0;i < 3;i++) {
+    float c = ((float) g_currentADCValue[i] * g_shuntADCValue2Amps) - g_currentZeroOffset[i];
+    tmpCurrent[i] = c;
+    sum += c;
+  }
+  sum /= 3.0f;
+  for(int i = 0;i < 3;i++) {
+    g_current[i] = tmpCurrent[i] - sum;
+  }
 
   // Compute current phase angle
   g_phaseAngle = hallToAngle(g_hall);
@@ -368,7 +378,6 @@ static void control_motor_loop() {
     while (g_pwmRun) {
       palClearPad(GPIOB, GPIOB_PIN12); // off
       chBSemWait(&g_adcInjectedDataReady);
-      palSetPad(GPIOB, GPIOB_PIN12); // on
 
       compute_state();
 
