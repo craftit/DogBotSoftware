@@ -46,6 +46,7 @@ static THD_FUNCTION(Thread1, arg) {
 
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "ch.h"
@@ -375,6 +376,35 @@ static void cmd_doDump(BaseSequentialStream *chp, int argc, char *argv[]) {
   }
 }
 
+static void cmd_doSet(BaseSequentialStream *chp, int argc, char *argv[]) {
+  (void)argv;
+  (void)argc;
+  if(argc != 2) {
+    chprintf(chp, "set {torque,position,velocity,mode} value \r\n");
+    return ;
+  }
+  chprintf(chp, "Args %s %s \r\n",argv[0],argv[1]);
+
+  if(strcmp("torque",argv[0]) == 0 || strcmp("t",argv[0]) == 0) {
+    int val = atoi(argv[1]);
+    g_demandTorque = val / 100.0f;
+    chprintf(chp, "Setting torque to %d \r\n",val);
+  }
+
+  if(strcmp("mode",argv[0]) == 0 || strcmp("m",argv[0]) == 0) {
+
+    if(strcmp("t",argv[1]) == 0) {
+      g_controlMode = CM_Torque;
+    }
+    if(strcmp("i",argv[1]) == 0) {
+      g_controlMode = CM_Idle;
+    }
+
+    chprintf(chp, "Setting mode to %d \r\n",(int) g_controlMode);
+  }
+
+}
+
 static const ShellCommand commands[] = {
   {"mem", cmd_mem},
   {"threads", cmd_threads},
@@ -393,6 +423,7 @@ static const ShellCommand commands[] = {
   {"load",cmd_eeLoad},
   {"save",cmd_eeSave},
   {"dump",cmd_doDump},
+  {"set",cmd_doSet },
   {NULL, NULL}
 };
 

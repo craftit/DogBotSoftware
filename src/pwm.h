@@ -30,4 +30,18 @@ extern float g_phaseAngle;
 extern float g_current_Ibus;
 
 
+extern float g_demandPhasePosition;
+extern float g_demandPhaseVelocity;
+extern float g_demandTorque;
+
+enum ControlModeT {
+  CM_Idle,
+  CM_Break,
+  CM_Torque,
+  CM_Velocity,
+  CM_Position
+} ;
+
+extern enum ControlModeT g_controlMode;
+
 #endif
