@@ -362,13 +362,20 @@ static void cmd_doDump(BaseSequentialStream *chp, int argc, char *argv[]) {
   //for(int i = 0;i < 2;i++)
   while(true)
   {
-    chprintf(chp, "%d %d %d - Angle: %d  Current: %d  \r\n",
+#if 0
+    chprintf(chp, "%d %d %d - Angle: %d  Current: %d \r\n",
         (int) (g_current[0] * 1000.0),
         (int) (g_current[1] * 1000.0),
         (int) (g_current[2] * 1000.0),
         (int) (g_phaseAngle * 1000.0),
         (int) (g_current_Ibus * 1000.0)
         );
+#else
+    chprintf(chp, "Pos count %d  Position %d  Velocity %d \r",
+            g_phaseRotationCount,
+            (int)(g_currentPhasePosition * 1000.0),
+            (int)(g_currentPhaseVelocity * 1000.0));
+#endif
     chThdSleepMilliseconds(20);
     if (!palReadPad(GPIOB, GPIOA_PIN2)) {
       break;
@@ -380,19 +387,60 @@ static void cmd_doSet(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void)argv;
   (void)argc;
   if(argc != 2) {
-    chprintf(chp, "set {torque,position,velocity,mode} value \r\n");
+    chprintf(chp, "set {torque,position,velocity,mode,pos_gain,vel_gain,vel_filt} value \r\n");
     return ;
   }
   chprintf(chp, "Args %s %s \r\n",argv[0],argv[1]);
 
   if(strcmp("torque",argv[0]) == 0 || strcmp("t",argv[0]) == 0) {
     int val = atoi(argv[1]);
-    g_demandTorque = val / 100.0f;
+    g_demandTorque = (float) val / 1000.0f;
     chprintf(chp, "Setting torque to %d \r\n",val);
   }
+  if(strcmp("velocity",argv[0]) == 0 || strcmp("v",argv[0]) == 0) {
+    int val = atoi(argv[1]);
+    g_demandPhaseVelocity = (float) val / 1000.0f;
+    chprintf(chp, "Setting velocity to %d \r\n",val);
+  }
+  if(strcmp("position",argv[0]) == 0 || strcmp("p",argv[0]) == 0) {
+    int val = atoi(argv[1]);
+    g_demandPhasePosition = (float) val / 10.0f;
+    chprintf(chp, "Setting position to %d \r\n",val);
+  }
+
+  if(strcmp("pos_gain",argv[0]) == 0 || strcmp("pg",argv[0]) == 0) {
+    int val = atoi(argv[1]);
+    g_positionGain = (float) val / 1000.0f;
+    chprintf(chp, "Setting position gain to %d \r\n",val);
+  }
+
+  if(strcmp("vel_gain",argv[0]) == 0 || strcmp("vg",argv[0]) == 0) {
+    int val = atoi(argv[1]);
+    g_velocityGain = (float) val / 1000.0f;
+    chprintf(chp, "Setting velocity gain to %d \r\n",val);
+  }
+
+  if(strcmp("vel_filt",argv[0]) == 0 || strcmp("vf",argv[0]) == 0) {
+    int val = atoi(argv[1]);
+    g_velocityFilter = (float) val;
+    chprintf(chp, "Setting velocity filter to %d \r\n",val);
+  }
+
+
+  if(strcmp("torque_limit",argv[0]) == 0 || strcmp("tl",argv[0]) == 0) {
+    int val = atoi(argv[1]);
+    g_torqueLimit = (float) val / 1000.0;
+    chprintf(chp, "Setting torque limit to %d \r\n",val);
+  }
+
 
   if(strcmp("mode",argv[0]) == 0 || strcmp("m",argv[0]) == 0) {
-
+    if(strcmp("p",argv[1]) == 0) {
+      g_controlMode = CM_Position;
+    }
+    if(strcmp("v",argv[1]) == 0) {
+      g_controlMode = CM_Velocity;
+    }
     if(strcmp("t",argv[1]) == 0) {
       g_controlMode = CM_Torque;
     }

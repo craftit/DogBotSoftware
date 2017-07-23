@@ -22,7 +22,6 @@ float g_vbus_voltage = 12.0;
 float g_currentZeroOffset[3] = { 0,0,0 } ;
 float g_current[3] = { 0,0,0} ;
 float g_phaseAngle = 0 ;
-float g_phaseVelocity = 0;
 
 float g_current_Ibus = 0;
 float g_motor_p_gain = 0.0025;
@@ -192,6 +191,10 @@ float g_demandTorque = 0;
 int g_phaseRotationCount = 0;
 float g_currentPhasePosition = 0;
 float g_currentPhaseVelocity = 0;
+float g_velocityGain = 0.01;
+float g_velocityFilter = 8.0;
+float g_positionGain = 0.01;
+float g_torqueLimit = 0.4;
 
 enum ControlModeT g_controlMode = CM_Idle;
 
@@ -232,10 +235,26 @@ static void ComputeState(void)
   g_currentPhasePosition = (float) g_phaseRotationCount * 2 * M_PI + g_phaseAngle;
 
   // Velocity estimate, filtered a little.
-  g_currentPhaseVelocity = g_currentPhaseVelocity * 3.0 + angleDiff * CURRENT_MEAS_PERIOD;
+  g_currentPhaseVelocity = (g_currentPhaseVelocity * (g_velocityFilter-1.0) + angleDiff / CURRENT_MEAS_PERIOD)/g_velocityFilter;
 
 }
 
+static void SetTorque(float torque) {
+  float voltage_magnitude = torque;
+
+  if(voltage_magnitude > g_torqueLimit)
+    voltage_magnitude = g_torqueLimit;
+  if(voltage_magnitude < -g_torqueLimit)
+    voltage_magnitude = -g_torqueLimit;
+
+  // Apply velocity limits ?
+
+  float pangle = g_phaseAngle;
+  pangle -= M_PI/2.0;
+  float v_alpha = voltage_magnitude * arm_cos_f32(pangle);
+  float v_beta  = voltage_magnitude * arm_sin_f32(pangle);
+  queue_modulation_timings(v_alpha, v_beta);
+}
 
 static void MotorControlLoop(void) {
 
@@ -261,24 +280,16 @@ static void MotorControlLoop(void) {
           break;
         case CM_Position: {
           float positionError = g_demandPhasePosition - g_currentPhasePosition;
-          targetVelocity = positionError * 0.1; // Need to put in a PID controller
-        }
-        /* no break */
+          torque = -positionError * g_positionGain; // Need to put in a PID controller
+          SetTorque(torque);
+        } break;
         case CM_Velocity: {
           float velocityError = targetVelocity - g_currentPhaseVelocity;
-          torque = velocityError * 0.1; // Need to put in a PID controller
+          torque = velocityError * g_velocityGain; // Need to put in a PID controller
         }
         /* no break */
         case CM_Torque: {
-          float voltage_magnitude = torque;
-
-          // Apply velocity limits ?
-
-          float pangle = g_phaseAngle;
-          pangle -= M_PI/2.0;
-          float v_alpha = voltage_magnitude * arm_cos_f32(pangle);
-          float v_beta  = voltage_magnitude * arm_sin_f32(pangle);
-          queue_modulation_timings(v_alpha, v_beta);
+          SetTorque(torque);
         } break;
       }
 

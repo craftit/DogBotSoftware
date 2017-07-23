@@ -29,10 +29,18 @@ extern float g_current[3];
 extern float g_phaseAngle;
 extern float g_current_Ibus;
 
-
 extern float g_demandPhasePosition;
 extern float g_demandPhaseVelocity;
 extern float g_demandTorque;
+
+extern float g_velocityGain;
+extern float g_velocityFilter;
+extern float g_positionGain;
+extern float g_torqueLimit;
+
+extern int g_phaseRotationCount;
+extern float g_currentPhasePosition;
+extern float g_currentPhaseVelocity;
 
 enum ControlModeT {
   CM_Idle,
