@@ -36,11 +36,20 @@ extern float g_demandTorque;
 extern float g_velocityGain;
 extern float g_velocityFilter;
 extern float g_positionGain;
+extern float g_positionIGain;
+extern float g_positionIClamp;
+
 extern float g_torqueLimit;
 
 extern int g_phaseRotationCount;
 extern float g_currentPhasePosition;
 extern float g_currentPhaseVelocity;
+
+extern float g_motor_p_gain;
+extern float g_motor_i_gain;
+
+extern float g_Id;
+extern float g_Iq;
 
 enum ControlModeT {
   CM_Idle,

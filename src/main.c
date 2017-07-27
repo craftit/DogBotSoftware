@@ -277,7 +277,7 @@ static void cmd_doPhase(BaseSequentialStream *chp, int argc, char *argv[]) {
       chprintf(chp, "Reset");
       break;
     }
-    chprintf(chp, "%d : %d %d %d / %d %d %d \r\n",
+    chprintf(chp, "%2d : %4d %4d %4d / %4d %4d %4d \r",
         g_adcInjCount,
         g_currentADCValue[0],
         g_currentADCValue[1],
@@ -358,24 +358,31 @@ static void cmd_eeSave(BaseSequentialStream *chp, int argc, char *argv[])
 static void cmd_doDump(BaseSequentialStream *chp, int argc, char *argv[]) {
   (void)argv;
   (void)argc;
+  bool isAngle = false;
+  if(argc == 1) {
+    if(*argv[0] == 'a')
+      isAngle = true;
+  }
   chprintf(chp, "Dump \r\n");
   //for(int i = 0;i < 2;i++)
   while(true)
   {
-#if 0
-    chprintf(chp, "%d %d %d - Angle: %d  Current: %d \r\n",
+    if(isAngle) {
+      chprintf(chp, " Iq:%4d Id:%4d   %4d %4d %4d - Angle: %5d  Current: %d \r",
+        (int) (g_Iq * 1000.0),
+        (int) (g_Id * 1000.0),
         (int) (g_current[0] * 1000.0),
         (int) (g_current[1] * 1000.0),
         (int) (g_current[2] * 1000.0),
         (int) (g_phaseAngle * 1000.0),
         (int) (g_current_Ibus * 1000.0)
         );
-#else
-    chprintf(chp, "Pos count %d  Position %d  Velocity %d \r",
+    } else {
+      chprintf(chp, "Pos count %d  Position %d  Velocity %d \r",
             g_phaseRotationCount,
             (int)(g_currentPhasePosition * 1000.0),
             (int)(g_currentPhaseVelocity * 1000.0));
-#endif
+    }
     chThdSleepMilliseconds(20);
     if (!palReadPad(GPIOB, GPIOA_PIN2)) {
       break;
@@ -433,6 +440,29 @@ static void cmd_doSet(BaseSequentialStream *chp, int argc, char *argv[]) {
     chprintf(chp, "Setting torque limit to %d \r\n",val);
   }
 
+  if(strcmp("pos_igain",argv[0]) == 0 || strcmp("pi",argv[0]) == 0) {
+    int val = atoi(argv[1]);
+    g_positionIGain = (float) val / 1000.0;
+    chprintf(chp, "Setting position gain to %d \r\n",val);
+  }
+
+  if(strcmp("pos_iclamp",argv[0]) == 0 || strcmp("pic",argv[0]) == 0) {
+    int val = atoi(argv[1]);
+    g_positionIClamp = (float) val / 1000.0;
+    chprintf(chp, "Setting position integral clamp to %d \r\n",val);
+  }
+
+  if(strcmp("motor_p_gain",argv[0]) == 0 || strcmp("mp",argv[0]) == 0) {
+    int val = atoi(argv[1]);
+    g_motor_p_gain = (float) val / 1000.0;
+    chprintf(chp, "Setting motor p gain to %d \r\n",val);
+  }
+
+  if(strcmp("motor_i_gain",argv[0]) == 0 || strcmp("mi",argv[0]) == 0) {
+    int val = atoi(argv[1]);
+    g_motor_i_gain = (float) val / 1000.0;
+    chprintf(chp, "Setting motor i gain to %d \r\n",val);
+  }
 
   if(strcmp("mode",argv[0]) == 0 || strcmp("m",argv[0]) == 0) {
     if(strcmp("p",argv[1]) == 0) {
@@ -509,6 +539,7 @@ int main(void) {
   InitUSB();
 
   Drv8503Init();
+
 
   g_eeInitDone = true;
   StoredConf_Init();

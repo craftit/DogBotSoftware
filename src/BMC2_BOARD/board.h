@@ -355,8 +355,8 @@
                                      PIN_ODR_HIGH(GPIOA_PIN15))
 #define VAL_GPIOA_AFRL              (PIN_AFIO_AF(GPIOA_PIN0, 0U) |          \
                                      PIN_AFIO_AF(GPIOA_PIN1, 0U) |          \
-                                     PIN_AFIO_AF(GPIOA_PIN2, 7U) |      \
-                                     PIN_AFIO_AF(GPIOA_PIN3, 7U) |      \
+                                     PIN_AFIO_AF(GPIOA_PIN2, 0U) |      \
+                                     PIN_AFIO_AF(GPIOA_PIN3, 0U) |      \
                                      PIN_AFIO_AF(GPIOA_PIN4, 0U) |          \
                                      PIN_AFIO_AF(GPIOA_PIN5, 0U) |     \
                                      PIN_AFIO_AF(GPIOA_PIN6, 0U) |          \

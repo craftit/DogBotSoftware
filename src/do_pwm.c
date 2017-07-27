@@ -24,7 +24,7 @@ float g_current[3] = { 0,0,0} ;
 float g_phaseAngle = 0 ;
 
 float g_current_Ibus = 0;
-float g_motor_p_gain = 0.0025;
+float g_motor_p_gain = 0.8;
 float g_motor_i_gain = 0.0;
 
 int g_phaseAngles[12][3];
@@ -75,7 +75,6 @@ static void scan_motor_loop(float omega, float voltage_magnitude) {
 
 void ShuntCalibration(void)
 {
-  palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
   // Enable shunt calibration mode.
 
   Drv8503SetRegister(DRV8503_REG_SHUNT_AMPLIFIER_CONTROL,
@@ -128,9 +127,6 @@ static bool FOC_current(float Id_des, float Iq_des) {
   //Current_control_t* ictrl = &motor->current_control;
 
   // Clarke transform
-  // float Ialpha = -motor->current_meas.phB - motor->current_meas.phC;
-  //  float Ibeta = one_by_sqrt3 * (motor->current_meas.phB - motor->current_meas.phC);
-
   float Ialpha = -g_current[1] - g_current[2];
   float Ibeta = one_by_sqrt3 * (g_current[1] - g_current[2]);
 
@@ -139,6 +135,10 @@ static bool FOC_current(float Id_des, float Iq_des) {
   float s = arm_sin_f32(g_phaseAngle);
   float Id = c*Ialpha + s*Ibeta;
   float Iq = c*Ibeta  - s*Ialpha;
+
+  // Publish them for debugging
+  g_Id = Id;
+  g_Iq = Iq;
 
   // Current error
   float Ierr_d = Id_des - Id;
@@ -193,27 +193,18 @@ float g_currentPhasePosition = 0;
 float g_currentPhaseVelocity = 0;
 float g_velocityGain = 0.01;
 float g_velocityFilter = 8.0;
-float g_positionGain = 0.01;
+float g_positionGain = 0.1;
 float g_torqueLimit = 0.4;
+float g_positionIGain = 0.1;
+float g_positionIClamp = 5.0;
+float g_positionISum = 0.0;
+float g_Id = 0.0;
+float g_Iq = 0.0;
 
 enum ControlModeT g_controlMode = CM_Idle;
 
 static void ComputeState(void)
 {
-  // Compute motor currents;
-  // Make sure they sum to zero
-  float sum = 0;
-  float tmpCurrent[3];
-  for(int i = 0;i < 3;i++) {
-    float c = ((float) g_currentADCValue[i] * g_shuntADCValue2Amps) - g_currentZeroOffset[i];
-    tmpCurrent[i] = c;
-    sum += c;
-  }
-  sum /= 3.0f;
-  for(int i = 0;i < 3;i++) {
-    g_current[i] = tmpCurrent[i] - sum;
-  }
-
   // Compute current phase angle
   float lastAngle = g_phaseAngle;
 
@@ -237,9 +228,45 @@ static void ComputeState(void)
   // Velocity estimate, filtered a little.
   g_currentPhaseVelocity = (g_currentPhaseVelocity * (g_velocityFilter-1.0) + angleDiff / CURRENT_MEAS_PERIOD)/g_velocityFilter;
 
+  // Compute motor currents;
+  // Make sure they sum to zero
+  float sum = 0;
+  float tmpCurrent[3];
+  for(int i = 0;i < 3;i++) {
+    float c = ((float) g_currentADCValue[i] * g_shuntADCValue2Amps) - g_currentZeroOffset[i];
+    tmpCurrent[i] = c;
+    sum += c;
+  }
+  sum /= 3.0f;
+  for(int i = 0;i < 3;i++) {
+    g_current[i] = tmpCurrent[i] - sum;
+  }
+
+#if 0
+  {
+    float Ialpha = -g_current[1] - g_current[2];
+    float Ibeta = one_by_sqrt3 * (g_current[1] - g_current[2]);
+
+    // Park transform
+    float c = arm_cos_f32(g_phaseAngle);
+    float s = arm_sin_f32(g_phaseAngle);
+    g_Id = c*Ialpha + s*Ibeta;
+    g_Iq = c*Ibeta  - s*Ialpha;
+  }
+#endif
 }
 
 static void SetTorque(float torque) {
+
+#if 1
+  if(torque > g_torqueLimit)
+    torque = g_torqueLimit;
+  if(torque < -g_torqueLimit)
+    torque = -g_torqueLimit;
+
+  FOC_current(0,-torque);
+#else
+
   float voltage_magnitude = torque;
 
   if(voltage_magnitude > g_torqueLimit)
@@ -254,6 +281,7 @@ static void SetTorque(float torque) {
   float v_alpha = voltage_magnitude * arm_cos_f32(pangle);
   float v_beta  = voltage_magnitude * arm_sin_f32(pangle);
   queue_modulation_timings(v_alpha, v_beta);
+#endif
 }
 
 static void MotorControlLoop(void) {
@@ -265,11 +293,12 @@ static void MotorControlLoop(void) {
       ComputeState();
 
       float torque = g_demandTorque;
-      float targetVelocity = g_demandPhaseVelocity;
+      //float targetVelocity = g_demandPhaseVelocity;
+      float targetPosition = g_demandPhasePosition;
 
       switch(g_controlMode)
       {
-        case CM_Idle: // Maybe turn off the mosfets ?
+        case CM_Idle: // Maybe turn off the MOSFETS ?
         case CM_Break:
           // Just turn everything off, this will passively break the motor
           PWMUpdateDrivePhase(
@@ -278,74 +307,23 @@ static void MotorControlLoop(void) {
               TIM_1_8_PERIOD_CLOCKS/2
               );
           break;
-        case CM_Position: {
-          float positionError = g_demandPhasePosition - g_currentPhasePosition;
-          torque = -positionError * g_positionGain; // Need to put in a PID controller
-          SetTorque(torque);
-        } break;
         case CM_Velocity: {
-          float velocityError = targetVelocity - g_currentPhaseVelocity;
-          torque = velocityError * g_velocityGain; // Need to put in a PID controller
+          g_demandPhasePosition += g_demandPhaseVelocity * CURRENT_MEAS_PERIOD;
+          targetPosition = g_demandPhasePosition;
         }
         /* no break */
+        case CM_Position: {
+          float positionError = targetPosition - g_currentPhasePosition;
+          g_positionISum += positionError * CURRENT_MEAS_PERIOD;
+          if(g_positionISum > g_positionIClamp)  g_positionISum = g_positionIClamp;
+          if(g_positionISum < -g_positionIClamp) g_positionISum = -g_positionIClamp;
+          torque = -positionError * g_positionGain + -g_positionISum * g_positionIGain;
+          SetTorque(torque);
+        } break;
         case CM_Torque: {
           SetTorque(torque);
         } break;
       }
-
-
-
-#if 0
-      // Velocity limiting
-      float vel_lim = 10;
-      if (vel_des >  vel_lim) vel_des =  vel_lim;
-      if (vel_des < -vel_lim) vel_des = -vel_lim;
-
-      // Velocity control
-      float Iq = 0.2;
-
-      float v_err = vel_des - motor->rotor.pll_vel;
-      if (motor->control_mode >=  CTRL_MODE_VELOCITY_CONTROL) {
-          Iq += motor->vel_gain * v_err;
-      }
-
-      // Velocity integral action before limiting
-      Iq += motor->vel_integrator_current;
-
-      // Apply motor direction correction
-      Iq *= motor->rotor.motor_dir;
-
-      // Current limiting
-      float Ilim = motor->current_control.current_lim;
-      bool limited = false;
-      if (Iq > Ilim) {
-          limited = true;
-          Iq = Ilim;
-      }
-      if (Iq < -Ilim) {
-          limited = true;
-          Iq = -Ilim;
-      }
-
-      // Velocity integrator (behaviour dependent on limiting)
-      if (motor->control_mode < CTRL_MODE_VELOCITY_CONTROL ) {
-          // reset integral if not in use
-          motor->vel_integrator_current = 0.0f;
-      } else {
-          if (limited) {
-              // TODO make decayfactor configurable
-              motor->vel_integrator_current *= 0.99f;
-          } else {
-              motor->vel_integrator_current += (motor->vel_integrator_gain * CURRENT_MEAS_PERIOD) * v_err;
-          }
-      }
-
-      // Execute current command
-      if(!FOC_current(0.0f, Iq)){
-          break; // in case of error exit loop, motor->error has been set by FOC_current
-      }
-#endif
-
     }
 }
 
@@ -355,9 +333,12 @@ static THD_FUNCTION(ThreadPWM, arg) {
   (void)arg;
   chRegSetThreadName("pwm");
 
-  // Start pwm
-
   PWMUpdateDrivePhase(TIM_1_8_PERIOD_CLOCKS/2,TIM_1_8_PERIOD_CLOCKS/2,TIM_1_8_PERIOD_CLOCKS/2);
+
+  palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
+
+  //! Make sure controller is setup.
+  Drv8503Init();
 
   // This is quick, so may as well do it every time.
   ShuntCalibration();
@@ -418,14 +399,15 @@ int InitPWM(void)
   /* Timer configured and started.*/
   tim->CR1   = STM32_TIM_CR1_ARPE | STM32_TIM_CR1_URS | STM32_TIM_CR1_CEN | STM32_TIM_CR1_CMS(3);
 
-  tim->CCR[0] = 200;
-  tim->CCR[1] = 200;
-  tim->CCR[2] = 200;
-  tim->CCR[3] = TIM_1_8_PERIOD_CLOCKS - 16;
+  tim->CCR[0] = TIM_1_8_PERIOD_CLOCKS/2;
+  tim->CCR[1] = TIM_1_8_PERIOD_CLOCKS/2;
+  tim->CCR[2] = TIM_1_8_PERIOD_CLOCKS/2;
+  tim->CCR[3] = TIM_1_8_PERIOD_CLOCKS - 1;
 
   tim->CR2  = STM32_TIM_CR2_CCPC | STM32_TIM_CR2_MMS(7); // Use the COMG bit to update.
 
   palSetPad(GPIOC, GPIOC_PIN13); // Wake
+  palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
 
   //palSetPad(GPIOB, GPIOB_PIN12); // Turn on flag pin
 

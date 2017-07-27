@@ -7,6 +7,7 @@ extern uint16_t Drv8503ReadRegister(uint16_t addr);
 extern uint16_t Drv8503SetRegister(uint16_t addr,uint16_t value);
 
 extern uint16_t Drv8503Test(void);
+extern void Drv8503Init(void);
 
 // ------------------------------------------------------
 // Register 0x5 :

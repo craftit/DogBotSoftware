@@ -34,27 +34,36 @@ void InitADC(void) {
 
   // ADC1
   // NOTE:  Channels have to setup in order of rank.
-  ADC_InjectedChannelConfig(ADC1,ADC_Channel_10, 1, ADC_SampleTime_3Cycles);
-  ADC_InjectedChannelConfig(ADC1,ADC_Channel_3, 2, ADC_SampleTime_3Cycles);
   ADC_InjectedSequencerLengthConfig(ADC1,2);
+  ADC_InjectedChannelConfig(ADC1,ADC_Channel_10, 1, ADC_SampleTime_3Cycles);
+  ADC_InjectedChannelConfig(ADC1,ADC_Channel_5, 2, ADC_SampleTime_3Cycles);
+
+  // See page 427 of the reference manual.
+  // Set this register by hand, I don't trust the above functions
+  ADC1->JSQR = (1 << 20) | (ADC_Channel_10 << (5 * 2)) |  (ADC_Channel_5 << (5 * 3));
 
   ADC_ExternalTrigInjectedConvConfig(ADC1, ADC_ExternalTrigInjecConv_T1_TRGO);
   ADC_ExternalTrigInjectedConvEdgeConfig(ADC1, ADC_ExternalTrigInjecConvEdge_Falling);
 
   // ADC2
 
+  ADC_InjectedSequencerLengthConfig(ADC2,2);
   ADC_InjectedChannelConfig(ADC2,ADC_Channel_11, 1, ADC_SampleTime_3Cycles);
   ADC_InjectedChannelConfig(ADC2,ADC_Channel_4, 2, ADC_SampleTime_3Cycles);
-  ADC_InjectedSequencerLengthConfig(ADC2,2);
+
+  ADC2->JSQR = (1 << 20) | (ADC_Channel_11 << (5 * 2)) |  (ADC_Channel_4 << (5 * 3));
+
 
   ADC_ExternalTrigInjectedConvConfig(ADC2, ADC_ExternalTrigInjecConv_T1_TRGO);
   ADC_ExternalTrigInjectedConvEdgeConfig(ADC2, ADC_ExternalTrigInjecConvEdge_Falling);
 
   // ADC3
 
-  ADC_InjectedChannelConfig(ADC3,ADC_Channel_12, 1, ADC_SampleTime_3Cycles);
-  ADC_InjectedChannelConfig(ADC3,ADC_Channel_5, 2, ADC_SampleTime_3Cycles);
   ADC_InjectedSequencerLengthConfig(ADC3,2);
+  ADC_InjectedChannelConfig(ADC3,ADC_Channel_12, 1, ADC_SampleTime_3Cycles);
+  ADC_InjectedChannelConfig(ADC3,ADC_Channel_3, 2, ADC_SampleTime_3Cycles);
+
+  ADC3->JSQR = (1 << 20) | (ADC_Channel_12 << (5 * 2)) |  (ADC_Channel_3 << (5 * 3));
 
   ADC_ExternalTrigInjectedConvConfig(ADC3, ADC_ExternalTrigInjecConv_T1_TRGO);
   ADC_ExternalTrigInjectedConvEdgeConfig(ADC3, ADC_ExternalTrigInjecConvEdge_Falling);
@@ -96,22 +105,22 @@ OSAL_IRQ_HANDLER(STM32_ADC_HANDLER) {
   int count  = 0;
   if(ADC_GetITStatus(ADC1, ADC_IT_JEOC) == SET) {
     ADC_ClearITPendingBit(ADC1, ADC_IT_JEOC);
-    g_currentADCValue[2] = ADC_GetInjectedConversionValue(ADC1,ADC_InjectedChannel_1);
-    g_hall[0] = ADC_GetInjectedConversionValue(ADC1,ADC_InjectedChannel_2);
+    g_currentADCValue[0] = ADC_GetInjectedConversionValue(ADC1,ADC_InjectedChannel_2);
+    g_hall[0] = ADC_GetInjectedConversionValue(ADC1,ADC_InjectedChannel_1);
     count++;
   }
 
   if(ADC_GetITStatus(ADC2, ADC_IT_JEOC) == SET) {
     ADC_ClearITPendingBit(ADC2, ADC_IT_JEOC);
-    g_currentADCValue[1] = ADC_GetInjectedConversionValue(ADC2,ADC_InjectedChannel_1);
-    g_hall[1] = ADC_GetInjectedConversionValue(ADC2,ADC_InjectedChannel_2);
+    g_currentADCValue[1] = ADC_GetInjectedConversionValue(ADC2,ADC_InjectedChannel_2);
+    g_hall[1] = ADC_GetInjectedConversionValue(ADC2,ADC_InjectedChannel_1);
     count++;
   }
 
   if(ADC_GetITStatus(ADC3, ADC_IT_JEOC) == SET) {
     ADC_ClearITPendingBit(ADC3, ADC_IT_JEOC);
-    g_currentADCValue[0] = ADC_GetInjectedConversionValue(ADC3,ADC_InjectedChannel_1);
-    g_hall[2] = ADC_GetInjectedConversionValue(ADC3,ADC_InjectedChannel_2);
+    g_currentADCValue[2] = ADC_GetInjectedConversionValue(ADC3,ADC_InjectedChannel_2);
+    g_hall[2] = ADC_GetInjectedConversionValue(ADC3,ADC_InjectedChannel_1);
     count++;
   }
 
@@ -149,7 +158,7 @@ uint16_t *ReadADCs(void) {
   };
 
   for(int i = 0;i < 12;i++) {
-    ADC_RegularChannelConfig(ADC1,g_convSeq[i],1,ADC_SampleTime_3Cycles);
+    ADC_RegularChannelConfig(ADC1,g_convSeq[i],1,ADC_SampleTime_15Cycles);
     g_currentSample = i;
     ADC_SoftwareStartConv(ADC1);
     g_samplesDone[i] = 0;
