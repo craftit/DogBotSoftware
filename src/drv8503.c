@@ -52,7 +52,6 @@ uint16_t Drv8503ReadRegister(uint16_t addr) {
 uint16_t Drv8503ReadStatus(void)
 {
   uint16_t ret= Drv8503ReadRegister(0x5);
-
   return ret;
 }
 
@@ -63,7 +62,23 @@ void Drv8503Init(void)
   // before being enabled
   Drv8503SetRegister(9,DRV8503_FLIP_OTSD | DRV8503_EN_SNS_CLAMP | DRV8503_CLR_FLTS);
 
+  Drv8503SetRegister(DRV8503_REG_DRIVER_HS,
+      DRV8503_PEAK_SOURCE_750mA |
+      DRV8503_PEAK_SINK_1000mA |
+      DRV8503_SOURCE_TIME_880ns
+      );
+  Drv8503SetRegister(DRV8503_REG_DRIVER_LS,
+      DRV8503_PEAK_SOURCE_750mA |
+      DRV8503_PEAK_SINK_1000mA |
+      DRV8503_SOURCE_TIME_880ns
+      );
+
+  Drv8503SetRegister(DRV8503_REG_VDS_SENSE_CONTROL,
+      DRV8503_VDS_SHUT_DOWN |
+      DRV8503_VDS_THRESHOLD_1V043  // 0V155 is just under 100 amps,
+      );
 }
+
 
 
 uint16_t Drv8503Test(void)

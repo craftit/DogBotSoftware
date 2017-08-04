@@ -131,11 +131,12 @@ CSRC = $(STARTUPSRC) \
        svm.c \
        eeprom.c \
        storedconf.c \
+       canbus.c \
        $(STDPERIPH)/src/stm32f4xx_tim.c \
        $(STDPERIPH)/src/stm32f4xx_rcc.c \
        $(STDPERIPH)/src/stm32f4xx_adc.c \
        $(STDPERIPH)/src/stm32f4xx_flash.c \
-       $(STDPERIPH)/src/misc.c \
+       $(STDPERIPH)/src/misc.c 
  			
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -231,7 +232,7 @@ UADEFS =
 UINCDIR =
 
 # List the user directory to look for the libraries here
-ULIBDIR = .
+ULIBDIR = ../lib
 
 # List all user libraries here
 ULIBS = -larm_cortexM4lf_math

@@ -53,7 +53,6 @@ void InitADC(void) {
 
   ADC2->JSQR = (1 << 20) | (ADC_Channel_11 << (5 * 2)) |  (ADC_Channel_4 << (5 * 3));
 
-
   ADC_ExternalTrigInjectedConvConfig(ADC2, ADC_ExternalTrigInjecConv_T1_TRGO);
   ADC_ExternalTrigInjectedConvEdgeConfig(ADC2, ADC_ExternalTrigInjecConvEdge_Falling);
 
