@@ -25,6 +25,7 @@
 #include "drv8503.h"
 #include "eeprom.h"
 #include "storedconf.h"
+#include "canbus.h"
 
 /*
  * This is a periodic thread that does absolutely nothing except flashing
@@ -368,9 +369,11 @@ static void cmd_doDump(BaseSequentialStream *chp, int argc, char *argv[]) {
   while(true)
   {
     if(isAngle) {
-      chprintf(chp, " Iq:%4d Id:%4d   %4d %4d %4d - Angle: %5d  Current: %d \r",
+      chprintf(chp, " Iq:%4d Id:%4d Errq:%4d Errd:%4d   %4d %4d %4d - Angle: %5d  Current: %d \r",
         (int) (g_Iq * 1000.0),
         (int) (g_Id * 1000.0),
+        (int) (g_Ierr_q * 1000.0),
+        (int) (g_Ierr_d * 1000.0),
         (int) (g_current[0] * 1000.0),
         (int) (g_current[1] * 1000.0),
         (int) (g_current[2] * 1000.0),
@@ -483,6 +486,39 @@ static void cmd_doSet(BaseSequentialStream *chp, int argc, char *argv[]) {
 
 }
 
+static void cmd_doCan(BaseSequentialStream *chp, int argc, char *argv[]) {
+
+  InitCAN();
+  chprintf(chp, "Can started. \r\n");
+
+  CANTxFrame txmsg;
+
+  //chRegSetThreadName("can transmitter");
+  txmsg.IDE = CAN_IDE_EXT;
+  txmsg.EID = 0x01234567;
+  txmsg.RTR = CAN_RTR_DATA;
+  txmsg.DLC = 8;
+  txmsg.data32[0] = 0x55AA55AA;
+  txmsg.data32[1] = 0x00FF00FF;
+
+  while (true) {
+    chprintf(chp, "Can send. \r\n");
+    msg_t ret = canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, MS2ST(100));
+    if(ret == MSG_OK) {
+      chprintf(chp, "Transmit ok. \r\n");
+    } else {
+      chprintf(chp, "Transmit error. \r\n");
+    }
+    chThdSleepMilliseconds(200);
+
+    if (!palReadPad(GPIOB, GPIOA_PIN2)) {
+      break;
+    }
+  }
+
+
+}
+
 static const ShellCommand commands[] = {
   {"mem", cmd_mem},
   {"threads", cmd_threads},
@@ -502,6 +538,7 @@ static const ShellCommand commands[] = {
   {"save",cmd_eeSave},
   {"dump",cmd_doDump},
   {"set",cmd_doSet },
+  {"can",cmd_doCan },
   {NULL, NULL}
 };
 
@@ -554,22 +591,8 @@ int main(void) {
    * Creates the blinker thread.
    */
   chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
-#if 0
-  bool wasTrue = false;
-  while (true) {
-    if (palReadPad(GPIOB, GPIOA_PIN2)) {
-      palSetPad(GPIOC, GPIOC_PIN5);       /* Orange.  */
-      if(!wasTrue) {
-        wasTrue = true;
-        SendSerialTest();
-      }
-    } else {
-      wasTrue = false;
-      palClearPad(GPIOC,GPIOC_PIN5);       /* Orange.  */
-    }
-    chThdSleepMilliseconds(100);
-  }
-#endif
+
+  InitCAN();
 
 #if 1
   /*

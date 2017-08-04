@@ -50,6 +50,8 @@ extern float g_motor_i_gain;
 
 extern float g_Id;
 extern float g_Iq;
+extern float g_Ierr_d;
+extern float g_Ierr_q;
 
 enum ControlModeT {
   CM_Idle,

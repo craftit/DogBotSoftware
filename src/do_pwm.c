@@ -24,11 +24,11 @@ float g_current[3] = { 0,0,0} ;
 float g_phaseAngle = 0 ;
 
 float g_current_Ibus = 0;
-float g_motor_p_gain = 0.8;
+float g_motor_p_gain = 1.2;
 float g_motor_i_gain = 0.0;
 
 int g_phaseAngles[12][3];
-
+float g_phaseDistance[12];
 
 static bool g_pwmThreadRunning = false;
 
@@ -42,19 +42,19 @@ volatile bool g_pwmRun = true;
 
 
 static void queue_modulation_timings(float mod_alpha, float mod_beta) {
-    float tA = 0, tB = 0, tC = 0;
-    SVM(mod_alpha, mod_beta, &tA, &tB, &tC);
-    uint16_t a = (uint16_t)(tA * (float)TIM_1_8_PERIOD_CLOCKS);
-    uint16_t b = (uint16_t)(tB * (float)TIM_1_8_PERIOD_CLOCKS);
-    uint16_t c = (uint16_t)(tC * (float)TIM_1_8_PERIOD_CLOCKS);
-    PWMUpdateDrivePhase(a,b,c);
+  float tA = 0, tB = 0, tC = 0;
+  SVM(mod_alpha, mod_beta, &tA, &tB, &tC);
+  uint16_t a = (uint16_t)(tA * (float)TIM_1_8_PERIOD_CLOCKS);
+  uint16_t b = (uint16_t)(tB * (float)TIM_1_8_PERIOD_CLOCKS);
+  uint16_t c = (uint16_t)(tC * (float)TIM_1_8_PERIOD_CLOCKS);
+  PWMUpdateDrivePhase(a,b,c);
 }
 
 static void queue_voltage_timings(float v_alpha, float v_beta) {
-    float vfactor = 1.0f / ((2.0f / 3.0f) * g_vbus_voltage);
-    float mod_alpha = vfactor * v_alpha;
-    float mod_beta = vfactor * v_beta;
-    queue_modulation_timings(mod_alpha, mod_beta);
+  float vfactor = 1.0f / ((2.0f / 3.0f) * g_vbus_voltage);
+  float mod_alpha = vfactor * v_alpha;
+  float mod_beta = vfactor * v_beta;
+  queue_modulation_timings(mod_alpha, mod_beta);
 }
 
 
@@ -76,15 +76,18 @@ static void scan_motor_loop(float omega, float voltage_magnitude) {
 void ShuntCalibration(void)
 {
   // Enable shunt calibration mode.
+  int gainMode = DRV8503_GAIN_CS1_40 | DRV8503_GAIN_CS2_40 | DRV8503_GAIN_CS3_40;
+
+  float ampGain = 40.0; // V/V gain
+  float shuntResistance = 0.001;
 
   Drv8503SetRegister(DRV8503_REG_SHUNT_AMPLIFIER_CONTROL,
       DRV8503_DC_CAL_CH1 |
       DRV8503_DC_CAL_CH2 |
-      DRV8503_DC_CAL_CH3
+      DRV8503_DC_CAL_CH3 |
+      gainMode
       );
 
-  float ampGain = 10.0; // V/V gain
-  float shuntResistance = 0.001;
 
   g_shuntADCValue2Amps  = (3.3f/((float)(1<<12) * ampGain * shuntResistance));
 
@@ -97,7 +100,6 @@ void ShuntCalibration(void)
   // Make
   float sums[3];
   for(int j = 0;j < 3;j++) {
-    g_currentZeroOffset[j] = 0.0f;
     sums[j] = 0.0f;
   }
 
@@ -108,7 +110,6 @@ void ShuntCalibration(void)
     chBSemWait(&g_adcInjectedDataReady);
     for(int j = 0;j < 3;j++)
       sums[j] += ((float) g_currentADCValue[j]) * g_shuntADCValue2Amps ;
-    chThdSleepMicroseconds(5);
   }
 
   for(int j = 0;j < 3;j++)
@@ -116,10 +117,13 @@ void ShuntCalibration(void)
 
   // Disable calibration mode.
   Drv8503SetRegister(DRV8503_REG_SHUNT_AMPLIFIER_CONTROL,
-      0
+      gainMode
       );
 
 }
+
+float g_Ierr_d;
+float g_Ierr_q;
 
 // The following function is based on that from the ODrive project.
 
@@ -133,24 +137,20 @@ static bool FOC_current(float Id_des, float Iq_des) {
   // Park transform
   float c = arm_cos_f32(g_phaseAngle);
   float s = arm_sin_f32(g_phaseAngle);
-  float Id = c*Ialpha + s*Ibeta;
-  float Iq = c*Ibeta  - s*Ialpha;
-
-  // Publish them for debugging
-  g_Id = Id;
-  g_Iq = Iq;
+  g_Id = c*Ialpha + s*Ibeta;
+  g_Iq = c*Ibeta  - s*Ialpha;
 
   // Current error
-  float Ierr_d = Id_des - Id;
-  float Ierr_q = Iq_des - Iq;
+  g_Ierr_d = Id_des - g_Id;
+  g_Ierr_q = Iq_des - g_Iq;
 
-  static float v_current_control_integral_d = 0;
-  static float v_current_control_integral_q = 0;
+  static float g_current_control_integral_d = 0;
+  static float g_current_control_integral_q = 0;
   // TODO look into feed forward terms (esp omega, since PI pole maps to RL tau)
   // Apply PI control
 
-  float Vd = v_current_control_integral_d + Ierr_d * g_motor_p_gain;
-  float Vq = v_current_control_integral_q + Ierr_q * g_motor_p_gain;
+  float Vd = g_current_control_integral_d + g_Ierr_d * g_motor_p_gain;
+  float Vq = g_current_control_integral_q + g_Ierr_q * g_motor_p_gain;
 
   float vfactor = 1.0f / ((2.0f / 3.0f) * g_vbus_voltage);
   float mod_d = vfactor * Vd;
@@ -163,16 +163,16 @@ static bool FOC_current(float Id_des, float Iq_des) {
   {
     mod_d *= mod_scalefactor;
     mod_q *= mod_scalefactor;
-    // TODO make decayfactor configurable
-    v_current_control_integral_d *= 0.99f;
-    v_current_control_integral_q *= 0.99f;
+    // TODO make decay factor configurable
+    g_current_control_integral_d *= 0.99f;
+    g_current_control_integral_q *= 0.99f;
   } else {
-    v_current_control_integral_d += Ierr_d * (g_motor_i_gain * CURRENT_MEAS_PERIOD);
-    v_current_control_integral_q += Ierr_q * (g_motor_i_gain * CURRENT_MEAS_PERIOD);
+    g_current_control_integral_d += g_Ierr_d * (g_motor_i_gain * CURRENT_MEAS_PERIOD);
+    g_current_control_integral_q += g_Ierr_q * (g_motor_i_gain * CURRENT_MEAS_PERIOD);
   }
 
   // Compute estimated bus current
-  g_current_Ibus = mod_d * Id + mod_q * Iq;
+  g_current_Ibus = mod_d * g_Id + mod_q * g_Iq;
 
   // Inverse park transform
   float mod_alpha = c*mod_d - s*mod_q;
@@ -193,8 +193,8 @@ float g_currentPhasePosition = 0;
 float g_currentPhaseVelocity = 0;
 float g_velocityGain = 0.01;
 float g_velocityFilter = 8.0;
-float g_positionGain = 0.1;
-float g_torqueLimit = 0.4;
+float g_positionGain = 1.0;
+float g_torqueLimit = 5.0;
 float g_positionIGain = 0.1;
 float g_positionIClamp = 5.0;
 float g_positionISum = 0.0;
@@ -242,18 +242,6 @@ static void ComputeState(void)
     g_current[i] = tmpCurrent[i] - sum;
   }
 
-#if 0
-  {
-    float Ialpha = -g_current[1] - g_current[2];
-    float Ibeta = one_by_sqrt3 * (g_current[1] - g_current[2]);
-
-    // Park transform
-    float c = arm_cos_f32(g_phaseAngle);
-    float s = arm_sin_f32(g_phaseAngle);
-    g_Id = c*Ialpha + s*Ibeta;
-    g_Iq = c*Ibeta  - s*Ialpha;
-  }
-#endif
 }
 
 static void SetTorque(float torque) {
@@ -299,6 +287,8 @@ static void MotorControlLoop(void) {
       switch(g_controlMode)
       {
         case CM_Idle: // Maybe turn off the MOSFETS ?
+          SetTorque(0);
+          break;
         case CM_Break:
           // Just turn everything off, this will passively break the motor
           PWMUpdateDrivePhase(
@@ -314,6 +304,20 @@ static void MotorControlLoop(void) {
         /* no break */
         case CM_Position: {
           float positionError = targetPosition - g_currentPhasePosition;
+#if 0
+          const float deadBand = M_PI/30;
+          if(positionError > 0) {
+            if(positionError < deadBand)
+              positionError = 0;
+            else
+              positionError -= deadBand;
+          } else {
+            if(positionError > -deadBand)
+              positionError = 0;
+            else
+              positionError += deadBand;
+          }
+#endif
           g_positionISum += positionError * CURRENT_MEAS_PERIOD;
           if(g_positionISum > g_positionIClamp)  g_positionISum = g_positionIClamp;
           if(g_positionISum < -g_positionIClamp) g_positionISum = -g_positionIClamp;
@@ -411,6 +415,17 @@ int InitPWM(void)
 
   //palSetPad(GPIOB, GPIOB_PIN12); // Turn on flag pin
 
+  // Pre-compute the distance between this position and the last.
+  int lastIndex = 11;
+  for(int i = 0;i < 12;i++) {
+    int sum = 0;
+    for(int k = 0;k < 3;k++) {
+      int diff = g_phaseAngles[i][k] - g_phaseAngles[lastIndex][k];
+      sum += diff * diff;
+    }
+    g_phaseDistance[i] = mysqrtf((float) sum);
+    lastIndex = i;
+  }
   return 0;
 }
 
@@ -453,7 +468,7 @@ int PWMRun()
   g_pwmRun = true;
   if(!g_pwmThreadRunning) {
     g_pwmThreadRunning = true;
-    chThdCreateStatic(waThreadPWM, sizeof(waThreadPWM), NORMALPRIO, ThreadPWM, NULL);
+    chThdCreateStatic(waThreadPWM, sizeof(waThreadPWM), NORMALPRIO+8, ThreadPWM, NULL);
   }
   return 0;
 }
@@ -528,13 +543,12 @@ int PWMCalSVM(BaseSequentialStream *chp)
     // Sync to avoid reading variables when they're being updated.
     chBSemWait(&g_adcInjectedDataReady);
 
-    g_phaseAngles[phaseStep][0] += g_hall[0];
-    g_phaseAngles[phaseStep][1] += g_hall[1];
-    g_phaseAngles[phaseStep][2] += g_hall[2];
+    for(int i = 0;i < 3;i++) {
+      g_phaseAngles[phaseStep][i] += g_hall[i];
+    }
 
     chprintf(chp, "Cal %d : %04d %04d %04d   \r\n",phase,g_hall[0],g_hall[1],g_hall[2]);
   }
-
   for(int i = 0;i < 12;i++) {
     g_phaseAngles[i][0] /= 7;
     g_phaseAngles[i][1] /= 7;
@@ -567,6 +581,44 @@ void DisplayAngle(BaseSequentialStream *chp)
 
 }
 
+float hallToAngleB(uint16_t *sensors)
+{
+  int distTable[12];
+  int phase = 0;
+  int minDist = sqr(g_phaseAngles[0][0] - sensors[0]) +
+                sqr(g_phaseAngles[0][1] - sensors[1]) +
+                sqr(g_phaseAngles[0][2] - sensors[2]);
+  distTable[0] = minDist;
+
+  for(int i = 1;i < 12;i++) {
+    int dist = sqr(g_phaseAngles[i][0] - sensors[0]) +
+                  sqr(g_phaseAngles[i][1] - sensors[1]) +
+                  sqr(g_phaseAngles[i][2] - sensors[2]);
+    distTable[i] = dist;
+    if(dist < minDist) {
+      phase = i;
+      minDist = dist;
+    }
+  }
+  int last = phase - 1;
+  if(last < 0) last = 11;
+  int next = phase + 1;
+  if(last > 11) last = 0;
+  int lastDist2 = distTable[last];
+  int nextDist2 = distTable[next];
+
+  float angle = phase * 2.0;
+
+  float lastDist = mysqrtf(lastDist2) / g_phaseDistance[phase];
+  float nextDist = mysqrtf(nextDist2) / g_phaseDistance[next];
+
+  angle += (nextDist-lastDist)/(nextDist + lastDist);
+
+  if(angle < 0.0) angle += 24.0;
+  if(angle > 12.0) angle -= 24.0;
+  return angle * M_PI * 2.0 / 24.0;
+}
+
 
 // This returns an angle between 0 and 2 pi
 
@@ -595,8 +647,9 @@ float hallToAngle(uint16_t *sensors)
   if(last > 11) last = 0;
   int lastDist2 = distTable[last];
   int nextDist2 = distTable[next];
-  float nearDist = mysqrtf(minDist);
   float angle = phase * 2.0;
+#if 1
+  float nearDist = mysqrtf(minDist);
   if(lastDist2 < nextDist2) {
     float lastDist = mysqrtf(lastDist2);
     angle -= nearDist / (lastDist + nearDist);
@@ -604,6 +657,12 @@ float hallToAngle(uint16_t *sensors)
     float nextDist = mysqrtf(nextDist2);
     angle += nearDist / (nextDist + nearDist);
   }
+#else
+  float lastDist = mysqrtf(lastDist2) / g_phaseDistance[phase];
+  float nextDist = mysqrtf(nextDist2) / g_phaseDistance[next];
+
+  angle += (nextDist-lastDist)/(nextDist + lastDist);
+#endif
   if(angle < 0.0) angle += 24.0;
   if(angle > 24.0) angle -= 24.0;
   return angle * M_PI * 2.0 / 24.0;
@@ -638,8 +697,9 @@ float hallToAngleDebug(uint16_t *sensors,int *nearest,int *n0,int *n1,int *n2)
   *n0 = minDist;
   *n1 = lastDist2;
   *n2 = nextDist2;
-  float nearDist = mysqrtf(minDist);
   float angle = phase * 2.0;
+#if 1
+  float nearDist = mysqrtf(minDist);
   if(lastDist2 < nextDist2) {
     float lastDist = mysqrtf(lastDist2);
     angle -= nearDist / (lastDist + nearDist);
@@ -647,6 +707,13 @@ float hallToAngleDebug(uint16_t *sensors,int *nearest,int *n0,int *n1,int *n2)
     float nextDist = mysqrtf(nextDist2);
     angle += nearDist / (nextDist + nearDist);
   }
+#else
+  float lastDist = mysqrtf(lastDist2) / g_phaseDistance[phase];
+  float nextDist = mysqrtf(nextDist2) / g_phaseDistance[next];
+
+  angle += (nextDist-lastDist)/(nextDist + lastDist);
+#endif
+
   if(angle < 0.0) angle += 24.0;
   if(angle > 24.0) angle -= 24.0;
   return angle * M_PI * 2.0 / 24.0;
