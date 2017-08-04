@@ -10,7 +10,7 @@ endif
 
 # C specific options here (added to USE_OPT).
 ifeq ($(USE_COPT),)
-  USE_COPT = 
+  USE_COPT = -std=c99
 endif
 
 # C++ specific options here (added to USE_OPT).
@@ -86,7 +86,8 @@ endif
 PROJECT = BMCV2
 
 # Imported source files and paths
-CHIBIOS = /Users/charles/src/arm/ChibiOS_16.1.7
+#CHIBIOS = /Users/charles/src/arm/ChibiOS_16.1.7
+CHIBIOS = /home/charles/src/ext/ChibiOS_16.1.8
 STDPERIPH = ../ext/STM32F4xx_DSP_StdPeriph_Lib/Libraries/STM32F4xx_StdPeriph_Driver
 
 # Startup files.
@@ -124,9 +125,9 @@ CSRC = $(STARTUPSRC) \
        $(CHIBIOS)/os/hal/lib/streams/chprintf.c \
        main.c \
        usbcfg.c \
-		   coms_serial.c \
-		   do_adc.c \
-		   drv8503.c \
+       coms_serial.c \
+       do_adc.c \
+       drv8503.c \
        do_pwm.c \
        svm.c \
        eeprom.c \

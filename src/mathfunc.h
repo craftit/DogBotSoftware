@@ -5,6 +5,10 @@
 #define __FPU_PRESENT 1
 #include <arm_math.h>
 
+#ifndef M_PI
+#define M_PI (3.14159265359)
+#endif
+
 static const float one_by_sqrt3 = 0.57735026919f;
 //static const float two_by_sqrt3 = 1.15470053838f;
 static const float sqrt3_by_2 = 0.86602540378;
