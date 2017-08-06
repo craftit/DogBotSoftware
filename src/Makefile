@@ -132,6 +132,7 @@ CSRC = $(STARTUPSRC) \
        eeprom.c \
        storedconf.c \
        canbus.c \
+       terminal.c \
        $(STDPERIPH)/src/stm32f4xx_tim.c \
        $(STDPERIPH)/src/stm32f4xx_rcc.c \
        $(STDPERIPH)/src/stm32f4xx_adc.c \

@@ -39,13 +39,17 @@ void InitADC(void) {
   ADC_InjectedChannelConfig(ADC1,ADC_Channel_5, 2, ADC_SampleTime_3Cycles);
 
   // See page 427 of the reference manual.
-  // Set this register by hand, I don't trust the above functions
+  // Set this register by hand, I don't trust the above functions, though they do set the sample
+  // times.
   ADC1->JSQR = (1 << 20) | (ADC_Channel_10 << (5 * 2)) |  (ADC_Channel_5 << (5 * 3));
 
   ADC_ExternalTrigInjectedConvConfig(ADC1, ADC_ExternalTrigInjecConv_T1_TRGO);
   ADC_ExternalTrigInjectedConvEdgeConfig(ADC1, ADC_ExternalTrigInjecConvEdge_Falling);
 
   // ADC2
+
+  // Setup regular channel for converting the supply voltage
+  ADC_RegularChannelConfig(ADC2,ADC_Channel_6,1,ADC_SampleTime_3Cycles);
 
   ADC_InjectedSequencerLengthConfig(ADC2,2);
   ADC_InjectedChannelConfig(ADC2,ADC_Channel_11, 1, ADC_SampleTime_3Cycles);
