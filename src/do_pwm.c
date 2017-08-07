@@ -8,6 +8,9 @@
 #include "drv8503.h"
 #include "svm.h"
 
+#include "coms.h"
+
+
 #define SYSTEM_CORE_CLOCK     168000000
 
 #include "stm32f4xx_adc.h"
@@ -125,6 +128,7 @@ void ShuntCalibration(void)
 float g_Ierr_d;
 float g_Ierr_q;
 
+bool g_breakMode = false;
 // The following function is based on that from the ODrive project.
 
 static bool FOC_current(float Id_des, float Iq_des) {
@@ -173,6 +177,20 @@ static bool FOC_current(float Id_des, float Iq_des) {
 
   // Compute estimated bus current
   g_current_Ibus = mod_d * g_Id + mod_q * g_Iq;
+#if 0
+  if(g_current_Ibus < 0) {
+    // Breaking...
+    if(!g_breakMode) {
+      g_breakMode = true;
+      SetModeBreak();
+    }
+  } else {
+    if(g_breakMode) {
+      g_breakMode = false;
+      SetModeFOC();
+    }
+  }
+#endif
 
   // Inverse park transform
   float mod_alpha = c*mod_d - s*mod_q;
@@ -192,7 +210,7 @@ int g_phaseRotationCount = 0;
 float g_currentPhasePosition = 0;
 float g_currentPhaseVelocity = 0;
 float g_velocityGain = 0.01;
-float g_velocityFilter = 8.0;
+float g_velocityFilter = 16.0;
 float g_positionGain = 1.0;
 float g_torqueLimit = 5.0;
 float g_positionIGain = 0.1;
@@ -225,8 +243,9 @@ static void ComputeState(void)
   // If we just sum up difference things will drift.
   g_currentPhasePosition = (float) g_phaseRotationCount * 2 * M_PI + g_phaseAngle;
 
+  //
   // Velocity estimate, filtered a little.
-  g_currentPhaseVelocity = (g_currentPhaseVelocity * (g_velocityFilter-1.0) + angleDiff / CURRENT_MEAS_PERIOD)/g_velocityFilter;
+  g_currentPhaseVelocity = (g_currentPhaseVelocity * (g_velocityFilter-1.0) + angleDiff / CURRENT_MEAS_PERIOD )/g_velocityFilter;
 
   // Compute motor currents;
   // Make sure they sum to zero
@@ -328,6 +347,7 @@ static void MotorControlLoop(void) {
           SetTorque(torque);
         } break;
       }
+
     }
 }
 
@@ -359,6 +379,43 @@ static THD_FUNCTION(ThreadPWM, arg) {
 }
 
 
+void SetModeFOC(void)
+{
+  stm32_tim_t *tim = (stm32_tim_t *)TIM1_BASE;
+  tim->CCER  =
+      (STM32_TIM_CCER_CC1E | STM32_TIM_CCER_CC1NE ) |
+      (STM32_TIM_CCER_CC2E | STM32_TIM_CCER_CC2NE ) |
+      (STM32_TIM_CCER_CC3E | STM32_TIM_CCER_CC3NE );
+  tim->CCMR1 = STM32_TIM_CCMR1_OC1M(6) |
+      STM32_TIM_CCMR1_OC1PE |
+      STM32_TIM_CCMR1_OC2M(6) |
+      STM32_TIM_CCMR1_OC2PE;
+  tim->CCMR2 =
+    STM32_TIM_CCMR2_OC3M(6) |
+    STM32_TIM_CCMR2_OC3PE |
+    STM32_TIM_CCMR2_OC4M(6) |
+    STM32_TIM_CCMR2_OC4PE;
+}
+
+// Not implemented yet.
+void SetModeBreak(void)
+{
+  stm32_tim_t *tim = (stm32_tim_t *)TIM1_BASE;
+  tim->CCER  =
+      (STM32_TIM_CCER_CC1E | STM32_TIM_CCER_CC1NE ) |
+      (STM32_TIM_CCER_CC2E | STM32_TIM_CCER_CC2NE ) |
+      (STM32_TIM_CCER_CC3E | STM32_TIM_CCER_CC3NE );
+  tim->CCMR1 = STM32_TIM_CCMR1_OC1M(6) |
+      STM32_TIM_CCMR1_OC1PE |
+      STM32_TIM_CCMR1_OC2M(6) |
+      STM32_TIM_CCMR1_OC2PE;
+  tim->CCMR2 =
+    STM32_TIM_CCMR2_OC3M(6) |
+    STM32_TIM_CCMR2_OC3PE |
+    STM32_TIM_CCMR2_OC4M(6) |
+    STM32_TIM_CCMR2_OC4PE;
+}
+
 int InitPWM(void)
 {
   g_drivePhase = 0;
@@ -368,32 +425,13 @@ int InitPWM(void)
 
   stm32_tim_t *tim = (stm32_tim_t *)TIM1_BASE;
 
-  tim->CCMR1 =
-      STM32_TIM_CCMR1_OC1M(6) |
-      STM32_TIM_CCMR1_OC1PE |
-      STM32_TIM_CCMR1_OC2M(6) |
-      STM32_TIM_CCMR1_OC2PE;
-  tim->CCMR2 =
-      STM32_TIM_CCMR2_OC3M(6) |
-      STM32_TIM_CCMR2_OC3PE |
-      STM32_TIM_CCMR2_OC4M(6) |
-      STM32_TIM_CCMR2_OC4PE;
-
   uint16_t psc = 0; // (SYSTEM_CORE_CLOCK / 80000000) - 1;
   tim->PSC  = psc;
   tim->ARR  = TIM_1_8_PERIOD_CLOCKS; // This should give about 20KHz
   tim->CR2  = 0;
-  /* Output enables and polarities setup.*/
-  uint16_t ccer = 0;
-#if 0
-  ccer |= STM32_TIM_CCER_CC1E; // Active high
-  //ccer |= STM32_TIM_CCER_CC1P;
-  ccer |= STM32_TIM_CCER_CC2E; // Active high
-  //ccer |= STM32_TIM_CCER_CC2P;
-  ccer |= STM32_TIM_CCER_CC3E;
-#endif
 
-  tim->CCER  = ccer;
+  SetModeFOC();
+
   tim->EGR   = STM32_TIM_EGR_UG;      /* Update event.                */
   tim->SR    = 0;                     /* Clear pending IRQs.          */
   tim->DIER  = 0;
@@ -429,6 +467,7 @@ int InitPWM(void)
   return 0;
 }
 
+
 void PWMUpdateDrivePhase(int pa,int pb,int pc)
 {
   // Make sure we don't overflow around.
@@ -441,19 +480,6 @@ void PWMUpdateDrivePhase(int pa,int pb,int pc)
 
   stm32_tim_t *tim = (stm32_tim_t *)TIM1_BASE;
 #if 1
-  tim->CCER  =
-      (STM32_TIM_CCER_CC1E | STM32_TIM_CCER_CC1NE ) |
-      (STM32_TIM_CCER_CC2E | STM32_TIM_CCER_CC2NE ) |
-      (STM32_TIM_CCER_CC3E | STM32_TIM_CCER_CC3NE );
-  tim->CCMR1 = STM32_TIM_CCMR1_OC1M(6) |
-      STM32_TIM_CCMR1_OC1PE |
-      STM32_TIM_CCMR1_OC2M(6) |
-      STM32_TIM_CCMR1_OC2PE;
-  tim->CCMR2 =
-    STM32_TIM_CCMR2_OC3M(6) |
-    STM32_TIM_CCMR2_OC3PE |
-    STM32_TIM_CCMR2_OC4M(6) |
-    STM32_TIM_CCMR2_OC4PE;
   tim->CCR[0] = pa;
   tim->CCR[1] = pb;
   tim->CCR[2] = pc;
@@ -581,45 +607,6 @@ void DisplayAngle(BaseSequentialStream *chp)
 
 }
 
-float hallToAngleB(uint16_t *sensors)
-{
-  int distTable[12];
-  int phase = 0;
-  int minDist = sqr(g_phaseAngles[0][0] - sensors[0]) +
-                sqr(g_phaseAngles[0][1] - sensors[1]) +
-                sqr(g_phaseAngles[0][2] - sensors[2]);
-  distTable[0] = minDist;
-
-  for(int i = 1;i < 12;i++) {
-    int dist = sqr(g_phaseAngles[i][0] - sensors[0]) +
-                  sqr(g_phaseAngles[i][1] - sensors[1]) +
-                  sqr(g_phaseAngles[i][2] - sensors[2]);
-    distTable[i] = dist;
-    if(dist < minDist) {
-      phase = i;
-      minDist = dist;
-    }
-  }
-  int last = phase - 1;
-  if(last < 0) last = 11;
-  int next = phase + 1;
-  if(last > 11) last = 0;
-  int lastDist2 = distTable[last];
-  int nextDist2 = distTable[next];
-
-  float angle = phase * 2.0;
-
-  float lastDist = mysqrtf(lastDist2) / g_phaseDistance[phase];
-  float nextDist = mysqrtf(nextDist2) / g_phaseDistance[next];
-
-  angle += (nextDist-lastDist)/(nextDist + lastDist);
-
-  if(angle < 0.0) angle += 24.0;
-  if(angle > 12.0) angle -= 24.0;
-  return angle * M_PI * 2.0 / 24.0;
-}
-
-
 // This returns an angle between 0 and 2 pi
 
 float hallToAngle(uint16_t *sensors)
@@ -648,76 +635,14 @@ float hallToAngle(uint16_t *sensors)
   int lastDist2 = distTable[last];
   int nextDist2 = distTable[next];
   float angle = phase * 2.0;
-#if 1
-  float nearDist = mysqrtf(minDist);
-  if(lastDist2 < nextDist2) {
-    float lastDist = mysqrtf(lastDist2);
-    angle -= nearDist / (lastDist + nearDist);
-  } else {
-    float nextDist = mysqrtf(nextDist2);
-    angle += nearDist / (nextDist + nearDist);
-  }
-#else
   float lastDist = mysqrtf(lastDist2) / g_phaseDistance[phase];
   float nextDist = mysqrtf(nextDist2) / g_phaseDistance[next];
-
-  angle += (nextDist-lastDist)/(nextDist + lastDist);
-#endif
+  angle -= (nextDist-lastDist)/(nextDist + lastDist);
   if(angle < 0.0) angle += 24.0;
   if(angle > 24.0) angle -= 24.0;
   return angle * M_PI * 2.0 / 24.0;
 }
 
-float hallToAngleDebug(uint16_t *sensors,int *nearest,int *n0,int *n1,int *n2)
-{
-  int distTable[12];
-  int phase = 0;
-  int minDist = sqr(g_phaseAngles[0][0] - sensors[0]) +
-                sqr(g_phaseAngles[0][1] - sensors[1]) +
-                sqr(g_phaseAngles[0][2] - sensors[2]);
-  distTable[0] = minDist;
-
-  for(int i = 1;i < 12;i++) {
-    int dist = sqr(g_phaseAngles[i][0] - sensors[0]) +
-                  sqr(g_phaseAngles[i][1] - sensors[1]) +
-                  sqr(g_phaseAngles[i][2] - sensors[2]);
-    distTable[i] = dist;
-    if(dist < minDist) {
-      phase = i;
-      minDist = dist;
-    }
-  }
-  *nearest = phase;
-  int last = phase - 1;
-  if(last < 0) last = 11;
-  int next = phase + 1;
-  if(last > 11) last = 0;
-  int lastDist2 = distTable[last];
-  int nextDist2 = distTable[next];
-  *n0 = minDist;
-  *n1 = lastDist2;
-  *n2 = nextDist2;
-  float angle = phase * 2.0;
-#if 1
-  float nearDist = mysqrtf(minDist);
-  if(lastDist2 < nextDist2) {
-    float lastDist = mysqrtf(lastDist2);
-    angle -= nearDist / (lastDist + nearDist);
-  } else {
-    float nextDist = mysqrtf(nextDist2);
-    angle += nearDist / (nextDist + nearDist);
-  }
-#else
-  float lastDist = mysqrtf(lastDist2) / g_phaseDistance[phase];
-  float nextDist = mysqrtf(nextDist2) / g_phaseDistance[next];
-
-  angle += (nextDist-lastDist)/(nextDist + lastDist);
-#endif
-
-  if(angle < 0.0) angle += 24.0;
-  if(angle > 24.0) angle -= 24.0;
-  return angle * M_PI * 2.0 / 24.0;
-}
 
 
 

@@ -23,3 +23,20 @@
  openocd -f interface/stlink-v2-1.cfg -f target/stm32f4x.cfg  -c "program build.bin verify reset exit"
   
  cp ./build/BMCV2.bin  /Volumes/NODE_F302R8/
+ 
+
+Cal with new setup:
+ 
+Cal 0 : 2123 2290 2409   
+Cal 1 : 1997 2183 2409   
+Cal 2 : 1980 2079 2373   
+Cal 3 : 1972 1970 2223   
+Cal 4 : 1978 1890 2069   
+Cal 5 : 2102 1936 2013   
+Cal 6 : 2229 2008 1993   
+Cal 7 : 2367 2139 2001   
+Cal 8 : 2381 2233 2039   
+Cal 9 : 2391 2340 2206   
+Cal 10 : 2384 2412 2357   
+Cal 11 : 2265 2365 2397   
+ 

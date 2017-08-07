@@ -15,4 +15,7 @@ void StoredConf_Init(void);
 bool StoredConf_Load(struct StoredConfigT *conf);
 bool StoredConf_Save(struct StoredConfigT *conf);
 
+extern bool g_eeInitDone;
+extern struct StoredConfigT g_storedConfig;
+
 #endif

@@ -15,7 +15,7 @@ endif
 
 # C++ specific options here (added to USE_OPT).
 ifeq ($(USE_CPPOPT),)
-  USE_CPPOPT = -fno-rtti
+  USE_CPPOPT = -fno-rtti -std=c++11
 endif
 
 # Enable this if you want the linker to remove unused code and data
@@ -121,6 +121,7 @@ CSRC = $(STARTUPSRC) \
        $(BOARDSRC) \
        $(TESTSRC) \
        $(CHIBIOS)/os/various/shell.c \
+       $(CHIBIOS)/os/various/syscalls.c \
        $(CHIBIOS)/os/hal/lib/streams/memstreams.c \
        $(CHIBIOS)/os/hal/lib/streams/chprintf.c \
        main.c \
@@ -133,15 +134,17 @@ CSRC = $(STARTUPSRC) \
        eeprom.c \
        storedconf.c \
        canbus.c \
+       terminal.c \
        $(STDPERIPH)/src/stm32f4xx_tim.c \
        $(STDPERIPH)/src/stm32f4xx_rcc.c \
        $(STDPERIPH)/src/stm32f4xx_adc.c \
        $(STDPERIPH)/src/stm32f4xx_flash.c \
-       $(STDPERIPH)/src/misc.c 
+       $(STDPERIPH)/src/misc.c \
+       stubs.c
  			
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
-CPPSRC =
+CPPSRC = coms.cpp
 
 # C sources to be compiled in ARM mode regardless of the global setting.
 # NOTE: Mixing ARM and THUMB mode enables the -mthumb-interwork compiler
@@ -223,14 +226,14 @@ CPPWARN = -Wall -Wextra -Wundef
 #
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS = 
+UDEFS = -DCHPRINTF_USE_FLOAT=1
 # -DSTM32F40_41xxx=1
 
 # Define ASM defines here
 UADEFS =
 
 # List all user directories here
-UINCDIR =
+UINCDIR = ../API/inc
 
 # List the user directory to look for the libraries here
 ULIBDIR = ../lib
