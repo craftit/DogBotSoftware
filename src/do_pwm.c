@@ -8,6 +8,9 @@
 #include "drv8503.h"
 #include "svm.h"
 
+#include "coms.h"
+
+
 #define SYSTEM_CORE_CLOCK     168000000
 
 #include "stm32f4xx_adc.h"
@@ -344,6 +347,7 @@ static void MotorControlLoop(void) {
           SetTorque(torque);
         } break;
       }
+
     }
 }
 
@@ -639,45 +643,6 @@ float hallToAngle(uint16_t *sensors)
   return angle * M_PI * 2.0 / 24.0;
 }
 
-float hallToAngleDebug(uint16_t *sensors,int *nearest,int *n0,int *n1,int *n2)
-{
-  int distTable[12];
-  int phase = 0;
-  int minDist = sqr(g_phaseAngles[0][0] - sensors[0]) +
-                sqr(g_phaseAngles[0][1] - sensors[1]) +
-                sqr(g_phaseAngles[0][2] - sensors[2]);
-  distTable[0] = minDist;
-
-  for(int i = 1;i < 12;i++) {
-    int dist = sqr(g_phaseAngles[i][0] - sensors[0]) +
-                  sqr(g_phaseAngles[i][1] - sensors[1]) +
-                  sqr(g_phaseAngles[i][2] - sensors[2]);
-    distTable[i] = dist;
-    if(dist < minDist) {
-      phase = i;
-      minDist = dist;
-    }
-  }
-  *nearest = phase;
-  int last = phase - 1;
-  if(last < 0) last = 11;
-  int next = phase + 1;
-  if(last > 11) last = 0;
-  int lastDist2 = distTable[last];
-  int nextDist2 = distTable[next];
-  *n0 = minDist;
-  *n1 = lastDist2;
-  *n2 = nextDist2;
-  float angle = phase * 2.0;
-  float lastDist = mysqrtf(lastDist2) / g_phaseDistance[phase];
-  float nextDist = mysqrtf(nextDist2) / g_phaseDistance[next];
-
-  angle += (nextDist-lastDist)/(nextDist + lastDist);
-
-  if(angle < 0.0) angle += 24.0;
-  if(angle > 24.0) angle -= 24.0;
-  return angle * M_PI * 2.0 / 24.0;
-}
 
 
 

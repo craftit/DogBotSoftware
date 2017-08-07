@@ -6,7 +6,8 @@
 #include "stm32f4xx_adc.h"
 #include "stm32f4xx_rcc.h"
 
-void InitADC(void) {
+void InitADC(void)
+{
   ADC_InitTypeDef ADC_InitStructure;
   ADC_CommonInitTypeDef ADC_CommonInitStructure;
 

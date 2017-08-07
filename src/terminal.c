@@ -23,6 +23,7 @@
 
 #include "shell.h"
 #include "chprintf.h"
+#include "coms.h"
 
 #include "usbcfg.h"
 
@@ -333,9 +334,9 @@ static void cmd_doDump(BaseSequentialStream *chp, int argc, char *argv[]) {
   while(true)
   {
     if(isAngle) {
-      chprintf(chp, " Iq:%4d Id:%4d Errq:%4d Errd:%4d   %4d %4d %4d - Angle: %5d  Current: %d      \r",
-        (int) (g_Iq * 1000.0),
-        (int) (g_Id * 1000.0),
+      chprintf(chp, " Iq:%1.4f Id:%1.4f Errq:%4d Errd:%4d   %4d %4d %4d - Angle: %5d  Current: %d      \r",
+        g_Iq,
+        g_Id,
         (int) (g_Ierr_q * 1000.0),
         (int) (g_Ierr_d * 1000.0),
         (int) (g_current[0] * 1000.0),
@@ -479,9 +480,26 @@ static void cmd_doCan(BaseSequentialStream *chp, int argc, char *argv[]) {
       break;
     }
   }
+}
 
+static void cmd_doPing(BaseSequentialStream *chp, int argc, char *argv[]) {
+  chprintf(chp, "Sending ping. \r\n");
+  if(SendPing(&SDU2)) {
+    chprintf(chp, "Sent ok. \r\n");
+  } else {
+    chprintf(chp, "Send error. \r\n");
+  }
 
 }
+static void cmd_doSync(BaseSequentialStream *chp, int argc, char *argv[]) {
+  chprintf(chp, "Sending sync. \r\n");
+  if(SendSync(&SDU2)) {
+    chprintf(chp, "Sent ok. \r\n");
+  } else {
+    chprintf(chp, "Send error. \r\n");
+  }
+}
+
 
 static const ShellCommand commands[] = {
   {"mem", cmd_mem},
@@ -503,6 +521,8 @@ static const ShellCommand commands[] = {
   {"dump",cmd_doDump},
   {"set",cmd_doSet },
   {"can",cmd_doCan },
+  {"ping",cmd_doPing },
+  {"sync",cmd_doSync },
   {NULL, NULL}
 };
 
@@ -511,7 +531,13 @@ static const ShellConfig shell_cfg1 = {
   commands
 };
 
+static const ShellConfig shell_cfg2 = {
+  (BaseSequentialStream *)&SDU2,
+  commands
+};
+
 thread_t *shelltp = NULL;
+thread_t *shelltp2 = NULL;
 
 void RunTerminal(void)
 {
@@ -525,4 +551,36 @@ void RunTerminal(void)
       chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
       shelltp = NULL;           /* Triggers spawning of a new shell.        */
     }
+
+
+#if 0
+    if (!shelltp2 && (SDU2.config->usbp->state == USB_ACTIVE))
+      shelltp2 = shellCreate(&shell_cfg2, SHELL_WA_SIZE, NORMALPRIO);
+    else if (chThdTerminatedX(shelltp2)) {
+      chThdRelease(shelltp2);    /* Recovers memory of the previous shell.   */
+      shelltp2 = NULL;           /* Triggers spawning of a new shell.        */
+    }
+#endif
 }
+
+void InitUSB(void)
+{
+  /*
+   * Initializes two serial-over-USB CDC drivers.
+   */
+  sduObjectInit(&SDU1);
+  sduStart(&SDU1, &serusbcfg1);
+  sduObjectInit(&SDU2);
+  sduStart(&SDU2, &serusbcfg2);
+
+  /*
+   * Activates the USB driver and then the USB bus pull-up on D+.
+   * Note, a delay is inserted in order to not have to disconnect the cable
+   * after a reset.
+   */
+  usbDisconnectBus(serusbcfg1.usbp);
+  chThdSleepMilliseconds(1500);
+  usbStart(serusbcfg1.usbp, &usbcfg);
+  usbConnectBus(serusbcfg1.usbp);
+}
+

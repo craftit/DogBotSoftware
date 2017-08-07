@@ -40,6 +40,7 @@
 #include "chprintf.h"
 
 #include "usbcfg.h"
+#include "coms.h"
 
 /*
  * This is a periodic thread that does absolutely nothing except flashing
@@ -55,6 +56,7 @@ static THD_FUNCTION(Thread1, arg) {
     chThdSleepMilliseconds(500);
     palClearPad(GPIOC, GPIOC_PIN4);     /* Orange.  */
     chThdSleepMilliseconds(500);
+    //SendSync(&SDU1);
   }
 }
 
@@ -65,11 +67,17 @@ static THD_FUNCTION(Thread1, arg) {
 
 extern void Drv8503Init(void);
 extern void RunTerminal(void);
+extern void InitUSB(void);
+extern void InitADC(void);
+
+extern pid_t getpid(void);
 
 /*
  * Application entry point.
  */
 int main(void) {
+
+  getpid();
 
   /*
    * System initializations.
@@ -83,18 +91,21 @@ int main(void) {
 
   InitADC();
 
+  Drv8503Init();
+
   InitSerial();
 
   InitUSB();
 
-  Drv8503Init();
+  //InitComs();
+
 
   g_eeInitDone = true;
   StoredConf_Init();
   StoredConf_Load(&g_storedConfig);
 
   /*
-   * Shell manager initialization.
+   * Shell manager initialisation.
    */
   shellInit();
 
@@ -105,9 +116,20 @@ int main(void) {
 
   InitCAN();
 
-  while(1) {
-    RunTerminal();
-    chThdSleepMilliseconds(500);
+  int i = 0;
+  BaseSequentialStream *chp =(BaseSequentialStream *)&SDU1;
+  while(true) {
+    //RunTerminal();
+
+    if(SDU1.config->usbp->state == USB_ACTIVE) {
+      //SendSync(chp);
+      //(,(const uint8_t *) "Hello\n\r", 7);
+      chprintf(chp, "count %d \r\n",i++);
+
+      //chnWrite((BaseSequentialStream *)&SDU1,(const uint8_t *) "Hello\n\r", 7);
+    }
+
+    chThdSleepMilliseconds(100);
   }
 
 }
