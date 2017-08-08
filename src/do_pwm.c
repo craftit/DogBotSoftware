@@ -448,8 +448,6 @@ int InitPWM(void)
 
   tim->CR2  = STM32_TIM_CR2_CCPC | STM32_TIM_CR2_MMS(7); // Use the COMG bit to update.
 
-  palSetPad(GPIOC, GPIOC_PIN13); // Wake
-  palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
 
   //palSetPad(GPIOB, GPIOB_PIN12); // Turn on flag pin
 
@@ -464,6 +462,10 @@ int InitPWM(void)
     g_phaseDistance[i] = mysqrtf((float) sum);
     lastIndex = i;
   }
+
+  palSetPad(GPIOC, GPIOC_PIN13); // Wake
+  palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
+
   return 0;
 }
 

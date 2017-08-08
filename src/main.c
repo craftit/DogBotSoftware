@@ -18,7 +18,6 @@
 #include "hal.h"
 
 #include "coms_serial.h"
-#include "test.h"
 
 #include "usbcfg.h"
 #include "pwm.h"
@@ -33,10 +32,8 @@
 
 #include "ch.h"
 #include "hal.h"
-#include "test.h"
 #include "storedconf.h"
 
-#include "shell.h"
 #include "chprintf.h"
 
 #include "usbcfg.h"
@@ -89,25 +86,27 @@ int main(void) {
   halInit();
   chSysInit();
 
+
   InitADC();
 
   Drv8503Init();
 
   InitSerial();
 
-  InitUSB();
 
   //InitComs();
-
 
   g_eeInitDone = true;
   StoredConf_Init();
   StoredConf_Load(&g_storedConfig);
 
+  InitUSB();
+
   /*
    * Shell manager initialisation.
    */
   shellInit();
+
 
   /*
    * Creates the blinker thread.
@@ -116,20 +115,11 @@ int main(void) {
 
   InitCAN();
 
-  int i = 0;
-  BaseSequentialStream *chp =(BaseSequentialStream *)&SDU1;
+  BaseSequentialStream *chp = (BaseSequentialStream *)&SDU1;
   while(true) {
-    //RunTerminal();
-
-    if(SDU1.config->usbp->state == USB_ACTIVE) {
-      //SendSync(chp);
-      //(,(const uint8_t *) "Hello\n\r", 7);
-      chprintf(chp, "count %d \r\n",i++);
-
-      //chnWrite((BaseSequentialStream *)&SDU1,(const uint8_t *) "Hello\n\r", 7);
-    }
-
+    SendSync(chp);
     chThdSleepMilliseconds(100);
+    //RunTerminal();
   }
 
 }

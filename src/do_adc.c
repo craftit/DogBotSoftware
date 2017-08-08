@@ -104,7 +104,6 @@ OSAL_IRQ_HANDLER(STM32_ADC_HANDLER) {
 
   OSAL_IRQ_PROLOGUE();
 
-
 #if 1
   int count  = 0;
   if(ADC_GetITStatus(ADC1, ADC_IT_JEOC) == SET) {
@@ -137,8 +136,12 @@ OSAL_IRQ_HANDLER(STM32_ADC_HANDLER) {
     //adc_inj_int_handler();
   }
 
-  if(ADC_GetITStatus(ADC1, ADC_IT_OVR) == SET) {
-    ADC_ClearITPendingBit(ADC1, ADC_IT_OVR);
+  if(ADC_GetITStatus(ADC2, ADC_IT_EOC) == SET) {
+    ADC_ClearITPendingBit(ADC2, ADC_IT_EOC);
+  }
+
+  if(ADC_GetITStatus(ADC3, ADC_IT_EOC) == SET) {
+    ADC_ClearITPendingBit(ADC3, ADC_IT_EOC);
   }
 
   if(count > 0) {
