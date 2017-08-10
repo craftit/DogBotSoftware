@@ -67,15 +67,15 @@ namespace DogBotN
   }
 
 
-  void SerialComsC::SetHandler(int packetId,const std::function<void (uint8_t *data,int )> &handler)
+  void SerialComsC::SetHandler(ComsPacketTypeT packetId,const std::function<void (uint8_t *data,int )> &handler)
   {
     std::lock_guard<std::mutex> lock(m_accessPacketHandler);
     assert(packetId < 256);
 
-    while(m_packetHandler.size() <= packetId) {
+    while(m_packetHandler.size() <= (int) packetId) {
       m_packetHandler.push_back(std::function<void (uint8_t *data,int )>());
     }
-    m_packetHandler[packetId] = handler;
+    m_packetHandler[(int) packetId] = handler;
   }
 
   void SerialComsC::AcceptByte(uint8_t sendByte)

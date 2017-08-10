@@ -9,6 +9,8 @@ extern "C" {
 
   void InitComs(void);
 
+  extern BaseSequentialStream *g_packetStream;
+
   bool SendPacket(BaseSequentialStream *chp,uint8_t *buff,int len);
 
   bool SendServoState(BaseSequentialStream *chp,float position,float torque);

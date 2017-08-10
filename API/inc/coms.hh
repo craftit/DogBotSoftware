@@ -50,7 +50,7 @@ namespace DogBotN {
     void SendPing();
 
     //! Set the handler for a particular type of packet.
-    void SetHandler(int packetId,const std::function<void (uint8_t *data,int )> &handler);
+    void SetHandler(ComsPacketTypeT packetType,const std::function<void (uint8_t *data,int )> &handler);
 
     volatile bool m_terminate = false;
     int m_state = 0;

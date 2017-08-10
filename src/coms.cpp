@@ -241,9 +241,12 @@ static THD_FUNCTION(ThreadComs, arg) {
   }
 }
 
+BaseSequentialStream *g_packetStream = 0;
+
 void InitComs()
 {
   g_comsDecode.m_SDU = (BaseSequentialStream *)&SDU1;
+  g_packetStream = (BaseSequentialStream *)&SDU1;
   //chThdCreateStatic(waThreadComs, sizeof(waThreadComs), NORMALPRIO, ThreadComs, NULL);
 
 }

@@ -9,6 +9,7 @@
 #include "svm.h"
 
 #include "coms.h"
+#include "protocol.h"
 
 
 #define SYSTEM_CORE_CLOCK     168000000
@@ -291,13 +292,25 @@ static void SetTorque(float torque) {
 #endif
 }
 
+
 static void MotorControlLoop(void) {
 
     while (g_pwmRun) {
       palClearPad(GPIOB, GPIOB_PIN12); // Turn output off to measure timing
       chBSemWait(&g_adcInjectedDataReady);
 
+
       ComputeState();
+
+      {
+        struct PacketPWMStateC ps;
+        ps.m_packetType = CPT_PWMState;
+        for(int i = 0;i < 3;i++)
+          ps.m_curr[i] = g_currentADCValue[i];
+        for(int i = 0;i < 3;i++)
+          ps.m_hall[i] = g_hall[i];
+        SendPacket(g_packetStream,(uint8_t *)&ps,sizeof ps);
+      }
 
       float torque = g_demandTorque;
       //float targetVelocity = g_demandPhaseVelocity;
