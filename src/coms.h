@@ -11,12 +11,22 @@ extern "C" {
 
   extern BaseSequentialStream *g_packetStream;
 
-  bool SendPacket(BaseSequentialStream *chp,uint8_t *buff,int len);
+  struct PacketT {
+    uint8_t m_len;
+    uint8_t m_packetType;
+    uint8_t m_data[31];
+  };
 
-  bool SendServoState(BaseSequentialStream *chp,float position,float torque);
+  /* Get a free packet structure. */
+  struct PacketT *GetEmptyPacket(systime_t timeout);
 
-  bool SendSync(BaseSequentialStream *chp);
-  bool SendPing(BaseSequentialStream *chp);
+  /* Post packet. */
+  void PostPacket(struct PacketT *pkt);
+
+  bool SendPacket(uint8_t *buff,int len);
+
+  bool SendSync(void);
+  bool SendPing(void);
 
 
 #ifdef __cplusplus

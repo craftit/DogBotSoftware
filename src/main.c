@@ -38,6 +38,7 @@
 
 #include "usbcfg.h"
 #include "coms.h"
+#include "shell/shell.h"
 
 /*
  * This is a periodic thread that does absolutely nothing except flashing
@@ -49,9 +50,9 @@ static THD_FUNCTION(Thread1, arg) {
   (void)arg;
   chRegSetThreadName("blinker");
   while (true) {
-    palSetPad(GPIOC, GPIOC_PIN4);       /* Orange.  */
+    palSetPad(GPIOC, GPIOC_PIN4);       /* Green.  */
     chThdSleepMilliseconds(500);
-    palClearPad(GPIOC, GPIOC_PIN4);     /* Orange.  */
+    palClearPad(GPIOC, GPIOC_PIN4);     /* Green.  */
     chThdSleepMilliseconds(500);
     //SendSync(&SDU1);
   }
@@ -93,19 +94,8 @@ int main(void) {
 
   InitSerial();
 
-
-  //InitComs();
-
-  g_eeInitDone = true;
-  StoredConf_Init();
-  StoredConf_Load(&g_storedConfig);
-
   InitUSB();
-
-  /*
-   * Shell manager initialisation.
-   */
-  shellInit();
+  InitCAN();
 
 
   /*
@@ -113,14 +103,38 @@ int main(void) {
    */
   chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
 
-  InitCAN();
+  g_eeInitDone = true;
+  StoredConf_Init();
+  StoredConf_Load(&g_storedConfig);
 
-  BaseSequentialStream *chp = (BaseSequentialStream *)&SDU1;
-  while(true) {
-    SendSync(chp);
-    chThdSleepMilliseconds(100);
-    //RunTerminal();
+  // Setup angles.
+  for(int i = 0;i < 12;i++) {
+    g_phaseAngles[i][0] = g_storedConfig.phaseAngles[i][0];
+    g_phaseAngles[i][1] = g_storedConfig.phaseAngles[i][1];
+    g_phaseAngles[i][2] = g_storedConfig.phaseAngles[i][2];
   }
 
+  /* Start controller loop */
+  PWMRun();
+
+#if 1
+  InitComs();
+  while(true) {
+    SendSync();
+    chThdSleepMilliseconds(100);
+  }
+#else
+  /*
+   * Shell manager initialisation.
+   */
+  shellInit();
+
+  while(true) {
+    RunTerminal();
+    chThdSleepMilliseconds(100);
+  }
+#endif
 }
+
+
 

@@ -88,6 +88,7 @@ void InitADC(void)
 }
 
 int g_currentSample = 0;
+int g_adcTickCount = 0;
 static uint8_t g_samplesDone[16];
 static uint16_t g_samples[16];
 
@@ -146,6 +147,7 @@ OSAL_IRQ_HANDLER(STM32_ADC_HANDLER) {
 
   if(count > 0) {
     g_adcInjCount = count;
+    g_adcTickCount++;
     palSetPad(GPIOB, GPIOB_PIN12); // Flag data captured
     chBSemSignalI(&g_adcInjectedDataReady);
   }

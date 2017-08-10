@@ -108,6 +108,7 @@ include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
 
 # Define linker script file here
 #LDSCRIPT= ld_eeprom_emu.ld
+#LDSCRIPT= STM32F405xG_eeprom.ld
 LDSCRIPT= STM32F405xG.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global

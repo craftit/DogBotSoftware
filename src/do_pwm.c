@@ -34,15 +34,13 @@ float g_motor_i_gain = 0.0;
 int g_phaseAngles[12][3];
 float g_phaseDistance[12];
 
-static bool g_pwmThreadRunning = false;
+bool g_pwmThreadRunning = false;
+volatile bool g_pwmRun = true;
 
 static THD_WORKING_AREA(waThreadPWM, 128);
 
 void PWMUpdateDrivePhase(int pa,int pb,int pc);
 
-static int g_drivePhase = 0;
-
-volatile bool g_pwmRun = true;
 
 
 static void queue_modulation_timings(float mod_alpha, float mod_beta) {
@@ -293,24 +291,25 @@ static void SetTorque(float torque) {
 }
 
 
+int g_pwmTimeoutCount = 0 ;
 static void MotorControlLoop(void) {
 
     while (g_pwmRun) {
       palClearPad(GPIOB, GPIOB_PIN12); // Turn output off to measure timing
-      chBSemWait(&g_adcInjectedDataReady);
+      if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
+        g_pwmTimeoutCount++;
+        continue;
+      }
+
+      // Display fault light
+      if(palReadPad(GPIOC, GPIOC_PIN15)) {
+        palClearPad(GPIOC, GPIOC_PIN5);
+      } else {
+        palSetPad(GPIOC, GPIOC_PIN5);
+      }
 
 
       ComputeState();
-
-      {
-        struct PacketPWMStateC ps;
-        ps.m_packetType = CPT_PWMState;
-        for(int i = 0;i < 3;i++)
-          ps.m_curr[i] = g_currentADCValue[i];
-        for(int i = 0;i < 3;i++)
-          ps.m_hall[i] = g_hall[i];
-        SendPacket(g_packetStream,(uint8_t *)&ps,sizeof ps);
-      }
 
       float torque = g_demandTorque;
       //float targetVelocity = g_demandPhaseVelocity;
@@ -361,6 +360,22 @@ static void MotorControlLoop(void) {
         } break;
       }
 
+      // Last send report if needed.
+      {
+        struct PacketT *pkt;
+        if((pkt = GetEmptyPacket(TIME_IMMEDIATE)) != 0) {
+          struct PacketPWMStateC *ps = (struct PacketPWMStateC *)&(pkt->m_packetType);
+          pkt->m_len = sizeof(struct PacketPWMStateC);
+          ps->m_packetType = CPT_PWMState;
+          for(int i = 0;i < 3;i++)
+            ps->m_curr[i] = g_currentADCValue[i];
+          for(int i = 0;i < 3;i++)
+            ps->m_hall[i] = g_hall[i];
+          ps->m_angle = g_phaseAngle * 65535.0 / (2.0 * M_PI);
+          PostPacket(pkt);
+        }
+      }
+
     }
 }
 
@@ -370,20 +385,31 @@ static THD_FUNCTION(ThreadPWM, arg) {
   (void)arg;
   chRegSetThreadName("pwm");
 
-  PWMUpdateDrivePhase(TIM_1_8_PERIOD_CLOCKS/2,TIM_1_8_PERIOD_CLOCKS/2,TIM_1_8_PERIOD_CLOCKS/2);
+  palSetPad(GPIOC, GPIOC_PIN13); // Wake
 
-  palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
+  //! Wait for powerup to complete
+  while (!palReadPad(GPIOD, GPIOD_PIN2)) {
+    chThdSleepMilliseconds(100);
+  }
 
   //! Make sure controller is setup.
   Drv8503Init();
 
+  //! Wait a bit more
+  chThdSleepMilliseconds(100);
+
+  // Setup PWM
+  InitPWM();
+
+  palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
+
   // This is quick, so may as well do it every time.
   ShuntCalibration();
 
+  // Do main control looop
   MotorControlLoop();
 
   // Make sure motor isn't being driven.
-
   PWMUpdateDrivePhase(TIM_1_8_PERIOD_CLOCKS/2,TIM_1_8_PERIOD_CLOCKS/2,TIM_1_8_PERIOD_CLOCKS/2);
 
   palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
@@ -431,7 +457,18 @@ void SetModeBreak(void)
 
 int InitPWM(void)
 {
-  g_drivePhase = 0;
+  // Pre-compute the distance between this position and the last.
+  int lastIndex = 11;
+  for(int i = 0;i < 12;i++) {
+    int sum = 0;
+    for(int k = 0;k < 3;k++) {
+      int diff = g_phaseAngles[i][k] - g_phaseAngles[lastIndex][k];
+      sum += diff * diff;
+    }
+    g_phaseDistance[i] = mysqrtf((float) sum);
+    lastIndex = i;
+  }
+
 
   rccEnableTIM1(FALSE);
   rccResetTIM1();
@@ -443,7 +480,19 @@ int InitPWM(void)
   tim->ARR  = TIM_1_8_PERIOD_CLOCKS; // This should give about 20KHz
   tim->CR2  = 0;
 
-  SetModeFOC();
+  tim->CCER  =
+      (STM32_TIM_CCER_CC1E | STM32_TIM_CCER_CC1NE ) |
+      (STM32_TIM_CCER_CC2E | STM32_TIM_CCER_CC2NE ) |
+      (STM32_TIM_CCER_CC3E | STM32_TIM_CCER_CC3NE );
+  tim->CCMR1 = STM32_TIM_CCMR1_OC1M(6) |
+      STM32_TIM_CCMR1_OC1PE |
+      STM32_TIM_CCMR1_OC2M(6) |
+      STM32_TIM_CCMR1_OC2PE;
+  tim->CCMR2 =
+    STM32_TIM_CCMR2_OC3M(6) |
+    STM32_TIM_CCMR2_OC3PE |
+    STM32_TIM_CCMR2_OC4M(6) |
+    STM32_TIM_CCMR2_OC4PE;
 
   tim->EGR   = STM32_TIM_EGR_UG;      /* Update event.                */
   tim->SR    = 0;                     /* Clear pending IRQs.          */
@@ -457,27 +506,13 @@ int InitPWM(void)
   tim->CCR[0] = TIM_1_8_PERIOD_CLOCKS/2;
   tim->CCR[1] = TIM_1_8_PERIOD_CLOCKS/2;
   tim->CCR[2] = TIM_1_8_PERIOD_CLOCKS/2;
-  tim->CCR[3] = TIM_1_8_PERIOD_CLOCKS - 1;
+  tim->CCR[3] = TIM_1_8_PERIOD_CLOCKS - 2;
 
   tim->CR2  = STM32_TIM_CR2_CCPC | STM32_TIM_CR2_MMS(7); // Use the COMG bit to update.
 
 
   //palSetPad(GPIOB, GPIOB_PIN12); // Turn on flag pin
 
-  // Pre-compute the distance between this position and the last.
-  int lastIndex = 11;
-  for(int i = 0;i < 12;i++) {
-    int sum = 0;
-    for(int k = 0;k < 3;k++) {
-      int diff = g_phaseAngles[i][k] - g_phaseAngles[lastIndex][k];
-      sum += diff * diff;
-    }
-    g_phaseDistance[i] = mysqrtf((float) sum);
-    lastIndex = i;
-  }
-
-  palSetPad(GPIOC, GPIOC_PIN13); // Wake
-  palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
 
   return 0;
 }
@@ -494,18 +529,16 @@ void PWMUpdateDrivePhase(int pa,int pb,int pc)
   if(pc > TIM_1_8_PERIOD_CLOCKS) pc = TIM_1_8_PERIOD_CLOCKS;
 
   stm32_tim_t *tim = (stm32_tim_t *)TIM1_BASE;
-#if 1
+
   tim->CCR[0] = pa;
   tim->CCR[1] = pb;
   tim->CCR[2] = pc;
 
   tim->EGR = STM32_TIM_EGR_COMG;
-#endif
 }
 
 int PWMRun()
 {
-  palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
   g_pwmRun = true;
   if(!g_pwmThreadRunning) {
     g_pwmThreadRunning = true;
@@ -517,7 +550,7 @@ int PWMRun()
 int PWMStop()
 {
   g_pwmRun = false;
-  palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
+  //palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
   return 0;
 }
 
@@ -587,7 +620,9 @@ int PWMCalSVM(BaseSequentialStream *chp)
     for(int i = 0;i < 3;i++) {
       g_phaseAngles[phaseStep][i] += g_hall[i];
     }
-
+    if (!palReadPad(GPIOB, GPIOA_PIN2)) {
+      return 0;
+    }
     chprintf(chp, "Cal %d : %04d %04d %04d   \r\n",phase,g_hall[0],g_hall[1],g_hall[2]);
   }
   for(int i = 0;i < 12;i++) {

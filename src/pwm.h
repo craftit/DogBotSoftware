@@ -22,6 +22,10 @@ extern int16_t g_currentADCValue[3];
 extern float g_currentZeroOffset[3];
 extern uint16_t g_hall[3];
 extern int g_adcInjCount;
+extern int g_pwmTimeoutCount ;
+
+extern volatile bool g_pwmRun;
+extern bool g_pwmThreadRunning;
 
 extern int g_phaseAngles[12][3];
 

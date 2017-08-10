@@ -5,7 +5,8 @@
 
 int main(int nargs,char **argv)
 {
-  std::string devFilename = "/dev/tty.usbmodem401";
+  //std::string devFilename = "/dev/tty.usbmodem401";
+  std::string devFilename = "/dev/ttyACM1";
 
   DogBotN::SerialComsC coms;
   std::ios_base::sync_with_stdio(true);
@@ -18,7 +19,14 @@ int main(int nargs,char **argv)
 
   coms.SetHandler(CPT_PWMState,[](uint8_t *data,int size) mutable
   {
+    PacketPWMStateC *msg = (PacketPWMStateC *) data;
+    printf(" %4d %4d %4d  %4d %4d %4d  %6d \n",
+           msg->m_hall[0],msg->m_hall[1],msg->m_hall[2],
+           msg->m_curr[0],msg->m_curr[1],msg->m_curr[2],
+           msg->m_angle);
 
+
+#if 0
     int16_t pos = (unsigned) data[1] + ((unsigned) data[2] << 8);
     int16_t effort = (unsigned) data[3] + ((unsigned) data[4] << 8);
     int32_t velocity = (unsigned) data[5] + ((unsigned) data[6] << 8) + ((unsigned) data[7] << 16) + ((unsigned) data[8] << 24);
@@ -41,6 +49,7 @@ int main(int nargs,char **argv)
     // Are we finished with action?
     if(stalled || atGoal)
       done.unlock();
+#endif
   });
 
   std::cerr << "Setup and ready. " << std::endl;

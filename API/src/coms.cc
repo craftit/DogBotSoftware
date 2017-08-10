@@ -90,7 +90,8 @@ namespace DogBotN
     case 1: // Packet length.
       m_packetLen = sendByte;
       if(m_packetLen > 64) {
-        m_state = 0;
+        if(sendByte != m_charSTX)
+          m_state = 0;
         break;
       }
 
@@ -109,7 +110,7 @@ namespace DogBotN
       uint8_t cs1 = (m_checkSum & 0xff);
       //ROS_DEBUG("Checksum1 : %d %d ",(int)  cs1 , (int) sendByte);
       if(cs1 != sendByte) {
-        ROS_DEBUG("Checksum failed. ");
+        //ROS_DEBUG("Checksum 1 failed. ");
         if(sendByte == m_charSTX)
           m_state = 1;
         else
@@ -123,7 +124,7 @@ namespace DogBotN
       uint8_t cs2 = ((m_checkSum >> 8) & 0xff);
       //ROS_DEBUG("Checksum2 : %d %d ",(int) ((m_checkSum >> 8) & 0xff) , (int) sendByte);
       if(cs2 != sendByte) {
-        std::cerr << "Checksum failed. \n";
+        //std::cerr << "Checksum 2 failed. \n";
         if(sendByte == m_charSTX)
           m_state = 1;
         else
@@ -151,7 +152,7 @@ namespace DogBotN
     for(int i = 0;i < m_packetLen;i++) {
       data += std::to_string(m_data[i]) + " ";
     }
-    ROS_DEBUG("Got packet [%d] %s ",m_packetLen,data.c_str());
+    //ROS_DEBUG("Got packet [%d] %s ",m_packetLen,data.c_str());
 
     // m_data[0] //
     int packetId = m_data[0];

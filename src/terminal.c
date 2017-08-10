@@ -84,6 +84,8 @@ static void cmd_doDiag(BaseSequentialStream *chp, int argc, char *argv[]) {
   int value = DoADC();
   chprintf(chp, "Result:%d  \r\n",value);
 
+  chprintf(chp, "PWMRun:%d ThreadRunning:%d Timeout:%d \r\n",g_pwmRun,g_pwmThreadRunning,g_pwmTimeoutCount);
+
   chprintf(chp, "Power good: ");
   if (palReadPad(GPIOD, GPIOD_PIN2)) {
     chprintf(chp, "Ready \r\n");
@@ -276,7 +278,16 @@ static void cmd_doDump(BaseSequentialStream *chp, int argc, char *argv[]) {
   if(argc == 1) {
     if(*argv[0] == 'a')
       isAngle = true;
+
+    if(*argv[0] == 'b') {
+      for(int i = 0;i < 12;i++) {
+        chprintf(chp, "Phase: %d %d %d \r\n",g_phaseAngles[i][0],g_phaseAngles[i][1],g_phaseAngles[i][2]);
+      }
+      return ;
+    }
   }
+
+
   chprintf(chp, "Dump \r\n");
   //for(int i = 0;i < 2;i++)
   while(true)

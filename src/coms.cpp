@@ -1,58 +1,28 @@
 
 #include "coms.h"
 #include "protocol.h"
+#include "chmboxes.h"
 
 #include <stdint.h>
+#include <string.h>
 
 const uint8_t g_charSTX = 0x02;
 const uint8_t g_charETX = 0x03;
 
-
-bool SendPacket(
-    BaseSequentialStream *chp,
-    uint8_t *buff,
-    int len
-    )
-{
-
-  uint8_t txbuff[32];
-  uint8_t *at = txbuff;
-  *(at++) = g_charSTX;
-  *(at++) = len;
-  int crc = len + 0x55;
-  for(int i = 0;i < len;i++) {
-    uint8_t data = buff[i];
-    *(at++) = data;
-    crc += data;
-  }
-  *(at++) = crc;
-  *(at++) = crc>>8;
-  *(at++) = g_charETX;
-  int size = at - txbuff;
-  chnWrite(chp, txbuff, size);
-  //streamWrite();
-
-  return true;
-}
-
-bool SendSync(
-    BaseSequentialStream *chp
-    )
+bool SendSync(void)
 {
   uint8_t buff[6];
   int at = 0;
   buff[at++] = CPT_Sync; // Type
-  return SendPacket(chp,buff,at);
+  return SendPacket(buff,at);
 }
 
-bool SendPing(
-    BaseSequentialStream *chp
-    )
+bool SendPing(void)
 {
   uint8_t buff[6];
   int at = 0;
   buff[at++] = CPT_Sync; // Type
-  return SendPacket(chp,buff,at);
+  return SendPacket(buff,at);
 }
 
 // Error codes
@@ -60,7 +30,6 @@ bool SendPing(
 //  2 - Packet unexpected length.
 
 void SendError(
-    BaseSequentialStream *chp,
     uint8_t code,
     uint8_t data
     )
@@ -71,22 +40,9 @@ void SendError(
   buff[at++] = code; // Unexpected packet type.
   buff[at++] = data; // Type of packet.
 
-  SendPacket(chp,buff,at);
+  SendPacket(buff,at);
 }
 
-
-bool SendServoState(BaseSequentialStream *chp,float position,float torque)
-{
-  uint8_t buff[16];
-  int at = 0;
-  buff[at++] = CPT_Servo; // Error.
-  buff[at++] = 1;
-  buff[at++] = 2;
-
-  SendPacket(chp,buff,at);
-
-  return true;
-}
 
 
 
@@ -129,6 +85,12 @@ void SerialDecodeC::AcceptByte(uint8_t sendByte)
     break;
   case 1: // Packet length.
     m_packetLen = sendByte;
+    if(m_packetLen > 64) {
+      if(sendByte != g_charSTX) // This will always be false, but for good form.
+        m_state = 0;
+      break;
+    }
+
     m_at = 0;
     m_checkSum = 0x55 + m_packetLen;
     m_state = 2;
@@ -191,7 +153,7 @@ void SerialDecodeC::ProcessPacket()
     int at = 0;
     buff[at++] = 1; // Address
     buff[at++] = 1; // Type, ping reply.
-    SendPacket(m_SDU,buff,at);
+    SendPacket(buff,at);
   } break;
 
   case CPT_Pong: { // Ping reply.
@@ -208,14 +170,15 @@ void SerialDecodeC::ProcessPacket()
 
   case CPT_Servo: { // Goto position.
     if(m_packetLen != 6) {
-      SendError(m_SDU,2,m_data[1]);
+      SendError(2,m_data[1]);
       break;
     }
-
+#if 0
     uint32_t pos = ((uint32_t) m_data[2])  +
                     (((uint32_t) m_data[3]) << 8) +
                     (((uint32_t) m_data[4]) << 16) +
                     (((uint32_t) m_data[5]) << 24);
+#endif
     //GotoPosition(pos);
   } break;
   default: {
@@ -225,13 +188,47 @@ void SerialDecodeC::ProcessPacket()
   }
 }
 
+#define PACKET_QUEUE_SIZE 8
 
-static THD_WORKING_AREA(waThreadComs, 512);
-static THD_FUNCTION(ThreadComs, arg) {
+static msg_t g_emptyPacketData[PACKET_QUEUE_SIZE];
+static mailbox_t g_emptyPackets;
+static msg_t g_fullPacketData[PACKET_QUEUE_SIZE];
+static mailbox_t g_fullPackets;
+
+static PacketT g_packetArray[PACKET_QUEUE_SIZE];
+
+
+/* Get a free packet structure. */
+struct PacketT *GetEmptyPacket(systime_t timeout)
+{
+  msg_t msg;
+  if(chMBFetch(&g_emptyPackets,&msg,timeout) != MSG_OK)
+    return 0;
+  return (PacketT *)msg;
+}
+
+/* Post packet. */
+void PostPacket(struct PacketT *pkt)
+{
+  if(chMBPost(&g_fullPackets,(msg_t) pkt,TIME_IMMEDIATE) == MSG_OK)
+    return ;
+
+  // This shouldn't happen, as if we can't aquire an empty buffer
+  // unless there is space, but we don't want to loose the buffer
+  // so attempt to add it back to the free list
+  if(chMBPost(&g_emptyPackets,(msg_t) pkt,TIME_IMMEDIATE) != MSG_OK) {
+    // Things are screwy. Panic ?
+  }
+}
+
+
+
+static THD_WORKING_AREA(waThreadRxComs, 512);
+static THD_FUNCTION(ThreadRxComs, arg) {
 
   (void)arg;
-  chRegSetThreadName("coms");
-  while (true) {
+  chRegSetThreadName("rxcoms");
+  while(true) {
     int ret = streamGet(g_comsDecode.m_SDU);
     if(ret == STM_RESET) {
       chThdSleepMilliseconds(500);
@@ -241,13 +238,78 @@ static THD_FUNCTION(ThreadComs, arg) {
   }
 }
 
+static THD_WORKING_AREA(waThreadTxComs, 512);
+static THD_FUNCTION(ThreadTxComs, arg) {
+
+  (void)arg;
+  chRegSetThreadName("txcoms");
+  uint8_t txbuff[48];
+  while(true) {
+    struct PacketT *packet = 0;
+    if(chMBFetch(&g_fullPackets,(msg_t*) &packet,TIME_INFINITE) != MSG_OK)
+      continue;
+
+    if(SDU1.config->usbp->state == USB_ACTIVE) {
+
+      uint8_t len = packet->m_len;
+      uint8_t *buff = &packet->m_packetType;
+
+      uint8_t *at = txbuff;
+      *(at++) = g_charSTX;
+      *(at++) = len;
+      int crc = len + 0x55;
+      for(int i = 0;i < len;i++) {
+        uint8_t data = buff[i];
+        *(at++) = data;
+        crc += data;
+      }
+      *(at++) = crc;
+      *(at++) = crc>>8;
+      *(at++) = g_charETX;
+      int size = at - txbuff;
+
+      chnWrite(g_packetStream, txbuff, size);
+    }
+
+    chMBPost(&g_emptyPackets,reinterpret_cast<msg_t>(packet),TIME_INFINITE);
+  }
+}
+
+
+bool SendPacket(
+    uint8_t *buff,
+    int len
+    )
+{
+  // Just truncate for the moment, it is better than overwriting memory.
+  if(len > 30)
+    len = 30;
+  struct PacketT *pkt;
+  if((pkt = GetEmptyPacket(TIME_IMMEDIATE)) == 0)
+    return false;
+
+  pkt->m_len = len;
+  memcpy(&pkt->m_packetType,buff,len);
+  PostPacket(pkt);
+
+  return true;
+}
+
 BaseSequentialStream *g_packetStream = 0;
 
 void InitComs()
 {
   g_comsDecode.m_SDU = (BaseSequentialStream *)&SDU1;
   g_packetStream = (BaseSequentialStream *)&SDU1;
-  //chThdCreateStatic(waThreadComs, sizeof(waThreadComs), NORMALPRIO, ThreadComs, NULL);
+
+  chMBObjectInit(&g_emptyPackets,g_emptyPacketData,PACKET_QUEUE_SIZE);
+  for(int i = 0;i < PACKET_QUEUE_SIZE;i++) {
+    chMBPost(&g_emptyPackets,reinterpret_cast<msg_t>(&g_packetArray[i]),TIME_IMMEDIATE);
+  }
+  chMBObjectInit(&g_fullPackets,g_fullPacketData,PACKET_QUEUE_SIZE);
+
+  chThdCreateStatic(waThreadTxComs, sizeof(waThreadTxComs), NORMALPRIO+1, ThreadTxComs, NULL);
+  chThdCreateStatic(waThreadRxComs, sizeof(waThreadRxComs), NORMALPRIO, ThreadRxComs, NULL);
 
 }
 

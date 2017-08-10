@@ -22,6 +22,7 @@ extern "C" {
     uint8_t m_packetType;
     uint16_t m_hall[3];
     uint16_t m_curr[3];
+    uint16_t m_angle;
   };
 
 
