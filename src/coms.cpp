@@ -15,8 +15,8 @@ bool SendPacket(
     )
 {
 
-  uint8_t txbuff[64];
-  uint8_t *at = buff;
+  uint8_t txbuff[32];
+  uint8_t *at = txbuff;
   *(at++) = g_charSTX;
   *(at++) = len;
   int crc = len + 0x55;
@@ -41,7 +41,6 @@ bool SendSync(
 {
   uint8_t buff[6];
   int at = 0;
-  buff[at++] = 1; // Address
   buff[at++] = CPT_Sync; // Type
   return SendPacket(chp,buff,at);
 }
@@ -52,7 +51,6 @@ bool SendPing(
 {
   uint8_t buff[6];
   int at = 0;
-  buff[at++] = 1; // Address
   buff[at++] = CPT_Sync; // Type
   return SendPacket(chp,buff,at);
 }
@@ -69,7 +67,6 @@ void SendError(
 {
   uint8_t buff[16];
   int at = 0;
-  buff[at++] = 1; // Address
   buff[at++] = CPT_Error; // Error.
   buff[at++] = code; // Unexpected packet type.
   buff[at++] = data; // Type of packet.
@@ -82,7 +79,6 @@ bool SendServoState(BaseSequentialStream *chp,float position,float torque)
 {
   uint8_t buff[16];
   int at = 0;
-  buff[at++] = 1; // Address
   buff[at++] = CPT_Servo; // Error.
   buff[at++] = 1;
   buff[at++] = 2;
@@ -245,9 +241,12 @@ static THD_FUNCTION(ThreadComs, arg) {
   }
 }
 
+BaseSequentialStream *g_packetStream = 0;
+
 void InitComs()
 {
   g_comsDecode.m_SDU = (BaseSequentialStream *)&SDU1;
+  g_packetStream = (BaseSequentialStream *)&SDU1;
   //chThdCreateStatic(waThreadComs, sizeof(waThreadComs), NORMALPRIO, ThreadComs, NULL);
 
 }

@@ -87,11 +87,11 @@ PROJECT = BMCV2
 
 # Imported source files and paths
 #CHIBIOS = /Users/charles/src/arm/ChibiOS_16.1.7
-CHIBIOS = /home/charles/src/ext/ChibiOS_16.1.8
+CHIBIOS = ../../ChibiOS_17.6.0
 STDPERIPH = ../ext/STM32F4xx_DSP_StdPeriph_Lib/Libraries/STM32F4xx_StdPeriph_Driver
 
 # Startup files.
-include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
+include $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
 # HAL-OSAL files (optional).
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/hal/ports/STM32/STM32F4xx/platform.mk
@@ -99,9 +99,9 @@ include BMC2_BOARD/board.mk
 include $(CHIBIOS)/os/hal/osal/rt/osal.mk
 # RTOS files (optional).
 include $(CHIBIOS)/os/rt/rt.mk
-include $(CHIBIOS)/os/rt/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
+include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
 # Other files (optional).
-include $(CHIBIOS)/test/rt/test.mk
+#include $(CHIBIOS)/test/rt/test.mk
 
 # Define linker script file here
 #LDSCRIPT= $(STARTUPLD)/STM32F405xG.ld
@@ -120,7 +120,8 @@ CSRC = $(STARTUPSRC) \
        $(PLATFORMSRC) \
        $(BOARDSRC) \
        $(TESTSRC) \
-       $(CHIBIOS)/os/various/shell.c \
+       $(CHIBIOS)/os/various/shell/shell.c \
+       $(CHIBIOS)/os/various/shell/shell_cmd.c \
        $(CHIBIOS)/os/various/syscalls.c \
        $(CHIBIOS)/os/hal/lib/streams/memstreams.c \
        $(CHIBIOS)/os/hal/lib/streams/chprintf.c \
@@ -167,9 +168,10 @@ TCSRC =
 TCPPSRC =
 
 # List ASM source files here
-ASMSRC = $(STARTUPASM) $(PORTASM) $(OSALASM)
+ASMXSRC = $(STARTUPASM) $(PORTASM) $(OSALASM)
+#ASMSRC = $(STARTUPASM) $(PORTASM) $(OSALASM)
 
-INCDIR = \
+INCDIR = $(CHIBIOS)/os/license \
          $(STDPERIPH)/inc \
          ../ext/STM32F4xx_DSP_StdPeriph_Lib/Libraries/CMSIS/Device/ST/STM32F4xx/Include \
          $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
@@ -226,7 +228,7 @@ CPPWARN = -Wall -Wextra -Wundef
 #
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS = -DCHPRINTF_USE_FLOAT=1
+UDEFS = -DCHPRINTF_USE_FLOAT=1 -DSHELL_CMD_TEST_ENABLED=FALSE
 # -DSTM32F40_41xxx=1
 
 # Define ASM defines here
@@ -245,5 +247,5 @@ ULIBS = -larm_cortexM4lf_math
 # End of user defines
 ##############################################################################
 
-RULESPATH = $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC
+RULESPATH = $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC
 include $(RULESPATH)/rules.mk

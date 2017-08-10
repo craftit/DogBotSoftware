@@ -9,6 +9,7 @@
 #include "svm.h"
 
 #include "coms.h"
+#include "protocol.h"
 
 
 #define SYSTEM_CORE_CLOCK     168000000
@@ -291,13 +292,25 @@ static void SetTorque(float torque) {
 #endif
 }
 
+
 static void MotorControlLoop(void) {
 
     while (g_pwmRun) {
       palClearPad(GPIOB, GPIOB_PIN12); // Turn output off to measure timing
       chBSemWait(&g_adcInjectedDataReady);
 
+
       ComputeState();
+
+      {
+        struct PacketPWMStateC ps;
+        ps.m_packetType = CPT_PWMState;
+        for(int i = 0;i < 3;i++)
+          ps.m_curr[i] = g_currentADCValue[i];
+        for(int i = 0;i < 3;i++)
+          ps.m_hall[i] = g_hall[i];
+        SendPacket(g_packetStream,(uint8_t *)&ps,sizeof ps);
+      }
 
       float torque = g_demandTorque;
       //float targetVelocity = g_demandPhaseVelocity;
@@ -448,8 +461,6 @@ int InitPWM(void)
 
   tim->CR2  = STM32_TIM_CR2_CCPC | STM32_TIM_CR2_MMS(7); // Use the COMG bit to update.
 
-  palSetPad(GPIOC, GPIOC_PIN13); // Wake
-  palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
 
   //palSetPad(GPIOB, GPIOB_PIN12); // Turn on flag pin
 
@@ -464,6 +475,10 @@ int InitPWM(void)
     g_phaseDistance[i] = mysqrtf((float) sum);
     lastIndex = i;
   }
+
+  palSetPad(GPIOC, GPIOC_PIN13); // Wake
+  palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
+
   return 0;
 }
 

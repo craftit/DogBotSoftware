@@ -3,7 +3,6 @@
 #include "hal.h"
 
 #include "coms_serial.h"
-#include "test.h"
 
 #include "usbcfg.h"
 #include "pwm.h"
@@ -18,10 +17,9 @@
 
 #include "ch.h"
 #include "hal.h"
-#include "test.h"
 #include "storedconf.h"
 
-#include "shell.h"
+#include "shell/shell.h"
 #include "chprintf.h"
 #include "coms.h"
 
@@ -34,56 +32,6 @@
 #define SHELL_WA_SIZE   THD_WORKING_AREA_SIZE(2048)
 #define TEST_WA_SIZE    THD_WORKING_AREA_SIZE(256)
 
-static void cmd_mem(BaseSequentialStream *chp, int argc, char *argv[]) {
-  size_t n, size;
-
-  (void)argv;
-  if (argc > 0) {
-    chprintf(chp, "Usage: mem\r\n");
-    return;
-  }
-  n = chHeapStatus(NULL, &size);
-  chprintf(chp, "core free memory : %u bytes\r\n", chCoreGetStatusX());
-  chprintf(chp, "heap fragments   : %u\r\n", n);
-  chprintf(chp, "heap free total  : %u bytes\r\n", size);
-}
-
-static void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]) {
-  static const char *states[] = {CH_STATE_NAMES};
-  thread_t *tp;
-
-  (void)argv;
-  if (argc > 0) {
-    chprintf(chp, "Usage: threads\r\n");
-    return;
-  }
-  chprintf(chp, "    addr    stack prio refs     state time\r\n");
-  tp = chRegFirstThread();
-  do {
-    chprintf(chp, "%08lx %08lx %4lu %4lu %9s\r\n",
-            (uint32_t)tp, (uint32_t)tp->p_ctx.r13,
-            (uint32_t)tp->p_prio, (uint32_t)(tp->p_refs - 1),
-            states[tp->p_state]);
-    tp = chRegNextThread(tp);
-  } while (tp != NULL);
-}
-
-static void cmd_test(BaseSequentialStream *chp, int argc, char *argv[]) {
-  thread_t *tp;
-
-  (void)argv;
-  if (argc > 0) {
-    chprintf(chp, "Usage: test\r\n");
-    return;
-  }
-  tp = chThdCreateFromHeap(NULL, TEST_WA_SIZE, chThdGetPriorityX(),
-                           TestThread, chp);
-  if (tp == NULL) {
-    chprintf(chp, "out of memory\r\n");
-    return;
-  }
-  chThdWait(tp);
-}
 
 /* Can be measured using dd if=/dev/xxxx of=/dev/null bs=512 count=10000.*/
 static void cmd_write(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -484,27 +432,28 @@ static void cmd_doCan(BaseSequentialStream *chp, int argc, char *argv[]) {
 
 static void cmd_doPing(BaseSequentialStream *chp, int argc, char *argv[]) {
   chprintf(chp, "Sending ping. \r\n");
-  if(SendPing(&SDU2)) {
+#if 0
+  if(SendPing(&SDU1)) {
     chprintf(chp, "Sent ok. \r\n");
   } else {
     chprintf(chp, "Send error. \r\n");
   }
+#endif
 
 }
 static void cmd_doSync(BaseSequentialStream *chp, int argc, char *argv[]) {
   chprintf(chp, "Sending sync. \r\n");
-  if(SendSync(&SDU2)) {
+#if 0
+  if(SendSync(&SDU1)) {
     chprintf(chp, "Sent ok. \r\n");
   } else {
     chprintf(chp, "Send error. \r\n");
   }
+#endif
 }
 
 
 static const ShellCommand commands[] = {
-  {"mem", cmd_mem},
-  {"threads", cmd_threads},
-  {"test", cmd_test},
   {"write", cmd_write},
   {"diag", cmd_doDiag},
   {"drvtest", cmd_doDrvTest},
@@ -530,14 +479,11 @@ static const ShellConfig shell_cfg1 = {
   (BaseSequentialStream *)&SDU1,
   commands
 };
+thread_t *shelltp1 = NULL;
 
-static const ShellConfig shell_cfg2 = {
-  (BaseSequentialStream *)&SDU2,
-  commands
-};
 
-thread_t *shelltp = NULL;
-thread_t *shelltp2 = NULL;
+event_listener_t g_shell_el;
+
 
 void RunTerminal(void)
 {
@@ -545,15 +491,34 @@ void RunTerminal(void)
    * Normal main() thread activity, in this demo it does nothing except
    * sleeping in a loop and check the button state.
    */
-    if (!shelltp && (SDU1.config->usbp->state == USB_ACTIVE))
-      shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
-    else if (chThdTerminatedX(shelltp)) {
-      chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
-      shelltp = NULL;           /* Triggers spawning of a new shell.        */
+
+  if (SDU1.config->usbp->state == USB_ACTIVE) {
+    /* Starting shells.*/
+    if (shelltp1 == NULL) {
+      shelltp1 = chThdCreateFromHeap(NULL, SHELL_WA_SIZE,
+                                     "shell1", NORMALPRIO + 1,
+                                     shellThread, (void *)&shell_cfg1);
     }
 
+    /* Waiting for an exit event then freeing terminated shells.*/
+    chEvtWaitAny(EVENT_MASK(0));
+    if (chThdTerminatedX(shelltp1)) {
+      chThdRelease(shelltp1);
+      shelltp1 = NULL;
+    }
+  }
+  else {
+    chThdSleepMilliseconds(1000);
+  }
 
 #if 0
+  if (!shelltp && (SDU1.config->usbp->state == USB_ACTIVE))
+    shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
+  else if (chThdTerminatedX(shelltp)) {
+    chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
+    shelltp = NULL;           /* Triggers spawning of a new shell.        */
+  }
+
     if (!shelltp2 && (SDU2.config->usbp->state == USB_ACTIVE))
       shelltp2 = shellCreate(&shell_cfg2, SHELL_WA_SIZE, NORMALPRIO);
     else if (chThdTerminatedX(shelltp2)) {
@@ -569,18 +534,19 @@ void InitUSB(void)
    * Initializes two serial-over-USB CDC drivers.
    */
   sduObjectInit(&SDU1);
-  sduStart(&SDU1, &serusbcfg1);
-  sduObjectInit(&SDU2);
-  sduStart(&SDU2, &serusbcfg2);
+  sduStart(&SDU1, &serusbcfg);
 
   /*
    * Activates the USB driver and then the USB bus pull-up on D+.
    * Note, a delay is inserted in order to not have to disconnect the cable
    * after a reset.
    */
-  usbDisconnectBus(serusbcfg1.usbp);
+  usbDisconnectBus(serusbcfg.usbp);
   chThdSleepMilliseconds(1500);
-  usbStart(serusbcfg1.usbp, &usbcfg);
-  usbConnectBus(serusbcfg1.usbp);
+  usbStart(serusbcfg.usbp, &usbcfg);
+  usbConnectBus(serusbcfg.usbp);
+
+  chEvtRegister(&shell_terminated, &g_shell_el, 0);
+
 }
 

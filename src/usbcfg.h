@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2016 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -14,17 +14,15 @@
     limitations under the License.
 */
 
-#ifndef _USBCFG_H_
-#define _USBCFG_H_
+#ifndef USBCFG_H
+#define USBCFG_H
 
 #include "hal.h"
 
 extern const USBConfig usbcfg;
-extern const SerialUSBConfig serusbcfg1;
-extern const SerialUSBConfig serusbcfg2;
+extern SerialUSBConfig serusbcfg;
 extern SerialUSBDriver SDU1;
-extern SerialUSBDriver SDU2;
 
-#endif  /* _USBCFG_H_ */
+#endif  /* USBCFG_H */
 
 /** @} */
