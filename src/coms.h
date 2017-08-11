@@ -13,15 +13,14 @@ extern "C" {
 
   struct PacketT {
     uint8_t m_len;
-    uint8_t m_packetType;
-    uint8_t m_data[31];
+    uint8_t m_data[62];
   };
 
   /* Get a free packet structure. */
   struct PacketT *GetEmptyPacket(systime_t timeout);
 
   /* Post packet. */
-  void PostPacket(struct PacketT *pkt);
+  bool PostPacket(struct PacketT *pkt);
 
   bool SendPacket(uint8_t *buff,int len);
 

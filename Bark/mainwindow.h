@@ -1,0 +1,50 @@
+#ifndef MAINWINDOW_H
+#define MAINWINDOW_H
+
+#include <QMainWindow>
+#include "coms.hh"
+
+namespace Ui {
+class MainWindow;
+}
+
+class MainWindow : public QMainWindow
+{
+  Q_OBJECT
+
+public:
+  explicit MainWindow(QWidget *parent = 0);
+  ~MainWindow();
+
+private slots:
+  void on_pushButtonConnect_clicked();
+
+  void on_pushButtonPWM_clicked();
+
+  void on_pushButtonPWMReport_clicked();
+
+  void on_pushButtonPing_clicked();
+
+  void on_comboBoxMotorControlMode_activated(const QString &arg1);
+
+  void on_sliderPosition_sliderMoved(int position);
+
+  void on_sliderTorque_sliderMoved(int position);
+
+  void on_pushButtonStopPWM_clicked();
+
+signals:
+  void setLogText(const QString &str);
+
+private:
+  void SetupComs();
+
+  Ui::MainWindow *ui;
+  DogBotN::SerialComsC m_coms;
+  bool m_PWMReportRequested = false;
+
+  float m_position = 0;
+  float m_torque = 0;
+};
+
+#endif // MAINWINDOW_H

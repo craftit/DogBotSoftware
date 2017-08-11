@@ -7,6 +7,8 @@ int main(int nargs,char **argv)
 {
   //std::string devFilename = "/dev/tty.usbmodem401";
   std::string devFilename = "/dev/ttyACM1";
+  if(nargs > 1)
+    devFilename = argv[1];
 
   DogBotN::SerialComsC coms;
   std::ios_base::sync_with_stdio(true);
@@ -20,7 +22,8 @@ int main(int nargs,char **argv)
   coms.SetHandler(CPT_PWMState,[](uint8_t *data,int size) mutable
   {
     PacketPWMStateC *msg = (PacketPWMStateC *) data;
-    printf(" %4d %4d %4d  %4d %4d %4d  %6d \n",
+    printf("%5d  %4d %4d %4d  %4d %4d %4d  %6d     \n",
+           msg->m_tick,
            msg->m_hall[0],msg->m_hall[1],msg->m_hall[2],
            msg->m_curr[0],msg->m_curr[1],msg->m_curr[2],
            msg->m_angle);

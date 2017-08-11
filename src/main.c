@@ -114,13 +114,15 @@ int main(void) {
     g_phaseAngles[i][2] = g_storedConfig.phaseAngles[i][2];
   }
 
-  /* Start controller loop */
-  PWMRun();
 
 #if 1
   InitComs();
+
+  /* Start controller loop */
+  //PWMRun();
+
   while(true) {
-    SendSync();
+    //SendSync();
     chThdSleepMilliseconds(100);
   }
 #else

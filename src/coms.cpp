@@ -2,6 +2,8 @@
 #include "coms.h"
 #include "protocol.h"
 #include "chmboxes.h"
+#include "pwm.h"
+#include "mathfunc.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -21,7 +23,7 @@ bool SendPing(void)
 {
   uint8_t buff[6];
   int at = 0;
-  buff[at++] = CPT_Sync; // Type
+  buff[at++] = CPT_Ping; // Type
   return SendPacket(buff,at);
 }
 
@@ -30,7 +32,7 @@ bool SendPing(void)
 //  2 - Packet unexpected length.
 
 void SendError(
-    uint8_t code,
+    ComsErrorTypeT code,
     uint8_t data
     )
 {
@@ -135,24 +137,85 @@ void SerialDecodeC::AcceptByte(uint8_t sendByte)
       //RavlDebug("Got packet!");
       ProcessPacket();
     } else {
+      // FIXME Count corrupted packets ?
       //RavlDebug("Packet corrupted.");
+      if(sendByte == g_charSTX) {
+        m_state = 1;
+        break;
+      }
     }
     m_state = 0;
     break;
   }
 }
 
+
+bool SetParam(PacketSetParamC *psp)
+{
+  switch((ComsParameterIndexT) psp->m_index)
+  {
+    case CPI_FirmwareVersion:
+      return false; // Can't set this
+    case CPI_PWMState:
+      if(psp->m_data > 0) {
+        PWMRun();
+      } else {
+        PWMStop();
+      }
+      break;
+    case CPI_PWMMode:
+      if(psp->m_data >= (int) CM_Final)
+        return false;
+      g_controlMode = (PWMControlModeT) psp->m_data;
+      break;
+    case CPI_PWMFullReport:
+      g_pwmFullReport = psp->m_data > 0;
+      break;
+    default:
+      return false;
+  }
+  return true;
+}
+
+bool ReadParam(PacketReadParamC *psp)
+{
+  PacketSetParamC reply;
+  reply.m_packetType = CPT_SetParam;
+
+  switch((ComsParameterIndexT) psp->m_index)
+  {
+    case CPI_FirmwareVersion: {
+      reply.m_data = 0;
+    } break;
+
+    case CPI_PWMState: {
+      reply.m_data = g_pwmThreadRunning;
+    } break;
+    case CPI_PWMMode: {
+      reply.m_data = g_controlMode;
+    } break;
+    case CPI_PWMFullReport: {
+      reply.m_data = g_pwmFullReport;
+    } break;
+    default:
+      return false;
+  }
+  SendPacket((uint8_t *)&reply,sizeof(reply));
+
+  return true;
+}
+
+
 //! Process received packet.
 void SerialDecodeC::ProcessPacket()
 {
+  uint8_t buff[16];
   // m_data[0] //
-  switch(m_data[1])
+  switch(m_data[0])
   {
   case CPT_Ping: { // Ping.
-    uint8_t buff[16];
     int at = 0;
-    buff[at++] = 1; // Address
-    buff[at++] = 1; // Type, ping reply.
+    buff[at++] = CPT_Pong; // Type, ping reply.
     SendPacket(buff,at);
   } break;
 
@@ -167,22 +230,29 @@ void SerialDecodeC::ProcessPacket()
   case CPT_Error: { // Error.
     // Drop it
   } break;
-
+  case CPT_ReadParam: {
+    PacketReadParamC *psp = (PacketReadParamC *) m_data;
+    if(!ReadParam(psp)) {
+      SendError(CET_ParameterOutOfRange,m_data[1]);
+    }
+  } break;
+  case CPT_SetParam: {
+    PacketSetParamC *psp = (PacketSetParamC *) m_data;
+    if(!SetParam(psp)) {
+      SendError(CET_ParameterOutOfRange,m_data[1]);
+    }
+  } break;
   case CPT_Servo: { // Goto position.
-    if(m_packetLen != 6) {
-      SendError(2,m_data[1]);
+    if(m_packetLen != sizeof( PacketServoC)) {
+      SendError(CET_UnexpectedPacketSize,m_data[1]);
       break;
     }
-#if 0
-    uint32_t pos = ((uint32_t) m_data[2])  +
-                    (((uint32_t) m_data[3]) << 8) +
-                    (((uint32_t) m_data[4]) << 16) +
-                    (((uint32_t) m_data[5]) << 24);
-#endif
-    //GotoPosition(pos);
+    PacketServoC *ps = (PacketServoC *) m_data;
+    g_torqueLimit = ((float) ps->m_torqueLimit) * 10.0 / (65535.0);
+    g_demandPhasePosition = ((float) ps->m_position) * 7.0 * 21.0 * M_PI * 2.0/ 65535.0;
   } break;
   default: {
-    //SendError(1,m_data[1]);
+    SendError(CET_UnknownPacketType,m_data[1]);
     //RavlDebug("Unexpected packet type %d ",(int) m_data[1]);
   } break;
   }
@@ -208,17 +278,18 @@ struct PacketT *GetEmptyPacket(systime_t timeout)
 }
 
 /* Post packet. */
-void PostPacket(struct PacketT *pkt)
+bool PostPacket(struct PacketT *pkt)
 {
   if(chMBPost(&g_fullPackets,(msg_t) pkt,TIME_IMMEDIATE) == MSG_OK)
-    return ;
+    return true;
 
-  // This shouldn't happen, as if we can't aquire an empty buffer
+  // This shouldn't happen, as if we can't acquire an empty buffer
   // unless there is space, but we don't want to loose the buffer
   // so attempt to add it back to the free list
   if(chMBPost(&g_emptyPackets,(msg_t) pkt,TIME_IMMEDIATE) != MSG_OK) {
     // Things are screwy. Panic ?
   }
+  return false;
 }
 
 
@@ -243,7 +314,7 @@ static THD_FUNCTION(ThreadTxComs, arg) {
 
   (void)arg;
   chRegSetThreadName("txcoms");
-  uint8_t txbuff[48];
+  static uint8_t txbuff[261];
   while(true) {
     struct PacketT *packet = 0;
     if(chMBFetch(&g_fullPackets,(msg_t*) &packet,TIME_INFINITE) != MSG_OK)
@@ -252,7 +323,7 @@ static THD_FUNCTION(ThreadTxComs, arg) {
     if(SDU1.config->usbp->state == USB_ACTIVE) {
 
       uint8_t len = packet->m_len;
-      uint8_t *buff = &packet->m_packetType;
+      uint8_t *buff = packet->m_data;
 
       uint8_t *at = txbuff;
       *(at++) = g_charSTX;
@@ -282,14 +353,14 @@ bool SendPacket(
     )
 {
   // Just truncate for the moment, it is better than overwriting memory.
-  if(len > 30)
-    len = 30;
   struct PacketT *pkt;
+  //if(len > sizeof pkt->m_data) len = sizeof pkt->m_data;
+
   if((pkt = GetEmptyPacket(TIME_IMMEDIATE)) == 0)
     return false;
 
   pkt->m_len = len;
-  memcpy(&pkt->m_packetType,buff,len);
+  memcpy(&pkt->m_data,buff,len);
   PostPacket(pkt);
 
   return true;
@@ -299,6 +370,11 @@ BaseSequentialStream *g_packetStream = 0;
 
 void InitComs()
 {
+  static bool initDone = false;
+  if(initDone)
+    return ;
+  initDone = true;
+
   g_comsDecode.m_SDU = (BaseSequentialStream *)&SDU1;
   g_packetStream = (BaseSequentialStream *)&SDU1;
 

@@ -10,6 +10,7 @@
 #include <mutex>
 
 #include "protocol.h"
+#include <cstdint>
 
 namespace DogBotN {
 
@@ -38,13 +39,16 @@ namespace DogBotN {
     void ProcessPacket();
 
     //! Send packet
-    void SendPacket(uint8_t *data,int len);
+    void SendPacket(const uint8_t *data,int len);
 
     //! Send a move command
     void SendMove(int servoId,int pos);
 
     //! Send a move command with an effort level.
     void SendMoveWithEffort(float pos,float effort);
+
+    //! Set a parameter
+    void SendSetParam(ComsParameterIndexT param,uint16_t value);
 
     //! Send a move command
     void SendPing();

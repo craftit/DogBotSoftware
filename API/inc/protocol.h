@@ -18,11 +18,54 @@ extern "C" {
     CPT_PWMState  = 8, // PWM State.
   };
 
+
+  enum ComsErrorTypeT {
+    CET_UnknownPacketType = 0,
+    CET_UnexpectedPacketSize = 1,
+    CET_ParameterOutOfRange = 2
+  };
+
+
+  enum ComsParameterIndexT
+  {
+    CPI_FirmwareVersion = 0,
+    CPI_PWMState        = 1,
+    CPI_PWMMode         = 2,
+    CPI_PWMFullReport   = 3,
+  };
+
+  enum PWMControlModeT {
+    CM_Idle,
+    CM_Break,
+    CM_Torque,
+    CM_Velocity,
+    CM_Position,
+    CM_Final
+  } ;
+
+  struct PacketReadParamC {
+    uint8_t m_packetType;
+    uint16_t m_index;
+  };
+
+  struct PacketSetParamC {
+    uint8_t m_packetType;
+    uint16_t m_index;
+    uint16_t m_data;
+  };
+
   struct PacketPWMStateC {
     uint8_t m_packetType;
+    uint16_t m_tick;
     uint16_t m_hall[3];
     uint16_t m_curr[3];
     uint16_t m_angle;
+  };
+
+  struct PacketServoC {
+    uint8_t m_packetType;
+    uint16_t m_position;
+    uint16_t m_torqueLimit;
   };
 
 

@@ -49,7 +49,8 @@ namespace DogBotN
   bool SerialComsC::Open(const char *portAddr)
   {
     if(m_fd >= 0) {
-      Close();
+      std::cerr << "Coms already open. " << std::endl;
+      return false;
     }
 
     std::cerr << "Opening: '" << portAddr << "' " << std::endl;
@@ -90,6 +91,7 @@ namespace DogBotN
     case 1: // Packet length.
       m_packetLen = sendByte;
       if(m_packetLen > 64) {
+        printf("Packet to long! %d  ",m_packetLen);
         if(sendByte != m_charSTX)
           m_state = 0;
         break;
@@ -138,7 +140,11 @@ namespace DogBotN
       if(sendByte == m_charETX) {
         ProcessPacket();
       } else {
-        std::cerr << "Packet corrupted. \n";
+        std::cerr << "Packet corrupted. Len " << m_packetLen << " Type " <<  (int) m_data[0] << "\n";
+        if(sendByte == m_charSTX) {
+          m_state = 1;
+          break;
+        }
       }
       m_state = 0;
       break;
@@ -149,10 +155,12 @@ namespace DogBotN
   void SerialComsC::ProcessPacket()
   {
     std::string data;
+#if 0
     for(int i = 0;i < m_packetLen;i++) {
       data += std::to_string(m_data[i]) + " ";
     }
-    //ROS_DEBUG("Got packet [%d] %s ",m_packetLen,data.c_str());
+    ROS_DEBUG("Got packet [%d] %s ",m_packetLen,data.c_str());
+#endif
 
     // m_data[0] //
     int packetId = m_data[0];
@@ -167,13 +175,6 @@ namespace DogBotN
       case CPT_Sync:
         std::cerr << "Got sync. \n";
         break;
-      case CPT_Pong:
-        std::cerr << "Got pong. \n";
-        break;
-      case CPT_Error:
-        ROS_ERROR("Received error code: %d  Arg:%d ",(int) m_data[1],(int) m_data[2]);
-        return ;
-        break;
       default: {
         std::lock_guard<std::mutex> lock(m_accessPacketHandler);
         if(packetId < m_packetHandler.size()) {
@@ -183,7 +184,17 @@ namespace DogBotN
             return ;
           }
         }
-        ROS_DEBUG("Don't know how to handle packet %d (Of %d) ",packetId,(int) m_packetHandler.size());
+        // Fall back to the default handlers.
+        switch(packetId) {
+          case CPT_Pong:
+            std::cerr << "Got pong. \n";
+            break;
+          case CPT_Error:
+            ROS_ERROR("Received error code: %d  Arg:%d ",(int) m_data[1],(int) m_data[2]);
+            break;
+          default:
+            ROS_DEBUG("Don't know how to handle packet %d (Of %d) ",packetId,(int) m_packetHandler.size());
+        }
       } break;
   #if 0
     case 2: { // ADC Data.
@@ -211,31 +222,40 @@ namespace DogBotN
       int x = select(m_fd+1,&localFds,0,0,0);
       if(x < 0) {
         perror("Failed to select");
-        break;
+        continue;
       }
       // FIXME:- Read into a larger buffer.
       int n = read(m_fd,readBuff,sizeof readBuff);
       if(n == 0)
-        break;
+        continue;
       if(n < 0) {
         if(errno == EAGAIN ||
             errno == EINTR
             )
           continue;
         perror("Failed to read data.");
-        break;
+        continue;
       }
-      //ROS_DEBUG("Got byte %d ",(int) readByte);
-      for(int i = 0;i < n;i++)
+#if 0
+      ROS_DEBUG("Got %d bytes: ",n);
+      for(int i = 0;i < n;i++) {
+        ROS_DEBUG("%02X ",(int) readBuff[i]);
         AcceptByte(readBuff[i]);
+      }
+      ROS_DEBUG("\n");
+#else
+      for(int i = 0;i < n;i++) {
+        AcceptByte(readBuff[i]);
+      }
+#endif
     }
-    std::cerr << "Exiting receiver" << std::endl;
+    std::cerr << "Exiting receiver " << m_fd << std::endl;
 
     return true;
   }
 
   //! Send packet
-  void SerialComsC::SendPacket(uint8_t *buff,int len)
+  void SerialComsC::SendPacket(const uint8_t *buff,int len)
   {
     assert(m_fd >= 0);
 
@@ -290,39 +310,32 @@ namespace DogBotN
     SendPacket(data,at);
   }
 
+
+  //! Set a parameter
+  void SerialComsC::SendSetParam(ComsParameterIndexT param,uint16_t value)
+  {
+    PacketSetParamC msg;
+    msg.m_packetType = CPT_SetParam;
+    msg.m_index = (uint16_t) param;
+    msg.m_data = value;
+    SendPacket((uint8_t*) &msg,sizeof(msg));
+  }
+
+
   //! Send a move command
   void SerialComsC::SendMoveWithEffort(float pos,float effort)
   {
-    uint8_t data[64];
-
     int at = 0;
-    data[at++] = CPT_Servo;
-    data[at++] = 0; // SM_Position
 
-    if(pos < 0)
-      pos = 0;
-    if(pos > 1.0)
-      pos = 1.0;
+    struct PacketServoC servoPkt;
+    servoPkt.m_packetType = CPT_Servo;
 
-    int xpos = 1024.0 - (pos * 1024.0 * 2.0 / 3.14159265359); // 0 to 45 degress in radians
-    data[at++] = xpos;
-    data[at++] = xpos >> 8;
+    while(pos < 0)
+      pos += 3.14159265359;
+    servoPkt.m_position = pos * 65535.0 / (2.0 * 3.14159265359);
+    servoPkt.m_torqueLimit = effort * 65535.0 / (10.0);
 
-    if(effort < 0)
-      effort = 0;
-    if(effort > 1.0)
-      effort = 1.0;
-
-    int xeffort = effort * 1024.0;
-    data[at++] = xeffort;
-    data[at++] = xeffort >> 8;
-
-    // We don't use the velocity limit at the moment
-    int xvelLimit = 1024;
-    data[at++] = xvelLimit;
-    data[at++] = xvelLimit >> 8;
-
-    SendPacket(data,at);
+    SendPacket((uint8_t *)&servoPkt,sizeof servoPkt);
   }
 
 

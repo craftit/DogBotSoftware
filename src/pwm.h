@@ -1,6 +1,10 @@
 #ifndef PWM_HEADER
 #define PWM_HEADER 1
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ch.h"
 
 int InitPWM(void);
@@ -26,8 +30,11 @@ extern int g_pwmTimeoutCount ;
 
 extern volatile bool g_pwmRun;
 extern bool g_pwmThreadRunning;
+extern bool g_pwmFullReport; //! If true generate messages detailing PWM state.
 
 extern int g_phaseAngles[12][3];
+
+extern int g_adcTickCount;
 
 extern float g_current[3];
 extern float g_phaseAngle;
@@ -57,14 +64,11 @@ extern float g_Iq;
 extern float g_Ierr_d;
 extern float g_Ierr_q;
 
-enum ControlModeT {
-  CM_Idle,
-  CM_Break,
-  CM_Torque,
-  CM_Velocity,
-  CM_Position
-} ;
 
-extern enum ControlModeT g_controlMode;
+extern enum PWMControlModeT g_controlMode;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

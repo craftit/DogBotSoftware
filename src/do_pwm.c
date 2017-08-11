@@ -37,6 +37,9 @@ float g_phaseDistance[12];
 bool g_pwmThreadRunning = false;
 volatile bool g_pwmRun = true;
 
+int g_pwmTimeoutCount = 0 ;
+bool g_pwmFullReport = false;
+
 static THD_WORKING_AREA(waThreadPWM, 128);
 
 void PWMUpdateDrivePhase(int pa,int pb,int pc);
@@ -218,7 +221,7 @@ float g_positionISum = 0.0;
 float g_Id = 0.0;
 float g_Iq = 0.0;
 
-enum ControlModeT g_controlMode = CM_Idle;
+enum PWMControlModeT g_controlMode = CM_Idle;
 
 static void ComputeState(void)
 {
@@ -291,7 +294,7 @@ static void SetTorque(float torque) {
 }
 
 
-int g_pwmTimeoutCount = 0 ;
+
 static void MotorControlLoop(void) {
 
     while (g_pwmRun) {
@@ -317,9 +320,11 @@ static void MotorControlLoop(void) {
 
       switch(g_controlMode)
       {
+          break;
         case CM_Idle: // Maybe turn off the MOSFETS ?
           SetTorque(0);
           break;
+        case CM_Final:
         case CM_Break:
           // Just turn everything off, this will passively break the motor
           PWMUpdateDrivePhase(
@@ -361,12 +366,13 @@ static void MotorControlLoop(void) {
       }
 
       // Last send report if needed.
-      {
+      if(g_pwmFullReport) {
         struct PacketT *pkt;
         if((pkt = GetEmptyPacket(TIME_IMMEDIATE)) != 0) {
-          struct PacketPWMStateC *ps = (struct PacketPWMStateC *)&(pkt->m_packetType);
+          struct PacketPWMStateC *ps = (struct PacketPWMStateC *)&(pkt->m_data);
           pkt->m_len = sizeof(struct PacketPWMStateC);
           ps->m_packetType = CPT_PWMState;
+          ps->m_tick = g_adcTickCount;
           for(int i = 0;i < 3;i++)
             ps->m_curr[i] = g_currentADCValue[i];
           for(int i = 0;i < 3;i++)

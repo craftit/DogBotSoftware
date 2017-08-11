@@ -75,7 +75,7 @@ void Drv8503Init(void)
 
   Drv8503SetRegister(DRV8503_REG_VDS_SENSE_CONTROL,
       DRV8503_VDS_SHUT_DOWN |
-      DRV8503_VDS_THRESHOLD_1V043  // 0V155 is just under 100 amps,
+      DRV8503_VDS_THRESHOLD_0V155  // 0V155 is just under 100 amps,
       );
 }
 

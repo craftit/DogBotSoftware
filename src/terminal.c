@@ -9,6 +9,7 @@
 #include "drv8503.h"
 #include "eeprom.h"
 #include "storedconf.h"
+#include "protocol.h"
 #include "canbus.h"
 
 #include <stdio.h>
