@@ -27,6 +27,7 @@ extern "C" {
   bool SendSync(void);
   bool SendPing(void);
 
+  extern bool g_canBridgeMode;
 
 #ifdef __cplusplus
 }
