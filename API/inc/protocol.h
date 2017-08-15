@@ -33,6 +33,7 @@ extern "C" {
     CPI_PWMState        = 1,
     CPI_PWMMode         = 2,
     CPI_PWMFullReport   = 3,
+    CPI_CANBridgeMode   = 4,
   };
 
   enum PWMControlModeT {

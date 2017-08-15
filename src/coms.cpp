@@ -11,6 +11,8 @@
 const uint8_t g_charSTX = 0x02;
 const uint8_t g_charETX = 0x03;
 
+bool g_canBridgeMode = false;
+
 bool SendSync(void)
 {
   uint8_t buff[6];
@@ -171,6 +173,9 @@ bool SetParam(PacketSetParamC *psp)
     case CPI_PWMFullReport:
       g_pwmFullReport = psp->m_data > 0;
       break;
+    case CPI_CANBridgeMode:
+      g_canBridgeMode = psp->m_data > 0;
+      break;
     default:
       return false;
   }
@@ -187,7 +192,6 @@ bool ReadParam(PacketReadParamC *psp)
     case CPI_FirmwareVersion: {
       reply.m_data = 0;
     } break;
-
     case CPI_PWMState: {
       reply.m_data = g_pwmThreadRunning;
     } break;
@@ -196,6 +200,9 @@ bool ReadParam(PacketReadParamC *psp)
     } break;
     case CPI_PWMFullReport: {
       reply.m_data = g_pwmFullReport;
+    } break;
+    case CPI_CANBridgeMode: {
+      reply.m_data = g_canBridgeMode;
     } break;
     default:
       return false;

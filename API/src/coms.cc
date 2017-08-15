@@ -15,6 +15,7 @@
 
 #include "coms.hh"
 #include <unistd.h>
+#include <sys/termios.h>
 
 #define ROS_DEBUG printf
 #define ROS_ERROR printf
@@ -70,6 +71,37 @@ namespace DogBotN
     }
     std::cerr << "Port opened ok  '" << portAddr << "' " << std::endl;
 
+    {
+      termios termios_p;
+      if (tcgetattr(m_fd,&termios_p) < 0) {
+        std::cerr << "Failed to read port parameters. \n";
+        return false;
+      }
+
+      termios_p.c_iflag = IGNBRK;
+      termios_p.c_oflag = 0;
+      termios_p.c_cflag = CLOCAL | CREAD;
+      termios_p.c_lflag = 0;
+      termios_p.c_cc[VMIN] = 1;
+      termios_p.c_cc[VTIME] = 0;
+
+      cfmakeraw(&termios_p);
+
+      termios_p.c_cflag &= ~(CSIZE);  // Clear number of bits.
+      termios_p.c_cflag |= CS8;       // 8 bits
+      termios_p.c_cflag &= ~(CSTOPB); // 1 Stop bit
+
+      termios_p.c_cflag &=~(PARENB);  // No parity
+      termios_p.c_iflag &= ~(INPCK);
+
+      cfsetispeed(&termios_p, B38400);
+      cfsetospeed(&termios_p, B38400);
+
+      if(tcsetattr(m_fd, TCSANOW, &termios_p ) < 0)  {
+        std::cerr << "Failed to configure serial port \n";
+        return false;
+      }
+    }
     m_threadRecieve = std::move(std::thread { [this]{ RunRecieve(); } });
     return true;
   }

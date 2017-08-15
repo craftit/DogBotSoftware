@@ -16,7 +16,12 @@
 
 #include "ch.h"
 #include "hal.h"
+#include <stdint.h>
+#include "coms.h"
 
+#define STM32_UID ((uint32_t *)0x1FFF7A10)
+
+uint32_t m_nodeUId[2]; // Not absolutely guaranteed to be unique but collisions are unlikely;
 
 /*
  * Internal loopback mode, 500KBaud, automatic wakeup, automatic recover
@@ -84,6 +89,9 @@ static THD_FUNCTION(can_tx, p) {
  */
 int InitCAN(void)
 {
+  // Setup an unique node id.
+  m_nodeUId[0] = STM32_UID[0];
+  m_nodeUId[1] = STM32_UID[1] + STM32_UID[2];
 
   palClearPad(GPIOB, GPIOB_PIN5);       /* Make sure transmitter is in normal mode.  */
 
