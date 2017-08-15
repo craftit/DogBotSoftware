@@ -1,5 +1,6 @@
 
 #include "motion.h"
+#include "pwm.h"
 #include "mathfunc.h"
 
 float g_angleOffset = 0;      // Offset from phase position to actuator position.
@@ -48,10 +49,22 @@ bool MotionEstimateOffset(float &value)
     points++;
   }
   if(points <= 0)
-    return 0;
-  return offset / (float) points;
+    return false;
+  value = offset / (float) points;
+  return true;
 
 }
+
+bool MotionSetPosition(uint16_t position,uint16_t torque)
+{
+  if(g_motionCalibration != MC_Calibrated)
+    return false;
+
+  g_torqueLimit = ((float) torque) * 10.0 / (65535.0);
+  g_demandPhasePosition = (((float) position) * 7.0 * g_actuatorRatio * M_PI * 2.0/ 65535.0) + g_angleOffset;
+  return true;
+}
+
 
 void MotionStep()
 {
@@ -107,6 +120,8 @@ void MotionStep()
 
       break;
     case MS_Absolute:
+      break;
+    case MS_Joint:
       break;
   }
 

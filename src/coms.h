@@ -5,7 +5,8 @@
 extern "C" {
 #endif
 
-  #include "usbcfg.h"
+#include "usbcfg.h"
+#include "protocol.h"
 
   void InitComs(void);
 
@@ -25,9 +26,14 @@ extern "C" {
   bool SendPacket(uint8_t *buff,int len);
 
   bool SendSync(void);
-  bool SendPing(void);
+  bool SendPing(uint8_t targetDevice);
+
+  /* Process a set parameter request. */
+  bool SetParam(enum ComsParameterIndexT index,int data);
 
   extern bool g_canBridgeMode;
+
+  extern uint8_t g_deviceId;
 
 #ifdef __cplusplus
 }

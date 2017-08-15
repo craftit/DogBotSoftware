@@ -45,16 +45,25 @@ namespace DogBotN {
     void SendPacket(const uint8_t *data,int len);
 
     //! Send a move command
-    void SendMove(int servoId,int pos);
+    void SendMove(int deviceId,int pos);
 
     //! Send a move command with an effort level.
-    void SendMoveWithEffort(float pos,float effort);
+    void SendMoveWithEffort(int deviceId,float pos,float effort);
 
     //! Set a parameter
-    void SendSetParam(ComsParameterIndexT param,uint16_t value);
+    void SendSetParam(int deviceId,ComsParameterIndexT param,uint16_t value);
 
-    //! Send a move command
-    void SendPing();
+    //! Query a parameter
+    void SendQueryParam(int deviceId,ComsParameterIndexT param);
+
+    //! Send query devices message
+    void SendQueryDevices();
+
+    //! Set a device id
+    void SendSetDeviceId(uint8_t deviceId,uint32_t uid0,uint32_t uid1);
+
+    //! Send a ping
+    void SendPing(int deviceId);
 
     //! Set the handler for a particular type of packet.
     void SetHandler(ComsPacketTypeT packetType,const std::function<void (uint8_t *data,int )> &handler);

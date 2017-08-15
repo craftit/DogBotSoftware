@@ -11,6 +11,7 @@
 #include "coms.h"
 #include "protocol.h"
 
+#include "motion.h"
 
 #define SYSTEM_CORE_CLOCK     168000000
 
@@ -50,6 +51,16 @@ bool g_lastLimitState[3];
 static THD_WORKING_AREA(waThreadPWM, 128);
 
 void PWMUpdateDrivePhase(int pa,int pb,int pc);
+
+
+int PWMSetPosition(uint16_t position,uint16_t torque)
+{
+  g_torqueLimit = ((float) torque) * 10.0 / (65535.0);
+  g_demandPhasePosition = ((float) position) * 7.0 * 21.0 * M_PI * 2.0/ 65535.0;
+  return 0;
+}
+
+
 
 
 
@@ -402,7 +413,7 @@ static void MotorControlLoop(void) {
     // Flag motion control update if needed.
     if(++loopCount >= g_motorReportSampleRate) {
       loopCount = 0;
-      chBSemSignal(&g_reportLoopReady);
+      chBSemSignal(&g_reportSampleReady);
     }
 
 
@@ -691,25 +702,6 @@ int PWMCalSVM(BaseSequentialStream *chp)
   palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
   //DisplayAngle(chp);
   return 0;
-}
-
-void DisplayAngle(BaseSequentialStream *chp)
-{
-  while(true) {
-    int nearest,n0,n1,n2;
-    float angle = hallToAngleDebug(g_hall,&nearest,&n0,&n1,&n2);
-
-    int phase = angle * 10;
-
-    chprintf(chp, "Read %4d : %04d %04d %04d  Ne:%d n0:%d n1:%d n2:%d \r\n",
-        phase,g_hall[0],g_hall[1],g_hall[2],nearest,n0,n1,n2);
-    chThdSleepMilliseconds(50);
-
-    if (!palReadPad(GPIOB, GPIOA_PIN2)) {
-      break;
-    }
-  }
-
 }
 
 // This returns an angle between 0 and 2 pi

@@ -6,8 +6,12 @@ extern "C" {
 #endif
 
 #include "ch.h"
+#include "protocol.h"
+#include "hal_streams.h"
 
 int InitPWM(void);
+
+int PWMSetPosition(uint16_t postion,uint16_t torque);
 
 int PWMRun(void);
 int PWMStop(void);
@@ -17,14 +21,14 @@ int PWMSVMScan(BaseSequentialStream *chp);
 
 void PWMUpdateDrive(int phase,int power);
 
-void MotionStep();
+void MotionStep(void);
 
 extern uint16_t *ReadADCs(void);
 
 float hallToAngle(uint16_t *sensors);
 
 extern binary_semaphore_t g_adcInjectedDataReady;
-extern binary_semaphore_t g_reportLoopReady;  //! ~100Hz report loop
+extern binary_semaphore_t g_reportSampleReady;  //! ~100Hz report loop
 
 extern int g_motorReportSampleRate;
 

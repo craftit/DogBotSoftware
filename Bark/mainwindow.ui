@@ -56,9 +56,9 @@
    <widget class="QTextEdit" name="textEditLog">
     <property name="geometry">
      <rect>
-      <x>70</x>
+      <x>20</x>
       <y>140</y>
-      <width>256</width>
+      <width>301</width>
       <height>192</height>
      </rect>
     </property>
@@ -153,8 +153,8 @@
    <widget class="QDoubleSpinBox" name="doubleSpinBox">
     <property name="geometry">
      <rect>
-      <x>340</x>
-      <y>110</y>
+      <x>350</x>
+      <y>120</y>
       <width>64</width>
       <height>22</height>
      </rect>
@@ -203,6 +203,97 @@
     </property>
     <property name="text">
      <string>Stop PWM</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButtonQueryId">
+    <property name="geometry">
+     <rect>
+      <x>430</x>
+      <y>20</y>
+      <width>80</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Query UID</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButtonGetVersion">
+    <property name="geometry">
+     <rect>
+      <x>430</x>
+      <y>60</y>
+      <width>80</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Query Version</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButtonState">
+    <property name="geometry">
+     <rect>
+      <x>430</x>
+      <y>90</y>
+      <width>80</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Query State</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButtonSetBridgeMode">
+    <property name="geometry">
+     <rect>
+      <x>400</x>
+      <y>340</y>
+      <width>121</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Set Bridge Mode</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButtonQueryDevices">
+    <property name="geometry">
+     <rect>
+      <x>400</x>
+      <y>370</y>
+      <width>111</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Query Devices</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButtonPing1">
+    <property name="geometry">
+     <rect>
+      <x>310</x>
+      <y>90</y>
+      <width>80</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Ping 1</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButtonSetDeviceId">
+    <property name="geometry">
+     <rect>
+      <x>90</x>
+      <y>350</y>
+      <width>111</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Set Device Id</string>
     </property>
    </widget>
   </widget>

@@ -342,7 +342,7 @@ namespace DogBotN
     uint8_t data[64];
 
     int at = 0;
-    data[at++] = CPT_Servo;
+    data[at++] = CPT_ServoRel;
     data[at++] = servoId;
     data[at++] = (int) pos;
 
@@ -351,41 +351,70 @@ namespace DogBotN
 
 
   //! Set a parameter
-  void SerialComsC::SendSetParam(ComsParameterIndexT param,uint16_t value)
+  void SerialComsC::SendSetParam(int deviceId,ComsParameterIndexT param,uint16_t value)
   {
-    PacketSetParamC msg;
+    PacketParamC msg;
     msg.m_packetType = CPT_SetParam;
+    msg.m_deviceId = deviceId;
     msg.m_index = (uint16_t) param;
     msg.m_data = value;
     SendPacket((uint8_t*) &msg,sizeof(msg));
   }
 
+  //! Query a parameter
+  void SerialComsC::SendQueryParam(int deviceId,ComsParameterIndexT param)
+  {
+    PacketReadParamC msg;
+    msg.m_packetType = CPT_ReadParam;
+    msg.m_deviceId = deviceId;
+    msg.m_index = (uint16_t) param;
+    SendPacket((uint8_t*) &msg,sizeof(msg));
+  }
+
+
+  //! Send query devices message
+  void SerialComsC::SendQueryDevices()
+  {
+    uint8_t data[2];
+    data[0] = CPT_QueryDevices;
+    SendPacket(data,1);
+  }
+
+
+  //! Set a device id
+  void SerialComsC::SendSetDeviceId(uint8_t deviceId,uint32_t uid0,uint32_t uid1)
+  {
+    PacketDeviceIdC pkg;
+    pkg.m_packetType = CPT_SetDeviceId;
+    pkg.m_deviceId = deviceId;
+    pkg.m_uid[0] = uid0;
+    pkg.m_uid[1] = uid1;
+    SendPacket((uint8_t*) &pkg,sizeof(pkg));
+  }
 
   //! Send a move command
-  void SerialComsC::SendMoveWithEffort(float pos,float effort)
+  void SerialComsC::SendMoveWithEffort(int deviceId,float pos,float effort)
   {
     int at = 0;
 
     struct PacketServoC servoPkt;
-    servoPkt.m_packetType = CPT_Servo;
-
+    servoPkt.m_packetType = CPT_ServoRel;
+    servoPkt.m_deviceId = deviceId;
     while(pos < 0)
       pos += 3.14159265359;
     servoPkt.m_position = pos * 65535.0 / (2.0 * 3.14159265359);
-    servoPkt.m_torqueLimit = effort * 65535.0 / (10.0);
+    servoPkt.m_torque = effort * 65535.0 / (10.0);
 
     SendPacket((uint8_t *)&servoPkt,sizeof servoPkt);
   }
 
 
   //! Send a move command
-  void SerialComsC::SendPing()
+  void SerialComsC::SendPing(int deviceId)
   {
-    uint8_t data[64];
-
-    int at = 0;
-    data[at++] = CPT_Ping;
-
-    SendPacket(data,at);
+    PacketPingPongC pkt;
+    pkt.m_packetType = CPT_Ping;
+    pkt.m_deviceId = deviceId;
+    SendPacket((uint8_t *)&pkt,sizeof(struct PacketPingPongC));
   }
 }

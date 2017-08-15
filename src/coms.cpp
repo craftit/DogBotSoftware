@@ -1,11 +1,14 @@
 
+#include <stdint.h>
+
 #include "coms.h"
+#include "canbus.h"
 #include "protocol.h"
 #include "chmboxes.h"
 #include "pwm.h"
 #include "mathfunc.h"
+#include "motion.h"
 
-#include <stdint.h>
 #include <string.h>
 
 const uint8_t g_charSTX = 0x02;
@@ -15,18 +18,18 @@ bool g_canBridgeMode = false;
 
 bool SendSync(void)
 {
-  uint8_t buff[6];
+  uint8_t buff[2];
   int at = 0;
   buff[at++] = CPT_Sync; // Type
   return SendPacket(buff,at);
 }
 
-bool SendPing(void)
+bool SendPing(uint8_t deviceId)
 {
-  uint8_t buff[6];
-  int at = 0;
-  buff[at++] = CPT_Ping; // Type
-  return SendPacket(buff,at);
+  PacketPingPongC pkt;
+  pkt.m_packetType = CPT_Ping;
+  pkt.m_deviceId = deviceId;
+  return SendPacket((uint8_t *) &pkt,sizeof(struct PacketPingPongC));
 }
 
 // Error codes
@@ -38,16 +41,14 @@ void SendError(
     uint8_t data
     )
 {
-  uint8_t buff[16];
-  int at = 0;
-  buff[at++] = CPT_Error; // Error.
-  buff[at++] = code; // Unexpected packet type.
-  buff[at++] = data; // Type of packet.
+  PacketErrorC pkt;
+  pkt.m_packetType = CPT_Error;
+  pkt.m_deviceId = g_deviceId;
+  pkt.m_errorCode = code;
+  pkt.m_errorData = data;
 
-  SendPacket(buff,at);
+  SendPacket((uint8_t *) &pkt,sizeof(struct PacketErrorC));
 }
-
-
 
 
 class SerialDecodeC
@@ -152,30 +153,37 @@ void SerialDecodeC::AcceptByte(uint8_t sendByte)
 }
 
 
-bool SetParam(PacketSetParamC *psp)
+bool SetParamMsg(struct PacketParamC *psp)
 {
-  switch((ComsParameterIndexT) psp->m_index)
+  return SetParam((enum ComsParameterIndexT) psp->m_index,psp->m_data);
+}
+
+bool SetParam(enum ComsParameterIndexT index,int data)
+{
+  switch(index )
   {
     case CPI_FirmwareVersion:
       return false; // Can't set this
     case CPI_PWMState:
-      if(psp->m_data > 0) {
+      if(data > 0) {
         PWMRun();
       } else {
         PWMStop();
       }
       break;
     case CPI_PWMMode:
-      if(psp->m_data >= (int) CM_Final)
+      if(data >= (int) CM_Final)
         return false;
-      g_controlMode = (PWMControlModeT) psp->m_data;
+      g_controlMode = (PWMControlModeT) data;
       break;
     case CPI_PWMFullReport:
-      g_pwmFullReport = psp->m_data > 0;
+      g_pwmFullReport = data > 0;
       break;
     case CPI_CANBridgeMode:
-      g_canBridgeMode = psp->m_data > 0;
+      g_canBridgeMode = data > 0;
       break;
+    case CPI_BoardUID:
+      return false;
     default:
       return false;
   }
@@ -184,30 +192,63 @@ bool SetParam(PacketSetParamC *psp)
 
 bool ReadParam(PacketReadParamC *psp)
 {
-  PacketSetParamC reply;
-  reply.m_packetType = CPT_SetParam;
 
   switch((ComsParameterIndexT) psp->m_index)
   {
     case CPI_FirmwareVersion: {
-      reply.m_data = 0;
+      struct PacketParamC reply;
+      reply.m_packetType = CPT_ReportParam;
+      reply.m_deviceId = g_deviceId;
+      reply.m_index = psp->m_index;
+      reply.m_data = 1;
+      SendPacket((uint8_t *)&reply,sizeof(reply));
     } break;
     case CPI_PWMState: {
+      struct PacketParamC reply;
+      reply.m_packetType = CPT_ReportParam;
+      reply.m_deviceId = g_deviceId;
+      reply.m_index = psp->m_index;
       reply.m_data = g_pwmThreadRunning;
+      SendPacket((uint8_t *)&reply,sizeof(reply));
     } break;
     case CPI_PWMMode: {
+      struct PacketParamC reply;
+      reply.m_packetType = CPT_ReportParam;
+      reply.m_deviceId = g_deviceId;
+      reply.m_index = psp->m_index;
       reply.m_data = g_controlMode;
+      SendPacket((uint8_t *)&reply,sizeof(reply));
     } break;
     case CPI_PWMFullReport: {
+      struct PacketParamC reply;
+      reply.m_packetType = CPT_ReportParam;
+      reply.m_deviceId = g_deviceId;
+      reply.m_index = psp->m_index;
       reply.m_data = g_pwmFullReport;
+      SendPacket((uint8_t *)&reply,sizeof(reply));
     } break;
     case CPI_CANBridgeMode: {
+      struct PacketParamC reply;
+      reply.m_packetType = CPT_ReportParam;
+      reply.m_deviceId = g_deviceId;
+      reply.m_index = psp->m_index;
       reply.m_data = g_canBridgeMode;
+      SendPacket((uint8_t *)&reply,sizeof(reply));
+    } break;
+    case CPI_BoardUID: {
+#if 1
+      struct PacketParam2Int32C reply;
+      reply.m_packetType = CPT_ReportParam;
+      reply.m_deviceId = g_deviceId;
+      reply.m_index = psp->m_index;
+      reply.m_data[0] = g_nodeUId[0];
+      reply.m_data[1] = g_nodeUId[1];
+      SendPacket((uint8_t *)&reply,sizeof(PacketParam2Int32C));
+#endif
     } break;
     default:
       return false;
   }
-  SendPacket((uint8_t *)&reply,sizeof(reply));
 
   return true;
 }
@@ -216,14 +257,25 @@ bool ReadParam(PacketReadParamC *psp)
 //! Process received packet.
 void SerialDecodeC::ProcessPacket()
 {
-  uint8_t buff[16];
   // m_data[0] //
   switch(m_data[0])
   {
   case CPT_Ping: { // Ping.
-    int at = 0;
-    buff[at++] = CPT_Pong; // Type, ping reply.
-    SendPacket(buff,at);
+    const PacketPingPongC *pkt = (const PacketPingPongC *) m_data;
+    if(pkt->m_deviceId == g_deviceId ||
+        pkt->m_deviceId == 0)
+    {
+      // If it is for this node, just reply
+      PacketPingPongC pkt;
+      pkt.m_packetType = CPT_Pong;
+      pkt.m_deviceId = g_deviceId;
+      SendPacket((uint8_t *) &pkt,sizeof(struct PacketPingPongC));
+    } else {
+      // In bridge mode forward this to the CAN bus
+      if(g_canBridgeMode) {
+        CANPing(CPT_Ping,pkt->m_deviceId);
+      }
+    }
   } break;
 
   case CPT_Pong: { // Ping reply.
@@ -238,25 +290,85 @@ void SerialDecodeC::ProcessPacket()
     // Drop it
   } break;
   case CPT_ReadParam: {
-    PacketReadParamC *psp = (PacketReadParamC *) m_data;
-    if(!ReadParam(psp)) {
-      SendError(CET_ParameterOutOfRange,m_data[1]);
+    struct PacketReadParamC *psp = (struct PacketReadParamC *) m_data;
+    if(psp->m_deviceId == g_deviceId) {
+      if(!ReadParam(psp)) {
+        SendError(CET_ParameterOutOfRange,m_data[1]);
+      }
+    } else {
+
     }
   } break;
   case CPT_SetParam: {
-    PacketSetParamC *psp = (PacketSetParamC *) m_data;
-    if(!SetParam(psp)) {
-      SendError(CET_ParameterOutOfRange,m_data[1]);
+    struct PacketParamC *psp = (struct PacketParamC *) m_data;
+    if(psp->m_deviceId == g_deviceId) {
+      if(!SetParamMsg(psp)) {
+        SendError(CET_ParameterOutOfRange,m_data[1]);
+      }
+    } else {
+      if(g_canBridgeMode) {
+        if(!CANSendSetParam(psp->m_deviceId,psp->m_index,psp->m_data)) {
+          SendError(CET_CANTransmitFailed,m_data[0]);
+        }
+      }
     }
   } break;
-  case CPT_Servo: { // Goto position.
+  case CPT_ServoAbs:  // Goto position.
+  case CPT_ServoRel: { // Goto position.
     if(m_packetLen != sizeof( PacketServoC)) {
       SendError(CET_UnexpectedPacketSize,m_data[1]);
       break;
     }
     PacketServoC *ps = (PacketServoC *) m_data;
-    g_torqueLimit = ((float) ps->m_torqueLimit) * 10.0 / (65535.0);
-    g_demandPhasePosition = ((float) ps->m_position) * 7.0 * 21.0 * M_PI * 2.0/ 65535.0;
+    if(ps->m_deviceId == g_deviceId) {
+      if(m_data[0] == CPT_ServoRel) {
+        PWMSetPosition(ps->m_position,ps->m_torque);
+      } else {
+        MotionSetPosition(ps->m_position,ps->m_torque);
+      }
+    } else {
+      if(g_canBridgeMode) {
+        CANSendServo((ComsPacketTypeT) m_data[0],ps->m_deviceId,ps->m_position,ps->m_torque);
+      }
+    }
+  } break;
+  case CPT_QueryDevices: {
+    // First report about myself
+    struct PacketDeviceIdC pkt;
+    pkt.m_packetType = CPT_AnnounceId;
+    pkt.m_deviceId = g_deviceId;
+    pkt.m_uid[0] = g_nodeUId[0];
+    pkt.m_uid[1] = g_nodeUId[1];
+    SendPacket((uint8_t *) &pkt,sizeof(struct PacketDeviceIdC));
+
+    // Are we bridging ?
+    if(g_canBridgeMode) {
+      if(!CANSendQueryDevices())
+        SendError(CET_CANTransmitFailed,m_data[0]);
+    }
+  } break;
+  case CPT_AnnounceId:
+    break;
+  case CPT_SetDeviceId: {
+    const struct PacketDeviceIdC *pkt = (const struct PacketDeviceIdC *) m_data;
+    if(pkt->m_uid[0] == g_nodeUId[0] &&
+        pkt->m_uid[1] == g_nodeUId[1]) {
+      g_deviceId = pkt->m_deviceId;
+
+      // Announce change.
+      {
+        struct PacketDeviceIdC rpkt;
+        rpkt.m_packetType = CPT_AnnounceId;
+        rpkt.m_deviceId = g_deviceId;
+        rpkt.m_uid[0] = g_nodeUId[0];
+        rpkt.m_uid[1] = g_nodeUId[1];
+        SendPacket((uint8_t *) &rpkt,sizeof(struct PacketDeviceIdC));
+      }
+    } else {
+      if(g_canBridgeMode) {
+        CANSendSetDevice(pkt->m_deviceId,pkt->m_uid[0],pkt->m_uid[1]);
+      }
+    }
   } break;
   default: {
     SendError(CET_UnknownPacketType,m_data[1]);
@@ -347,6 +459,9 @@ static THD_FUNCTION(ThreadTxComs, arg) {
       int size = at - txbuff;
 
       chnWrite(g_packetStream, txbuff, size);
+    } else {
+      // If we've lost our connection turn bridge mode off.
+      g_canBridgeMode = false;
     }
 
     chMBPost(&g_emptyPackets,reinterpret_cast<msg_t>(packet),TIME_INFINITE);

@@ -1,6 +1,8 @@
 #ifndef MOTION_HEADER
 #define MOTION_HEADER 1
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -9,6 +11,8 @@ extern "C" {
   void MotionResetCalibration(void);
 
   void MotionUpdateEndStop(int num,bool state,float position,float velocity);
+
+  bool MotionSetPosition(uint16_t position,uint16_t torque);
 
   enum MotionCalibrationT {
     MC_Uncalibrated,
@@ -25,8 +29,9 @@ extern "C" {
     MS_Joint
   };
 
-  extern MotionCalibrationT g_motionCalibration;
-  extern MotionStateT g_motionState;
+  extern enum MotionCalibrationT g_motionCalibration;
+  extern enum MotionStateT g_motionState;
+
 
 
 #ifdef __cplusplus

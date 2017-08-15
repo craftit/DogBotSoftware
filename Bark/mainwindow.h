@@ -33,6 +33,20 @@ private slots:
 
   void on_pushButtonStopPWM_clicked();
 
+  void on_pushButtonQueryId_clicked();
+
+  void on_pushButtonGetVersion_clicked();
+
+  void on_pushButtonState_clicked();
+
+  void on_pushButtonSetBridgeMode_clicked();
+
+  void on_pushButtonQueryDevices_clicked();
+
+  void on_pushButtonPing1_clicked();
+
+  void on_pushButtonSetDeviceId_clicked();
+
 signals:
   void setLogText(const QString &str);
 
@@ -43,6 +57,7 @@ private:
   DogBotN::SerialComsC m_coms;
   bool m_PWMReportRequested = false;
 
+  std::vector<PacketDeviceIdC> m_devices;
   float m_position = 0;
   float m_torque = 0;
 };
