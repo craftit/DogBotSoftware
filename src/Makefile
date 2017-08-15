@@ -142,11 +142,11 @@ CSRC = $(STARTUPSRC) \
        $(STDPERIPH)/src/stm32f4xx_adc.c \
        $(STDPERIPH)/src/stm32f4xx_flash.c \
        $(STDPERIPH)/src/misc.c \
-       stubs.c
+       stubs.c 
  			
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
-CPPSRC = coms.cpp
+CPPSRC = coms.cpp motion.cpp
 
 # C sources to be compiled in ARM mode regardless of the global setting.
 # NOTE: Mixing ARM and THUMB mode enables the -mthumb-interwork compiler

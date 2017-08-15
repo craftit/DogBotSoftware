@@ -122,8 +122,11 @@ int main(void) {
   //PWMRun();
 
   while(true) {
-    //SendSync();
-    chThdSleepMilliseconds(100);
+    if(chBSemWaitTimeout(&g_reportSampleReady,1000) != MSG_OK) {
+      continue;
+    }
+    // This runs at 100Hz
+    MotionStep();
   }
 #else
   /*

@@ -46,6 +46,13 @@ namespace DogBotN
     m_fd = -1;
   }
 
+  //! Is connection ready ?
+  bool SerialComsC::IsReady() const
+  {
+    return m_fd >= 0;
+  }
+
+
   bool SerialComsC::Open(const char *portAddr)
   {
     if(m_fd >= 0) {

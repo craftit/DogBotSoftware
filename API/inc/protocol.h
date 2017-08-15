@@ -13,9 +13,10 @@ extern "C" {
     CPT_Sync  = 3,  // Sync data stream
     CPT_ReadParam = 4, // Read parameter
     CPT_SetParam  = 5, // Set parameter
-    CPT_Servo     = 6, // Servo control
-    CPT_CAN       = 7, //  CAN packet
-    CPT_PWMState  = 8, // PWM State.
+    CPT_ServoAbs  = 6, // Servo control
+    CPT_ServoRel  = 7, // Servo control
+    CPT_CAN       = 8, //  CAN packet
+    CPT_PWMState  = 9, // PWM State.
   };
 
 
@@ -64,8 +65,11 @@ extern "C" {
 
   struct PacketServoC {
     uint8_t m_packetType;
+    uint8_t m_servoId;
+    uint8_t m_mode;
+    uint16_t m_timestamp;
     uint16_t m_position;
-    uint16_t m_torqueLimit;
+    uint16_t m_torque;
   };
 
 

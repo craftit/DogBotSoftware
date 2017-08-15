@@ -32,6 +32,9 @@ namespace DogBotN {
     //! Close connection
     void Close();
 
+    //! Is connection ready ?
+    bool IsReady() const;
+
     //! Accept a byte
     void AcceptByte(uint8_t sendByte);
 

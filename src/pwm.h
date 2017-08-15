@@ -17,11 +17,17 @@ int PWMSVMScan(BaseSequentialStream *chp);
 
 void PWMUpdateDrive(int phase,int power);
 
+void MotionStep();
+
 extern uint16_t *ReadADCs(void);
 
 float hallToAngle(uint16_t *sensors);
 
 extern binary_semaphore_t g_adcInjectedDataReady;
+extern binary_semaphore_t g_reportLoopReady;  //! ~100Hz report loop
+
+extern int g_motorReportSampleRate;
+
 extern int16_t g_currentADCValue[3];
 extern float g_currentZeroOffset[3];
 extern uint16_t g_hall[3];

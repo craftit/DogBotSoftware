@@ -21,11 +21,16 @@
 #define CURRENT_MEAS_PERIOD ((float)(2*TIM_1_8_PERIOD_CLOCKS)/(float)TIM_1_8_CLOCK_HZ)
 #define TIM_1_8_PERIOD_CLOCKS (2047)
 
+int g_motorReportSampleRate = 100 / CURRENT_MEAS_PERIOD; // The target rate is 100Hz
+
+BSEMAPHORE_DECL(g_reportSampleReady,0); // 100Hz report loop
+
 float g_shuntADCValue2Amps = 0.0;
 float g_vbus_voltage = 12.0;
 float g_currentZeroOffset[3] = { 0,0,0 } ;
 float g_current[3] = { 0,0,0} ;
 float g_phaseAngle = 0 ;
+
 
 float g_current_Ibus = 0;
 float g_motor_p_gain = 1.2;
@@ -39,6 +44,8 @@ volatile bool g_pwmRun = true;
 
 int g_pwmTimeoutCount = 0 ;
 bool g_pwmFullReport = false;
+
+bool g_lastLimitState[3];
 
 static THD_WORKING_AREA(waThreadPWM, 128);
 
@@ -215,6 +222,7 @@ float g_velocityGain = 0.01;
 float g_velocityFilter = 16.0;
 float g_positionGain = 1.0;
 float g_torqueLimit = 5.0;
+float g_torqueAverage = 0.0;
 float g_positionIGain = 0.1;
 float g_positionIClamp = 5.0;
 float g_positionISum = 0.0;
@@ -273,6 +281,8 @@ static void SetTorque(float torque) {
   if(torque < -g_torqueLimit)
     torque = -g_torqueLimit;
 
+  g_torqueAverage = (g_torqueAverage * 30.0 + torque)/31.0;
+
   FOC_current(0,-torque);
 #else
 
@@ -297,92 +307,124 @@ static void SetTorque(float torque) {
 
 static void MotorControlLoop(void) {
 
-    while (g_pwmRun) {
-      palClearPad(GPIOB, GPIOB_PIN12); // Turn output off to measure timing
-      if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
-        g_pwmTimeoutCount++;
-        continue;
-      }
+  int loopCount = 0;
 
-      // Display fault light
-      if(palReadPad(GPIOC, GPIOC_PIN15)) {
-        palClearPad(GPIOC, GPIOC_PIN5);
-      } else {
-        palSetPad(GPIOC, GPIOC_PIN5);
-      }
-
-
-      ComputeState();
-
-      float torque = g_demandTorque;
-      //float targetVelocity = g_demandPhaseVelocity;
-      float targetPosition = g_demandPhasePosition;
-
-      switch(g_controlMode)
-      {
-          break;
-        case CM_Idle: // Maybe turn off the MOSFETS ?
-          SetTorque(0);
-          break;
-        case CM_Final:
-        case CM_Break:
-          // Just turn everything off, this will passively break the motor
-          PWMUpdateDrivePhase(
-              TIM_1_8_PERIOD_CLOCKS/2,
-              TIM_1_8_PERIOD_CLOCKS/2,
-              TIM_1_8_PERIOD_CLOCKS/2
-              );
-          break;
-        case CM_Velocity: {
-          g_demandPhasePosition += g_demandPhaseVelocity * CURRENT_MEAS_PERIOD;
-          targetPosition = g_demandPhasePosition;
-        }
-        /* no break */
-        case CM_Position: {
-          float positionError = targetPosition - g_currentPhasePosition;
-#if 0
-          const float deadBand = M_PI/30;
-          if(positionError > 0) {
-            if(positionError < deadBand)
-              positionError = 0;
-            else
-              positionError -= deadBand;
-          } else {
-            if(positionError > -deadBand)
-              positionError = 0;
-            else
-              positionError += deadBand;
-          }
-#endif
-          g_positionISum += positionError * CURRENT_MEAS_PERIOD;
-          if(g_positionISum > g_positionIClamp)  g_positionISum = g_positionIClamp;
-          if(g_positionISum < -g_positionIClamp) g_positionISum = -g_positionIClamp;
-          torque = -positionError * g_positionGain + -g_positionISum * g_positionIGain;
-          SetTorque(torque);
-        } break;
-        case CM_Torque: {
-          SetTorque(torque);
-        } break;
-      }
-
-      // Last send report if needed.
-      if(g_pwmFullReport) {
-        struct PacketT *pkt;
-        if((pkt = GetEmptyPacket(TIME_IMMEDIATE)) != 0) {
-          struct PacketPWMStateC *ps = (struct PacketPWMStateC *)&(pkt->m_data);
-          pkt->m_len = sizeof(struct PacketPWMStateC);
-          ps->m_packetType = CPT_PWMState;
-          ps->m_tick = g_adcTickCount;
-          for(int i = 0;i < 3;i++)
-            ps->m_curr[i] = g_currentADCValue[i];
-          for(int i = 0;i < 3;i++)
-            ps->m_hall[i] = g_hall[i];
-          ps->m_angle = g_phaseAngle * 65535.0 / (2.0 * M_PI);
-          PostPacket(pkt);
-        }
-      }
-
+  while (g_pwmRun) {
+    palClearPad(GPIOB, GPIOB_PIN12); // Turn output off to measure timing
+    if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
+      g_pwmTimeoutCount++;
+      continue;
     }
+
+    // Display fault light
+    if(palReadPad(GPIOC, GPIOC_PIN15)) {
+      palClearPad(GPIOC, GPIOC_PIN5);
+    } else {
+      palSetPad(GPIOC, GPIOC_PIN5);
+    }
+
+
+    ComputeState();
+
+    float torque = g_demandTorque;
+    //float targetVelocity = g_demandPhaseVelocity;
+    float targetPosition = g_demandPhasePosition;
+
+    switch(g_controlMode)
+    {
+        break;
+      case CM_Idle: // Maybe turn off the MOSFETS ?
+        SetTorque(0);
+        break;
+      case CM_Final:
+      case CM_Break:
+        // Just turn everything off, this will passively break the motor
+        PWMUpdateDrivePhase(
+            TIM_1_8_PERIOD_CLOCKS/2,
+            TIM_1_8_PERIOD_CLOCKS/2,
+            TIM_1_8_PERIOD_CLOCKS/2
+            );
+        break;
+      case CM_Velocity: {
+        g_demandPhasePosition += g_demandPhaseVelocity * CURRENT_MEAS_PERIOD;
+        targetPosition = g_demandPhasePosition;
+      }
+      /* no break */
+      case CM_Position: {
+        float positionError = targetPosition - g_currentPhasePosition;
+#if 0
+        const float deadBand = M_PI/30;
+        if(positionError > 0) {
+          if(positionError < deadBand)
+            positionError = 0;
+          else
+            positionError -= deadBand;
+        } else {
+          if(positionError > -deadBand)
+            positionError = 0;
+          else
+            positionError += deadBand;
+        }
+#endif
+        g_positionISum += positionError * CURRENT_MEAS_PERIOD;
+        if(g_positionISum > g_positionIClamp)  g_positionISum = g_positionIClamp;
+        if(g_positionISum < -g_positionIClamp) g_positionISum = -g_positionIClamp;
+        torque = -positionError * g_positionGain + -g_positionISum * g_positionIGain;
+        SetTorque(torque);
+      } break;
+      case CM_Torque: {
+        SetTorque(torque);
+      } break;
+    }
+
+    // Check limit switches.
+
+    //! Read initial state of endstop switches
+    {
+      bool es1 = palReadPad(GPIOC, GPIOC_PIN6);
+      if(es1 != g_lastLimitState[0]) {
+        g_lastLimitState[0] = es1;
+        MotionUpdateEndStop(0,es1,g_currentPhasePosition,g_currentPhaseVelocity);
+      }
+      bool es2 = palReadPad(GPIOC, GPIOC_PIN7);
+      if(es2 != g_lastLimitState[1]) {
+        g_lastLimitState[1] = es2;
+        MotionUpdateEndStop(1,es2,g_currentPhasePosition,g_currentPhaseVelocity);
+      }
+      bool es3 = palReadPad(GPIOC, GPIOC_PIN8);
+      if(es3 != g_lastLimitState[2]) {
+        g_lastLimitState[2] = es3;
+        MotionUpdateEndStop(2,es3,g_currentPhasePosition,g_currentPhaseVelocity);
+      }
+    }
+
+
+    // Flag motion control update if needed.
+    if(++loopCount >= g_motorReportSampleRate) {
+      loopCount = 0;
+      chBSemSignal(&g_reportLoopReady);
+    }
+
+
+
+    // Last send report if needed.
+    if(g_pwmFullReport) {
+      struct PacketT *pkt;
+      if((pkt = GetEmptyPacket(TIME_IMMEDIATE)) != 0) {
+        struct PacketPWMStateC *ps = (struct PacketPWMStateC *)&(pkt->m_data);
+        pkt->m_len = sizeof(struct PacketPWMStateC);
+        ps->m_packetType = CPT_PWMState;
+        ps->m_tick = g_adcTickCount;
+        for(int i = 0;i < 3;i++)
+          ps->m_curr[i] = g_currentADCValue[i];
+        for(int i = 0;i < 3;i++)
+          ps->m_hall[i] = g_hall[i];
+        ps->m_angle = g_phaseAngle * 65535.0 / (2.0 * M_PI);
+        PostPacket(pkt);
+      }
+    }
+
+  }
 }
 
 
@@ -398,6 +440,11 @@ static THD_FUNCTION(ThreadPWM, arg) {
     chThdSleepMilliseconds(100);
   }
 
+  //! Read initial state of endstop switches
+  g_lastLimitState[0] = palReadPad(GPIOC, GPIOC_PIN6); // Endstop 1
+  g_lastLimitState[1] = palReadPad(GPIOC, GPIOC_PIN7); // Endstop 2
+  g_lastLimitState[2] = palReadPad(GPIOC, GPIOC_PIN8); // Index
+
   //! Make sure controller is setup.
   Drv8503Init();
 
@@ -411,6 +458,9 @@ static THD_FUNCTION(ThreadPWM, arg) {
 
   // This is quick, so may as well do it every time.
   ShuntCalibration();
+
+  // Reset calibration state.
+  MotionResetCalibration();
 
   // Do main control looop
   MotorControlLoop();
@@ -474,6 +524,7 @@ int InitPWM(void)
     g_phaseDistance[i] = mysqrtf((float) sum);
     lastIndex = i;
   }
+
 
 
   rccEnableTIM1(FALSE);
@@ -559,8 +610,6 @@ int PWMStop()
   //palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
   return 0;
 }
-
-float hallToAngleDebug(uint16_t *sensors,int *nearest,int *n0,int *n1,int *n2);
 
 int PWMSVMScan(BaseSequentialStream *chp)
 {
