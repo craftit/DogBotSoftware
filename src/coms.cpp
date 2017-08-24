@@ -200,7 +200,7 @@ bool SetParam(enum ComsParameterIndexT index,int data)
 
 // Up to 8 bytes of data may be returned by this function.
 
-bool ReadParam(ComsParameterIndexT index,int *len,BufferTypeT *data)
+bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
 {
   switch(index)
   {

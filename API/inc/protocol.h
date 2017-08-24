@@ -111,7 +111,7 @@ extern "C" {
   } __attribute__((packed));
 
   struct PacketServoC {
-    uint8_t m_packetType;
+    uint8_t m_packetType; // CPT_ServoAbs / CPT_ServoRel
     uint8_t m_deviceId;
     uint8_t m_mode;
     uint16_t m_timestamp;

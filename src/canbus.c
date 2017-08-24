@@ -145,7 +145,7 @@ bool CANSendParam(uint16_t index)
   /* Retrieve the requested parameter information */
   if(!ReadParam((enum ComsParameterIndexT) index,&len,&buff)) {
     // Report error ?
-    break;
+    return false;
   }
 
   CANTxFrame txmsg;

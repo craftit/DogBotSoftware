@@ -32,7 +32,8 @@ extern "C" {
   bool SetParam(enum ComsParameterIndexT index,int data);
 
   /* Retrieve the requested parameter information */
-  bool ReadParam(ComsParameterIndexT index,int *len,BufferTypeT *data);
+  bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data);
+
 
   extern bool g_canBridgeMode;
 

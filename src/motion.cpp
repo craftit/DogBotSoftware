@@ -2,6 +2,8 @@
 #include "motion.h"
 #include "pwm.h"
 #include "mathfunc.h"
+#include "coms.h"
+#include "canbus.h"
 
 float g_angleOffset = 0;      // Offset from phase position to actuator position.
 float g_actuatorRatio = 21.0; // Gear ratio
@@ -64,6 +66,22 @@ bool MotionSetPosition(uint16_t position,uint16_t torque)
   g_demandPhasePosition = (((float) position) * 7.0 * g_actuatorRatio * M_PI * 2.0/ 65535.0) + g_angleOffset;
   return true;
 }
+
+bool MotionReport(uint16_t position,uint16_t torque)
+{
+  if(g_canBridgeMode) {
+    PacketServoC servo;
+    servo.m_packetType = CPT_ServoAbs;
+    servo.m_deviceId = g_deviceId;
+    servo.m_mode = 0;
+    servo.m_position = 0;
+    servo.m_torque = 0;
+    SendPacket(reinterpret_cast<uint8_t *>(&servo),sizeof(PacketServoC));
+  }
+  CANSendServo(CPT_ServoAbs,g_deviceId,0,0);
+  return true;
+}
+
 
 
 void MotionStep()
