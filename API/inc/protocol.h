@@ -41,6 +41,13 @@ extern "C" {
     CPI_PWMFullReport   = 3,
     CPI_CANBridgeMode   = 4,
     CPI_BoardUID        = 5,
+    CPI_TIM1_SR         = 6,
+    CPI_DRV8305         = 0x10,
+    CPI_DRV8305_01      = 0x10,
+    CPI_DRV8305_02      = 0x11,
+    CPI_DRV8305_03      = 0x12,
+    CPI_DRV8305_04      = 0x13,
+    CPI_DRV8305_05      = 0x14
   };
 
   enum PWMControlModeT {
@@ -70,18 +77,28 @@ extern "C" {
     uint16_t m_index;
   } __attribute__((packed));
 
-  struct PacketParamC {
+  struct PacketParamHeaderC {
     uint8_t m_packetType; //  CPT_SetParam or CPT_ReportParam
     uint8_t m_deviceId;   // Target device
     uint16_t m_index;
+  } __attribute__((packed));
+
+
+  union BufferTypeT
+  {
+    uint8_t  uint8[8];
+    uint16_t uint16[4];
+    uint32_t uint32[2];
+  };
+
+  struct PacketParamC {
+    struct PacketParamHeaderC m_header;
     uint16_t m_data;
   } __attribute__((packed));
 
-  struct PacketParam2Int32C {
-    uint8_t m_packetType;
-    uint8_t m_deviceId;   // Target device
-    uint16_t m_index;
-    uint32_t m_data[2];
+  struct PacketParam8ByteC {
+    struct PacketParamHeaderC m_header;
+    union BufferTypeT m_data;
   } __attribute__((packed));
 
 

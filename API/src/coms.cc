@@ -354,9 +354,9 @@ namespace DogBotN
   void SerialComsC::SendSetParam(int deviceId,ComsParameterIndexT param,uint16_t value)
   {
     PacketParamC msg;
-    msg.m_packetType = CPT_SetParam;
-    msg.m_deviceId = deviceId;
-    msg.m_index = (uint16_t) param;
+    msg.m_header.m_packetType = CPT_SetParam;
+    msg.m_header.m_deviceId = deviceId;
+    msg.m_header.m_index = (uint16_t) param;
     msg.m_data = value;
     SendPacket((uint8_t*) &msg,sizeof(msg));
   }

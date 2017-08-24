@@ -47,6 +47,21 @@ private slots:
 
   void on_pushButtonSetDeviceId_clicked();
 
+  void on_pushButtonOpenLog_clicked();
+
+  void on_pushButtonQueryState_clicked();
+
+  void on_pushButtonDrv8305_2_clicked();
+
+  void on_pushButtonDrv8305_3_clicked();
+
+
+  void on_pushButtonDrv8305_5_clicked();
+
+  void on_pushButtonDrv8305_4_clicked();
+
+  void on_pushButtonTim1_clicked();
+
 signals:
   void setLogText(const QString &str);
 
@@ -60,6 +75,7 @@ private:
   std::vector<PacketDeviceIdC> m_devices;
   float m_position = 0;
   float m_torque = 0;
+  std::shared_ptr<std::ostream> m_logStrm;
 };
 
 #endif // MAINWINDOW_H

@@ -48,7 +48,7 @@ bool g_pwmFullReport = false;
 
 bool g_lastLimitState[3];
 
-static THD_WORKING_AREA(waThreadPWM, 128);
+static THD_WORKING_AREA(waThreadPWM, 512);
 
 void PWMUpdateDrivePhase(int pa,int pb,int pc);
 

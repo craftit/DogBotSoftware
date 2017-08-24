@@ -83,7 +83,7 @@ bool CANSendServo(
 
 }
 
-bool CANSendQueryDevices()
+bool CANSendQueryDevices(void)
 {
   CANTxFrame txmsg;
   CANSetAddress(&txmsg,0,CPT_QueryDevices);
@@ -137,6 +137,34 @@ bool CANSendSetParam(
 
   return true;
 }
+
+bool CANSendParam(uint16_t index)
+{
+  union BufferTypeT buff;
+  int len = 0;
+  /* Retrieve the requested parameter information */
+  if(!ReadParam((enum ComsParameterIndexT) index,&len,&buff)) {
+    // Report error ?
+    break;
+  }
+
+  CANTxFrame txmsg;
+  CANSetAddress(&txmsg,g_deviceId,CPT_ReportParam);
+  txmsg.RTR = CAN_RTR_DATA;
+  txmsg.data8[0] = index;
+
+  // Limit length to bytes we can send over can.
+  if(len > 7) len = 7;
+  txmsg.DLC = len+1;
+  memcpy(&txmsg.data8[1],buff.uint8,len);
+  if(canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, 100) != MSG_OK) {
+    //SendError(CET_CANTransmitFailed,m_data[0]);
+    return false;
+  }
+  return true;
+}
+
+
 
 
 
@@ -206,6 +234,7 @@ static THD_FUNCTION(can_rx, p) {
             SendPacket((uint8_t *) &pkt,sizeof(struct PacketErrorC));
           }
           break;
+        case CPT_Sync:
         case CPT_CAN:
         case CPT_PWMState:
         case CPT_ReportParam:
@@ -224,6 +253,10 @@ static THD_FUNCTION(can_rx, p) {
           break;
         }
         case CPT_ReadParam: {
+          if(rxDeviceId == g_deviceId && rxDeviceId != 0) {
+            int index = rxmsg.data8[0];
+            CANSendParam(index);
+          }
         } break;
         case CPT_SetParam: {
           if(rxDeviceId == g_deviceId && rxDeviceId != 0) {
@@ -266,6 +299,7 @@ static THD_FUNCTION(can_rx, p) {
   chEvtUnregister(&CAND1.rxfull_event, &el);
 }
 
+#if 0
 /*
  * Transmitter thread.
  */
@@ -287,6 +321,7 @@ static THD_FUNCTION(can_tx, p) {
     chThdSleepMilliseconds(500);
   }
 }
+#endif
 
 /*
  * Application entry point.
@@ -310,7 +345,7 @@ int InitCAN(void)
     /*
      * Starting the transmitter and receiver threads.
      */
-    chThdCreateStatic(can_rx_wa, sizeof(can_rx_wa), NORMALPRIO + 7,
+    chThdCreateStatic(can_rx_wa, sizeof(can_rx_wa), NORMALPRIO + 1,
                       can_rx, NULL);
   #if 0
     chThdCreateStatic(can_tx_wa, sizeof(can_tx_wa), NORMALPRIO + 7,

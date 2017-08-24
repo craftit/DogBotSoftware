@@ -8,6 +8,7 @@
 #include "pwm.h"
 #include "mathfunc.h"
 #include "motion.h"
+#include "drv8503.h"
 
 #include <string.h>
 
@@ -155,7 +156,7 @@ void SerialDecodeC::AcceptByte(uint8_t sendByte)
 
 bool SetParamMsg(struct PacketParamC *psp)
 {
-  return SetParam((enum ComsParameterIndexT) psp->m_index,psp->m_data);
+  return SetParam((enum ComsParameterIndexT) psp->m_header.m_index,psp->m_data);
 }
 
 bool SetParam(enum ComsParameterIndexT index,int data)
@@ -184,71 +185,82 @@ bool SetParam(enum ComsParameterIndexT index,int data)
       break;
     case CPI_BoardUID:
       return false;
+    case CPI_DRV8305_01:
+    case CPI_DRV8305_02:
+    case CPI_DRV8305_03:
+    case CPI_DRV8305_04:
+    case CPI_DRV8305_05:
+      return false;
     default:
       return false;
   }
   return true;
 }
 
-bool ReadParam(PacketReadParamC *psp)
-{
 
-  switch((ComsParameterIndexT) psp->m_index)
+// Up to 8 bytes of data may be returned by this function.
+
+bool ReadParam(ComsParameterIndexT index,int *len,BufferTypeT *data)
+{
+  switch(index)
   {
-    case CPI_FirmwareVersion: {
-      struct PacketParamC reply;
-      reply.m_packetType = CPT_ReportParam;
-      reply.m_deviceId = g_deviceId;
-      reply.m_index = psp->m_index;
-      reply.m_data = 1;
-      SendPacket((uint8_t *)&reply,sizeof(reply));
+    case CPI_FirmwareVersion:
+      *len = 1;
+      data->uint8[0] = 1;
+      break;
+    case CPI_PWMState:
+      *len = 1;
+      data->uint8[0] = g_pwmThreadRunning;
+      break;
+    case CPI_PWMMode:
+      *len = 1;
+      data->uint8[0] = g_controlMode;
+      break;
+    case CPI_PWMFullReport:
+      *len = 1;
+      data->uint8[0] = g_pwmFullReport;
+      break;
+    case CPI_CANBridgeMode:
+      *len = 1;
+      data->uint8[0] = g_canBridgeMode;
+      break;
+    case CPI_BoardUID:
+      *len = 8;
+      data->uint32[0] = g_nodeUId[0];
+      data->uint32[1] = g_nodeUId[1];
+      break;
+
+    case CPI_DRV8305_01:
+    case CPI_DRV8305_02:
+    case CPI_DRV8305_03:
+    case CPI_DRV8305_04:
+    case CPI_DRV8305_05: {
+      int reg = ((int) index - CPI_DRV8305)+1;
+      *len = 2;
+      data->uint16[0] = Drv8503ReadRegister(reg);
     } break;
-    case CPI_PWMState: {
-      struct PacketParamC reply;
-      reply.m_packetType = CPT_ReportParam;
-      reply.m_deviceId = g_deviceId;
-      reply.m_index = psp->m_index;
-      reply.m_data = g_pwmThreadRunning;
-      SendPacket((uint8_t *)&reply,sizeof(reply));
-    } break;
-    case CPI_PWMMode: {
-      struct PacketParamC reply;
-      reply.m_packetType = CPT_ReportParam;
-      reply.m_deviceId = g_deviceId;
-      reply.m_index = psp->m_index;
-      reply.m_data = g_controlMode;
-      SendPacket((uint8_t *)&reply,sizeof(reply));
-    } break;
-    case CPI_PWMFullReport: {
-      struct PacketParamC reply;
-      reply.m_packetType = CPT_ReportParam;
-      reply.m_deviceId = g_deviceId;
-      reply.m_index = psp->m_index;
-      reply.m_data = g_pwmFullReport;
-      SendPacket((uint8_t *)&reply,sizeof(reply));
-    } break;
-    case CPI_CANBridgeMode: {
-      struct PacketParamC reply;
-      reply.m_packetType = CPT_ReportParam;
-      reply.m_deviceId = g_deviceId;
-      reply.m_index = psp->m_index;
-      reply.m_data = g_canBridgeMode;
-      SendPacket((uint8_t *)&reply,sizeof(reply));
-    } break;
-    case CPI_BoardUID: {
-#if 1
-      struct PacketParam2Int32C reply;
-      reply.m_packetType = CPT_ReportParam;
-      reply.m_deviceId = g_deviceId;
-      reply.m_index = psp->m_index;
-      reply.m_data[0] = g_nodeUId[0];
-      reply.m_data[1] = g_nodeUId[1];
-      SendPacket((uint8_t *)&reply,sizeof(PacketParam2Int32C));
-#endif
+    case CPI_TIM1_SR: {
+      stm32_tim_t *tim = (stm32_tim_t *)TIM1_BASE;
+      *len = 2;
+      data->uint16[0] = (uint16_t) tim->SR;
     } break;
     default:
       return false;
   }
+  return true;
+}
+
+bool ReadParamAndReply(PacketReadParamC *psp)
+{
+  struct PacketParam8ByteC reply;
+  reply.m_header.m_packetType = CPT_ReportParam;
+  reply.m_header.m_deviceId = g_deviceId;
+  reply.m_header.m_index = psp->m_index;
+  int len = 0;
+  if(!ReadParam((ComsParameterIndexT) psp->m_index,&len,&reply.m_data))
+    return false;
+
+  SendPacket((uint8_t *)&reply,sizeof(reply.m_header) + len);
 
   return true;
 }
@@ -292,7 +304,7 @@ void SerialDecodeC::ProcessPacket()
   case CPT_ReadParam: {
     struct PacketReadParamC *psp = (struct PacketReadParamC *) m_data;
     if(psp->m_deviceId == g_deviceId) {
-      if(!ReadParam(psp)) {
+      if(!ReadParamAndReply(psp)) {
         SendError(CET_ParameterOutOfRange,m_data[1]);
       }
     } else {
@@ -301,13 +313,13 @@ void SerialDecodeC::ProcessPacket()
   } break;
   case CPT_SetParam: {
     struct PacketParamC *psp = (struct PacketParamC *) m_data;
-    if(psp->m_deviceId == g_deviceId) {
+    if(psp->m_header.m_deviceId == g_deviceId) {
       if(!SetParamMsg(psp)) {
         SendError(CET_ParameterOutOfRange,m_data[1]);
       }
     } else {
       if(g_canBridgeMode) {
-        if(!CANSendSetParam(psp->m_deviceId,psp->m_index,psp->m_data)) {
+        if(!CANSendSetParam(psp->m_header.m_deviceId,psp->m_header.m_index,psp->m_data)) {
           SendError(CET_CANTransmitFailed,m_data[0]);
         }
       }
@@ -351,6 +363,7 @@ void SerialDecodeC::ProcessPacket()
     break;
   case CPT_SetDeviceId: {
     const struct PacketDeviceIdC *pkt = (const struct PacketDeviceIdC *) m_data;
+    // Check if we're setting the id for this device.
     if(pkt->m_uid[0] == g_nodeUId[0] &&
         pkt->m_uid[1] == g_nodeUId[1]) {
       g_deviceId = pkt->m_deviceId;
@@ -506,7 +519,7 @@ void InitComs()
   }
   chMBObjectInit(&g_fullPackets,g_fullPacketData,PACKET_QUEUE_SIZE);
 
-  chThdCreateStatic(waThreadTxComs, sizeof(waThreadTxComs), NORMALPRIO+1, ThreadTxComs, NULL);
+  chThdCreateStatic(waThreadTxComs, sizeof(waThreadTxComs), NORMALPRIO, ThreadTxComs, NULL);
   chThdCreateStatic(waThreadRxComs, sizeof(waThreadRxComs), NORMALPRIO, ThreadRxComs, NULL);
 
 }

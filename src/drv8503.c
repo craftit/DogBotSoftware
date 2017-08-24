@@ -10,7 +10,8 @@ static const SPIConfig ls_spicfg = {
   NULL,
   GPIOC,
   9,
-  SPI_CR1_BR_2 | SPI_CR1_BR_1  | SPI_CR1_CPHA
+  SPI_CR1_BR_2 | SPI_CR1_BR_1  | SPI_CR1_CPHA,
+  0
 };
 
 

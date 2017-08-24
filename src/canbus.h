@@ -28,7 +28,7 @@ bool CANSendSetParam(
     uint16_t data
     );
 
-bool CANSendQueryDevices();
+bool CANSendQueryDevices(void);
 
 bool CANSendSetDevice(
     uint8_t deviceId,

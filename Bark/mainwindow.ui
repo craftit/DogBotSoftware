@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>546</width>
-    <height>450</height>
+    <width>743</width>
+    <height>453</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -296,14 +296,105 @@
      <string>Set Device Id</string>
     </property>
    </widget>
+   <widget class="QPushButton" name="pushButtonOpenLog">
+    <property name="geometry">
+     <rect>
+      <x>240</x>
+      <y>350</y>
+      <width>85</width>
+      <height>27</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Open Log</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButtonQueryState">
+    <property name="geometry">
+     <rect>
+      <x>560</x>
+      <y>20</y>
+      <width>101</width>
+      <height>27</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Query Drv8305</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButtonDrv8305_2">
+    <property name="geometry">
+     <rect>
+      <x>560</x>
+      <y>70</y>
+      <width>85</width>
+      <height>27</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Drv8305_2</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButtonDrv8305_3">
+    <property name="geometry">
+     <rect>
+      <x>570</x>
+      <y>120</y>
+      <width>85</width>
+      <height>27</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Drv8305_3</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButtonDrv8305_4">
+    <property name="geometry">
+     <rect>
+      <x>570</x>
+      <y>160</y>
+      <width>85</width>
+      <height>27</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Drv8305_4</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButtonDrv8305_5">
+    <property name="geometry">
+     <rect>
+      <x>570</x>
+      <y>200</y>
+      <width>85</width>
+      <height>27</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Drv8305_5</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButtonTim1">
+    <property name="geometry">
+     <rect>
+      <x>580</x>
+      <y>240</y>
+      <width>85</width>
+      <height>27</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Tim1</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>546</width>
-     <height>19</height>
+     <width>743</width>
+     <height>24</height>
     </rect>
    </property>
   </widget>

@@ -1,6 +1,8 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <iostream>
+#include <QFileDialog>
+#include <fstream>
 
 MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent),
@@ -18,13 +20,17 @@ void MainWindow::SetupComs()
   {
     char buff[1024];
     PacketPWMStateC *msg = (PacketPWMStateC *) data;
-
-    sprintf(buff,"%5d  %4d %4d %4d  %4d %4d %4d  %6d     \r",
-           0,//msg->m_tick,
+    sprintf(buff,"%5d,%4d,%4d,%4d,%4d,%4d,%4d,%6d   \n",
+           msg->m_tick,
            msg->m_hall[0],msg->m_hall[1],msg->m_hall[2],
            msg->m_curr[0],msg->m_curr[1],msg->m_curr[2],
            msg->m_angle);
-    std::cout << buff;
+
+    if(m_logStrm) {
+      *m_logStrm << buff;
+    } else {
+      std::cout << buff;
+    }
     //emit setLogText(buff);
   });
 
@@ -38,27 +44,16 @@ void MainWindow::SetupComs()
   {
     printf("Got SetParam.  Size:%d \n",size);
     std::string displayStr;
-    if(size == sizeof(struct PacketParamC)) {
-      struct PacketParamC *psp = (struct PacketParamC *) data;
-      displayStr += "Index:";
-      displayStr += std::to_string((int) psp->m_index);
-      displayStr += " Device:";
-      displayStr += std::to_string((int) psp->m_deviceId);
-      displayStr += " Data:";
-      displayStr += std::to_string((int) psp->m_data);
-    } else if(size == sizeof(struct PacketParam2Int32C)) {
-      struct PacketParam2Int32C *psp = (struct PacketParam2Int32C *) data;
-      std::cerr << "Reg:" << psp->m_index << " Data:" << psp->m_data[0] << " " << psp->m_data[1] << std::endl;
-      displayStr += "Index:";
-      displayStr += std::to_string((int) psp->m_index);
-      displayStr += " Device:";
-      displayStr += std::to_string((int) psp->m_deviceId);
-      displayStr += " Data1:";
-      displayStr += std::to_string((unsigned) psp->m_data[0]);
-      displayStr += " Data2:";
-      displayStr += std::to_string((unsigned) psp->m_data[1]);
-    } else {
-      displayStr = "Unexpected packet length.";
+    struct PacketParam8ByteC *psp = (struct PacketParam8ByteC *) data;
+    displayStr += "Index:";
+    displayStr += std::to_string((int) psp->m_header.m_index);
+    displayStr += " Device:";
+    displayStr += std::to_string((int) psp->m_header.m_deviceId);
+    displayStr += " Data:";
+    char buff[64];
+    for(unsigned i = 0;i < (size - sizeof(psp->m_header));i++) {
+      sprintf(buff,"%02x ",(unsigned) psp->m_data.uint8[i]);
+      displayStr += buff;
     }
 
     emit setLogText(displayStr.c_str());
@@ -73,7 +68,7 @@ void MainWindow::SetupComs()
     const PacketDeviceIdC *pkt = (const PacketDeviceIdC *) data;
 
     int atIndex = -1;
-    for(int i = 0;i < m_devices.size();i++) {
+    for(unsigned i = 0;i < m_devices.size();i++) {
       if(m_devices[i].m_uid[0] == pkt->m_uid[0] &&
          m_devices[i].m_uid[1] == pkt->m_uid[1]) {
         atIndex = i;
@@ -85,7 +80,7 @@ void MainWindow::SetupComs()
       m_devices.push_back(*pkt);
     }
     std::string displayStr;
-    for(int i = 0;i < m_devices.size();i++) {
+    for(unsigned i = 0;i < m_devices.size();i++) {
       displayStr += std::to_string(m_devices[i].m_uid[0]) + " " + std::to_string(m_devices[i].m_uid[1]) + " -> " + std::to_string(m_devices[i].m_deviceId) + "\n";
     }
     emit setLogText(displayStr.c_str());
@@ -216,4 +211,43 @@ void MainWindow::on_pushButtonSetDeviceId_clicked()
   for(int i = 0;i < m_devices.size();i++) {
     m_coms.SendSetDeviceId(i+1,m_devices[i].m_uid[0],m_devices[i].m_uid[1]);
   }
+}
+
+void MainWindow::on_pushButtonOpenLog_clicked()
+{
+  QString fileName = QFileDialog::getSaveFileName(this, tr("Save Log File"),
+                             "motor.csv",
+                             tr("Log (*.csv);;All Files (*)"));
+  m_logStrm = std::shared_ptr<std::ostream>(new std::ofstream(fileName.toLocal8Bit().data()));
+}
+
+void MainWindow::on_pushButtonQueryState_clicked()
+{
+  m_coms.SendQueryParam(0,CPI_DRV8305_01);
+}
+
+void MainWindow::on_pushButtonDrv8305_2_clicked()
+{
+  m_coms.SendQueryParam(0,CPI_DRV8305_02);
+}
+
+void MainWindow::on_pushButtonDrv8305_3_clicked()
+{
+  m_coms.SendQueryParam(0,CPI_DRV8305_03);
+}
+
+void MainWindow::on_pushButtonDrv8305_4_clicked()
+{
+  m_coms.SendQueryParam(0,CPI_DRV8305_04);
+}
+
+void MainWindow::on_pushButtonDrv8305_5_clicked()
+{
+  m_coms.SendQueryParam(0,CPI_DRV8305_05);
+}
+
+
+void MainWindow::on_pushButtonTim1_clicked()
+{
+  m_coms.SendQueryParam(0,CPI_TIM1_SR);
 }

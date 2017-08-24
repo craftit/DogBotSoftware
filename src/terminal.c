@@ -412,6 +412,8 @@ static void cmd_doSet(BaseSequentialStream *chp, int argc, char *argv[]) {
 }
 
 static void cmd_doCan(BaseSequentialStream *chp, int argc, char *argv[]) {
+  (void)argv;
+  (void)argc;
 
   InitCAN();
   chprintf(chp, "Can started. \r\n");
@@ -443,6 +445,9 @@ static void cmd_doCan(BaseSequentialStream *chp, int argc, char *argv[]) {
 }
 
 static void cmd_doPing(BaseSequentialStream *chp, int argc, char *argv[]) {
+  (void)argv;
+  (void)argc;
+
   chprintf(chp, "Sending ping. \r\n");
 #if 0
   if(SendPing(&SDU1)) {
@@ -454,6 +459,9 @@ static void cmd_doPing(BaseSequentialStream *chp, int argc, char *argv[]) {
 
 }
 static void cmd_doSync(BaseSequentialStream *chp, int argc, char *argv[]) {
+  (void)argv;
+  (void)argc;
+
   chprintf(chp, "Sending sync. \r\n");
 #if 0
   if(SendSync(&SDU1)) {

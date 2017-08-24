@@ -68,6 +68,7 @@ bool MotionSetPosition(uint16_t position,uint16_t torque)
 
 void MotionStep()
 {
+#if 1
   // Should we
   switch(g_motionCalibration)
   {
@@ -124,5 +125,5 @@ void MotionStep()
     case MS_Joint:
       break;
   }
-
+#endif
 }

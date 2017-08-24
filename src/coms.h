@@ -31,6 +31,9 @@ extern "C" {
   /* Process a set parameter request. */
   bool SetParam(enum ComsParameterIndexT index,int data);
 
+  /* Retrieve the requested parameter information */
+  bool ReadParam(ComsParameterIndexT index,int *len,BufferTypeT *data);
+
   extern bool g_canBridgeMode;
 
   extern uint8_t g_deviceId;

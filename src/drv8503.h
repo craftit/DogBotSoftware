@@ -1,6 +1,9 @@
 #ifndef DRV8503_HEADER
 #define DRV8503_HEADER 1
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 extern uint16_t Drv8503ReadStatus(void);
 extern uint16_t Drv8503ReadRegister(uint16_t addr);
@@ -128,5 +131,9 @@ extern void Drv8503Init(void);
 #define DRV8503_VDS_PROTECTION_DISABLE      (0b010)
 
 #define DRV8503_REG_VDS_SENSE_CONTROL     (0xC)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
