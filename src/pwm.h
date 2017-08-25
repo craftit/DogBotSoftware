@@ -65,6 +65,7 @@ extern float g_torqueLimit;
 extern int g_phaseRotationCount;
 extern float g_currentPhasePosition;
 extern float g_currentPhaseVelocity;
+extern float g_torqueAverage;
 
 extern float g_motor_p_gain;
 extern float g_motor_i_gain;

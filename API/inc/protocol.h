@@ -47,7 +47,9 @@ extern "C" {
     CPI_DRV8305_02      = 0x11,
     CPI_DRV8305_03      = 0x12,
     CPI_DRV8305_04      = 0x13,
-    CPI_DRV8305_05      = 0x14
+    CPI_DRV8305_05      = 0x14,
+    CPI_ANGLE_CAL       = 0x20, // 12 Values
+    CPI_FINAL           = 0xff
   };
 
   enum PWMControlModeT {

@@ -14,7 +14,7 @@ extern "C" {
 
   bool MotionSetPosition(uint16_t position,uint16_t torque);
 
-  bool MotionReport(uint16_t position,uint16_t torque);
+  bool MotionReport(uint16_t position,uint16_t torque,bool isAbsolute);
 
   enum MotionCalibrationT {
     MC_Uncalibrated,

@@ -17,6 +17,7 @@
 #include "ch.h"
 #include "hal.h"
 #include <stdint.h>
+#include <string.h>
 #include "coms.h"
 #include "canbus.h"
 #include "protocol.h"
