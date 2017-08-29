@@ -528,7 +528,7 @@ void RunTerminal(void)
     }
   }
   else {
-    chThdSleepMilliseconds(1000);
+    chThdSleepMilliseconds(100);
   }
 
 #if 0

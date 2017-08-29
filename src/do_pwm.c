@@ -327,12 +327,14 @@ static void MotorControlLoop(void) {
       continue;
     }
 
+#if 0
     // Display fault light
     if(palReadPad(GPIOC, GPIOC_PIN15)) {
-      palClearPad(GPIOC, GPIOC_PIN5);
-    } else {
       palSetPad(GPIOC, GPIOC_PIN5);
+    } else {
+      palClearPad(GPIOC, GPIOC_PIN5);
     }
+#endif
 
 
     ComputeState();
@@ -393,6 +395,12 @@ static void MotorControlLoop(void) {
     //! Read initial state of endstop switches
     {
       bool es1 = palReadPad(GPIOC, GPIOC_PIN6);
+      if(es1) {
+        palSetPad(GPIOC, GPIOC_PIN5);
+      } else {
+        palClearPad(GPIOC, GPIOC_PIN5);
+      }
+
       if(es1 != g_lastLimitState[0]) {
         g_lastLimitState[0] = es1;
         MotionUpdateEndStop(0,es1,g_currentPhasePosition,g_currentPhaseVelocity);
