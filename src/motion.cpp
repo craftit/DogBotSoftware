@@ -10,7 +10,7 @@ float g_actuatorRatio = 21.0; // Gear ratio
 
 float g_endStopMin = 0;    // Minimum angle
 float g_endStopMax = M_PI*2; // Maximum angle
-float g_absoluteMaxTorque = 10.0; // Maximum torque allowed
+float g_absoluteMaxTorque = 20.0; // Maximum torque allowed
 float g_uncalibratedTorqueLimit = 4.0; // Maximum torque allowed in un-calibrated mode.
 
 float g_absoluteIndexPosition[12]; // Position of indexes
@@ -63,12 +63,12 @@ bool MotionSetPosition(uint16_t position,uint16_t torque)
   if(g_motionCalibration != MC_Calibrated)
     return false;
 
-  g_torqueLimit = ((float) torque) * g_absoluteMaxTorque / 65535.0;
+  g_torqueLimit = ((float) torque) * g_absoluteMaxTorque / (2 * 65536.0);
   g_demandPhasePosition = (((float) position) * 7.0 * g_actuatorRatio * M_PI * 2.0/ 65535.0) + g_angleOffset;
   return true;
 }
 
-bool MotionReport(uint16_t position,uint16_t torque,bool isAbsolute)
+bool MotionReport(uint16_t position,int16_t torque,bool isAbsolute)
 {
   ComsPacketTypeT packetType = CPT_ServoAbs;
   if(!isAbsolute)
@@ -97,7 +97,7 @@ void CalibrationCheckFailed() {
 void MotionStep()
 {
 #if 1
-  uint16_t torque = g_torqueAverage * (65535.0/g_absoluteMaxTorque);
+  int16_t torque = g_torqueAverage * (65535.0/g_absoluteMaxTorque);
 
   // Should we
   switch(g_motionCalibration)
@@ -154,8 +154,8 @@ void MotionStep()
     /* no break */
     case MS_Stopped:
     case MS_Relative: {
-      uint16_t position = (position * 65535.0) / (7.0 * g_actuatorRatio * M_PI * 2.0) ;
-      MotionReport(position,torque,calibrated);
+      uint16_t reportPosition = (position * 65535.0) / (7.0 * g_actuatorRatio * M_PI * 2.0) ;
+      MotionReport(reportPosition,torque,calibrated);
     } break;
   }
 #endif

@@ -118,7 +118,7 @@ extern "C" {
     uint8_t m_mode;
     uint16_t m_timestamp;
     uint16_t m_position;
-    uint16_t m_torque;
+    int16_t m_torque;
   } __attribute__((packed));
 
   struct PacketDeviceIdC {

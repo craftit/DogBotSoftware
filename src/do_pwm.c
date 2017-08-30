@@ -19,10 +19,10 @@
 
 
 #define TIM_1_8_CLOCK_HZ (SYSTEM_CORE_CLOCK/4)
-#define CURRENT_MEAS_PERIOD ((float)(2*TIM_1_8_PERIOD_CLOCKS)/(float)TIM_1_8_CLOCK_HZ)
 #define TIM_1_8_PERIOD_CLOCKS (2047)
+#define CURRENT_MEAS_PERIOD ((float)(TIM_1_8_PERIOD_CLOCKS)/(float)TIM_1_8_CLOCK_HZ)
 
-int g_motorReportSampleRate = 100 / CURRENT_MEAS_PERIOD; // The target rate is 100Hz
+int g_motorReportSampleRate = 1.0 / (100.0 * CURRENT_MEAS_PERIOD);  //CURRENT_MEAS_PERIOD/100; // The target rate is 100Hz
 
 BSEMAPHORE_DECL(g_reportSampleReady,0); // 100Hz report loop
 
@@ -395,11 +395,13 @@ static void MotorControlLoop(void) {
     //! Read initial state of endstop switches
     {
       bool es1 = palReadPad(GPIOC, GPIOC_PIN6);
+#if 0
       if(es1) {
         palSetPad(GPIOC, GPIOC_PIN5);
       } else {
         palClearPad(GPIOC, GPIOC_PIN5);
       }
+#endif
 
       if(es1 != g_lastLimitState[0]) {
         g_lastLimitState[0] = es1;
@@ -422,6 +424,9 @@ static void MotorControlLoop(void) {
     if(++loopCount >= g_motorReportSampleRate) {
       loopCount = 0;
       chBSemSignal(&g_reportSampleReady);
+      palSetPad(GPIOC, GPIOC_PIN5);
+    } else {
+      palClearPad(GPIOC, GPIOC_PIN5);
     }
 
 

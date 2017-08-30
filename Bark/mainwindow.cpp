@@ -86,6 +86,26 @@ void MainWindow::SetupComs()
     emit setLogText(displayStr.c_str());
   });
 
+  m_coms.SetHandler(CPT_ServoRel,[this](uint8_t *data,int size) mutable
+  {
+    if(size != sizeof(struct PacketServoC)) {
+      emit setLogText("Unexpected packet length.");
+      return;
+    }
+    const PacketServoC *pkt = (const PacketServoC *) data;
+    std::cout << "Servo " << (int) pkt->m_deviceId << " Rel Position:" << pkt->m_position << " Torque: " << pkt->m_torque << std::endl;
+  });
+
+  m_coms.SetHandler(CPT_ServoAbs,[this](uint8_t *data,int size) mutable
+  {
+    if(size != sizeof(struct PacketServoC)) {
+      emit setLogText("Unexpected packet length.");
+      return;
+    }
+    const PacketServoC *pkt = (const PacketServoC *) data;
+    std::cout << "Servo " << (int) pkt->m_deviceId << " Abs Position:" << pkt->m_position << " Torque: " << pkt->m_torque << std::endl;
+  });
+
 }
 
 
