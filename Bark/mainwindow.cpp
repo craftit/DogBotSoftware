@@ -36,8 +36,12 @@ void MainWindow::SetupComs()
 
   m_coms.SetHandler(CPT_Pong,[this](uint8_t *data,int size) mutable
   {
-    std::cout << "Got pong. " << std::endl;
-    emit setLogText("Got pong");
+    struct PacketPingPongC *psp = (struct PacketPingPongC *) data;
+    std::string displayStr = "Got pong ";
+
+    displayStr += std::to_string((int) psp->m_deviceId);
+    std::cout << displayStr << std::endl;
+    emit setLogText(displayStr.c_str());
   });
 
   m_coms.SetHandler(CPT_ReportParam,[this](uint8_t *data,int size) mutable
@@ -55,13 +59,14 @@ void MainWindow::SetupComs()
       sprintf(buff,"%02x ",(unsigned) psp->m_data.uint8[i]);
       displayStr += buff;
     }
-
+    std::cout << "ReportParam: " << displayStr << std::endl;
     emit setLogText(displayStr.c_str());
   });
 
   m_coms.SetHandler(CPT_AnnounceId,[this](uint8_t *data,int size) mutable
   {
     if(size != sizeof(struct PacketDeviceIdC)) {
+      std::cerr << "Packet length " << size << " expected " << sizeof(struct PacketDeviceIdC) << std::endl;
       emit setLogText("Unexpected packet length.");
       return;
     }
@@ -86,24 +91,34 @@ void MainWindow::SetupComs()
     emit setLogText(displayStr.c_str());
   });
 
-  m_coms.SetHandler(CPT_ServoRel,[this](uint8_t *data,int size) mutable
+  m_coms.SetHandler(CPT_Servo,[this](uint8_t *data,int size) mutable
   {
     if(size != sizeof(struct PacketServoC)) {
       emit setLogText("Unexpected packet length.");
       return;
     }
     const PacketServoC *pkt = (const PacketServoC *) data;
-    std::cout << "Servo " << (int) pkt->m_deviceId << " Rel Position:" << pkt->m_position << " Torque: " << pkt->m_torque << std::endl;
+    std::cout << "Servo " << (int) pkt->m_deviceId << " Position:" << pkt->m_position << " Torque: " << pkt->m_torque << " State:" << pkt->m_mode << std::endl;
   });
 
-  m_coms.SetHandler(CPT_ServoAbs,[this](uint8_t *data,int size) mutable
+  m_coms.SetHandler(CPT_ServoReport,[this](uint8_t *data,int size) mutable
   {
-    if(size != sizeof(struct PacketServoC)) {
+    if(size != sizeof(struct PacketServoReportC)) {
       emit setLogText("Unexpected packet length.");
       return;
     }
-    const PacketServoC *pkt = (const PacketServoC *) data;
-    std::cout << "Servo " << (int) pkt->m_deviceId << " Abs Position:" << pkt->m_position << " Torque: " << pkt->m_torque << std::endl;
+    const PacketServoReportC *pkt = (const PacketServoReportC *) data;
+    std::cout << "ServoReport " << (int) pkt->m_deviceId << ((pkt->m_mode & 1) ? " Abs " : " Rel ") << " Position:" << pkt->m_position << " Torque: " << pkt->m_torque  << " State:" << (int) pkt->m_mode << std::endl;
+  });
+
+  m_coms.SetHandler(CPT_Error,[this](uint8_t *data,int size) mutable
+  {
+    if(size != sizeof(struct PacketErrorC)) {
+      emit setLogText("Unexpected packet length.");
+      return;
+    }
+    const PacketErrorC *pkt = (const PacketErrorC *) data;
+    std::cout << "Device: " << (int) pkt->m_deviceId << " Error:" << (int) pkt->m_errorCode << "  Data:" << (int)  pkt->m_errorData << " \n";
   });
 
 }
@@ -127,21 +142,29 @@ void MainWindow::on_pushButtonConnect_clicked()
 
 void MainWindow::on_pushButtonPWM_clicked()
 {
-  m_coms.SendSetParam(0,CPI_PWMState,1);
-  emit setLogText("PWM clicked");
-
+  m_coms.SendSetParam(m_targetDeviceId,CPI_PWMState,1);
+  emit setLogText("Start PWM clicked");
+  m_coms.SendQueryParam(m_targetDeviceId,CPI_PWMState);
 }
+
+void MainWindow::on_pushButtonStopPWM_clicked()
+{
+  m_coms.SendSetParam(m_targetDeviceId,CPI_PWMState,0);
+  emit setLogText("Stop PWM clicked");
+  m_coms.SendQueryParam(m_targetDeviceId,CPI_PWMState);
+}
+
 
 void MainWindow::on_pushButtonPWMReport_clicked()
 {
   if(!m_PWMReportRequested) {
     ui->pushButtonPWMReport->setText("Stop PWM Report");
     m_PWMReportRequested = true;
-    m_coms.SendSetParam(0,CPI_PWMFullReport,1);
+    m_coms.SendSetParam(m_targetDeviceId,CPI_PWMFullReport,1);
   } else {
     ui->pushButtonPWMReport->setText("Start PWM Report");
     m_PWMReportRequested = false;
-    m_coms.SendSetParam(0,CPI_PWMFullReport,0);
+    m_coms.SendSetParam(m_targetDeviceId,CPI_PWMFullReport,0);
   }
 }
 
@@ -173,46 +196,41 @@ void MainWindow::on_comboBoxMotorControlMode_activated(const QString &arg1)
     printf("Unhandled control mode %s ",arg1.toStdString().c_str());
     return ;
   }
-  m_coms.SendSetParam(0,CPI_PWMMode,controlMode);
+  m_coms.SendSetParam(m_targetDeviceId,CPI_PWMMode,controlMode);
+  m_coms.SendQueryParam(m_targetDeviceId,CPI_PWMMode);
 }
 
 void MainWindow::on_sliderPosition_sliderMoved(int position)
 {
   m_position = position * 3.14159265359/ 360.0;
-  m_coms.SendMoveWithEffort(0,m_position,m_torque);
+  m_coms.SendMoveWithEffort(m_targetDeviceId,m_position,m_torque);
 }
 
 void MainWindow::on_sliderTorque_sliderMoved(int torque)
 {
   m_torque = torque / 10.0;
-  m_coms.SendMoveWithEffort(0,m_position,m_torque);
-}
-
-void MainWindow::on_pushButtonStopPWM_clicked()
-{
-  m_coms.SendSetParam(0,CPI_PWMState,0);
-  emit setLogText("PWM clicked");
+  m_coms.SendMoveWithEffort(m_targetDeviceId,m_position,m_torque);
 }
 
 void MainWindow::on_pushButtonQueryId_clicked()
 {
-  m_coms.SendQueryParam(0,CPI_BoardUID);
+  m_coms.SendQueryParam(m_targetDeviceId,CPI_BoardUID);
 }
 
 void MainWindow::on_pushButtonGetVersion_clicked()
 {
-  m_coms.SendQueryParam(0,CPI_FirmwareVersion);
+  m_coms.SendQueryParam(m_targetDeviceId,CPI_FirmwareVersion);
 }
 
 void MainWindow::on_pushButtonState_clicked()
 {
-  m_coms.SendQueryParam(0,CPI_PWMState);
+  m_coms.SendQueryParam(m_targetDeviceId,CPI_PWMState);
 }
 
 void MainWindow::on_pushButtonSetBridgeMode_clicked()
 {
-  m_coms.SendSetParam(0,CPI_CANBridgeMode,1);
-  m_coms.SendQueryParam(0,CPI_CANBridgeMode);
+  m_coms.SendSetParam(m_targetDeviceId,CPI_CANBridgeMode,1);
+  m_coms.SendQueryParam(m_targetDeviceId,CPI_CANBridgeMode);
 }
 
 void MainWindow::on_pushButtonQueryDevices_clicked()
@@ -223,7 +241,7 @@ void MainWindow::on_pushButtonQueryDevices_clicked()
 void MainWindow::on_pushButtonPing1_clicked()
 {
   emit setLogText("Ping");
-  m_coms.SendPing(1);
+  m_coms.SendPing(m_targetDeviceId);
 }
 
 void MainWindow::on_pushButtonSetDeviceId_clicked()
@@ -243,31 +261,36 @@ void MainWindow::on_pushButtonOpenLog_clicked()
 
 void MainWindow::on_pushButtonQueryState_clicked()
 {
-  m_coms.SendQueryParam(0,CPI_DRV8305_01);
+  m_coms.SendQueryParam(m_targetDeviceId,CPI_DRV8305_01);
 }
 
 void MainWindow::on_pushButtonDrv8305_2_clicked()
 {
-  m_coms.SendQueryParam(0,CPI_DRV8305_02);
+  m_coms.SendQueryParam(m_targetDeviceId,CPI_DRV8305_02);
 }
 
 void MainWindow::on_pushButtonDrv8305_3_clicked()
 {
-  m_coms.SendQueryParam(0,CPI_DRV8305_03);
+  m_coms.SendQueryParam(m_targetDeviceId,CPI_DRV8305_03);
 }
 
 void MainWindow::on_pushButtonDrv8305_4_clicked()
 {
-  m_coms.SendQueryParam(0,CPI_DRV8305_04);
+  m_coms.SendQueryParam(m_targetDeviceId,CPI_DRV8305_04);
 }
 
 void MainWindow::on_pushButtonDrv8305_5_clicked()
 {
-  m_coms.SendQueryParam(0,CPI_DRV8305_05);
+  m_coms.SendQueryParam(m_targetDeviceId,CPI_DRV8305_05);
 }
 
 
 void MainWindow::on_pushButtonTim1_clicked()
 {
-  m_coms.SendQueryParam(0,CPI_TIM1_SR);
+  m_coms.SendQueryParam(m_targetDeviceId,CPI_TIM1_SR);
+}
+
+void MainWindow::on_spinDeviceId_valueChanged(int arg1)
+{
+  m_targetDeviceId = arg1;
 }

@@ -12,7 +12,7 @@ extern "C" {
 
   void MotionUpdateEndStop(int num,bool state,float position,float velocity);
 
-  bool MotionSetPosition(uint16_t position,uint16_t torque);
+  bool MotionSetPosition(uint8_t mode,uint16_t position,uint16_t torque);
 
   bool MotionReport(uint16_t position,uint16_t torque,bool isAbsolute);
 

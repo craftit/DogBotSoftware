@@ -29,11 +29,12 @@ extern "C" {
   bool SendPing(uint8_t targetDevice);
 
   /* Process a set parameter request. */
-  bool SetParam(enum ComsParameterIndexT index,int data);
+  bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len);
 
   /* Retrieve the requested parameter information */
   bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data);
 
+  void SendError(uint8_t deviceId,enum ComsErrorTypeT code,uint8_t data);
 
   extern bool g_canBridgeMode;
 

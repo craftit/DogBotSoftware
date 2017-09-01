@@ -16,19 +16,38 @@ bool CANPing(
     );
 
 bool CANSendServo(
-    enum ComsPacketTypeT pktType,
     uint8_t deviceId,
     uint16_t position,
-    uint16_t torque
+    uint16_t torque,
+    uint8_t mode
     );
+
+bool CANSendServoReport(
+    uint8_t deviceId,
+    uint16_t position,
+    int16_t torque,
+    uint8_t state
+    );
+
 
 bool CANSendSetParam(
     uint8_t deviceId,
     uint16_t index,
-    uint16_t data
+    union BufferTypeT *data,
+    int len
+    );
+
+bool CANSendReadParam(
+    uint8_t deviceId,
+    uint16_t index
     );
 
 bool CANSendQueryDevices(void);
+
+bool CANSendError(
+    uint16_t errorCode,
+    uint16_t data
+    );
 
 bool CANSendSetDevice(
     uint8_t deviceId,

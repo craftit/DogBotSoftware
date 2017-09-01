@@ -58,8 +58,12 @@ bool MotionEstimateOffset(float &value)
 
 }
 
-bool MotionSetPosition(uint16_t position,uint16_t torque)
+bool MotionSetPosition(uint8_t mode,uint16_t position,uint16_t torque)
 {
+  if((mode & 0x1) == 0) {
+    PWMSetPosition(position,torque);
+    return true;
+  }
   if(g_motionCalibration != MC_Calibrated)
     return false;
 
@@ -70,20 +74,28 @@ bool MotionSetPosition(uint16_t position,uint16_t torque)
 
 bool MotionReport(uint16_t position,int16_t torque,bool isAbsolute)
 {
-  ComsPacketTypeT packetType = CPT_ServoAbs;
-  if(!isAbsolute)
-    packetType = CPT_ServoRel;
+  uint8_t mode = (isAbsolute ? 1 : 0);
+
+  // Report endstop switches.
+  if(palReadPad(GPIOC, GPIOC_PIN6))
+    mode |= 2;
+  if(palReadPad(GPIOC, GPIOC_PIN7))
+    mode |= 4;
+  if(palReadPad(GPIOC, GPIOC_PIN8))
+    mode |= 8;
 
   if(g_canBridgeMode) {
-    PacketServoC servo;
-    servo.m_packetType = packetType;
+    PacketServoReportC servo;
+    servo.m_packetType = CPT_ServoReport;
     servo.m_deviceId = g_deviceId;
-    servo.m_mode = 0;
+    servo.m_mode = mode;
     servo.m_position = position;
     servo.m_torque = torque;
-    SendPacket(reinterpret_cast<uint8_t *>(&servo),sizeof(PacketServoC));
+    SendPacket(reinterpret_cast<uint8_t *>(&servo),sizeof(PacketServoReportC));
   }
-  CANSendServo(packetType,g_deviceId,position,torque);
+  if(g_deviceId != 0) {
+    CANSendServoReport(g_deviceId,position,torque,mode);
+  }
   return true;
 }
 

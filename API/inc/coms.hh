@@ -44,14 +44,11 @@ namespace DogBotN {
     //! Send packet
     void SendPacket(const uint8_t *data,int len);
 
-    //! Send a move command
-    void SendMove(int deviceId,int pos);
-
     //! Send a move command with an effort level.
     void SendMoveWithEffort(int deviceId,float pos,float effort);
 
     //! Set a parameter
-    void SendSetParam(int deviceId,ComsParameterIndexT param,uint16_t value);
+    void SendSetParam(int deviceId,ComsParameterIndexT param,uint8_t value);
 
     //! Query a parameter
     void SendQueryParam(int deviceId,ComsParameterIndexT param);

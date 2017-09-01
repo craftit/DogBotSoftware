@@ -336,29 +336,15 @@ namespace DogBotN
   }
 
 
-  //! Send a move command
-  void SerialComsC::SendMove(int servoId,int pos)
-  {
-    uint8_t data[64];
-
-    int at = 0;
-    data[at++] = CPT_ServoRel;
-    data[at++] = servoId;
-    data[at++] = (int) pos;
-
-    SendPacket(data,at);
-  }
-
-
   //! Set a parameter
-  void SerialComsC::SendSetParam(int deviceId,ComsParameterIndexT param,uint16_t value)
+  void SerialComsC::SendSetParam(int deviceId,ComsParameterIndexT param,uint8_t value)
   {
-    PacketParamC msg;
+    PacketParam8ByteC msg;
     msg.m_header.m_packetType = CPT_SetParam;
     msg.m_header.m_deviceId = deviceId;
     msg.m_header.m_index = (uint16_t) param;
-    msg.m_data = value;
-    SendPacket((uint8_t*) &msg,sizeof(msg));
+    msg.m_data.uint8[0] = value;
+    SendPacket((uint8_t*) &msg,sizeof(msg.m_header)+1);
   }
 
   //! Query a parameter
@@ -398,12 +384,13 @@ namespace DogBotN
     int at = 0;
 
     struct PacketServoC servoPkt;
-    servoPkt.m_packetType = CPT_ServoRel;
+    servoPkt.m_packetType = CPT_Servo;
     servoPkt.m_deviceId = deviceId;
     while(pos < 0)
       pos += 3.14159265359;
     servoPkt.m_position = pos * 65535.0 / (2.0 * 3.14159265359);
     servoPkt.m_torque = effort * 65535.0 / (10.0);
+    servoPkt.m_mode = 0;
 
     SendPacket((uint8_t *)&servoPkt,sizeof servoPkt);
   }

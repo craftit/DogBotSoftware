@@ -14,9 +14,9 @@ extern "C" {
     CPT_ReadParam    =  4, // Read parameter
     CPT_SetParam     =  5, // Set parameter
     CPT_ReportParam  =  6, // Report parameter
-    CPT_ServoAbs     =  7, // Servo control absolute position
-    CPT_ServoRel     =  8, // Servo control relative position
-    CPT_CAN          =  9, //  CAN packet
+    CPT_Servo        =  7, // Servo control position
+    CPT_ServoReport  =  8, // Report servo position
+    // 9 is unused.
     CPT_PWMState     = 10, // PWM State.
     CPT_QueryDevices = 11, // Query connected devices
     CPT_AnnounceId   = 12, // Query connected devices
@@ -28,7 +28,8 @@ extern "C" {
     CET_UnknownPacketType = 0,
     CET_UnexpectedPacketSize = 1,
     CET_ParameterOutOfRange = 2,
-    CET_CANTransmitFailed = 3
+    CET_CANTransmitFailed = 3,
+    CET_InternalError = 4
 
   };
 
@@ -53,12 +54,12 @@ extern "C" {
   };
 
   enum PWMControlModeT {
-    CM_Idle,
-    CM_Break,
-    CM_Torque,
-    CM_Velocity,
-    CM_Position,
-    CM_Final
+    CM_Idle     = 0,
+    CM_Break    = 1,
+    CM_Torque   = 2,
+    CM_Velocity = 3,
+    CM_Position = 4,
+    CM_Final    = 5
   } ;
 
   struct PacketErrorC {
@@ -113,6 +114,14 @@ extern "C" {
   } __attribute__((packed));
 
   struct PacketServoC {
+    uint8_t m_packetType; // CPT_ServoAbs / CPT_ServoRel
+    uint8_t m_deviceId;
+    uint8_t m_mode;
+    uint16_t m_position;
+    uint16_t m_torque;
+  } __attribute__((packed));
+
+  struct PacketServoReportC {
     uint8_t m_packetType; // CPT_ServoAbs / CPT_ServoRel
     uint8_t m_deviceId;
     uint8_t m_mode;

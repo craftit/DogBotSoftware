@@ -62,6 +62,8 @@ private slots:
 
   void on_pushButtonTim1_clicked();
 
+  void on_spinDeviceId_valueChanged(int arg1);
+
 signals:
   void setLogText(const QString &str);
 
@@ -76,6 +78,7 @@ private:
   float m_position = 0;
   float m_torque = 0;
   std::shared_ptr<std::ostream> m_logStrm;
+  int m_targetDeviceId = 0;
 };
 
 #endif // MAINWINDOW_H
