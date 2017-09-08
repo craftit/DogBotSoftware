@@ -321,7 +321,7 @@ static void MotorControlLoop(void) {
   int loopCount = 0;
 
   while (g_pwmRun) {
-    palClearPad(GPIOB, GPIOB_PIN12); // Turn output off to measure timing
+    // palClearPad(GPIOB, GPIOB_PIN12); // Turn output off to measure timing
     if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
       g_pwmTimeoutCount++;
       continue;
@@ -486,7 +486,7 @@ static THD_FUNCTION(ThreadPWM, arg) {
   // Reset calibration state.
   MotionResetCalibration();
 
-  // Do main control looop
+  // Do main control loop
   MotorControlLoop();
 
   // Make sure motor isn't being driven.
@@ -589,7 +589,7 @@ int InitPWM(void)
   tim->CCR[2] = TIM_1_8_PERIOD_CLOCKS/2;
   tim->CCR[3] = TIM_1_8_PERIOD_CLOCKS - 2;
 
-  tim->CR2  = STM32_TIM_CR2_CCPC | STM32_TIM_CR2_MMS(7); // Use the COMG bit to update.
+  tim->CR2  = STM32_TIM_CR2_CCPC | STM32_TIM_CR2_MMS(7); // Use the COMG bit to update. 7=Tim4 3=Update event  =
 
 
   //palSetPad(GPIOB, GPIOB_PIN12); // Turn on flag pin
