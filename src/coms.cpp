@@ -3,7 +3,7 @@
 
 #include "coms.h"
 #include "canbus.h"
-#include "protocol.h"
+#include "dogbot/protocol.h"
 #include "chmboxes.h"
 #include "pwm.h"
 #include "mathfunc.h"

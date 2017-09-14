@@ -2,7 +2,8 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include "coms.hh"
+
+#include "../API/include/dogbot/SerialComs.hh"
 
 namespace Ui {
 class MainWindow;

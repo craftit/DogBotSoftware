@@ -20,7 +20,7 @@
 #include <string.h>
 #include "coms.h"
 #include "canbus.h"
-#include "protocol.h"
+#include "dogbot/protocol.h"
 #include "motion.h"
 
 #define STM32_UID ((uint32_t *)0x1FFF7A10)

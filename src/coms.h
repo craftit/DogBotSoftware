@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 #include "usbcfg.h"
-#include "protocol.h"
+#include "dogbot/protocol.h"
 
   void InitComs(void);
 

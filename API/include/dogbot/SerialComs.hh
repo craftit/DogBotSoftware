@@ -9,10 +9,13 @@
 #include <assert.h>
 #include <mutex>
 
-#include "protocol.h"
+#include "dogbot/protocol.h"
+#include <spdlog/spdlog.h>
 #include <cstdint>
 
 namespace DogBotN {
+
+  //! Low level serial communication over usb with the driver board
 
   class SerialComsC
   {
@@ -25,6 +28,9 @@ namespace DogBotN {
     //! Destructor
     // Disconnects and closes file descriptors
     ~SerialComsC();
+
+    //! Set the logger to use
+    void SetLogger(std::shared_ptr<spdlog::logger> &log);
 
     //! Open a port.
     bool Open(const char *portAddr);
@@ -86,6 +92,8 @@ namespace DogBotN {
     // n    ETX.
 
     bool RunRecieve();
+
+    std::shared_ptr<spdlog::logger> m_log = spdlog::get("console");
 
     std::thread m_threadRecieve;
 

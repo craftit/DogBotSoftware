@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 #include "ch.h"
-#include "protocol.h"
+#include "dogbot/protocol.h"
 #include "hal_streams.h"
 
 int InitPWM(void);

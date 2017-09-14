@@ -236,7 +236,7 @@ UDEFS = -DCHPRINTF_USE_FLOAT=1 -DSHELL_CMD_TEST_ENABLED=FALSE
 UADEFS =
 
 # List all user directories here
-UINCDIR = ../API/inc
+UINCDIR = ../API/include
 
 # List the user directory to look for the libraries here
 ULIBDIR = ../lib

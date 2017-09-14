@@ -13,12 +13,9 @@
 #include <iostream>
 #include <fcntl.h>
 
-#include "coms.hh"
 #include <unistd.h>
 #include <sys/termios.h>
-
-#define ROS_DEBUG printf
-#define ROS_ERROR printf
+#include "../include/dogbot/SerialComs.hh"
 
 namespace DogBotN
 {
@@ -54,27 +51,32 @@ namespace DogBotN
   }
 
 
+  //! Set the logger to use
+  void SerialComsC::SetLogger(std::shared_ptr<spdlog::logger> &log)
+  {
+    m_log = log;
+  }
+
   bool SerialComsC::Open(const char *portAddr)
   {
     if(m_fd >= 0) {
-      std::cerr << "Coms already open. " << std::endl;
+      m_log->info("Coms already open. ");
       return false;
     }
 
-    std::cerr << "Opening: '" << portAddr << "' " << std::endl;
+    m_log->info("Opening: '{}'",portAddr);
+
     m_fd = open(portAddr,O_RDWR | O_NONBLOCK);
-    std::cerr << "Ret " << m_fd << std::endl;
     if(m_fd < 0) {
-      std::cerr << "Failed to open file " << portAddr << " " << std::endl;
-      perror("Failed to open file ");
+      m_log->error("Failed to open file {} Error:{}, {} ",portAddr,errno,strerror(errno));
       return false;
     }
-    std::cerr << "Port opened ok  '" << portAddr << "' " << std::endl;
+    m_log->debug("Port opened ok  '{}'",portAddr);
 
     {
       termios termios_p;
       if (tcgetattr(m_fd,&termios_p) < 0) {
-        std::cerr << "Failed to read port parameters. \n";
+        m_log->error("Failed to read port parameters. ");
         return false;
       }
 
@@ -98,7 +100,7 @@ namespace DogBotN
       cfsetospeed(&termios_p, B38400);
 
       if(tcsetattr(m_fd, TCSANOW, &termios_p ) < 0)  {
-        std::cerr << "Failed to configure serial port \n";
+        m_log->error("Failed to configure serial port ");
         return false;
       }
     }
@@ -149,9 +151,9 @@ namespace DogBotN
       break;
     case 3: { // CRC 1
       uint8_t cs1 = (m_checkSum & 0xff);
-      //ROS_DEBUG("Checksum1 : %d %d ",(int)  cs1 , (int) sendByte);
+      //m_log->debug("Checksum1 : %d %d ",(int)  cs1 , (int) sendByte);
       if(cs1 != sendByte) {
-        //ROS_DEBUG("Checksum 1 failed. ");
+        m_log->warn("Checksum 1 failed. ");
         if(sendByte == m_charSTX)
           m_state = 1;
         else
@@ -163,9 +165,9 @@ namespace DogBotN
     } break;
     case 4: { // CRC 1
       uint8_t cs2 = ((m_checkSum >> 8) & 0xff);
-      //ROS_DEBUG("Checksum2 : %d %d ",(int) ((m_checkSum >> 8) & 0xff) , (int) sendByte);
+      //m_log->debug("Checksum2 : %d %d ",(int) ((m_checkSum >> 8) & 0xff) , (int) sendByte);
       if(cs2 != sendByte) {
-        //std::cerr << "Checksum 2 failed. \n";
+        m_log->warn("Checksum 2 failed. ");
         if(sendByte == m_charSTX)
           m_state = 1;
         else
@@ -179,7 +181,7 @@ namespace DogBotN
       if(sendByte == m_charETX) {
         ProcessPacket();
       } else {
-        std::cerr << "Packet corrupted. Len " << m_packetLen << " Type " <<  (int) m_data[0] << "\n";
+        m_log->warn("Packet corrupted. Len {} Type {} ",m_packetLen,(int) m_data[0]);
         if(sendByte == m_charSTX) {
           m_state = 1;
           break;
@@ -198,7 +200,7 @@ namespace DogBotN
     for(int i = 0;i < m_packetLen;i++) {
       data += std::to_string(m_data[i]) + " ";
     }
-    ROS_DEBUG("Got packet [%d] %s ",m_packetLen,data.c_str());
+    m_log->debug("Got packet [%d] %s ",m_packetLen,data.c_str());
 #endif
 
     // m_data[0] //
@@ -212,7 +214,7 @@ namespace DogBotN
         SendPacket(data,at);
       } break;
       case CPT_Sync:
-        std::cerr << "Got sync. \n";
+        m_log->debug("Got sync. ");
         break;
       default: {
         std::lock_guard<std::mutex> lock(m_accessPacketHandler);
@@ -226,23 +228,23 @@ namespace DogBotN
         // Fall back to the default handlers.
         switch(packetId) {
           case CPT_Pong:
-            std::cerr << "Got pong. \n";
+            m_log->debug("Got pong. ");
             break;
           case CPT_Error:
-            ROS_ERROR("Received error code: %d  Arg:%d ",(int) m_data[1],(int) m_data[2]);
+            m_log->error("Received error code: {}  Arg:{} ",(int) m_data[1],(int) m_data[2]);
             break;
           default:
-            ROS_DEBUG("Don't know how to handle packet %d (Of %d) ",packetId,(int) m_packetHandler.size());
+            m_log->debug("Don't know how to handle packet {} (Of {}) ",packetId,(int) m_packetHandler.size());
         }
       } break;
   #if 0
     case 2: { // ADC Data.
       int current = ((int) m_data[2])  + (((int) m_data[3]) << 8);
       int volt = ((int) m_data[4])  + (((int) m_data[5]) << 8);
-      ROS_DEBUG("I:%4d V:%4d  Phase:%d  PWM:%d ",current,volt,(int) m_data[6],(int) m_data[7]);
+      m_log->debug("I:%4d V:%4d  Phase:%d  PWM:%d ",current,volt,(int) m_data[6],(int) m_data[7]);
     } break;
     default:
-      ROS_DEBUG("Unexpected packet type %d ",(int) m_data[1]);
+      m_log->debug("Unexpected packet type %d ",(int) m_data[1]);
       break;
   #endif
     }
@@ -250,15 +252,18 @@ namespace DogBotN
 
   bool SerialComsC::RunRecieve()
   {
-    std::cerr << "Running receiver" << std::endl;
+    m_log->debug("Running receiver");
     assert(m_fd >= 0);
     uint8_t readBuff[1024];
     fd_set localFds;
+    fd_set exceptFds;
     FD_ZERO(&localFds);
+    FD_ZERO(&exceptFds);
 
     while(!m_terminate && m_fd >= 0) {
       FD_SET(m_fd,&localFds);
-      int x = select(m_fd+1,&localFds,0,0,0);
+      FD_SET(m_fd,&exceptFds);
+      int x = select(m_fd+1,&localFds,0,&exceptFds,0);
       if(x < 0) {
         perror("Failed to select");
         continue;
@@ -276,19 +281,19 @@ namespace DogBotN
         continue;
       }
 #if 0
-      ROS_DEBUG("Got %d bytes: ",n);
+      m_log->debug("Got %d bytes: ",n);
       for(int i = 0;i < n;i++) {
-        ROS_DEBUG("%02X ",(int) readBuff[i]);
+        m_log->debug("%02X ",(int) readBuff[i]);
         AcceptByte(readBuff[i]);
       }
-      ROS_DEBUG("\n");
+      m_log->debug("\n");
 #else
       for(int i = 0;i < n;i++) {
         AcceptByte(readBuff[i]);
       }
 #endif
     }
-    std::cerr << "Exiting receiver " << m_fd << std::endl;
+    m_log->debug("Exiting receiver fd {} ",m_fd);
 
     return true;
   }
@@ -323,7 +328,7 @@ namespace DogBotN
     while(at < packet.size()) {
       int x = select(m_fd+1,0,&localFds,0,0);
       if(x < 0) {
-        perror("write select");
+        m_log->error("Failed to select write. ");
         break;
       }
       int n = write(m_fd,&packet[at],packet.size());

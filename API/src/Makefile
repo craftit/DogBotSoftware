@@ -136,6 +136,19 @@ DogBotAPI/fast:
 	$(MAKE) -f src/CMakeFiles/DogBotAPI.dir/build.make src/CMakeFiles/DogBotAPI.dir/build
 .PHONY : DogBotAPI/fast
 
+#=============================================================================
+# Target rules for targets named dtservo
+
+# Build rule for target.
+dtservo: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 dtservo
+.PHONY : dtservo
+
+# fast build rule for target.
+dtservo/fast:
+	$(MAKE) -f src/CMakeFiles/dtservo.dir/build.make src/CMakeFiles/dtservo.dir/build
+.PHONY : dtservo/fast
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -146,6 +159,7 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... dtalk"
 	@echo "... DogBotAPI"
+	@echo "... dtservo"
 .PHONY : help
 
 

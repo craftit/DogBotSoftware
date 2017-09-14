@@ -11,10 +11,8 @@ QMAKE_CXXFLAGS += -std=c++11
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-
 TARGET = Bark
 TEMPLATE = app
-
 
 SOURCES += main.cpp\
         mainwindow.cpp
@@ -27,8 +25,8 @@ win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../API/build/src/release/ 
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../API/build/src/debug/ -lDogBotAPI
 else:unix: LIBS += -L$$PWD/../API/build/src/ -lDogBotAPI
 
-INCLUDEPATH += $$PWD/../API/inc
-DEPENDPATH += $$PWD/../API/inc
+INCLUDEPATH += $$PWD/../API/include
+DEPENDPATH += $$PWD/../API/include
 
 win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/../API/build/src/release/libDogBotAPI.a
 else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/../API/build/src/debug/libDogBotAPI.a

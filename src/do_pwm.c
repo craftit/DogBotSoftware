@@ -9,7 +9,7 @@
 #include "svm.h"
 
 #include "coms.h"
-#include "protocol.h"
+#include "dogbot/protocol.h"
 
 #include "motion.h"
 
@@ -55,7 +55,7 @@ void PWMUpdateDrivePhase(int pa,int pb,int pc);
 
 int PWMSetPosition(uint16_t position,uint16_t torque)
 {
-  g_torqueLimit = ((float) torque) * 10.0 / (65535.0);
+  g_torqueLimit = ((float) torque) * 50.0 / (65535.0);
   g_demandPhasePosition = ((float) position) * 7.0 * 21.0 * M_PI * 2.0/ 65535.0;
   return 0;
 }
