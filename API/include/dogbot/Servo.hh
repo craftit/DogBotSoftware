@@ -15,7 +15,9 @@ namespace DogBotN {
     ServoC();
 
   protected:
-    int m_id;
+    int m_id; // Servo id.
+    int32_t m_uid1;
+    int32_t m_uid2;
     bool m_online = false;
 
   };

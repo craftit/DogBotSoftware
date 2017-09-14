@@ -227,26 +227,32 @@ namespace DogBotN
         }
         // Fall back to the default handlers.
         switch(packetId) {
-          case CPT_Pong:
-            m_log->debug("Got pong. ");
-            break;
-          case CPT_Error:
-            m_log->error("Received error code: {}  Arg:{} ",(int) m_data[1],(int) m_data[2]);
-            break;
+          case CPT_Pong: {
+            if(m_packetLen != sizeof(struct PacketPingPongC)) {
+              m_log->error("Unexpected Pong packet length {}, expected {} ",m_packetLen,sizeof(struct PacketPingPongC));
+              return;
+            }
+
+            const PacketPingPongC *pkt = (const PacketPingPongC *) m_data;
+
+            m_log->debug("Got pong from %d. ",(int) pkt->m_deviceId);
+          } break;
+          case CPT_Error: {
+            if(m_packetLen != sizeof(struct PacketErrorC)) {
+              m_log->error("Unexpected Error packet length {}, expected {} ",m_packetLen,sizeof(struct PacketErrorC));
+              return;
+            }
+            const PacketErrorC *pkt = (const PacketErrorC *) m_data;
+
+            m_log->error("Received error code from device {} : {}  Arg:{} ",
+                         (int) pkt->m_deviceId,
+                         (int) pkt->m_errorCode,
+                         (int) pkt->m_errorData);
+          } break;
           default:
             m_log->debug("Don't know how to handle packet {} (Of {}) ",packetId,(int) m_packetHandler.size());
         }
       } break;
-  #if 0
-    case 2: { // ADC Data.
-      int current = ((int) m_data[2])  + (((int) m_data[3]) << 8);
-      int volt = ((int) m_data[4])  + (((int) m_data[5]) << 8);
-      m_log->debug("I:%4d V:%4d  Phase:%d  PWM:%d ",current,volt,(int) m_data[6],(int) m_data[7]);
-    } break;
-    default:
-      m_log->debug("Unexpected packet type %d ",(int) m_data[1]);
-      break;
-  #endif
     }
   }
 

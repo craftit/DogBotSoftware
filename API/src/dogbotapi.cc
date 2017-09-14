@@ -61,6 +61,14 @@ namespace DogBotN {
   {
     m_log->debug("Running monitor. ");
 
+    m_coms.SetHandler(CPT_Pong,
+                      [this](uint8_t *data,int size) mutable
+                      {
+
+                      }
+      );
+
+
     while(!m_terminate)
     {
       switch(m_driverState)
@@ -72,15 +80,20 @@ namespace DogBotN {
           if(!m_coms.Open(m_deviceName.c_str())) {
             m_log->warn("Failed to open coms channel. ");
             std::this_thread::sleep_for(std::chrono::seconds(5));
+            break;
           } else {
             m_driverState = DS_Connected;
           }
+        }
+        // no break
+        case DS_Connected: {
+
         } break;
-        case DS_Connected:
         case DS_Calibrated:
         case DS_Error:
-          std::this_thread::sleep_for(std::chrono::seconds(1));
+          break;
       }
+      std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
     m_log->debug("Exiting monitor. ");
