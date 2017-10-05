@@ -16,6 +16,7 @@ const uint8_t g_charSTX = 0x02;
 const uint8_t g_charETX = 0x03;
 
 bool g_canBridgeMode = false;
+bool g_comsInitDone = false;
 
 bool SendSync(void)
 {
@@ -419,6 +420,9 @@ static PacketT g_packetArray[PACKET_QUEUE_SIZE];
 /* Get a free packet structure. */
 struct PacketT *GetEmptyPacket(systime_t timeout)
 {
+  if(!g_comsInitDone)
+    return 0;
+
   msg_t msg;
   if(chMBFetch(&g_emptyPackets,&msg,timeout) != MSG_OK)
     return 0;
@@ -428,6 +432,9 @@ struct PacketT *GetEmptyPacket(systime_t timeout)
 /* Post packet. */
 bool PostPacket(struct PacketT *pkt)
 {
+  if(!g_comsInitDone)
+    return false;
+
   if(chMBPost(&g_fullPackets,(msg_t) pkt,TIME_IMMEDIATE) == MSG_OK)
     return true;
 
@@ -521,10 +528,8 @@ BaseSequentialStream *g_packetStream = 0;
 
 void InitComs()
 {
-  static bool initDone = false;
-  if(initDone)
+  if(g_comsInitDone)
     return ;
-  initDone = true;
 
   g_comsDecode.m_SDU = (BaseSequentialStream *)&SDU1;
   g_packetStream = (BaseSequentialStream *)&SDU1;
@@ -534,6 +539,8 @@ void InitComs()
     chMBPost(&g_emptyPackets,reinterpret_cast<msg_t>(&g_packetArray[i]),TIME_IMMEDIATE);
   }
   chMBObjectInit(&g_fullPackets,g_fullPacketData,PACKET_QUEUE_SIZE);
+
+  g_comsInitDone = true;
 
   chThdCreateStatic(waThreadTxComs, sizeof(waThreadTxComs), NORMALPRIO, ThreadTxComs, NULL);
   chThdCreateStatic(waThreadRxComs, sizeof(waThreadRxComs), NORMALPRIO, ThreadRxComs, NULL);

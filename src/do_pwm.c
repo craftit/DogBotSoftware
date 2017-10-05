@@ -55,12 +55,10 @@ void PWMUpdateDrivePhase(int pa,int pb,int pc);
 
 int PWMSetPosition(uint16_t position,uint16_t torque)
 {
-  g_torqueLimit = ((float) torque) * 50.0 / (65535.0);
+  g_torqueLimit = ((float) torque) * g_absoluteMaxTorque / (65535.0);
   g_demandPhasePosition = ((float) position) * 7.0 * 21.0 * M_PI * 2.0/ 65535.0;
   return 0;
 }
-
-
 
 
 
@@ -321,7 +319,7 @@ static void MotorControlLoop(void) {
   int loopCount = 0;
 
   while (g_pwmRun) {
-    // palClearPad(GPIOB, GPIOB_PIN12); // Turn output off to measure timing
+    palClearPad(GPIOB, GPIOB_PIN12); // Turn output off to measure timing
     if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
       g_pwmTimeoutCount++;
       continue;
@@ -365,20 +363,6 @@ static void MotorControlLoop(void) {
       /* no break */
       case CM_Position: {
         float positionError = targetPosition - g_currentPhasePosition;
-#if 0
-        const float deadBand = M_PI/30;
-        if(positionError > 0) {
-          if(positionError < deadBand)
-            positionError = 0;
-          else
-            positionError -= deadBand;
-        } else {
-          if(positionError > -deadBand)
-            positionError = 0;
-          else
-            positionError += deadBand;
-        }
-#endif
         g_positionISum += positionError * CURRENT_MEAS_PERIOD;
         if(g_positionISum > g_positionIClamp)  g_positionISum = g_positionIClamp;
         if(g_positionISum < -g_positionIClamp) g_positionISum = -g_positionIClamp;
@@ -450,6 +434,7 @@ static void MotorControlLoop(void) {
 
   }
 }
+
 
 
 static THD_FUNCTION(ThreadPWM, arg) {
@@ -535,21 +520,12 @@ void SetModeBreak(void)
     STM32_TIM_CCMR2_OC4PE;
 }
 
+void InitHall2Angle();
+
 int InitPWM(void)
 {
-  // Pre-compute the distance between this position and the last.
-  int lastIndex = 11;
-  for(int i = 0;i < 12;i++) {
-    int sum = 0;
-    for(int k = 0;k < 3;k++) {
-      int diff = g_phaseAngles[i][k] - g_phaseAngles[lastIndex][k];
-      sum += diff * diff;
-    }
-    g_phaseDistance[i] = mysqrtf((float) sum);
-    lastIndex = i;
-  }
 
-
+  InitHall2Angle();
 
   rccEnableTIM1(FALSE);
   rccResetTIM1();
@@ -719,10 +695,12 @@ int PWMCalSVM(BaseSequentialStream *chp)
 
 // This returns an angle between 0 and 2 pi
 
-float hallToAngle(uint16_t *sensors)
+
+float hallToAngleRef(uint16_t *sensors)
 {
   int distTable[12];
   int phase = 0;
+
   int minDist = sqr(g_phaseAngles[0][0] - sensors[0]) +
                 sqr(g_phaseAngles[0][1] - sensors[1]) +
                 sqr(g_phaseAngles[0][2] - sensors[2]);
@@ -741,7 +719,7 @@ float hallToAngle(uint16_t *sensors)
   int last = phase - 1;
   if(last < 0) last = 11;
   int next = phase + 1;
-  if(last > 11) last = 0;
+  if(next > 11) next = 0;
   int lastDist2 = distTable[last];
   int nextDist2 = distTable[next];
   float angle = phase * 2.0;
@@ -750,11 +728,107 @@ float hallToAngle(uint16_t *sensors)
   angle -= (nextDist-lastDist)/(nextDist + lastDist);
   if(angle < 0.0) angle += 24.0;
   if(angle > 24.0) angle -= 24.0;
-  return angle * M_PI * 2.0 / 24.0;
+  return (angle * M_PI * 2.0 / 24.0) + 1.04;
+}
+
+float g_hallToAngleOriginOffset = -2000;
+float g_phaseAnglesNormOrg[12][3];
+
+void InitHall2Angle()
+{
+  {
+    // Pre-compute the distance between this position and the last.
+    int lastIndex = 11;
+    for(int i = 0;i < 12;i++) {
+      int sum = 0;
+      for(int k = 0;k < 3;k++) {
+        int diff = g_phaseAngles[i][k] - g_phaseAngles[lastIndex][k];
+        sum += diff * diff;
+      }
+      g_phaseDistance[i] = mysqrtf((float) sum);
+      lastIndex = i;
+    }
+  }
+
+
+  int lastIndex = 11;
+
+  for(int i = 0;i < 12;i++) {
+    float sumMag = 0;
+
+    for(int k = 0;k < 3;k++) {
+      sumMag += sqr(g_phaseAngles[i][k] - g_hallToAngleOriginOffset);
+    }
+
+    sumMag = mysqrtf(sumMag);
+    for(int k = 0;k < 3;k++) {
+      g_phaseAnglesNormOrg[i][k] = (g_phaseAngles[i][k]-g_hallToAngleOriginOffset) / sumMag;
+    }
+
+    lastIndex = i;
+  }
 }
 
 
 
+float hallToAngleDot2(uint16_t *sensors)
+{
+  float distTable[12];
+  int phase = 0;
+  float norm[3];
+  norm[0] = (float) sensors[0] - g_hallToAngleOriginOffset;
+  norm[1] = (float) sensors[1] - g_hallToAngleOriginOffset;
+  norm[2] = (float) sensors[2] - g_hallToAngleOriginOffset;
+  float mag = mysqrtf(sqr(norm[0]) + sqr(norm[1]) + sqr(norm[2]));
+  for(int j = 0;j < 3;j++)
+    norm[j] /= mag;
+
+  //RavlDebug("Vec: %f %f %f",norm[0],norm[1],norm[2]);
+
+  //mag = mysqrtf(sqr(g_phaseAngles[0][0]) + sqr(g_phaseAngles[0][1]) + sqr(g_phaseAngles[0][2]));
+
+  float maxCorr = ((g_phaseAnglesNormOrg[0][0]) * norm[0]) +
+                  ((g_phaseAnglesNormOrg[0][1]) * norm[1]) +
+                  ((g_phaseAnglesNormOrg[0][2]) * norm[2]);
+
+  distTable[0] = maxCorr;
+
+  for(int i = 1;i < 12;i++) {
+    //mag = mysqrtf(sqr(g_phaseAngles[i][0]) + sqr(g_phaseAngles[i][1]) + sqr(g_phaseAngles[i][2]));
+    float corr = ((g_phaseAnglesNormOrg[i][0]) * norm[0]) +
+                  ((g_phaseAnglesNormOrg[i][1]) * norm[1]) +
+                  ((g_phaseAnglesNormOrg[i][2]) * norm[2]);
+    distTable[i] = corr;
+    //RavlDebug("Corr:%f ",corr);
+    if(corr > maxCorr) {
+      phase = i;
+      maxCorr = corr;
+    }
+  }
+  int last = phase - 1;
+  if(last < 0) last = 11;
+  int next = phase + 1;
+  if(next > 11) next = 0;
+  float lastDist2 = distTable[last];
+  float nextDist2 = distTable[next];
+  float angle = phase * 2.0;
+  float lastDist = maxCorr - lastDist2;
+  float nextDist = maxCorr - nextDist2;
+  //Average error:0.007239  Abs:0.207922 Mag:0.263140
+  float corr = (nextDist-lastDist)/(nextDist + lastDist);
+  angle -= corr;
+  //RavlDebug("Last:%f  Max:%f Next:%f Corr:%f ",lastDist,maxCorr,nextDist,corr);
+  if(angle < 0.0) angle += 24.0;
+  if(angle > 24.0) angle -= 24.0;
+  return (angle * M_PI * 2.0 / 24.0) + 1.04;
+  //return angle;
+}
+
+
+float hallToAngle(uint16_t *sensors)
+{
+  return hallToAngleDot2(sensors);
+}
 
 
 

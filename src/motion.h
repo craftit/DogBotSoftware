@@ -34,6 +34,7 @@ extern "C" {
   extern enum MotionCalibrationT g_motionCalibration;
   extern enum MotionStateT g_motionState;
 
+  extern float g_absoluteMaxTorque; // Maximum torque allowed
 
 
 #ifdef __cplusplus

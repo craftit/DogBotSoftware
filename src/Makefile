@@ -242,7 +242,7 @@ UINCDIR = ../API/include
 ULIBDIR = ../lib
 
 # List all user libraries here
-ULIBS = -larm_cortexM4lf_math
+ULIBS = -larm_cortexM4lf_math -lm
 
 #
 # End of user defines

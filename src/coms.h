@@ -8,6 +8,8 @@ extern "C" {
 #include "usbcfg.h"
 #include "dogbot/protocol.h"
 
+  extern bool g_comsInitDone;
+
   void InitComs(void);
 
   extern BaseSequentialStream *g_packetStream;
