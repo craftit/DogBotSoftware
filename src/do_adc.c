@@ -308,6 +308,19 @@ uint16_t *ReadADCs(void) {
   return g_samples;
 }
 
+float ReadSupplyVoltage()
+{
+  ADC_RegularChannelConfig(ADC1,ADC_Channel_6,1,ADC_SampleTime_3Cycles);
+  g_currentSample = 0;
+  ADC_SoftwareStartConv(ADC1);
+  g_samplesDone[0] = 0;
+  msg_t state = chBSemWaitTimeout(&g_adcDataReady,1000);
+  if(state != MSG_OK)
+    return 0;
+  return g_samples[0] * ((3.0+39.0)/3.0) * 3.3f/((float)(1<<12));
+}
+
+
 int DoADC(void)
 {
 

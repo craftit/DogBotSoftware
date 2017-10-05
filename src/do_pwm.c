@@ -34,8 +34,8 @@ float g_phaseAngle = 0 ;
 
 
 float g_current_Ibus = 0;
-float g_motor_p_gain = 1.2;
-float g_motor_i_gain = 0.0;
+float g_motor_p_gain = 1.2;  // 1.2
+float g_motor_i_gain = 0.2;  // 0.0
 
 int g_phaseAngles[12][3];
 float g_phaseDistance[12];
@@ -734,7 +734,7 @@ float hallToAngleRef(uint16_t *sensors)
 float g_hallToAngleOriginOffset = -2000;
 float g_phaseAnglesNormOrg[12][3];
 
-void InitHall2Angle()
+void InitHall2Angle(void)
 {
   {
     // Pre-compute the distance between this position and the last.

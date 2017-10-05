@@ -199,6 +199,7 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_DRV8305_03:
     case CPI_DRV8305_04:
     case CPI_DRV8305_05:
+    case CPI_VSUPPLY:
       return false;
     default:
       return false;
@@ -251,6 +252,11 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       stm32_tim_t *tim = (stm32_tim_t *)TIM1_BASE;
       *len = 2;
       data->uint16[0] = (uint16_t) tim->SR;
+    } break;
+    case CPI_VSUPPLY: {
+      unsigned val = g_vbus_voltage * 1000.0f;
+      *len = 2;
+      data->uint16[0] = val;
     } break;
     default:
       return false;

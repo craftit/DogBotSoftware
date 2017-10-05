@@ -59,6 +59,14 @@ void MainWindow::SetupComs()
       sprintf(buff,"%02x ",(unsigned) psp->m_data.uint8[i]);
       displayStr += buff;
     }
+    switch ((enum ComsParameterIndexT) psp->m_header.m_index) {
+    case CPI_VSUPPLY: {
+      sprintf(buff," Supply Voltage:%f ",((float) psp->m_data.uint16[0] / 1000.0f));
+      displayStr += buff;
+    } break;
+    default:
+      break;
+    }
     std::cout << "ReportParam: " << displayStr << std::endl;
     emit setLogText(displayStr.c_str());
   });
@@ -293,4 +301,9 @@ void MainWindow::on_pushButtonTim1_clicked()
 void MainWindow::on_spinDeviceId_valueChanged(int arg1)
 {
   m_targetDeviceId = arg1;
+}
+
+void MainWindow::on_pushButton_clicked()
+{
+  m_coms.SendQueryParam(m_targetDeviceId,CPI_VSUPPLY);
 }

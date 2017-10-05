@@ -24,6 +24,7 @@ void PWMUpdateDrive(int phase,int power);
 void MotionStep(void);
 
 extern uint16_t *ReadADCs(void);
+extern float ReadSupplyVoltage(void); // Read supply voltage from ADC.
 
 float hallToAngle(uint16_t *sensors);
 
@@ -46,6 +47,7 @@ extern int g_phaseAngles[12][3];
 
 extern int g_adcTickCount;
 
+extern float g_vbus_voltage;
 extern float g_current[3];
 extern float g_phaseAngle;
 extern float g_current_Ibus;

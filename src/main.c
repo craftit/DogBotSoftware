@@ -127,6 +127,10 @@ int main(void) {
     }
     // This runs at 100Hz
     MotionStep();
+
+    g_vbus_voltage = ReadSupplyVoltage();
+
+    // TODO: Check for under-voltage shutdown.
   }
 #else
   /*

@@ -65,6 +65,8 @@ private slots:
 
   void on_spinDeviceId_valueChanged(int arg1);
 
+  void on_pushButton_clicked();
+
 signals:
   void setLogText(const QString &str);
 

@@ -43,6 +43,7 @@ extern "C" {
     CPI_CANBridgeMode   = 4,
     CPI_BoardUID        = 5,
     CPI_TIM1_SR         = 6,
+    CPI_VSUPPLY         = 7,
     CPI_DRV8305         = 0x10,
     CPI_DRV8305_01      = 0x10,
     CPI_DRV8305_02      = 0x11,
