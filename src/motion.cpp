@@ -18,8 +18,10 @@ bool g_haveIndexPositionSample[12];
 float g_measuredIndexPosition[12]; // Measured position
 
 MotionCalibrationT g_motionCalibration = MC_Uncalibrated;
-MotionStateT g_motionState = MS_Stopped;
-
+PositionReferenceT g_motionPositionReference = PR_Relative;
+enum ControlStateT g_controlState = CS_StartUp;
+enum FaultCodeT g_lastFaultCode = FC_Ok;
+bool g_indicatorState = false;
 bool g_newCalibrationData = false;
 
 void MotionResetCalibration() {
@@ -72,17 +74,17 @@ bool MotionSetPosition(uint8_t mode,uint16_t position,uint16_t torque)
   return true;
 }
 
-bool MotionReport(uint16_t position,int16_t torque,bool isAbsolute)
+bool MotionReport(uint16_t position,int16_t torque,PositionReferenceT posRef)
 {
-  uint8_t mode = (isAbsolute ? 1 : 0);
+  uint8_t mode = posRef & 0x3;
 
   // Report endstop switches.
   if(palReadPad(GPIOC, GPIOC_PIN6))
-    mode |= 2;
+    mode |= 1 << 3;
   if(palReadPad(GPIOC, GPIOC_PIN7))
-    mode |= 4;
+    mode |= 1 << 4;
   if(palReadPad(GPIOC, GPIOC_PIN8))
-    mode |= 8;
+    mode |= 1 << 5;
 
   if(g_canBridgeMode) {
     PacketServoReportC servo;
@@ -100,10 +102,9 @@ bool MotionReport(uint16_t position,int16_t torque,bool isAbsolute)
 }
 
 void CalibrationCheckFailed() {
-  g_motionCalibration = MC_CheckError;
-  g_motionState = MS_Stopped;
+  g_motionCalibration = MC_Uncalibrated;
   g_torqueLimit = 0;
-  g_controlMode = CM_Idle;
+  g_controlMode = CM_Fault;
 }
 
 void MotionStep()
@@ -124,9 +125,6 @@ void MotionStep()
           g_motionCalibration = MC_Calibrated;
       }
       break;
-    case MC_Update: {
-      // ...
-    } break;
     case MC_Calibrated: {
       // If we're calibrated, we're just going to check all is fine.
       if(g_newCalibrationData) {
@@ -140,34 +138,33 @@ void MotionStep()
         }
       }
     } break;
-    case MC_CheckError: {
-      // Error state
-      g_motionState = MS_Stopped;
-      g_torqueLimit = 0;
-      g_controlMode = CM_Idle;
-    } break;
-
   }
 
   // Check we've got a calibrated position
-  if(g_motionState == MS_Absolute && g_motionCalibration != MC_Calibrated)
-    g_motionState = MS_Relative;
+  if(g_motionPositionReference == PR_Absolute && g_motionCalibration != MC_Calibrated)
+    g_motionPositionReference = PR_Relative;
 
   float position = g_currentPhasePosition;
-  bool calibrated = false;
 
-  switch(g_motionState)
+  enum PositionReferenceT posRef = g_motionPositionReference;
+
+  switch(g_motionPositionReference)
   {
-    case MS_Joint:
+    case PR_OtherJointRelative:
+    case PR_OtherJointAbsolute:
       // TODO: Correct for other joint offset.
-    case MS_Absolute:
-      position -= g_angleOffset;
-      calibrated = true;
+    case PR_Absolute:
+      if(g_motionCalibration == MC_Calibrated) {
+        position -= g_angleOffset;
+      } else {
+        // Without calibration we can only send relative positions.
+        position = g_currentPhasePosition;
+        posRef = PR_Relative;
+      }
     /* no break */
-    case MS_Stopped:
-    case MS_Relative: {
+    case PR_Relative: {
       uint16_t reportPosition = (position * 65535.0) / (7.0 * g_actuatorRatio * M_PI * 2.0) ;
-      MotionReport(reportPosition,torque,calibrated);
+      MotionReport(reportPosition,torque,posRef);
     } break;
   }
 #endif

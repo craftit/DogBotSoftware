@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include "dogbot/protocol.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -14,26 +16,14 @@ extern "C" {
 
   bool MotionSetPosition(uint8_t mode,uint16_t position,uint16_t torque);
 
-  bool MotionReport(uint16_t position,uint16_t torque,bool isAbsolute);
+  bool MotionReport(uint16_t position,uint16_t torque,enum PositionReferenceT posRef);
 
-  enum MotionCalibrationT {
-    MC_Uncalibrated,
-    MC_Measuring,
-    MC_Calibrated,
-    MC_Update,
-    MC_CheckError
-  };
-
-  enum MotionStateT {
-    MS_Stopped,
-    MS_Relative,
-    MS_Absolute,
-    MS_Joint
-  };
 
   extern enum MotionCalibrationT g_motionCalibration;
-  extern enum MotionStateT g_motionState;
-
+  extern enum PositionReferenceT g_motionPositionReference;
+  extern enum ControlStateT g_controlState;
+  extern enum FaultCodeT g_lastFaultCode;
+  extern bool g_indicatorState;
   extern float g_absoluteMaxTorque; // Maximum torque allowed
 
 

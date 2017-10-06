@@ -15,6 +15,10 @@ int PWMSetPosition(uint16_t postion,uint16_t torque);
 
 int PWMRun(void);
 int PWMStop(void);
+
+enum FaultCodeT PWMSelfTest(void);
+enum FaultCodeT PWMFactoryCal(void);
+
 int PWMCal(BaseSequentialStream *chp);
 int PWMCalSVM(BaseSequentialStream *chp);
 int PWMSVMScan(BaseSequentialStream *chp);
@@ -22,6 +26,7 @@ int PWMSVMScan(BaseSequentialStream *chp);
 void PWMUpdateDrive(int phase,int power);
 
 void MotionStep(void);
+bool ChangeControlState(enum ControlStateT newState);
 
 extern uint16_t *ReadADCs(void);
 extern float ReadSupplyVoltage(void); // Read supply voltage from ADC.

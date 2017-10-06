@@ -10,6 +10,7 @@
 
 #include "coms.h"
 #include "dogbot/protocol.h"
+#include "storedconf.h"
 
 #include "motion.h"
 
@@ -45,7 +46,7 @@ volatile bool g_pwmRun = true;
 
 int g_pwmTimeoutCount = 0 ;
 bool g_pwmFullReport = false;
-
+bool g_motorControlLoopReady = true;
 bool g_lastLimitState[3];
 
 static THD_WORKING_AREA(waThreadPWM, 512);
@@ -60,6 +61,13 @@ int PWMSetPosition(uint16_t position,uint16_t torque)
   return 0;
 }
 
+bool IsHallInRange(void) {
+  // Are sensor readings outside the expected range ?
+  for(int i = 0;i < 3;i++) {
+    if(g_hall[i] < 1800 || g_hall[i] > 2600)
+      return FC_NoSensor;
+  }
+}
 
 
 static void queue_modulation_timings(float mod_alpha, float mod_beta) {
@@ -93,6 +101,7 @@ static void scan_motor_loop(float omega, float voltage_magnitude) {
     }
   }
 }
+
 
 void ShuntCalibration(void)
 {
@@ -238,7 +247,7 @@ float g_positionISum = 0.0;
 float g_Id = 0.0;
 float g_Iq = 0.0;
 
-enum PWMControlModeT g_controlMode = CM_Idle;
+enum PWMControlModeT g_controlMode = CM_Break;
 
 static void ComputeState(void)
 {
@@ -317,6 +326,7 @@ static void SetTorque(float torque) {
 static void MotorControlLoop(void) {
 
   int loopCount = 0;
+  g_motorControlLoopReady = true;
 
   while (g_pwmRun) {
     palClearPad(GPIOB, GPIOB_PIN12); // Turn output off to measure timing
@@ -343,10 +353,14 @@ static void MotorControlLoop(void) {
 
     switch(g_controlMode)
     {
-        break;
       case CM_Idle: // Maybe turn off the MOSFETS ?
-        SetTorque(0);
+        PWMUpdateDrivePhase(
+            TIM_1_8_PERIOD_CLOCKS/2,
+            TIM_1_8_PERIOD_CLOCKS/2,
+            TIM_1_8_PERIOD_CLOCKS/2
+            );
         break;
+      case CM_Fault:
       case CM_Final:
       case CM_Break:
         // Just turn everything off, this will passively break the motor
@@ -413,7 +427,11 @@ static void MotorControlLoop(void) {
       palClearPad(GPIOC, GPIOC_PIN5);
     }
 
-
+    // Do some sanity checks
+    if(!IsHallInRange()) {
+      // How to flag this to the rest of the system ?
+      g_controlMode = CM_Fault;
+    }
 
     // Last send report if needed.
     if(g_pwmFullReport) {
@@ -445,6 +463,7 @@ static THD_FUNCTION(ThreadPWM, arg) {
   palSetPad(GPIOC, GPIOC_PIN13); // Wake
 
   //! Wait for powerup to complete
+  // TODO: Add a timeout and report and error
   while (!palReadPad(GPIOD, GPIOD_PIN2)) {
     chThdSleepMilliseconds(100);
   }
@@ -520,7 +539,7 @@ void SetModeBreak(void)
     STM32_TIM_CCMR2_OC4PE;
 }
 
-void InitHall2Angle();
+void InitHall2Angle(void);
 
 int InitPWM(void)
 {
@@ -596,17 +615,30 @@ void PWMUpdateDrivePhase(int pa,int pb,int pc)
 
 int PWMRun()
 {
+  if(g_pwmRun)
+    return 0;
+
   g_pwmRun = true;
   if(!g_pwmThreadRunning) {
+    g_motorControlLoopReady = false;
     g_pwmThreadRunning = true;
     chThdCreateStatic(waThreadPWM, sizeof(waThreadPWM), NORMALPRIO+8, ThreadPWM, NULL);
+    while(!g_motorControlLoopReady) {
+      chThdSleepMilliseconds(10);
+    }
   }
   return 0;
 }
 
 int PWMStop()
 {
+  if(!g_pwmRun)
+    return 0;
   g_pwmRun = false;
+  // Wait for thread to shutdown to avoid race conditions.
+  while(g_pwmThreadRunning) {
+    chThdSleepMilliseconds(10);
+  }
   //palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
   return 0;
 }
@@ -650,6 +682,113 @@ int PWMSVMScan(BaseSequentialStream *chp)
 }
 
 void DisplayAngle(BaseSequentialStream *chp);
+
+
+enum FaultCodeT PWMSelfTest()
+{
+  InitPWM();
+
+  if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
+    return FC_Internal; // Not sure what is going on.
+  }
+
+  // Check hall sensors.
+
+  // If pins are floating, pull them into a fixed state.
+
+  palSetPadMode(GPIOC,GPIOC_PIN0,PAL_MODE_INPUT_PULLUP);
+  palSetPadMode(GPIOC,GPIOC_PIN1,PAL_MODE_INPUT_PULLUP);
+  palSetPadMode(GPIOC,GPIOC_PIN2,PAL_MODE_INPUT_PULLUP);
+
+  chThdSleepMilliseconds(100);
+
+  // Change them back to analog inputs.
+
+  palSetPadMode(GPIOC,GPIOC_PIN0,PAL_MODE_INPUT_ANALOG);
+  palSetPadMode(GPIOC,GPIOC_PIN1,PAL_MODE_INPUT_ANALOG);
+  palSetPadMode(GPIOC,GPIOC_PIN2,PAL_MODE_INPUT_ANALOG);
+
+  // Wait for next measurement
+
+  if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
+    return FC_Internal; // Not sure what is going on.
+  }
+  if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
+    return FC_Internal; // Not sure what is going on.
+  }
+
+  if(!IsHallInRange())
+    return FC_NoSensor;
+
+  // Are all readings very similar ?
+  // Sensor may not be near motor. This isn't full proof but better than nothing.
+  int diff1 = g_hall[1] - g_hall[0];
+  int diff2 = g_hall[1] - g_hall[2];
+  if(diff1 < 0) diff1 *= -1;
+  if(diff2 < 0) diff2 *= -1;
+  if(diff1 < 20 && diff2 < 20)
+    return FC_NoSensor;
+
+  return FC_Ok;
+}
+
+enum FaultCodeT PWMFactoryCal()
+{
+  palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
+
+
+  InitPWM();
+
+
+  for(int phase = 0;phase < 12*7;phase++) {
+    g_vbus_voltage = ReadSupplyVoltage();
+    if(g_vbus_voltage < 12.0)
+      return FC_UnderVoltage;
+    float voltage_magnitude = (0.12 * 12.0) / g_vbus_voltage;
+
+    int phaseStep = phase % 12;
+    float phaseAngle = (float) phase * M_PI * 2.0 / 12.0;
+    float v_alpha = voltage_magnitude * arm_cos_f32(phaseAngle);
+    float v_beta  = voltage_magnitude * arm_sin_f32(phaseAngle);
+
+    queue_modulation_timings(v_alpha, v_beta);
+
+    // Wait for position to settle
+    chThdSleepMilliseconds(1000);
+
+    // Sync to avoid reading variables when they're being updated.
+    chBSemWait(&g_adcInjectedDataReady);
+
+    for(int i = 0;i < 3;i++) {
+      g_phaseAngles[phaseStep][i] += g_hall[i];
+    }
+  }
+  for(int i = 0;i < 12;i++) {
+    g_phaseAngles[i][0] /= 7;
+    g_phaseAngles[i][1] /= 7;
+    g_phaseAngles[i][2] /= 7;
+  }
+
+  palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
+
+  if(!g_eeInitDone) {
+    StoredConf_Init();
+    g_eeInitDone = true;
+  }
+  g_storedConfig.configState = 1;
+  g_storedConfig.controllerId = 2;
+  for(int i = 0;i < 12;i++) {
+    g_storedConfig.phaseAngles[i][0] = g_phaseAngles[i][0];
+    g_storedConfig.phaseAngles[i][1] = g_phaseAngles[i][1];
+    g_storedConfig.phaseAngles[i][2] = g_phaseAngles[i][2];
+  }
+  if(!StoredConf_Save(&g_storedConfig)) {
+    return FC_InternalStoreFailed;
+  }
+
+  //DisplayAngle(chp);
+  return FC_Ok;
+}
 
 
 int PWMCalSVM(BaseSequentialStream *chp)
@@ -750,9 +889,6 @@ void InitHall2Angle(void)
     }
   }
 
-
-  int lastIndex = 11;
-
   for(int i = 0;i < 12;i++) {
     float sumMag = 0;
 
@@ -764,8 +900,6 @@ void InitHall2Angle(void)
     for(int k = 0;k < 3;k++) {
       g_phaseAnglesNormOrg[i][k] = (g_phaseAngles[i][k]-g_hallToAngleOriginOffset) / sumMag;
     }
-
-    lastIndex = i;
   }
 }
 

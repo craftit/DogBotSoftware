@@ -30,7 +30,18 @@ extern "C" {
     CET_ParameterOutOfRange = 2,
     CET_CANTransmitFailed = 3,
     CET_InternalError = 4
+  };
 
+  enum FaultCodeT {
+    FC_Ok = 0,
+    FC_UnderVoltage = 2,
+    FC_NoSensor = 3,
+    FC_NoMotor = 4,
+    FC_CalibrationFailed = 5,
+    FC_DriverFault = 6,
+    FC_InternalTiming = 7,
+    FC_InternalStoreFailed = 8,
+    FC_Internal = 9
   };
 
 
@@ -44,6 +55,11 @@ extern "C" {
     CPI_BoardUID        = 5,
     CPI_TIM1_SR         = 6,
     CPI_VSUPPLY         = 7,
+    CPI_ControlState    = 8,
+    CPI_PositionCal     = 9,
+    CPI_PositionRef     = 10,
+    CPI_FaultCode       = 11,
+    CPI_Indicator       = 12,
     CPI_DRV8305         = 0x10,
     CPI_DRV8305_01      = 0x10,
     CPI_DRV8305_02      = 0x11,
@@ -54,14 +70,62 @@ extern "C" {
     CPI_FINAL           = 0xff
   };
 
+  /* Control state.
+   *
+   */
+
+  enum ControlStateT {
+    CS_StartUp       = 0,
+    CS_Standby       = 1,
+    CS_LowPower      = 2,
+    CS_Manual        = 3,
+    CS_EmergencyStop = 4,
+    CS_SelfTest      = 5,
+    CS_FactoryCalibrate = 6,
+    CS_PositionCalibration = 7,
+    CS_Fault         = 8,
+    CS_Teach         = 9
+  };
+
+
+
   enum PWMControlModeT {
     CM_Idle     = 0,
     CM_Break    = 1,
     CM_Torque   = 2,
     CM_Velocity = 3,
     CM_Position = 4,
-    CM_Final    = 5
+    CM_Fault    = 5,
+    CM_Final    = 6
   } ;
+
+  /* Reference coordinates for position reports.
+   *
+   * Relative  : Is relative to an arbitrary position at power up
+   * Absolute  : Once position is calibrated
+   * OtherJoint: Position relative to another joint
+   * */
+
+  enum PositionReferenceT {
+    PR_Relative = 0,
+    PR_Absolute = 1,
+    PR_OtherJointRelative = 2,
+    PR_OtherJointAbsolute = 3,
+  };
+
+
+
+  /* Motion calibration state
+   *
+   * Uncalibrated : Absolute position unknown
+   *
+   */
+
+  enum MotionCalibrationT {
+    MC_Uncalibrated = 0,
+    MC_Measuring    = 1,
+    MC_Calibrated   = 2
+  };
 
   struct PacketErrorC {
     uint8_t m_packetType;

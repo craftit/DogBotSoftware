@@ -33,6 +33,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "storedconf.h"
+#include "motion.h"
 
 #include "chprintf.h"
 
@@ -50,11 +51,50 @@ static THD_FUNCTION(Thread1, arg) {
   (void)arg;
   chRegSetThreadName("blinker");
   while (true) {
-    palSetPad(GPIOC, GPIOC_PIN4);       /* Green.  */
-    chThdSleepMilliseconds(500);
-    palClearPad(GPIOC, GPIOC_PIN4);     /* Green.  */
-    chThdSleepMilliseconds(500);
-    //SendSync(&SDU1);
+    switch(g_controlState)
+    {
+      case CS_Fault: {
+        palSetPad(GPIOC, GPIOC_PIN4);       /* Green.  */
+        chThdSleepMilliseconds(20);
+        palClearPad(GPIOC, GPIOC_PIN4);     /* Green.  */
+        chThdSleepMilliseconds(5000);
+      } break;
+      case CS_LowPower:
+      case CS_Standby: {
+        palSetPad(GPIOC, GPIOC_PIN4);       /* Green.  */
+        chThdSleepMilliseconds(20);
+        palClearPad(GPIOC, GPIOC_PIN4);     /* Green.  */
+        chThdSleepMilliseconds(2000);
+      } break;
+      case CS_StartUp: {
+        palSetPad(GPIOC, GPIOC_PIN4);       /* Green.  */
+        chThdSleepMilliseconds(300);
+        palClearPad(GPIOC, GPIOC_PIN4);     /* Green.  */
+        chThdSleepMilliseconds(100);
+      } break;
+      case CS_EmergencyStop: {
+        palSetPad(GPIOC, GPIOC_PIN4);       /* Green.  */
+        chThdSleepMilliseconds(100);
+        palClearPad(GPIOC, GPIOC_PIN4);     /* Green.  */
+        chThdSleepMilliseconds(100);
+      } break;
+      case CS_Manual:
+      case CS_Teach: {
+        palSetPad(GPIOC, GPIOC_PIN4);       /* Green.  */
+        chThdSleepMilliseconds(500);
+        palClearPad(GPIOC, GPIOC_PIN4);     /* Green.  */
+        chThdSleepMilliseconds(500);
+      } break;
+      case CS_SelfTest:
+      case CS_FactoryCalibrate:
+      case CS_PositionCalibration:
+      default: {
+        palSetPad(GPIOC, GPIOC_PIN4);       /* Green.  */
+        chThdSleepMilliseconds(500);
+        palClearPad(GPIOC, GPIOC_PIN4);     /* Green.  */
+        chThdSleepMilliseconds(20);
+      } break;
+    }
   }
 }
 
@@ -69,6 +109,61 @@ extern void InitUSB(void);
 extern void InitADC(void);
 
 extern pid_t getpid(void);
+
+int DisplayFault(enum FaultCodeT faultCode) {
+  g_lastFaultCode = faultCode;
+  while(1) {
+    for(int i = 0;i < (int) faultCode;i++) {
+      palSetPad(GPIOC, GPIOC_PIN5);       /* Yellow led. */
+      chThdSleepMilliseconds(300);
+      palClearPad(GPIOC, GPIOC_PIN5);       /* Yellow led. */
+      chThdSleepMilliseconds(300);
+    }
+    chThdSleepMilliseconds(1000);
+  }
+}
+
+float g_minSupplyVoltage = 12.0;
+
+bool ChangeControlState(enum ControlStateT newState)
+{
+  // Check transition is ok.
+  switch(g_controlState)
+  {
+    case CS_Fault:
+      return false;
+    default:
+      break;
+  }
+
+  g_controlState = newState;
+
+  switch(newState)
+  {
+    case CS_PositionCalibration:
+    case CS_Manual:
+    case CS_Teach:
+      PWMRun();
+      break;
+    case CS_StartUp:
+    case CS_SelfTest:
+    case CS_FactoryCalibrate:
+    case CS_Standby:
+    case CS_LowPower:
+      PWMStop();
+      break;
+
+    case CS_EmergencyStop:
+    case CS_Fault: {
+      PWMStop();
+    } break;
+
+    default:
+      return false;
+  }
+
+  return true;
+}
 
 /*
  * Application entry point.
@@ -98,11 +193,6 @@ int main(void) {
   InitCAN();
 
 
-  /*
-   * Creates the blinker thread.
-   */
-  chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
-
   g_eeInitDone = true;
   StoredConf_Init();
   StoredConf_Load(&g_storedConfig);
@@ -118,20 +208,88 @@ int main(void) {
 #if 1
   InitComs();
 
-  /* Start controller loop */
-  //PWMRun();
+  enum FaultCodeT faultCode = FC_Ok;
+  /*
+   * Creates the blinker thread.
+   */
+  chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
 
-  while(true) {
-    if(chBSemWaitTimeout(&g_reportSampleReady,1000) != MSG_OK) {
-      continue;
+  /* Is button pressed at startup ?  */
+  bool doFactoryCal = !palReadPad(GPIOB, GPIOA_PIN2);
+
+  while(1) {
+    switch(g_controlState)
+    {
+      case CS_StartUp:
+        /* Start controller loop */
+        g_vbus_voltage = ReadSupplyVoltage();
+        if(g_vbus_voltage < g_minSupplyVoltage) {
+          ChangeControlState(CS_Standby);
+          break;
+        }
+
+        faultCode = PWMSelfTest();
+        if(faultCode != FC_Ok) {
+          /* Self test failed. */
+          ChangeControlState(CS_Fault);
+          DisplayFault(faultCode);
+          break;
+        }
+
+        if(doFactoryCal) {
+          doFactoryCal = false;
+          ChangeControlState(CS_FactoryCalibrate);
+          break;
+        }
+        ChangeControlState(CS_Manual);
+        break;
+      case CS_FactoryCalibrate:
+        faultCode = PWMFactoryCal();
+        if(faultCode != FC_Ok) {
+          ChangeControlState(CS_Fault);
+          DisplayFault(faultCode);
+        }
+        ChangeControlState(CS_StartUp);
+        break;
+      case CS_Standby:
+        chThdSleepMilliseconds(500);
+        g_vbus_voltage = ReadSupplyVoltage();
+        if(g_vbus_voltage > (g_minSupplyVoltage + 0.1)) {
+          ChangeControlState(CS_StartUp);
+          break;
+        }
+        break;
+      case CS_SelfTest:
+        break;
+      case CS_LowPower:
+      case CS_Fault:
+      case CS_EmergencyStop:
+        chThdSleepMilliseconds(1000);
+        break;
+      case CS_PositionCalibration:
+      case CS_Teach:
+      case CS_Manual:
+        if(chBSemWaitTimeout(&g_reportSampleReady,1000) != MSG_OK) {
+          ChangeControlState(CS_Fault);
+          DisplayFault(FC_InternalTiming);
+          break;
+        }
+        if(!palReadPad(GPIOC, GPIOC_PIN15)) {
+          ChangeControlState(CS_Fault);
+          DisplayFault(FC_DriverFault);
+        }
+        // This runs at 100Hz
+        MotionStep();
+        g_vbus_voltage = ReadSupplyVoltage();
+        if(g_vbus_voltage < g_minSupplyVoltage) {
+          ChangeControlState(CS_LowPower);
+          break;
+        }
+        break;
     }
-    // This runs at 100Hz
-    MotionStep();
-
-    g_vbus_voltage = ReadSupplyVoltage();
-
-    // TODO: Check for under-voltage shutdown.
   }
+
+
 #else
   /*
    * Shell manager initialisation.

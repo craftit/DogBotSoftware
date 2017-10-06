@@ -272,7 +272,7 @@ static THD_FUNCTION(can_rx, p) {
 
       /* Process message.*/
 
-      palTogglePad(GPIOC, GPIOC_PIN5);       /* Yellow led. */
+      //palTogglePad(GPIOC, GPIOC_PIN5);       /* Yellow led. */
 
       int rxDeviceId = rxmsg.SID  & MSG_NODE_MASK;
       int msgType =  (rxmsg.SID >> MSG_TYPE_BIT) & MSG_TYPE_MASK;

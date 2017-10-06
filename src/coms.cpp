@@ -201,6 +201,57 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_DRV8305_05:
     case CPI_VSUPPLY:
       return false;
+
+    case CPI_PositionCal: {
+      if(len < 1)
+        return false;
+      enum MotionCalibrationT newCal = (enum MotionCalibrationT) dataBuff->uint8[0];
+      switch(newCal)
+      {
+        case MC_Uncalibrated:
+          g_motionCalibration = MC_Uncalibrated;
+          break;
+        case MC_Measuring:
+          g_motionCalibration = MC_Measuring;
+          break;
+        case MC_Calibrated:
+          // Can't set it into calibrated mode directly at the moment.
+          // Maybe if calibration offset is send with it ?
+          return false;
+      }
+    } break;
+    case CPI_PositionRef: {
+      if(len < 1)
+        return false;
+      enum PositionReferenceT posRef = (enum PositionReferenceT) dataBuff->uint8[0];
+      switch(posRef)
+      {
+        case PR_Relative:
+        case PR_Absolute:
+        case PR_OtherJointRelative:
+        case PR_OtherJointAbsolute:
+          g_motionPositionReference = posRef;
+        default:
+          return false;
+      }
+    } break;
+    case CPI_ControlState: {
+      if(len < 1)
+        return false;
+      enum ControlStateT newState = (enum ControlStateT) dataBuff->uint8[0];
+      if(!ChangeControlState(newState))
+        return false;
+    } break;
+    case CPI_FaultCode:
+      // Just clear it.
+      g_lastFaultCode = FC_Ok;
+      break;
+    case CPI_Indicator:
+      if(len < 1)
+        return false;
+      g_indicatorState = dataBuff->uint8[0] > 0;
+      break;
+
     default:
       return false;
   }
@@ -258,6 +309,27 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       *len = 2;
       data->uint16[0] = val;
     } break;
+    case CPI_PositionCal:
+      *len = 1;
+      data->uint8[0] = (int) g_motionCalibration;
+      extern enum ControlStateT g_controlState;
+      break;
+    case CPI_PositionRef:
+      *len = 1;
+      data->uint8[0] = (int) g_motionPositionReference;
+      break;
+    case CPI_ControlState:
+      *len = 1;
+      data->uint8[0] = (int) g_controlState;
+      break;
+    case CPI_FaultCode:
+      *len = 1;
+      data->uint8[0] = (int) g_lastFaultCode;
+      break;
+    case CPI_Indicator:
+      *len = 1;
+      data->uint8[0] = (int) g_indicatorState;
+      break;
     default:
       return false;
   }
