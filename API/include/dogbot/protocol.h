@@ -41,10 +41,11 @@ extern "C" {
     FC_OverTemprature = 6,
     FC_DriverFault = 7,
     FC_OverVoltage = 8,
-    FC_InternalTiming = 9,
-    FC_InternalStoreFailed = 10,
-    FC_Internal5VRailOutOfRange = 11,
-    FC_Internal = 11
+    FC_PositionLost = 9,
+    FC_InternalTiming = 10,
+    FC_InternalStoreFailed = 11,
+    FC_Internal5VRailOutOfRange = 12,
+    FC_Internal = 13
   };
 
 
@@ -61,8 +62,9 @@ extern "C" {
     CPI_ControlState    = 8,
     CPI_PositionCal     = 9,
     CPI_PositionRef     = 10,
-    CPI_FaultCode       = 11,
-    CPI_Indicator       = 12,
+    CPI_CalibrationOffset = 11,
+    CPI_FaultCode       = 12,
+    CPI_Indicator       = 13,
     CPI_DRV8305         = 0x10,
     CPI_DRV8305_01      = 0x10,
     CPI_DRV8305_02      = 0x11,
@@ -160,6 +162,7 @@ extern "C" {
     uint8_t  uint8[8];
     uint16_t uint16[4];
     uint32_t uint32[2];
+    float float32[2];
   };
 
   struct PacketParamC {

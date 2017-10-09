@@ -23,6 +23,8 @@ extern "C" {
   extern enum PositionReferenceT g_motionPositionReference;
   extern enum ControlStateT g_controlState;
   extern enum FaultCodeT g_lastFaultCode;
+  extern float g_angleOffset;      // Offset from phase position to actuator position.
+
   extern bool g_indicatorState;
   extern float g_absoluteMaxTorque; // Maximum torque allowed
 

@@ -11,7 +11,13 @@ MainWindow::MainWindow(QWidget *parent) :
   ui->setupUi(this);
   ui->lineEditDevice->setText("/dev/ttyACM1");
   SetupComs();
+
   connect(this,SIGNAL(setLogText(const QString &)),ui->textEditLog,SLOT(setText(const QString &)));
+  connect(this,SIGNAL(setCalibrationState(int)),ui->comboBoxCalibration,SLOT(setCurrentIndex(int)));
+  connect(this,SIGNAL(setControlState(const QString &)),ui->lineEditContrlolState,SLOT(setText(const QString &)));
+  connect(this,SIGNAL(setFault(const QString &)),ui->lineEditFault,SLOT(setText(const QString &)));
+  connect(this,SIGNAL(setCalibrationAngle(const QString &)),ui->lineEditCalibration,SLOT(setText(const QString &)));
+
 }
 
 void MainWindow::SetupComs()
@@ -61,8 +67,64 @@ void MainWindow::SetupComs()
     }
     switch ((enum ComsParameterIndexT) psp->m_header.m_index) {
     case CPI_VSUPPLY: {
-      sprintf(buff," Supply Voltage:%f ",((float) psp->m_data.uint16[0] / 1000.0f));
+      sprintf(buff,"\n Supply Voltage:%f ",((float) psp->m_data.uint16[0] / 1000.0f));
       displayStr += buff;
+    } break;
+    case CPI_PositionCal: {
+      enum MotionCalibrationT calMode = (enum MotionCalibrationT) psp->m_data.uint8[0];
+      switch(calMode) {
+        case MC_Uncalibrated: emit setCalibrationState(0); break;
+        case MC_Measuring: emit setCalibrationState(1);  break;
+        case MC_Calibrated: emit setCalibrationState(2); break;
+      default:
+        sprintf(buff,"\n Unexpected calibration mode: %02x ",(unsigned) psp->m_data.uint8[0]);
+        displayStr += buff;
+      }
+    } break;
+    case CPI_CalibrationOffset: {
+      sprintf(buff,"%f",(psp->m_data.float32[0] * 360.0f / (M_PI * 2.0)));
+      emit setCalibrationAngle(buff);
+    } break;
+    case CPI_ControlState: {
+      enum ControlStateT controlState = (enum ControlStateT) psp->m_data.uint8[0];
+      switch(controlState) {
+      case CS_EmergencyStop: emit setControlState("Emergency Stop"); break;
+      case CS_FactoryCalibrate: emit setControlState("Factory Calibrate"); break;
+      case CS_Standby: emit setControlState("Standby"); break;
+      case CS_LowPower: emit setControlState("LowPower"); break;
+      case CS_Manual: emit setControlState("Manual"); break;
+      case CS_PositionCalibration: emit setControlState("Position Calibration"); break;
+      case CS_SelfTest: emit setControlState("Self Test"); break;
+      case CS_Teach: emit setControlState("Teach"); break;
+      case CS_Fault: emit setControlState("Fault"); break;
+      case CS_StartUp: emit setControlState("Startup"); break;
+      default: {
+          sprintf(buff,"Unknown state %d ", (int) psp->m_data.uint8[0]);
+          emit setControlState(buff);
+        } break;
+      }
+    } break;
+    case CPI_FaultCode: {
+      enum FaultCodeT faultCode = (enum FaultCodeT) psp->m_data.uint8[0];
+      switch(faultCode) {
+      case FC_Ok: emit setFault("Ok"); break;
+      case FC_CalibrationFailed: emit setFault("Calibration Failed"); break;
+      case FC_DriverFault: emit setFault("Driver Fault"); break;
+      case FC_Internal: emit setFault("Internal error"); break;
+      case FC_Internal5VRailOutOfRange: emit setFault("5V Rail Out Of Range"); break;
+      case FC_InternalStoreFailed: emit setFault("Store failed"); break;
+      case FC_InternalTiming: emit setFault("Timing error"); break;
+      case FC_OverTemprature: emit setFault("Over Temprature"); break;
+      case FC_OverVoltage: emit setFault("Over Voltage"); break;
+      case FC_UnderVoltage: emit setFault("Under Voltage"); break;
+      case FC_NoSensor: emit setFault("No sensor"); break;
+      case FC_NoMotor: emit setFault("No motor"); break;
+      case FC_PositionLost: emit setFault("Position Lost"); break;
+      default: {
+        sprintf(buff,"Unknown fault %d ", (int) psp->m_data.uint8[0]);
+        emit setFault(buff);
+        } break;
+      }
     } break;
     default:
       break;
@@ -142,6 +204,11 @@ void MainWindow::on_pushButtonConnect_clicked()
   if(m_coms.Open(ui->lineEditDevice->text().toStdString().c_str())) {
     ui->labelConnectionState->setText("Ok");
     emit setLogText("Connect ok");
+
+    m_coms.SendQueryParam(m_targetDeviceId,CPI_ControlState);
+    m_coms.SendQueryParam(m_targetDeviceId,CPI_FaultCode);
+    m_coms.SendQueryParam(m_targetDeviceId,CPI_PositionCal);
+
   } else {
     ui->labelConnectionState->setText("Failed");
     emit setLogText("Connect failed");
@@ -210,7 +277,7 @@ void MainWindow::on_comboBoxMotorControlMode_activated(const QString &arg1)
 
 void MainWindow::on_sliderPosition_sliderMoved(int position)
 {
-  m_position = position * 3.14159265359/ 360.0;
+  m_position = position * 2.0 * 3.14159265359/ 360.0;
   m_coms.SendMoveWithEffort(m_targetDeviceId,m_position,m_torque);
 }
 
@@ -306,4 +373,54 @@ void MainWindow::on_spinDeviceId_valueChanged(int arg1)
 void MainWindow::on_pushButton_clicked()
 {
   m_coms.SendQueryParam(m_targetDeviceId,CPI_VSUPPLY);
+}
+
+void MainWindow::on_comboBoxCalibration_activated(const QString &arg1)
+{
+  enum MotionCalibrationT calMode = MC_Uncalibrated;
+  if(arg1 == "Uncalibrated") {
+    calMode = MC_Uncalibrated;
+  }
+  if(arg1 == "Measuring") {
+    calMode = MC_Measuring;
+  }
+  if(arg1 == "Calibrated") {
+    calMode = MC_Calibrated;
+  }
+  m_coms.SendSetParam(m_targetDeviceId,CPI_PositionCal,calMode);
+  m_coms.SendQueryParam(m_targetDeviceId,CPI_PositionCal);
+}
+
+void MainWindow::on_comboBoxControlState_activated(const QString &arg1)
+{
+  enum ControlStateT controlState = CS_Fault;
+  if(arg1 == "Emergency Stop") {
+    controlState = CS_EmergencyStop;
+  }
+  if(arg1 == "Factory Calibrate") {
+    controlState = CS_FactoryCalibrate;
+  }
+  if(arg1 == "Low Power") {
+    controlState = CS_LowPower;
+  }
+  if(arg1 == "Manual") {
+    controlState = CS_Manual;
+  }
+  if(arg1 == "Position Calibration") {
+    controlState = CS_PositionCalibration;
+  }
+  if(arg1 == "Teach") {
+    controlState = CS_Teach;
+  }
+  if(arg1 == "Reset") {
+    controlState = CS_StartUp;
+  }
+  if(controlState != CS_Fault)  {
+    m_coms.SendSetParam(m_targetDeviceId,CPI_ControlState,controlState);
+  }
+}
+
+void MainWindow::on_checkBoxIndicator_toggled(bool checked)
+{
+  m_coms.SendSetParam(m_targetDeviceId,CPI_Indicator,checked);
 }

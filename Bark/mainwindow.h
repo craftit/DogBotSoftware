@@ -67,8 +67,18 @@ private slots:
 
   void on_pushButton_clicked();
 
+  void on_comboBoxCalibration_activated(const QString &arg1);
+
+  void on_comboBoxControlState_activated(const QString &arg1);
+
+  void on_checkBoxIndicator_toggled(bool checked);
+
 signals:
   void setLogText(const QString &str);
+  void setControlState(const QString &str);
+  void setFault(const QString &str);
+  void setCalibrationState(int index);
+  void setCalibrationAngle(const QString &str);
 
 private:
   void SetupComs();

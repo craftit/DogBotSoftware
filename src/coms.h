@@ -25,10 +25,10 @@ extern "C" {
   /* Post packet. */
   bool PostPacket(struct PacketT *pkt);
 
-  bool SendPacket(uint8_t *buff,int len);
+  bool USBSendPacket(uint8_t *buff,int len);
 
-  bool SendSync(void);
-  bool SendPing(uint8_t targetDevice);
+  bool USBSendSync(void);
+  bool USBSendPing(uint8_t targetDevice);
 
   /* Process a set parameter request. */
   bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len);
@@ -36,7 +36,13 @@ extern "C" {
   /* Retrieve the requested parameter information */
   bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data);
 
-  void SendError(uint8_t deviceId,enum ComsErrorTypeT code,uint8_t data);
+  void USBSendError(uint8_t deviceId,enum ComsErrorTypeT code,uint8_t data);
+
+  /* Broadcast new parameter value.
+   * This will send the update message over the appropriate channels, and will likely broadcast
+   * to all connected devices, so shouldn't be called frequently.
+   * */
+  void SendParamUpdate(enum ComsParameterIndexT paramIndex);
 
   extern bool g_canBridgeMode;
 

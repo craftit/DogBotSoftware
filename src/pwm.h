@@ -27,6 +27,7 @@ void PWMUpdateDrive(int phase,int power);
 
 void MotionStep(void);
 bool ChangeControlState(enum ControlStateT newState);
+extern void FaultDetected(enum FaultCodeT faultCode);
 
 extern uint16_t *ReadADCs(void);
 extern float ReadSupplyVoltage(void); // Read supply voltage from ADC.

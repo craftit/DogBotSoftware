@@ -85,18 +85,18 @@ void Drv8503Init(void)
 uint16_t Drv8503Test(void)
 {
   // Turn everything off
-  palClearPad(GPIOA, GPIOC_PIN8);  // HC
-  palClearPad(GPIOA, GPIOC_PIN9);  // HB
-  palClearPad(GPIOA, GPIOC_PIN10); // HA
-  palClearPad(GPIOB, GPIOC_PIN13); // LC
-  palClearPad(GPIOB, GPIOC_PIN14); // LB
-  palClearPad(GPIOB, GPIOC_PIN15); // LA
+  palClearPad(GPIOA, GPIOA_PIN8);  // HC
+  palClearPad(GPIOA, GPIOA_PIN9);  // HB
+  palClearPad(GPIOA, GPIOA_PIN10); // HA
+  palClearPad(GPIOB, GPIOB_PIN13); // LC
+  palClearPad(GPIOB, GPIOB_PIN14); // LB
+  palClearPad(GPIOB, GPIOB_PIN15); // LA
 
   palSetPad(GPIOC, GPIOC_PIN13); // Wake
   palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
 
-  palSetPad(GPIOA, GPIOC_PIN10); // HA
-  palSetPad(GPIOB, GPIOC_PIN14); // LB
+  palSetPad(GPIOA, GPIOA_PIN10); // HA
+  palSetPad(GPIOB, GPIOB_PIN14); // LB
 
 
   return 0;

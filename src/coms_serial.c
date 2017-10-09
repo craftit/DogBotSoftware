@@ -17,7 +17,7 @@ static void led3off(void *p) {
 static void led4off(void *p) {
 
   (void)p;
-  palClearPad(GPIOC, GPIOC_PIN5);
+  //palClearPad(GPIOC, GPIOC_PIN5);
 }
 
 static void led5off(void *p) {
@@ -67,7 +67,7 @@ static void rxchar(UARTDriver *uartp, uint16_t c) {
   (void)uartp;
   (void)c;
   /* Flashing the LED each time a character is received.*/
-  palSetPad(GPIOC, GPIOC_PIN5);       /* Orange.  */
+  //palSetPad(GPIOC, GPIOC_PIN5);       /* Orange.  */
   chSysLockFromISR();
   chVTResetI(&vt4);
   chVTSetI(&vt4, MS2ST(200), led4off, NULL);

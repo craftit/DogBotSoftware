@@ -106,18 +106,19 @@ static THD_FUNCTION(ThreadOrangeLed, arg) {
   while (true) {
     if(g_indicatorState) {
       palSetPad(GPIOC, GPIOC_PIN5);       /* Yellow led. */
-      chThdSleepMilliseconds(700);
+      chThdSleepMilliseconds(1000);
       palClearPad(GPIOC, GPIOC_PIN5);       /* Yellow led. */
+      if(g_lastFaultCode == FC_Ok) continue;
     }
     if(g_lastFaultCode == FC_Ok) {
       chThdSleepMilliseconds(300);
       continue;
     }
     for(int i = 0;i < (int) g_lastFaultCode;i++) {
+      chThdSleepMilliseconds(300);
       palSetPad(GPIOC, GPIOC_PIN5);       /* Yellow led. */
       chThdSleepMilliseconds(300);
       palClearPad(GPIOC, GPIOC_PIN5);       /* Yellow led. */
-      chThdSleepMilliseconds(300);
     }
     chThdSleepMilliseconds(800);
   }
@@ -135,19 +136,32 @@ extern void InitADC(void);
 
 extern pid_t getpid(void);
 
-void DisplayFault(enum FaultCodeT faultCode) {
+void FaultDetected(enum FaultCodeT faultCode) {
+  g_torqueLimit = 0;
+  if(g_lastFaultCode == faultCode) {
+    ChangeControlState(CS_Fault);
+    return ;
+  }
   g_lastFaultCode = faultCode;
+  SendParamUpdate(CPI_FaultCode);
+  ChangeControlState(CS_Fault);
 }
 
 float g_minSupplyVoltage = 12.0;
 
 bool ChangeControlState(enum ControlStateT newState)
 {
+  // No change?
+  if(newState == g_controlState)
+    return true;
+
   // Check transition is ok.
   switch(g_controlState)
   {
     case CS_Fault:
-      return false;
+      if(newState != CS_StartUp)
+        return false;
+      break;
     default:
       break;
   }
@@ -167,16 +181,21 @@ bool ChangeControlState(enum ControlStateT newState)
     case CS_Standby:
     case CS_LowPower:
       PWMStop();
+      SendParamUpdate(CPI_PositionCal);
       break;
 
     case CS_EmergencyStop:
     case CS_Fault: {
+      g_torqueLimit = 0;
       PWMStop();
+      SendParamUpdate(CPI_PositionCal);
     } break;
 
     default:
       return false;
   }
+
+  SendParamUpdate(CPI_ControlState);
 
   return true;
 }
@@ -239,7 +258,9 @@ int main(void) {
     switch(g_controlState)
     {
       case CS_StartUp:
-        /* Start controller loop */
+        PWMStop();
+        g_lastFaultCode = FC_Ok; // Clear any errors
+        SendParamUpdate(CPI_FaultCode);
         g_vbus_voltage = ReadSupplyVoltage();
         if(g_vbus_voltage < g_minSupplyVoltage) {
           ChangeControlState(CS_Standby);
@@ -249,8 +270,7 @@ int main(void) {
         faultCode = PWMSelfTest();
         if(faultCode != FC_Ok) {
           /* Self test failed. */
-          ChangeControlState(CS_Fault);
-          DisplayFault(faultCode);
+          FaultDetected(faultCode);
           break;
         }
 
@@ -264,8 +284,7 @@ int main(void) {
       case CS_FactoryCalibrate:
         faultCode = PWMFactoryCal();
         if(faultCode != FC_Ok) {
-          ChangeControlState(CS_Fault);
-          DisplayFault(faultCode);
+          FaultDetected(faultCode);
         }
         ChangeControlState(CS_StartUp);
         break;
@@ -288,37 +307,34 @@ int main(void) {
       case CS_Teach:
       case CS_Manual:
         if(chBSemWaitTimeout(&g_reportSampleReady,1000) != MSG_OK) {
-          ChangeControlState(CS_Fault);
-          DisplayFault(FC_InternalTiming);
+          //FaultDetected(FC_InternalTiming);
           break;
         }
-        if(!palReadPad(GPIOC, GPIOC_PIN15)) {
-          ChangeControlState(CS_Fault);
-          DisplayFault(FC_DriverFault);
+#if 0
+        if(!palReadPad(GPIOC, GPIOC_PIN15)) { // Fault pin
+          FaultDetected(FC_DriverFault);
         }
+#endif
         // This runs at 100Hz
         MotionStep();
         break;
     }
 
     // Stuff we want to check all the time.
-    g_vbus_voltage = ReadSupplyVoltage();
-    if(g_controlState != CS_Fault &&
-        g_vbus_voltage > g_maxSupplyVoltage) {
-      ChangeControlState(CS_Fault);
-      DisplayFault(FC_OverVoltage);
-    }
-    if(g_controlState != CS_LowPower &&
-        g_controlState != CS_Standby &&
-        g_controlState != CS_Fault &&
-        g_vbus_voltage < g_minSupplyVoltage) {
-      ChangeControlState(CS_LowPower);
-    }
     g_driveTemperature = ReadDriveTemperature();
-    if(g_controlState != CS_Fault &&
-        g_driveTemperature > 75.0) {
-      ChangeControlState(CS_Fault);
-      DisplayFault(FC_OverTemprature);
+    g_vbus_voltage = ReadSupplyVoltage();
+    if(g_controlState != CS_Fault) {
+      if(g_vbus_voltage > g_maxSupplyVoltage) {
+        FaultDetected(FC_OverVoltage);
+      }
+      if(g_controlState != CS_LowPower &&
+         g_controlState != CS_Standby &&
+         g_vbus_voltage < g_minSupplyVoltage) {
+        ChangeControlState(CS_LowPower);
+      }
+      if(g_driveTemperature > 75.0) {
+        FaultDetected(FC_OverTemprature);
+      }
     }
   }
 

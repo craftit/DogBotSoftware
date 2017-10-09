@@ -64,12 +64,13 @@ int PWMSetPosition(uint16_t position,uint16_t torque)
   return 0;
 }
 
-bool IsHallInRange(void) {
+int CheckHallInRange(void) {
   // Are sensor readings outside the expected range ?
   for(int i = 0;i < 3;i++) {
-    if(g_hall[i] < 1800 || g_hall[i] > 2600)
+    if(g_hall[i] < 1500 || g_hall[i] > 2800)
       return FC_NoSensor;
   }
+  return FC_Ok;
 }
 
 
@@ -338,16 +339,6 @@ static void MotorControlLoop(void) {
       continue;
     }
 
-#if 0
-    // Display fault light
-    if(palReadPad(GPIOC, GPIOC_PIN15)) {
-      palSetPad(GPIOC, GPIOC_PIN5);
-    } else {
-      palClearPad(GPIOC, GPIOC_PIN5);
-    }
-#endif
-
-
     ComputeState();
 
     float torque = g_demandTorque;
@@ -392,18 +383,9 @@ static void MotorControlLoop(void) {
     }
 
     // Check limit switches.
-
-    //! Read initial state of endstop switches
     {
-      bool es1 = palReadPad(GPIOC, GPIOC_PIN6);
 #if 0
-      if(es1) {
-        palSetPad(GPIOC, GPIOC_PIN5);
-      } else {
-        palClearPad(GPIOC, GPIOC_PIN5);
-      }
-#endif
-
+      bool es1 = palReadPad(GPIOC, GPIOC_PIN6);
       if(es1 != g_lastLimitState[0]) {
         g_lastLimitState[0] = es1;
         MotionUpdateEndStop(0,es1,g_currentPhasePosition,g_currentPhaseVelocity);
@@ -413,6 +395,7 @@ static void MotorControlLoop(void) {
         g_lastLimitState[1] = es2;
         MotionUpdateEndStop(1,es2,g_currentPhasePosition,g_currentPhaseVelocity);
       }
+#endif
       bool es3 = palReadPad(GPIOC, GPIOC_PIN8);
       if(es3 != g_lastLimitState[2]) {
         g_lastLimitState[2] = es3;
@@ -425,15 +408,12 @@ static void MotorControlLoop(void) {
     if(++loopCount >= g_motorReportSampleRate) {
       loopCount = 0;
       chBSemSignal(&g_reportSampleReady);
-      palSetPad(GPIOC, GPIOC_PIN5);
-    } else {
-      palClearPad(GPIOC, GPIOC_PIN5);
     }
 
     // Do some sanity checks
-    if(!IsHallInRange()) {
-      // How to flag this to the rest of the system ?
-      g_controlMode = CM_Fault;
+    int errCode;
+    if((errCode = CheckHallInRange()) != FC_Ok) {
+      FaultDetected(errCode);
     }
 
     // Last send report if needed.
@@ -642,6 +622,10 @@ int PWMStop()
   while(g_pwmThreadRunning) {
     chThdSleepMilliseconds(10);
   }
+
+  // Don't claim to be calibrated.
+  MotionResetCalibration();
+
   //palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
   return 0;
 }
@@ -694,7 +678,6 @@ enum FaultCodeT PWMSelfTest()
   if(rail5V < 4.5 || rail5V > 5.5)
     return FC_Internal5VRailOutOfRange;
 
-  float g_maxSupplyVoltage = 40.0;
   g_vbus_voltage = ReadSupplyVoltage();
   if(g_vbus_voltage > g_maxSupplyVoltage)
     return FC_OverVoltage;
@@ -733,8 +716,9 @@ enum FaultCodeT PWMSelfTest()
     return FC_Internal; // Not sure what is going on.
   }
 
-  if(!IsHallInRange())
-    return FC_NoSensor;
+  int errCode = FC_Ok;
+  if((errCode = CheckHallInRange()) != FC_Ok)
+    return errCode;
 
   // Are all readings very similar ?
   // Sensor may not be near motor. This isn't full proof but better than nothing.
@@ -970,7 +954,7 @@ float hallToAngleDot2(uint16_t *sensors)
   //RavlDebug("Last:%f  Max:%f Next:%f Corr:%f ",lastDist,maxCorr,nextDist,corr);
   if(angle < 0.0) angle += 24.0;
   if(angle > 24.0) angle -= 24.0;
-  return (angle * M_PI * 2.0 / 24.0) + 1.04;
+  return (angle * M_PI * 2.0 / 24.0);
   //return angle;
 }
 

@@ -13,9 +13,10 @@ float g_endStopMax = M_PI*2; // Maximum angle
 float g_absoluteMaxTorque = 20.0; // Maximum torque allowed
 float g_uncalibratedTorqueLimit = 4.0; // Maximum torque allowed in un-calibrated mode.
 
-float g_absoluteIndexPosition[12]; // Position of indexes
-bool g_haveIndexPositionSample[12];
-float g_measuredIndexPosition[12]; // Measured position
+const int g_positionIndexCount = 4;
+float g_absoluteIndexPosition[g_positionIndexCount]; // Position of indexes
+bool g_haveIndexPositionSample[g_positionIndexCount];
+float g_measuredIndexPosition[g_positionIndexCount]; // Measured position
 
 MotionCalibrationT g_motionCalibration = MC_Uncalibrated;
 PositionReferenceT g_motionPositionReference = PR_Relative;
@@ -25,16 +26,25 @@ bool g_indicatorState = false;
 bool g_newCalibrationData = false;
 
 void MotionResetCalibration() {
-  for(int i = 0;i < 12;i++) {
+  for(int i = 0;i < g_positionIndexCount;i++) {
     g_haveIndexPositionSample[i] = false;
   }
+  bool changed = g_motionCalibration != MC_Uncalibrated;
   g_motionCalibration = MC_Uncalibrated;
+  if(changed) {
+    SendParamUpdate(CPI_PositionCal);
+  }
+}
+
+static int EndStopUpdateOffset(bool newState,bool velocityPositive)
+{
+  return (newState ? 1 : 0) + ((velocityPositive ? 2 : 0));
 }
 
 void MotionUpdateEndStop(int num,bool state,float position,float velocity)
 {
-  if(g_motionCalibration != MC_Uncalibrated) {
-    int entry = num * 4 + (state ? 1 : 0) + ((velocity > 0 ? 2 : 0));
+  if(g_motionCalibration != MC_Uncalibrated && num == 2) {
+    int entry = EndStopUpdateOffset(state,velocity > 0);
     if(!g_haveIndexPositionSample[entry]) {
       g_haveIndexPositionSample[entry] = true;
     }
@@ -47,17 +57,25 @@ bool MotionEstimateOffset(float &value)
 {
   int points = 0;
   float offset = 0;
-  for(int i = 0;i < 12;i++) {
-    if(!g_haveIndexPositionSample[i])
-      continue;
-    offset += g_measuredIndexPosition[i] - g_absoluteIndexPosition[i];
-    points++;
+
+  int off1,off2;
+  for(int i = 0;i < 2;i++) {
+    if(i == 0) {
+      off1 = EndStopUpdateOffset(true,true);
+      off2 = EndStopUpdateOffset(false,false);
+    } else {
+      off1 = EndStopUpdateOffset(false,true);
+      off2 = EndStopUpdateOffset(true,false);
+    }
+    if(g_haveIndexPositionSample[off1] && g_haveIndexPositionSample[off2]) {
+      offset += (g_measuredIndexPosition[off1] + g_absoluteIndexPosition[off2])/2.0;
+      points++;
+    }
   }
   if(points <= 0)
     return false;
   value = offset / (float) points;
   return true;
-
 }
 
 bool MotionSetPosition(uint8_t mode,uint16_t position,uint16_t torque)
@@ -79,12 +97,14 @@ bool MotionReport(uint16_t position,int16_t torque,PositionReferenceT posRef)
   uint8_t mode = posRef & 0x3;
 
   // Report endstop switches.
+#if 0
   if(palReadPad(GPIOC, GPIOC_PIN6))
     mode |= 1 << 3;
   if(palReadPad(GPIOC, GPIOC_PIN7))
     mode |= 1 << 4;
+#endif
   if(palReadPad(GPIOC, GPIOC_PIN8))
-    mode |= 1 << 5;
+    mode |= 1 << 3;
 
   if(g_canBridgeMode) {
     PacketServoReportC servo;
@@ -93,7 +113,7 @@ bool MotionReport(uint16_t position,int16_t torque,PositionReferenceT posRef)
     servo.m_mode = mode;
     servo.m_position = position;
     servo.m_torque = torque;
-    SendPacket(reinterpret_cast<uint8_t *>(&servo),sizeof(PacketServoReportC));
+    USBSendPacket(reinterpret_cast<uint8_t *>(&servo),sizeof(PacketServoReportC));
   }
   if(g_deviceId != 0) {
     CANSendServoReport(g_deviceId,position,torque,mode);
@@ -102,9 +122,11 @@ bool MotionReport(uint16_t position,int16_t torque,PositionReferenceT posRef)
 }
 
 void CalibrationCheckFailed() {
+  if(g_motionCalibration == MC_Uncalibrated)
+    return ;
   g_motionCalibration = MC_Uncalibrated;
-  g_torqueLimit = 0;
-  g_controlMode = CM_Fault;
+  FaultDetected(FC_PositionLost);
+  SendParamUpdate(CPI_PositionCal);
 }
 
 void MotionStep()
@@ -121,8 +143,11 @@ void MotionStep()
       // Establishing a new calibration
       if(g_newCalibrationData) {
         g_newCalibrationData = false;
-        if(MotionEstimateOffset(g_angleOffset))
+        if(MotionEstimateOffset(g_angleOffset)) {
           g_motionCalibration = MC_Calibrated;
+          SendParamUpdate(CPI_CalibrationOffset);
+          SendParamUpdate(CPI_PositionCal);
+        }
       }
       break;
     case MC_Calibrated: {
@@ -130,19 +155,22 @@ void MotionStep()
       if(g_newCalibrationData) {
         float estimate;
         g_newCalibrationData = false;
+#if 0
+        MotionEstimateOffset(g_angleOffset);
+        SendParamUpdate(CPI_CalibrationOffset);
+#else
+#if 0
         if(!MotionEstimateOffset(estimate)) {
           CalibrationCheckFailed();
         }
         if(fabs(estimate - g_angleOffset) > (M_PI/2.0)) {
           CalibrationCheckFailed();
         }
+#endif
+#endif
       }
     } break;
   }
-
-  // Check we've got a calibrated position
-  if(g_motionPositionReference == PR_Absolute && g_motionCalibration != MC_Calibrated)
-    g_motionPositionReference = PR_Relative;
 
   float position = g_currentPhasePosition;
 

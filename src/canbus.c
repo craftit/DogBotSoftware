@@ -54,7 +54,7 @@ bool CANPing(
   txmsg.RTR = CAN_RTR_DATA;
   txmsg.DLC = 0;
   if(canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, 100) != MSG_OK) {
-    //SendError(CET_CANTransmitFailed,m_data[0]);
+    //USBSendError(CET_CANTransmitFailed,m_data[0]);
     return false;
   }
 
@@ -292,19 +292,19 @@ static THD_FUNCTION(can_rx, p) {
         case CPT_Pong: {
           if(g_canBridgeMode) {
             if(rxmsg.DLC != 0) {
-              SendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_Pong);
+              USBSendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_Pong);
               break;
             }
             struct PacketPingPongC pkt;
             pkt.m_packetType = CPT_Pong;
             pkt.m_deviceId = rxDeviceId;
-            SendPacket((uint8_t *) &pkt,sizeof(struct PacketPingPongC));
+            USBSendPacket((uint8_t *) &pkt,sizeof(struct PacketPingPongC));
           }
         } break;
         case CPT_Error:
           if(g_canBridgeMode) {
             if(rxmsg.DLC != 4) {
-              SendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_Error);
+              USBSendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_Error);
               break;
             }
             struct PacketErrorC pkt;
@@ -312,7 +312,7 @@ static THD_FUNCTION(can_rx, p) {
             pkt.m_deviceId = rxDeviceId;
             pkt.m_errorCode = rxmsg.data16[0];
             pkt.m_errorData = rxmsg.data16[1];
-            SendPacket((uint8_t *) &pkt,sizeof(struct PacketErrorC));
+            USBSendPacket((uint8_t *) &pkt,sizeof(struct PacketErrorC));
           }
           break;
         case CPT_Sync:
@@ -323,7 +323,7 @@ static THD_FUNCTION(can_rx, p) {
         case CPT_ReportParam: {
           if(g_canBridgeMode) {
             if(rxmsg.DLC < 1) {
-              SendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_ReportParam);
+              USBSendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_ReportParam);
               break;
             }
             struct PacketParam8ByteC reply;
@@ -332,13 +332,13 @@ static THD_FUNCTION(can_rx, p) {
             reply.m_header.m_index = rxmsg.data8[0];
             int dlen = rxmsg.DLC-1;
             memcpy(reply.m_data.uint8,&rxmsg.data8[1],dlen);
-            SendPacket((uint8_t *) &reply,sizeof(reply.m_header) + dlen);
+            USBSendPacket((uint8_t *) &reply,sizeof(reply.m_header) + dlen);
           }
         } break;
         case CPT_AnnounceId: {
           if(g_canBridgeMode) {
             if(rxmsg.DLC != 8) {
-              SendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_ReportParam);
+              USBSendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_ReportParam);
               break;
             }
             struct PacketDeviceIdC pkt;
@@ -346,7 +346,7 @@ static THD_FUNCTION(can_rx, p) {
             pkt.m_deviceId = rxDeviceId;
             pkt.m_uid[0] = rxmsg.data32[0];
             pkt.m_uid[1] = rxmsg.data32[1];
-            SendPacket((uint8_t *) &pkt,sizeof(struct PacketDeviceIdC));
+            USBSendPacket((uint8_t *) &pkt,sizeof(struct PacketDeviceIdC));
           }
           break;
         }
@@ -404,14 +404,14 @@ static THD_FUNCTION(can_rx, p) {
           txmsg.data32[1] = g_nodeUId[1];
           if(canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, 100) != MSG_OK) {
             if(g_canBridgeMode) {
-              SendError(rxDeviceId,CET_CANTransmitFailed,CPT_QueryDevices);
+              USBSendError(rxDeviceId,CET_CANTransmitFailed,CPT_QueryDevices);
             }
           }
         } break;
         case CPT_ServoReport:
           if(g_canBridgeMode) {
             if(rxmsg.DLC != 5) {
-              SendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_ServoReport);
+              USBSendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_ServoReport);
               break;
             }
             struct PacketServoReportC pkt;
@@ -420,13 +420,13 @@ static THD_FUNCTION(can_rx, p) {
             pkt.m_position = rxmsg.data16[0];
             pkt.m_torque = rxmsg.data16[1];
             pkt.m_mode = rxmsg.data8[4];
-            SendPacket((uint8_t *) &pkt,sizeof(struct PacketServoReportC));
+            USBSendPacket((uint8_t *) &pkt,sizeof(struct PacketServoReportC));
           }
           break;
         case CPT_Servo: {
           if(rxDeviceId == g_deviceId && rxDeviceId != 0) {
             if(rxmsg.DLC != 5) {
-              SendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_Servo);
+              USBSendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_Servo);
               break;
             }
             uint16_t position = rxmsg.data16[0];

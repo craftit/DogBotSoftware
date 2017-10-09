@@ -18,27 +18,27 @@ const uint8_t g_charETX = 0x03;
 bool g_canBridgeMode = false;
 bool g_comsInitDone = false;
 
-bool SendSync(void)
+bool USBSendSync(void)
 {
   uint8_t buff[2];
   int at = 0;
   buff[at++] = CPT_Sync; // Type
-  return SendPacket(buff,at);
+  return USBSendPacket(buff,at);
 }
 
-bool SendPing(uint8_t deviceId)
+bool USBSendPing(uint8_t deviceId)
 {
   PacketPingPongC pkt;
   pkt.m_packetType = CPT_Ping;
   pkt.m_deviceId = deviceId;
-  return SendPacket((uint8_t *) &pkt,sizeof(struct PacketPingPongC));
+  return USBSendPacket((uint8_t *) &pkt,sizeof(struct PacketPingPongC));
 }
 
 // Error codes
 //  1 - Unexpected packet.
 //  2 - Packet unexpected length.
 
-void SendError(
+void USBSendError(
     uint8_t deviceId,
     ComsErrorTypeT code,
     uint8_t data
@@ -50,7 +50,7 @@ void SendError(
   pkt.m_errorCode = code;
   pkt.m_errorData = data;
 
-  SendPacket((uint8_t *) &pkt,sizeof(struct PacketErrorC));
+  USBSendPacket((uint8_t *) &pkt,sizeof(struct PacketErrorC));
 }
 
 
@@ -200,6 +200,7 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_DRV8305_04:
     case CPI_DRV8305_05:
     case CPI_VSUPPLY:
+    case CPI_CalibrationOffset:
       return false;
 
     case CPI_PositionCal: {
@@ -209,7 +210,7 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
       switch(newCal)
       {
         case MC_Uncalibrated:
-          g_motionCalibration = MC_Uncalibrated;
+          MotionResetCalibration();
           break;
         case MC_Measuring:
           g_motionCalibration = MC_Measuring;
@@ -330,25 +331,42 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       *len = 1;
       data->uint8[0] = (int) g_indicatorState;
       break;
+    case CPI_CalibrationOffset:
+      *len = 4;
+      data->float32[0] = g_angleOffset;
+      break;
     default:
       return false;
   }
   return true;
 }
 
-bool ReadParamAndReply(PacketReadParamC *psp)
+bool USBReadParamAndReply(ComsParameterIndexT paramIndex)
 {
   struct PacketParam8ByteC reply;
   reply.m_header.m_packetType = CPT_ReportParam;
   reply.m_header.m_deviceId = g_deviceId;
-  reply.m_header.m_index = psp->m_index;
+  reply.m_header.m_index = paramIndex;
   int len = 0;
-  if(!ReadParam((ComsParameterIndexT) psp->m_index,&len,&reply.m_data))
+  if(!ReadParam(paramIndex,&len,&reply.m_data))
     return false;
 
-  SendPacket((uint8_t *)&reply,sizeof(reply.m_header) + len);
+  USBSendPacket((uint8_t *)&reply,sizeof(reply.m_header) + len);
 
   return true;
+}
+
+void SendParamUpdate(enum ComsParameterIndexT paramIndex) {
+  if(g_deviceId == 0 || g_canBridgeMode) {
+    if(!USBReadParamAndReply(paramIndex)) {
+      USBSendError(g_deviceId,CET_ParameterOutOfRange,(uint8_t) paramIndex);
+    }
+  }
+  if(g_deviceId != 0) {
+    if(!CANSendReadParam(g_deviceId,paramIndex)) {
+      USBSendError(g_deviceId,CET_CANTransmitFailed,(uint8_t) paramIndex);
+    }
+  }
 }
 
 
@@ -359,7 +377,7 @@ void SerialDecodeC::ProcessPacket()
   {
   case CPT_Ping: { // Ping.
     if(m_packetLen != sizeof(struct PacketPingPongC)) {
-      SendError(g_deviceId,CET_UnexpectedPacketSize,m_data[0]);
+      USBSendError(g_deviceId,CET_UnexpectedPacketSize,m_data[0]);
       break;
     }
     const PacketPingPongC *pkt = (const PacketPingPongC *) m_data;
@@ -368,7 +386,7 @@ void SerialDecodeC::ProcessPacket()
       PacketPingPongC pkt;
       pkt.m_packetType = CPT_Pong;
       pkt.m_deviceId = g_deviceId;
-      SendPacket((uint8_t *) &pkt,sizeof(struct PacketPingPongC));
+      USBSendPacket((uint8_t *) &pkt,sizeof(struct PacketPingPongC));
     }
     if((pkt->m_deviceId != g_deviceId || pkt->m_deviceId == 0) && g_deviceId != 0) {
       // In bridge mode forward this to the CAN bus
@@ -383,30 +401,30 @@ void SerialDecodeC::ProcessPacket()
   case CPT_Error: break; // Error.
   case CPT_ReadParam: {
     if(m_packetLen != sizeof(struct PacketReadParamC)) {
-      SendError(g_deviceId,CET_UnexpectedPacketSize,m_data[0]);
+      USBSendError(g_deviceId,CET_UnexpectedPacketSize,m_data[0]);
       break;
     }
     struct PacketReadParamC *psp = (struct PacketReadParamC *) m_data;
     if(psp->m_deviceId == g_deviceId || psp->m_deviceId == 0) {
-      if(!ReadParamAndReply(psp)) {
-        SendError(g_deviceId,CET_ParameterOutOfRange,m_data[1]);
+      if(!USBReadParamAndReply((enum ComsParameterIndexT) psp->m_index)) {
+        USBSendError(g_deviceId,CET_ParameterOutOfRange,m_data[1]);
       }
     }
     if((psp->m_deviceId != g_deviceId || psp->m_deviceId == 0) && g_deviceId != 0) {
       if(!CANSendReadParam(psp->m_deviceId,psp->m_index)) {
-        SendError(g_deviceId,CET_CANTransmitFailed,m_data[0]);
+        USBSendError(g_deviceId,CET_CANTransmitFailed,m_data[0]);
       }
     }
   } break;
   case CPT_SetParam: {
     struct PacketParam8ByteC *psp = (struct PacketParam8ByteC *) m_data;
     if(m_packetLen < (int) sizeof(psp->m_header)) {
-      SendError(g_deviceId,CET_UnexpectedPacketSize,m_data[0]);
+      USBSendError(g_deviceId,CET_UnexpectedPacketSize,m_data[0]);
       break;
     }
     if(psp->m_header.m_deviceId == g_deviceId || psp->m_header.m_deviceId == 0) {
       if(!SetParamMsg(psp,m_packetLen)) {
-        SendError(g_deviceId,CET_ParameterOutOfRange,m_data[0]);
+        USBSendError(g_deviceId,CET_ParameterOutOfRange,m_data[0]);
       }
     }
     if(g_canBridgeMode &&
@@ -415,14 +433,14 @@ void SerialDecodeC::ProcessPacket()
     {
       int len = m_packetLen-sizeof(psp->m_header);
       if(!CANSendSetParam(psp->m_header.m_deviceId,psp->m_header.m_index,&psp->m_data,len)) {
-        SendError(g_deviceId,CET_CANTransmitFailed,m_data[0]);
+        USBSendError(g_deviceId,CET_CANTransmitFailed,m_data[0]);
       }
     }
   } break;
   case CPT_ServoReport: break; // Drop
   case CPT_Servo: { // Goto position.
     if(m_packetLen != sizeof(struct PacketServoC)) {
-      SendError(g_deviceId,CET_UnexpectedPacketSize,m_data[1]);
+      USBSendError(g_deviceId,CET_UnexpectedPacketSize,m_data[1]);
       break;
     }
     PacketServoC *ps = (PacketServoC *) m_data;
@@ -441,18 +459,18 @@ void SerialDecodeC::ProcessPacket()
     pkt.m_deviceId = g_deviceId;
     pkt.m_uid[0] = g_nodeUId[0];
     pkt.m_uid[1] = g_nodeUId[1];
-    SendPacket((uint8_t *) &pkt,sizeof(struct PacketDeviceIdC));
+    USBSendPacket((uint8_t *) &pkt,sizeof(struct PacketDeviceIdC));
 
     // Are we bridging ?
     if(g_canBridgeMode) {
       if(!CANSendQueryDevices())
-        SendError(g_deviceId,CET_CANTransmitFailed,m_data[0]);
+        USBSendError(g_deviceId,CET_CANTransmitFailed,m_data[0]);
     }
   } break;
   case CPT_AnnounceId: break; // Drop
   case CPT_SetDeviceId: {
     if(m_packetLen != sizeof(struct PacketDeviceIdC)) {
-      SendError(g_deviceId,CET_UnexpectedPacketSize,m_data[1]);
+      USBSendError(g_deviceId,CET_UnexpectedPacketSize,m_data[1]);
       break;
     }
     const struct PacketDeviceIdC *pkt = (const struct PacketDeviceIdC *) m_data;
@@ -468,7 +486,7 @@ void SerialDecodeC::ProcessPacket()
         rpkt.m_deviceId = g_deviceId;
         rpkt.m_uid[0] = g_nodeUId[0];
         rpkt.m_uid[1] = g_nodeUId[1];
-        SendPacket((uint8_t *) &rpkt,sizeof(struct PacketDeviceIdC));
+        USBSendPacket((uint8_t *) &rpkt,sizeof(struct PacketDeviceIdC));
       }
     } else {
       if(g_canBridgeMode) {
@@ -478,7 +496,7 @@ void SerialDecodeC::ProcessPacket()
   } break;
 #if 1
   default: {
-    SendError(g_deviceId,CET_UnknownPacketType,m_data[1]);
+    USBSendError(g_deviceId,CET_UnknownPacketType,m_data[1]);
     //RavlDebug("Unexpected packet type %d ",(int) m_data[1]);
   } break;
 #endif
@@ -583,7 +601,7 @@ static THD_FUNCTION(ThreadTxComs, arg) {
 }
 
 
-bool SendPacket(
+bool USBSendPacket(
     uint8_t *buff,
     int len
     )
