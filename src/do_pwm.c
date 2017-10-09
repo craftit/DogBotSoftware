@@ -18,6 +18,8 @@
 
 #include "stm32f4xx_adc.h"
 
+float g_maxSupplyVoltage = 40.0;
+float g_maxOperatingTemperature = 75.0;
 
 #define TIM_1_8_CLOCK_HZ (SYSTEM_CORE_CLOCK/4)
 #define TIM_1_8_PERIOD_CLOCKS (2047)
@@ -33,10 +35,11 @@ float g_currentZeroOffset[3] = { 0,0,0 } ;
 float g_current[3] = { 0,0,0} ;
 float g_phaseAngle = 0 ;
 
+float g_driveTemperature = 0.0;
 
 float g_current_Ibus = 0;
 float g_motor_p_gain = 1.2;  // 1.2
-float g_motor_i_gain = 0.2;  // 0.0
+float g_motor_i_gain = 0.0;  // 0.0
 
 int g_phaseAngles[12][3];
 float g_phaseDistance[12];
@@ -686,8 +689,21 @@ void DisplayAngle(BaseSequentialStream *chp);
 
 enum FaultCodeT PWMSelfTest()
 {
-  InitPWM();
 
+  float rail5V = Read5VRailVoltage();
+  if(rail5V < 4.5 || rail5V > 5.5)
+    return FC_Internal5VRailOutOfRange;
+
+  float g_maxSupplyVoltage = 40.0;
+  g_vbus_voltage = ReadSupplyVoltage();
+  if(g_vbus_voltage > g_maxSupplyVoltage)
+    return FC_OverVoltage;
+
+  g_driveTemperature = ReadDriveTemperature();
+  if(g_driveTemperature > g_maxOperatingTemperature)
+    return FC_OverTemprature;
+
+  InitPWM();
   if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
     return FC_Internal; // Not sure what is going on.
   }
@@ -795,7 +811,7 @@ int PWMCalSVM(BaseSequentialStream *chp)
 {
   palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
 
-  float voltage_magnitude = 0.12;
+  float voltage_magnitude = 0.06;
 
   for(int phase = 0;phase < 12*7;phase++) {
     int phaseStep = phase % 12;

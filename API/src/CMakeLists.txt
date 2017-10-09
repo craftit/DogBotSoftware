@@ -22,6 +22,7 @@ target_link_libraries (DogBotAPI LINK_PUBLIC ${JSONCPP_LIBRARIES} )
 target_include_directories(DogBotAPI PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
     $<INSTALL_INTERFACE:include>
+    /usr/local/include
     PRIVATE src)
 
 add_executable (dtalk dogtalk.cc)

@@ -2,6 +2,7 @@
 #include "hal.h"
 #include "pwm.h"
 #include "chbsem.h"
+#include "math.h"
 
 #include "stm32f4xx_adc.h"
 #include "stm32f4xx_rcc.h"
@@ -308,16 +309,49 @@ uint16_t *ReadADCs(void) {
   return g_samples;
 }
 
-float ReadSupplyVoltage()
+
+uint16_t ReadADC(uint8_t ADC_Channel)
 {
-  ADC_RegularChannelConfig(ADC1,ADC_Channel_6,1,ADC_SampleTime_3Cycles);
+  ADC_RegularChannelConfig(ADC1,ADC_Channel,1,ADC_SampleTime_3Cycles);
   g_currentSample = 0;
+
+  // Make sure we don't get out of step.
+  chBSemWaitTimeout(&g_adcDataReady,TIME_IMMEDIATE);
+
   ADC_SoftwareStartConv(ADC1);
   g_samplesDone[0] = 0;
   msg_t state = chBSemWaitTimeout(&g_adcDataReady,1000);
   if(state != MSG_OK)
     return 0;
-  return g_samples[0] * ((3.0+39.0)/3.0) * 3.3f/((float)(1<<12));
+  return g_samples[0];
+}
+
+float Read5VRailVoltage(void)
+{
+  uint16_t val = ReadADC(ADC_Channel_8);
+  return val * 2.0 * 3.3f/((float)(1<<12));
+}
+
+float ReadSupplyVoltage(void)
+{
+  uint16_t val = ReadADC(ADC_Channel_6);
+
+  return val * ((3.0+39.0)/3.0) * 3.3f/((float)(1<<12));
+}
+
+float ReadDriveTemperature(void)
+{
+  uint16_t adcVal = ReadADC(ADC_Channel_9);
+
+  const float refResistor = 10e3;
+  float res =  refResistor * adcVal / ((1<<12) - (adcVal+1));
+
+  const float thermistorNominal = 10e3;
+  const float temperatureNominal = 25;
+  const float thermistorK = 3430;
+
+  float temp = 1.0/((logf(res / thermistorNominal) / thermistorK) + 1.0 / (temperatureNominal + 273.15)) - 273.15;
+  return temp;
 }
 
 

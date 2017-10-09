@@ -98,6 +98,31 @@ static THD_FUNCTION(Thread1, arg) {
   }
 }
 
+static THD_WORKING_AREA(waThreadOrangeLed, 128);
+static THD_FUNCTION(ThreadOrangeLed, arg) {
+
+  (void)arg;
+  chRegSetThreadName("orange blinker");
+  while (true) {
+    if(g_indicatorState) {
+      palSetPad(GPIOC, GPIOC_PIN5);       /* Yellow led. */
+      chThdSleepMilliseconds(700);
+      palClearPad(GPIOC, GPIOC_PIN5);       /* Yellow led. */
+    }
+    if(g_lastFaultCode == FC_Ok) {
+      chThdSleepMilliseconds(300);
+      continue;
+    }
+    for(int i = 0;i < (int) g_lastFaultCode;i++) {
+      palSetPad(GPIOC, GPIOC_PIN5);       /* Yellow led. */
+      chThdSleepMilliseconds(300);
+      palClearPad(GPIOC, GPIOC_PIN5);       /* Yellow led. */
+      chThdSleepMilliseconds(300);
+    }
+    chThdSleepMilliseconds(800);
+  }
+}
+
 
 /*===========================================================================*/
 /* Generic code.                                                             */
@@ -110,17 +135,8 @@ extern void InitADC(void);
 
 extern pid_t getpid(void);
 
-int DisplayFault(enum FaultCodeT faultCode) {
+void DisplayFault(enum FaultCodeT faultCode) {
   g_lastFaultCode = faultCode;
-  while(1) {
-    for(int i = 0;i < (int) faultCode;i++) {
-      palSetPad(GPIOC, GPIOC_PIN5);       /* Yellow led. */
-      chThdSleepMilliseconds(300);
-      palClearPad(GPIOC, GPIOC_PIN5);       /* Yellow led. */
-      chThdSleepMilliseconds(300);
-    }
-    chThdSleepMilliseconds(1000);
-  }
 }
 
 float g_minSupplyVoltage = 12.0;
@@ -209,10 +225,12 @@ int main(void) {
   InitComs();
 
   enum FaultCodeT faultCode = FC_Ok;
-  /*
-   * Creates the blinker thread.
-   */
+
+  /* Create the blinker threads. */
   chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
+
+  chThdCreateStatic(waThreadOrangeLed, sizeof(waThreadOrangeLed), NORMALPRIO, ThreadOrangeLed, NULL);
+
 
   /* Is button pressed at startup ?  */
   bool doFactoryCal = !palReadPad(GPIOB, GPIOA_PIN2);
@@ -280,12 +298,27 @@ int main(void) {
         }
         // This runs at 100Hz
         MotionStep();
-        g_vbus_voltage = ReadSupplyVoltage();
-        if(g_vbus_voltage < g_minSupplyVoltage) {
-          ChangeControlState(CS_LowPower);
-          break;
-        }
         break;
+    }
+
+    // Stuff we want to check all the time.
+    g_vbus_voltage = ReadSupplyVoltage();
+    if(g_controlState != CS_Fault &&
+        g_vbus_voltage > g_maxSupplyVoltage) {
+      ChangeControlState(CS_Fault);
+      DisplayFault(FC_OverVoltage);
+    }
+    if(g_controlState != CS_LowPower &&
+        g_controlState != CS_Standby &&
+        g_controlState != CS_Fault &&
+        g_vbus_voltage < g_minSupplyVoltage) {
+      ChangeControlState(CS_LowPower);
+    }
+    g_driveTemperature = ReadDriveTemperature();
+    if(g_controlState != CS_Fault &&
+        g_driveTemperature > 75.0) {
+      ChangeControlState(CS_Fault);
+      DisplayFault(FC_OverTemprature);
     }
   }
 

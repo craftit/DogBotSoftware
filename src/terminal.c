@@ -105,6 +105,10 @@ static void cmd_doDiag(BaseSequentialStream *chp, int argc, char *argv[]) {
     chprintf(chp, "Status %d: %x \r\n",i,Drv8503ReadRegister(i));
   }
 
+  chprintf(chp,"V5Rail:%f \r\n",Read5VRailVoltage());
+  chprintf(chp,"VSupply:%f \r\n",ReadSupplyVoltage());
+  chprintf(chp,"DriveTemp:%f \r\n",ReadDriveTemperature());
+
 }
 
 static void cmd_doDrvTest(BaseSequentialStream *chp, int argc, char *argv[]) {

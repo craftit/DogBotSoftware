@@ -38,10 +38,13 @@ extern "C" {
     FC_NoSensor = 3,
     FC_NoMotor = 4,
     FC_CalibrationFailed = 5,
-    FC_DriverFault = 6,
-    FC_InternalTiming = 7,
-    FC_InternalStoreFailed = 8,
-    FC_Internal = 9
+    FC_OverTemprature = 6,
+    FC_DriverFault = 7,
+    FC_OverVoltage = 8,
+    FC_InternalTiming = 9,
+    FC_InternalStoreFailed = 10,
+    FC_Internal5VRailOutOfRange = 11,
+    FC_Internal = 11
   };
 
 

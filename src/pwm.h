@@ -30,6 +30,8 @@ bool ChangeControlState(enum ControlStateT newState);
 
 extern uint16_t *ReadADCs(void);
 extern float ReadSupplyVoltage(void); // Read supply voltage from ADC.
+extern float ReadDriveTemperature(void); // Read driver temp
+extern float Read5VRailVoltage(void);
 
 float hallToAngle(uint16_t *sensors);
 
@@ -47,6 +49,11 @@ extern int g_pwmTimeoutCount ;
 extern volatile bool g_pwmRun;
 extern bool g_pwmThreadRunning;
 extern bool g_pwmFullReport; //! If true generate messages detailing PWM state.
+
+extern float g_maxSupplyVoltage;
+extern float g_maxOperatingTemperature;
+
+extern float g_driveTemperature;
 
 extern int g_phaseAngles[12][3];
 
