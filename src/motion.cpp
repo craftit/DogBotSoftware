@@ -153,13 +153,13 @@ void MotionStep()
     case MC_Calibrated: {
       // If we're calibrated, we're just going to check all is fine.
       if(g_newCalibrationData) {
-        float estimate;
         g_newCalibrationData = false;
 #if 0
         MotionEstimateOffset(g_angleOffset);
         SendParamUpdate(CPI_CalibrationOffset);
 #else
 #if 0
+        float estimate;
         if(!MotionEstimateOffset(estimate)) {
           CalibrationCheckFailed();
         }

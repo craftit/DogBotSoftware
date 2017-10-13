@@ -12,7 +12,7 @@ link_directories(${JSONCPP_LIBRARY_DIRS})
 
 add_definitions(-std=c++11)
 
-ADD_LIBRARY (DogBotAPI SerialComs.cc dogbotapi.cc)
+ADD_LIBRARY (DogBotAPI SerialComs.cc dogbotapi.cc LegKinematics.cc Servo.cc)
 
 target_link_libraries (DogBotAPI LINK_PUBLIC ${JSONCPP_LIBRARIES} )
 

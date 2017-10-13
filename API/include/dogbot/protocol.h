@@ -48,30 +48,51 @@ extern "C" {
     FC_Internal = 13
   };
 
+  enum DeviceTypeT
+  {
+    DT_Unknown = 0,
+    DT_SystemController = 1,
+    DT_MotorDriver = 2
+  };
 
   enum ComsParameterIndexT
   {
-    CPI_FirmwareVersion = 0,
-    CPI_PWMState        = 1,
-    CPI_PWMMode         = 2,
-    CPI_PWMFullReport   = 3,
-    CPI_CANBridgeMode   = 4,
-    CPI_BoardUID        = 5,
-    CPI_TIM1_SR         = 6,
-    CPI_VSUPPLY         = 7,
-    CPI_ControlState    = 8,
-    CPI_PositionCal     = 9,
-    CPI_PositionRef     = 10,
-    CPI_CalibrationOffset = 11,
-    CPI_FaultCode       = 12,
-    CPI_Indicator       = 13,
-    CPI_DRV8305         = 0x10,
-    CPI_DRV8305_01      = 0x10,
-    CPI_DRV8305_02      = 0x11,
-    CPI_DRV8305_03      = 0x12,
-    CPI_DRV8305_04      = 0x13,
-    CPI_DRV8305_05      = 0x14,
-    CPI_ANGLE_CAL       = 0x20, // 12 Values
+    CPI_DeviceType      = 0,
+    CPI_FirmwareVersion = 1,
+    CPI_PWMState        = 2,
+    CPI_PWMMode         = 3,
+    CPI_PWMFullReport   = 4,
+    CPI_CANBridgeMode   = 5,
+    CPI_BoardUID        = 6,
+    CPI_TIM1_SR         = 7,
+    CPI_VSUPPLY         = 8,
+    CPI_ControlState    = 9,
+    CPI_PositionCal     = 10,
+    CPI_PositionRef     = 11,
+    CPI_CalibrationOffset = 12,
+    CPI_FaultCode       = 13,
+    CPI_Indicator       = 14,
+    CPI_DriveTemp       = 15,
+    CPI_MotorTemp       = 16,
+    CPI_DRV8305         = 0x20,
+    CPI_DRV8305_01      = 0x20,
+    CPI_DRV8305_02      = 0x21,
+    CPI_DRV8305_03      = 0x22,
+    CPI_DRV8305_04      = 0x23,
+    CPI_DRV8305_05      = 0x24,
+    CPI_ANGLE_CAL       = 0x30, // 12 Values
+    CPI_ANGLE_CAL_0     = 0x30,
+    CPI_ANGLE_CAL_1     = 0x31,
+    CPI_ANGLE_CAL_2     = 0x32,
+    CPI_ANGLE_CAL_3     = 0x33,
+    CPI_ANGLE_CAL_4     = 0x34,
+    CPI_ANGLE_CAL_5     = 0x35,
+    CPI_ANGLE_CAL_6     = 0x36,
+    CPI_ANGLE_CAL_7     = 0x37,
+    CPI_ANGLE_CAL_8     = 0x38,
+    CPI_ANGLE_CAL_9     = 0x39,
+    CPI_ANGLE_CAL_10    = 0x3A,
+    CPI_ANGLE_CAL_11    = 0x3B,
     CPI_FINAL           = 0xff
   };
 

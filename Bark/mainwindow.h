@@ -4,6 +4,7 @@
 #include <QMainWindow>
 
 #include "../API/include/dogbot/SerialComs.hh"
+//#include "../API/include/dogbot/DogBotAPI.hh"
 
 namespace Ui {
 class MainWindow;
@@ -73,6 +74,8 @@ private slots:
 
   void on_checkBoxIndicator_toggled(bool checked);
 
+  void on_pushButtonDriveTemp_clicked();
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);
@@ -84,7 +87,8 @@ private:
   void SetupComs();
 
   Ui::MainWindow *ui;
-  DogBotN::SerialComsC m_coms;
+  std::shared_ptr<DogBotN::SerialComsC> m_coms;
+  //DogBotN::DogBotAPIC m_dogbotAPI;
   bool m_PWMReportRequested = false;
 
   std::vector<PacketDeviceIdC> m_devices;

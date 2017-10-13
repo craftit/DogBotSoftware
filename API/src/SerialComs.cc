@@ -8,6 +8,7 @@
 #include <mutex>
 
 #include <stdio.h>
+#include <string.h>
 
 #include <fstream>
 #include <iostream>
@@ -34,14 +35,21 @@ namespace DogBotN
   {
     if(m_fd >= 0)
       Close();
+
   }
 
   //! Close connection
   void SerialComsC::Close()
   {
+    m_log->debug("Close called.");
+    m_terminate = true;
     if(m_fd >= 0)
       close(m_fd);
     m_fd = -1;
+    if(!m_mutexExitOk.try_lock_for(std::chrono::milliseconds(500))) {
+      m_log->error("Failed to shutdown receiver thread.");
+    }
+    m_threadRecieve.join();
   }
 
   //! Is connection ready ?
@@ -59,6 +67,7 @@ namespace DogBotN
 
   bool SerialComsC::Open(const char *portAddr)
   {
+    m_terminate = false;
     if(m_fd >= 0) {
       m_log->info("Coms already open. ");
       return false;
@@ -104,21 +113,46 @@ namespace DogBotN
         return false;
       }
     }
-    m_threadRecieve = std::move(std::thread { [this]{ RunRecieve(); } });
+    if(!m_terminate) {
+      if(!m_mutexExitOk.try_lock()) {
+        m_log->error("Exit lock already locked, multiple threads attempting to open coms ?");
+      } else {
+        m_threadRecieve = std::move(std::thread { [this]{ RunRecieve(); } });
+      }
+    }
     return true;
   }
 
 
-  void SerialComsC::SetHandler(ComsPacketTypeT packetId,const std::function<void (uint8_t *data,int )> &handler)
+  int SerialComsC::SetHandler(ComsPacketTypeT packetId,const std::function<void (uint8_t *data,int )> &handler)
   {
     std::lock_guard<std::mutex> lock(m_accessPacketHandler);
     assert(packetId < 256);
 
     while(m_packetHandler.size() <= (int) packetId) {
-      m_packetHandler.push_back(std::function<void (uint8_t *data,int )>());
+      m_packetHandler.push_back(std::vector<std::function<void (uint8_t *data,int )> >());
     }
-    m_packetHandler[(int) packetId] = handler;
+    std::vector<std::function<void (uint8_t *data,int )> > &list = m_packetHandler[(int) packetId];
+    for(int i = 0;i < list.size();i++) {
+      if(!list[i]) { // Found free slot.
+        list[i] = handler;
+        return i;
+      }
+    }
+    int id = list.size();
+    list.push_back(handler);
+    return id;
   }
+
+  //! Delete given handler
+  void SerialComsC::DeleteHandler(ComsPacketTypeT packetType,int id)
+  {
+    assert(id >= 0);
+    assert((unsigned) packetType < m_packetHandler.size());
+    assert(id < m_packetHandler[(int) packetType].size());
+    m_packetHandler[(int) packetType][id] = std::function<void (uint8_t *data,int )>();
+  }
+
 
   void SerialComsC::AcceptByte(uint8_t sendByte)
   {
@@ -219,11 +253,15 @@ namespace DogBotN
       default: {
         std::lock_guard<std::mutex> lock(m_accessPacketHandler);
         if(packetId < m_packetHandler.size()) {
-          const std::function<void (uint8_t *data,int )> &handler = m_packetHandler[packetId];
-          if(handler) {
-            handler(m_data,m_packetLen);
-            return ;
+          bool hasHandler = false;
+          //const std::function<void (uint8_t *data,int )> &handler;
+          for(auto a : m_packetHandler[packetId])
+          if(a) {
+            hasHandler =  true;
+            a(m_data,m_packetLen);
           }
+          if(hasHandler)
+            return ;
         }
         // Fall back to the default handlers.
         switch(packetId) {
@@ -258,7 +296,6 @@ namespace DogBotN
 
   bool SerialComsC::RunRecieve()
   {
-    m_log->debug("Running receiver");
     assert(m_fd >= 0);
     uint8_t readBuff[1024];
     fd_set localFds;
@@ -266,19 +303,27 @@ namespace DogBotN
     FD_ZERO(&localFds);
     FD_ZERO(&exceptFds);
 
+    int theFd = m_fd;
+    assert(theFd >= 0);
+    m_log->debug("Running receiver fd:{}",theFd);
     while(!m_terminate && m_fd >= 0) {
-      FD_SET(m_fd,&localFds);
-      FD_SET(m_fd,&exceptFds);
-      int x = select(m_fd+1,&localFds,0,&exceptFds,0);
+      FD_SET(theFd,&localFds);
+      FD_SET(theFd,&exceptFds);
+      struct timeval timeout;
+      timeout.tv_sec = 0;
+      timeout.tv_usec = 300000;
+      int x = select(theFd+1,&localFds,0,&exceptFds,&timeout);
       if(x < 0) {
         perror("Failed to select");
         continue;
       }
       // FIXME:- Read into a larger buffer.
-      int n = read(m_fd,readBuff,sizeof readBuff);
+      int n = read(theFd,readBuff,sizeof readBuff);
       if(n == 0)
         continue;
       if(n < 0) {
+        if(m_terminate)
+          break;
         if(errno == EAGAIN ||
             errno == EINTR
             )
@@ -299,6 +344,7 @@ namespace DogBotN
       }
 #endif
     }
+    m_mutexExitOk.unlock();
     m_log->debug("Exiting receiver fd {} ",m_fd);
 
     return true;
@@ -356,6 +402,19 @@ namespace DogBotN
     msg.m_header.m_index = (uint16_t) param;
     msg.m_data.uint8[0] = value;
     SendPacket((uint8_t*) &msg,sizeof(msg.m_header)+1);
+  }
+
+
+  //! Set a parameter
+  void SerialComsC::SendSetParam(int deviceId,ComsParameterIndexT param,BufferTypeT &buff,int len)
+  {
+    PacketParam8ByteC msg;
+    msg.m_header.m_packetType = CPT_SetParam;
+    msg.m_header.m_deviceId = deviceId;
+    msg.m_header.m_index = (uint16_t) param;
+    assert(len >= 0 && len < sizeof(BufferTypeT));
+    memcpy(&msg.m_data,&buff,len);
+    SendPacket((uint8_t*) &msg,sizeof(msg.m_header)+len);
   }
 
   //! Query a parameter

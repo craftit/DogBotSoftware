@@ -56,6 +56,9 @@ namespace DogBotN {
     //! Set a parameter
     void SendSetParam(int deviceId,ComsParameterIndexT param,uint8_t value);
 
+    //! Set a parameter
+    void SendSetParam(int deviceId,ComsParameterIndexT param,BufferTypeT &buff,int len);
+
     //! Query a parameter
     void SendQueryParam(int deviceId,ComsParameterIndexT param);
 
@@ -69,7 +72,11 @@ namespace DogBotN {
     void SendPing(int deviceId);
 
     //! Set the handler for a particular type of packet.
-    void SetHandler(ComsPacketTypeT packetType,const std::function<void (uint8_t *data,int )> &handler);
+    //! Returns the id of the handler or -1 if failed.
+    int SetHandler(ComsPacketTypeT packetType,const std::function<void (uint8_t *data,int )> &handler);
+
+    //! Delete given handler
+    void DeleteHandler(ComsPacketTypeT packetType,int id);
 
     volatile bool m_terminate = false;
     int m_state = 0;
@@ -99,8 +106,9 @@ namespace DogBotN {
 
     std::mutex m_accessPacketHandler;
     std::mutex m_accessTx;
+    std::timed_mutex m_mutexExitOk;
 
-    std::vector<std::function<void (uint8_t *data,int )> > m_packetHandler;
+    std::vector<std::vector<std::function<void (uint8_t *data,int )> > > m_packetHandler;
   };
 }
 #endif

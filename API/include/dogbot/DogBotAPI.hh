@@ -3,7 +3,7 @@
 
 #include "dogbot/Servo.hh"
 #include <json/json.h>
-#include "SerialComs.hh"
+#include "dogbot/SerialComs.hh"
 
 namespace DogBotN {
 
@@ -17,11 +17,23 @@ namespace DogBotN {
     //! Constructor
     DogBotAPIC(const std::string &configFile = "");
 
+    //! Construct with coms object
+    DogBotAPIC(const std::shared_ptr<SerialComsC> &coms);
+
+    //! Connect to coms object.
+    bool Connect(const std::shared_ptr<SerialComsC> &coms);
+
     //! Set the logger to use
     void SetLogger(std::shared_ptr<spdlog::logger> &log);
 
     //! Load configuration for the robot.
     bool Init(const std::string &configFile);
+
+    //! Read calibration from a device.
+    bool ReadCalibration(int deviceId,MotorCalibrationC &cal);
+
+    //! Write calibration to a device.
+    bool WriteCalibration(int deviceId,const MotorCalibrationC &cal);
 
     //! Shutdown controller.
     bool Shutdown();
@@ -42,8 +54,8 @@ namespace DogBotN {
 
     std::string m_deviceName;
     Json::Value m_configRoot;
-    SerialComsC m_coms;
-    std::vector<ServoC> m_servos;
+    std::shared_ptr<SerialComsC> m_coms;
+    std::vector<ServoC> m_devices;
 
     std::thread m_threadMonitor;
 

@@ -200,6 +200,8 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_DRV8305_04:
     case CPI_DRV8305_05:
     case CPI_VSUPPLY:
+    case CPI_DriveTemp:
+    case CPI_MotorTemp:
     case CPI_CalibrationOffset:
       return false;
 
@@ -252,7 +254,24 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
         return false;
       g_indicatorState = dataBuff->uint8[0] > 0;
       break;
-
+    //case CPI_ANGLE_CAL: // 12 Values
+    case CPI_ANGLE_CAL_0:
+    case CPI_ANGLE_CAL_1:
+    case CPI_ANGLE_CAL_2:
+    case CPI_ANGLE_CAL_3:
+    case CPI_ANGLE_CAL_4:
+    case CPI_ANGLE_CAL_5:
+    case CPI_ANGLE_CAL_6:
+    case CPI_ANGLE_CAL_7:
+    case CPI_ANGLE_CAL_8:
+    case CPI_ANGLE_CAL_9:
+    case CPI_ANGLE_CAL_10:
+    case CPI_ANGLE_CAL_11: {
+      int reg = ((int) index - CPI_ANGLE_CAL);
+      if(len != 6) return false;
+      for(int i = 0;i < 3;i++)
+        g_phaseAngles[reg][i] = dataBuff->uint16[i];
+    } break;
     default:
       return false;
   }
@@ -266,6 +285,10 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
 {
   switch(index)
   {
+    case CPI_DeviceType:
+      *len = 1;
+      data->uint8[0] = (int) DT_MotorDriver;
+      break;
     case CPI_FirmwareVersion:
       *len = 1;
       data->uint8[0] = 1;
@@ -335,6 +358,32 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       *len = 4;
       data->float32[0] = g_angleOffset;
       break;
+    case CPI_DriveTemp:
+      *len = 4;
+      data->float32[0] = g_driveTemperature;
+      break;
+    case CPI_MotorTemp:
+      *len = 4;
+      data->float32[0] = 0;
+      break;
+    //case CPI_ANGLE_CAL: // 12 Values
+    case CPI_ANGLE_CAL_0:
+    case CPI_ANGLE_CAL_1:
+    case CPI_ANGLE_CAL_2:
+    case CPI_ANGLE_CAL_3:
+    case CPI_ANGLE_CAL_4:
+    case CPI_ANGLE_CAL_5:
+    case CPI_ANGLE_CAL_6:
+    case CPI_ANGLE_CAL_7:
+    case CPI_ANGLE_CAL_8:
+    case CPI_ANGLE_CAL_9:
+    case CPI_ANGLE_CAL_10:
+    case CPI_ANGLE_CAL_11: {
+      int reg = ((int) index - CPI_ANGLE_CAL);
+      *len = 6;
+      for(int i = 0;i < 3;i++)
+        data->uint16[i] = g_phaseAngles[reg][i];
+    } break;
     default:
       return false;
   }

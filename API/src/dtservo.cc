@@ -2,6 +2,7 @@
 #include <iostream>
 #include <unistd.h>
 #include "dogbot/SerialComs.hh"
+#include "dogbot/DogBotAPI.hh"
 
 int main(int nargs,char **argv)
 {
@@ -15,15 +16,26 @@ int main(int nargs,char **argv)
   if(nargs > 1)
     devFilename = argv[1];
 
-  DogBotN::SerialComsC coms;
+  std::shared_ptr<DogBotN::SerialComsC> coms = std::make_shared<DogBotN::SerialComsC>();
 
-  coms.SetLogger(logger);
+  coms->SetLogger(logger);
 
-  if(!coms.Open(devFilename.c_str())) {
+  if(!coms->Open(devFilename.c_str())) {
+    logger->error("Failed to open serial port.");
     // Reason will already be logged.
     return 1;
   }
 
+  DogBotN::DogBotAPIC dogBotAPI(coms);
+  DogBotN::MotorCalibrationC motorCal;
+  if(!dogBotAPI.ReadCalibration(0,motorCal)) {
+    logger->error("Failed to read calibration.");
+    return 1;
+  }
+  Json::Value calInfo = motorCal.SaveJSON();
+  std::cout << calInfo << std::endl;
+
+#if 0
   coms.SetHandler(CPT_PWMState,[logger](uint8_t *data,int size) mutable
   {
     PacketPWMStateC *msg = (PacketPWMStateC *) data;
@@ -64,5 +76,7 @@ int main(int nargs,char **argv)
   while(1) {
     sleep(1);
   }
+#endif
+
   return 0;
 }
