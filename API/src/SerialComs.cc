@@ -255,10 +255,11 @@ namespace DogBotN
         if(packetId < m_packetHandler.size()) {
           bool hasHandler = false;
           //const std::function<void (uint8_t *data,int )> &handler;
-          for(auto a : m_packetHandler[packetId])
-          if(a) {
-            hasHandler =  true;
-            a(m_data,m_packetLen);
+          for(auto a : m_packetHandler[packetId]) {
+            if(a) {
+              hasHandler =  true;
+              a(m_data,m_packetLen);
+            }
           }
           if(hasHandler)
             return ;
@@ -449,7 +450,7 @@ namespace DogBotN
   }
 
   //! Send a move command
-  void SerialComsC::SendMoveWithEffort(int deviceId,float pos,float effort)
+  void SerialComsC::SendMoveWithEffort(int deviceId,float pos,float effort,enum PositionReferenceT posRef)
   {
     int at = 0;
 
@@ -460,7 +461,7 @@ namespace DogBotN
       pos += 3.14159265359;
     servoPkt.m_position = pos * 65535.0 / (2.0 * 3.14159265359);
     servoPkt.m_torque = effort * 65535.0 / (10.0);
-    servoPkt.m_mode = 0;
+    servoPkt.m_mode = (int) posRef;
 
     SendPacket((uint8_t *)&servoPkt,sizeof servoPkt);
   }

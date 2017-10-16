@@ -57,13 +57,6 @@ static THD_WORKING_AREA(waThreadPWM, 512);
 void PWMUpdateDrivePhase(int pa,int pb,int pc);
 
 
-int PWMSetPosition(uint16_t position,uint16_t torque)
-{
-  g_torqueLimit = ((float) torque) * g_absoluteMaxTorque / (65535.0);
-  g_demandPhasePosition = ((float) position) * 7.0 * 21.0 * M_PI * 2.0/ 65535.0;
-  return 0;
-}
-
 int CheckHallInRange(void) {
   // Are sensor readings outside the expected range ?
   for(int i = 0;i < 3;i++) {
@@ -771,20 +764,7 @@ enum FaultCodeT PWMFactoryCal()
 
   palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
 
-  if(!g_eeInitDone) {
-    StoredConf_Init();
-    g_eeInitDone = true;
-  }
-  g_storedConfig.configState = 1;
-  g_storedConfig.controllerId = 2;
-  for(int i = 0;i < 12;i++) {
-    g_storedConfig.phaseAngles[i][0] = g_phaseAngles[i][0];
-    g_storedConfig.phaseAngles[i][1] = g_phaseAngles[i][1];
-    g_storedConfig.phaseAngles[i][2] = g_phaseAngles[i][2];
-  }
-  if(!StoredConf_Save(&g_storedConfig)) {
-    return FC_InternalStoreFailed;
-  }
+  SaveSetup();
 
   //DisplayAngle(chp);
   return FC_Ok;

@@ -16,9 +16,133 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(this,SIGNAL(setLogText(const QString &)),ui->textEditLog,SLOT(setText(const QString &)));
   connect(this,SIGNAL(setCalibrationState(int)),ui->comboBoxCalibration,SLOT(setCurrentIndex(int)));
   connect(this,SIGNAL(setControlState(const QString &)),ui->lineEditContrlolState,SLOT(setText(const QString &)));
+  connect(this,SIGNAL(setControlMode(const QString &)),ui->comboBoxMotorControlMode,SLOT(setCurrentText(const QString &)));
   connect(this,SIGNAL(setFault(const QString &)),ui->lineEditFault,SLOT(setText(const QString &)));
   connect(this,SIGNAL(setCalibrationAngle(const QString &)),ui->lineEditCalibration,SLOT(setText(const QString &)));
+  connect(this,SIGNAL(setOtherJoint(int)),ui->spinOtherJointId,SLOT(setValue(int)));
+  connect(this,SIGNAL(setPositionRef(const QString &)),ui->comboBoxPositionRef,SLOT(setCurrentText(const QString &)));
+  connect(this,SIGNAL(setIndicator(bool)),ui->checkBoxIndicator,SLOT(setChecked(bool)));
+}
 
+void MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &displayStr)
+{
+  char buff[64];
+
+  switch ((enum ComsParameterIndexT) psp->m_header.m_index) {
+  case CPI_DriveTemp: {
+    sprintf(buff,"\n Drive temp:%f ",((float) psp->m_data.float32[0]));
+    displayStr += buff;
+  } break;
+  case CPI_VSUPPLY: {
+    sprintf(buff,"\n Supply Voltage:%f ",((float) psp->m_data.uint16[0] / 1000.0f));
+    displayStr += buff;
+  } break;
+  case CPI_PositionCal: {
+    enum MotionCalibrationT calMode = (enum MotionCalibrationT) psp->m_data.uint8[0];
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      switch(calMode) {
+        case MC_Uncalibrated: emit setCalibrationState(0); break;
+        case MC_Measuring: emit setCalibrationState(1);  break;
+        case MC_Calibrated: emit setCalibrationState(2); break;
+      default:
+        sprintf(buff,"\n Unexpected calibration mode: %02x ",(unsigned) psp->m_data.uint8[0]);
+        displayStr += buff;
+      }
+    }
+  } break;
+  case CPI_CalibrationOffset: {
+    sprintf(buff,"%f",(psp->m_data.float32[0] * 360.0f / (M_PI * 2.0)));
+    displayStr += buff;
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      emit setCalibrationAngle(buff);
+    }
+  } break;
+  case CPI_ControlState: {
+    enum ControlStateT controlState = (enum ControlStateT) psp->m_data.uint8[0];
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      switch(controlState) {
+      case CS_EmergencyStop: emit setControlState("Emergency Stop"); break;
+      case CS_FactoryCalibrate: emit setControlState("Factory Calibrate"); break;
+      case CS_Standby: emit setControlState("Standby"); break;
+      case CS_LowPower: emit setControlState("LowPower"); break;
+      case CS_Manual: emit setControlState("Manual"); break;
+      case CS_PositionCalibration: emit setControlState("Position Calibration"); break;
+      case CS_SelfTest: emit setControlState("Self Test"); break;
+      case CS_Teach: emit setControlState("Teach"); break;
+      case CS_Fault: emit setControlState("Fault"); break;
+      case CS_StartUp: emit setControlState("Startup"); break;
+      default: {
+          sprintf(buff,"Unknown state %d ", (int) psp->m_data.uint8[0]);
+          emit setControlState(buff);
+        } break;
+      }
+    }
+  } break;
+  case CPI_FaultCode: {
+    enum FaultCodeT faultCode = (enum FaultCodeT) psp->m_data.uint8[0];
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      switch(faultCode) {
+      case FC_Ok: emit setFault("Ok"); break;
+      case FC_CalibrationFailed: emit setFault("Calibration Failed"); break;
+      case FC_DriverFault: emit setFault("Driver Fault"); break;
+      case FC_Internal: emit setFault("Internal error"); break;
+      case FC_Internal5VRailOutOfRange: emit setFault("5V Rail Out Of Range"); break;
+      case FC_InternalStoreFailed: emit setFault("Store failed"); break;
+      case FC_InternalTiming: emit setFault("Timing error"); break;
+      case FC_OverTemprature: emit setFault("Over Temprature"); break;
+      case FC_OverVoltage: emit setFault("Over Voltage"); break;
+      case FC_UnderVoltage: emit setFault("Under Voltage"); break;
+      case FC_NoSensor: emit setFault("No sensor"); break;
+      case FC_NoMotor: emit setFault("No motor"); break;
+      case FC_PositionLost: emit setFault("Position Lost"); break;
+      default: {
+        sprintf(buff,"Unknown fault %d ", (int) psp->m_data.uint8[0]);
+        emit setFault(buff);
+        } break;
+      }
+    }
+  } break;
+  case CPI_PWMMode: {
+    enum PWMControlModeT controlMode =  (enum PWMControlModeT) psp->m_data.uint8[0];
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      printf("Setting control mode %d ",(int) psp->m_data.uint8[0]);
+      switch(controlMode) {
+      case CM_Idle:     emit setControlMode("Idle"); break;
+      case CM_Break:    emit setControlMode("Break"); break;
+      case CM_Torque:   emit setControlMode("Torque"); break;
+      case CM_Velocity: emit setControlMode("Velocity"); break;
+      case CM_Position: emit setControlMode("Position"); break;
+      default:
+        printf("Unhandled control mode %d ",(int) psp->m_data.uint8[0]);
+      }
+    }
+  } break;
+  case CPI_OtherJoint: {
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      uint8_t otherJointId = psp->m_data.uint8[0];
+      setOtherJoint(otherJointId);
+    }
+  } break;
+  case CPI_PositionRef: {
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      enum PositionReferenceT posRef = (enum PositionReferenceT) psp->m_data.uint8[0];
+      switch(posRef)
+      {
+        case PR_Relative: emit setPositionRef("Relative"); break;
+        case PR_Absolute: emit setPositionRef("Absolute"); break;
+        case PR_OtherJointRelative: emit setPositionRef("RelativeOther"); break;
+        case PR_OtherJointAbsolute: emit setPositionRef("AbsoluteOther"); break;
+      }
+    }
+  } break;
+  case CPI_Indicator: {
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      emit setIndicator(psp->m_data.uint8[0] > 0);
+    }
+  } break;
+  default:
+    break;
+  }
 }
 
 void MainWindow::SetupComs()
@@ -55,7 +179,7 @@ void MainWindow::SetupComs()
     emit setLogText(displayStr.c_str());
   });
 
-  m_coms->SetHandler(CPT_ReportParam,[this](uint8_t *data,int size) mutable
+  m_coms->SetHandler(CPT_SetParam,[this](uint8_t *data,int size) mutable
   {
     printf("Got SetParam.  Size:%d \n",size);
     std::string displayStr;
@@ -70,74 +194,27 @@ void MainWindow::SetupComs()
       sprintf(buff,"%02x ",(unsigned) psp->m_data.uint8[i]);
       displayStr += buff;
     }
-    switch ((enum ComsParameterIndexT) psp->m_header.m_index) {
-    case CPI_DriveTemp: {
-      sprintf(buff,"\n Drive temp:%f ",((float) psp->m_data.float32[0]));
+    ProcessParam(psp,displayStr);
+    std::cout << "SetParam: " << displayStr << std::endl;
+    emit setLogText(displayStr.c_str());
+  });
+
+  m_coms->SetHandler(CPT_ReportParam,[this](uint8_t *data,int size) mutable
+  {
+    printf("Got ReportParam.  Size:%d \n",size);
+    std::string displayStr;
+    struct PacketParam8ByteC *psp = (struct PacketParam8ByteC *) data;
+    displayStr += "Index:";
+    displayStr += std::to_string((int) psp->m_header.m_index);
+    displayStr += " Device:";
+    displayStr += std::to_string((int) psp->m_header.m_deviceId);
+    displayStr += " Data:";
+    char buff[64];
+    for(unsigned i = 0;i < (size - sizeof(psp->m_header));i++) {
+      sprintf(buff,"%02x ",(unsigned) psp->m_data.uint8[i]);
       displayStr += buff;
-    } break;
-    case CPI_VSUPPLY: {
-      sprintf(buff,"\n Supply Voltage:%f ",((float) psp->m_data.uint16[0] / 1000.0f));
-      displayStr += buff;
-    } break;
-    case CPI_PositionCal: {
-      enum MotionCalibrationT calMode = (enum MotionCalibrationT) psp->m_data.uint8[0];
-      switch(calMode) {
-        case MC_Uncalibrated: emit setCalibrationState(0); break;
-        case MC_Measuring: emit setCalibrationState(1);  break;
-        case MC_Calibrated: emit setCalibrationState(2); break;
-      default:
-        sprintf(buff,"\n Unexpected calibration mode: %02x ",(unsigned) psp->m_data.uint8[0]);
-        displayStr += buff;
-      }
-    } break;
-    case CPI_CalibrationOffset: {
-      sprintf(buff,"%f",(psp->m_data.float32[0] * 360.0f / (M_PI * 2.0)));
-      emit setCalibrationAngle(buff);
-    } break;
-    case CPI_ControlState: {
-      enum ControlStateT controlState = (enum ControlStateT) psp->m_data.uint8[0];
-      switch(controlState) {
-      case CS_EmergencyStop: emit setControlState("Emergency Stop"); break;
-      case CS_FactoryCalibrate: emit setControlState("Factory Calibrate"); break;
-      case CS_Standby: emit setControlState("Standby"); break;
-      case CS_LowPower: emit setControlState("LowPower"); break;
-      case CS_Manual: emit setControlState("Manual"); break;
-      case CS_PositionCalibration: emit setControlState("Position Calibration"); break;
-      case CS_SelfTest: emit setControlState("Self Test"); break;
-      case CS_Teach: emit setControlState("Teach"); break;
-      case CS_Fault: emit setControlState("Fault"); break;
-      case CS_StartUp: emit setControlState("Startup"); break;
-      default: {
-          sprintf(buff,"Unknown state %d ", (int) psp->m_data.uint8[0]);
-          emit setControlState(buff);
-        } break;
-      }
-    } break;
-    case CPI_FaultCode: {
-      enum FaultCodeT faultCode = (enum FaultCodeT) psp->m_data.uint8[0];
-      switch(faultCode) {
-      case FC_Ok: emit setFault("Ok"); break;
-      case FC_CalibrationFailed: emit setFault("Calibration Failed"); break;
-      case FC_DriverFault: emit setFault("Driver Fault"); break;
-      case FC_Internal: emit setFault("Internal error"); break;
-      case FC_Internal5VRailOutOfRange: emit setFault("5V Rail Out Of Range"); break;
-      case FC_InternalStoreFailed: emit setFault("Store failed"); break;
-      case FC_InternalTiming: emit setFault("Timing error"); break;
-      case FC_OverTemprature: emit setFault("Over Temprature"); break;
-      case FC_OverVoltage: emit setFault("Over Voltage"); break;
-      case FC_UnderVoltage: emit setFault("Under Voltage"); break;
-      case FC_NoSensor: emit setFault("No sensor"); break;
-      case FC_NoMotor: emit setFault("No motor"); break;
-      case FC_PositionLost: emit setFault("Position Lost"); break;
-      default: {
-        sprintf(buff,"Unknown fault %d ", (int) psp->m_data.uint8[0]);
-        emit setFault(buff);
-        } break;
-      }
-    } break;
-    default:
-      break;
     }
+    ProcessParam(psp,displayStr);
     std::cout << "ReportParam: " << displayStr << std::endl;
     emit setLogText(displayStr.c_str());
   });
@@ -187,7 +264,7 @@ void MainWindow::SetupComs()
       return;
     }
     const PacketServoReportC *pkt = (const PacketServoReportC *) data;
-    std::cout << "ServoReport " << (int) pkt->m_deviceId << ((pkt->m_mode & 1) ? " Abs " : " Rel ") << " Position:" << pkt->m_position << " Torque: " << pkt->m_torque  << " State:" << (int) pkt->m_mode << std::endl;
+  //    std::cout << "ServoReport " << (int) pkt->m_deviceId << ((pkt->m_mode & 1) ? " Abs " : " Rel ") << " Position:" << pkt->m_position << " Torque: " << pkt->m_torque  << " State:" << (int) pkt->m_mode << std::endl;
   });
 
   m_coms->SetHandler(CPT_Error,[this](uint8_t *data,int size) mutable
@@ -208,15 +285,25 @@ MainWindow::~MainWindow()
   delete ui;
 }
 
+void MainWindow::QueryAll()
+{
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_ControlState);
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_FaultCode);
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_PositionCal);
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_PositionRef);
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_PWMMode);
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_CalibrationOffset);
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_PositionRef);
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_OtherJoint);
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_Indicator);
+}
+
 void MainWindow::on_pushButtonConnect_clicked()
 {
   if(m_coms->Open(ui->lineEditDevice->text().toStdString().c_str())) {
     ui->labelConnectionState->setText("Ok");
     emit setLogText("Connect ok");
-
-    m_coms->SendQueryParam(m_targetDeviceId,CPI_ControlState);
-    m_coms->SendQueryParam(m_targetDeviceId,CPI_FaultCode);
-    m_coms->SendQueryParam(m_targetDeviceId,CPI_PositionCal);
+    QueryAll();
 
   } else {
     ui->labelConnectionState->setText("Failed");
@@ -228,14 +315,12 @@ void MainWindow::on_pushButtonPWM_clicked()
 {
   m_coms->SendSetParam(m_targetDeviceId,CPI_PWMState,1);
   emit setLogText("Start PWM clicked");
-  m_coms->SendQueryParam(m_targetDeviceId,CPI_PWMState);
 }
 
 void MainWindow::on_pushButtonStopPWM_clicked()
 {
   m_coms->SendSetParam(m_targetDeviceId,CPI_PWMState,0);
   emit setLogText("Stop PWM clicked");
-  m_coms->SendQueryParam(m_targetDeviceId,CPI_PWMState);
 }
 
 
@@ -281,19 +366,18 @@ void MainWindow::on_comboBoxMotorControlMode_activated(const QString &arg1)
     return ;
   }
   m_coms->SendSetParam(m_targetDeviceId,CPI_PWMMode,controlMode);
-  m_coms->SendQueryParam(m_targetDeviceId,CPI_PWMMode);
 }
 
 void MainWindow::on_sliderPosition_sliderMoved(int position)
 {
   m_position = position * 2.0 * 3.14159265359/ 360.0;
-  m_coms->SendMoveWithEffort(m_targetDeviceId,m_position,m_torque);
+  m_coms->SendMoveWithEffort(m_targetDeviceId,m_position,m_torque,g_positionReference);
 }
 
 void MainWindow::on_sliderTorque_sliderMoved(int torque)
 {
   m_torque = torque / 10.0;
-  m_coms->SendMoveWithEffort(m_targetDeviceId,m_position,m_torque);
+  m_coms->SendMoveWithEffort(m_targetDeviceId,m_position,m_torque,g_positionReference);
 }
 
 void MainWindow::on_pushButtonQueryId_clicked()
@@ -314,7 +398,6 @@ void MainWindow::on_pushButtonState_clicked()
 void MainWindow::on_pushButtonSetBridgeMode_clicked()
 {
   m_coms->SendSetParam(m_targetDeviceId,CPI_CANBridgeMode,1);
-  m_coms->SendQueryParam(m_targetDeviceId,CPI_CANBridgeMode);
 }
 
 void MainWindow::on_pushButtonQueryDevices_clicked()
@@ -377,6 +460,7 @@ void MainWindow::on_pushButtonTim1_clicked()
 void MainWindow::on_spinDeviceId_valueChanged(int arg1)
 {
   m_targetDeviceId = arg1;
+  QueryAll();
 }
 
 void MainWindow::on_pushButton_clicked()
@@ -397,7 +481,6 @@ void MainWindow::on_comboBoxCalibration_activated(const QString &arg1)
     calMode = MC_Calibrated;
   }
   m_coms->SendSetParam(m_targetDeviceId,CPI_PositionCal,calMode);
-  m_coms->SendQueryParam(m_targetDeviceId,CPI_PositionCal);
 }
 
 void MainWindow::on_comboBoxControlState_activated(const QString &arg1)
@@ -437,4 +520,49 @@ void MainWindow::on_checkBoxIndicator_toggled(bool checked)
 void MainWindow::on_pushButtonDriveTemp_clicked()
 {
   m_coms->SendQueryParam(m_targetDeviceId,CPI_DriveTemp);
+}
+
+void MainWindow::on_spinOtherJointId_valueChanged(int arg1)
+{
+  m_coms->SendSetParam(m_targetDeviceId,CPI_OtherJoint,arg1);
+}
+
+void MainWindow::on_comboBox_activated(const QString &arg1)
+{
+  if(arg1 == "Relative") {
+    g_positionReference = PR_Relative;
+  }
+  if(arg1 == "Absolute") {
+    g_positionReference = PR_Absolute;
+  }
+  if(arg1 == "RelativeOther") {
+    g_positionReference = PR_OtherJointRelative;
+  }
+  if(arg1 == "AbsoluteOther") {
+    g_positionReference = PR_OtherJointAbsolute;
+  }
+  m_coms->SendMoveWithEffort(m_targetDeviceId,m_position,m_torque,g_positionReference);
+}
+
+void MainWindow::on_comboBoxPositionRef_activated(const QString &arg1)
+{
+  enum PositionReferenceT positionReference  = PR_Relative;
+  if(arg1 == "Relative") {
+    positionReference = PR_Relative;
+  }
+  if(arg1 == "Absolute") {
+    positionReference = PR_Absolute;
+  }
+  if(arg1 == "RelativeOther") {
+    positionReference = PR_OtherJointRelative;
+  }
+  if(arg1 == "AbsoluteOther") {
+    positionReference = PR_OtherJointAbsolute;
+  }
+  m_coms->SendSetParam(m_targetDeviceId,CPI_PositionRef,(uint8_t) positionReference);
+}
+
+void MainWindow::on_pushButton_2_clicked()
+{
+  m_coms->SendSetParam(m_targetDeviceId,CPI_DebugIndex,(uint8_t) 7);
 }

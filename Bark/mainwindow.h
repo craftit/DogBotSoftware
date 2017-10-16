@@ -31,7 +31,7 @@ private slots:
 
   void on_sliderPosition_sliderMoved(int position);
 
-  void on_sliderTorque_sliderMoved(int position);
+  void on_sliderTorque_sliderMoved(int torque);
 
   void on_pushButtonStopPWM_clicked();
 
@@ -76,15 +76,31 @@ private slots:
 
   void on_pushButtonDriveTemp_clicked();
 
+  void on_spinOtherJointId_valueChanged(int arg1);
+
+  void on_comboBox_activated(const QString &arg1);
+
+  void on_comboBoxPositionRef_activated(const QString &arg1);
+
+  void on_pushButton_2_clicked();
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);
+  void setControlMode(const QString &str);
   void setFault(const QString &str);
   void setCalibrationState(int index);
   void setCalibrationAngle(const QString &str);
+  void setOtherJoint(int jointId);
+  void setPositionRef(const QString &str);
+  void setIndicator(bool state);
 
 private:
   void SetupComs();
+
+  void QueryAll();
+
+  void ProcessParam(struct PacketParam8ByteC *psp, std::string &displayStr);
 
   Ui::MainWindow *ui;
   std::shared_ptr<DogBotN::SerialComsC> m_coms;
@@ -96,6 +112,7 @@ private:
   float m_torque = 0;
   std::shared_ptr<std::ostream> m_logStrm;
   int m_targetDeviceId = 0;
+  enum PositionReferenceT g_positionReference = PR_Relative;
 };
 
 #endif // MAINWINDOW_H

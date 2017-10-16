@@ -230,15 +230,8 @@ int main(void) {
 
   g_eeInitDone = true;
   StoredConf_Init();
-  StoredConf_Load(&g_storedConfig);
 
-  // Setup angles.
-  for(int i = 0;i < 12;i++) {
-    g_phaseAngles[i][0] = g_storedConfig.phaseAngles[i][0];
-    g_phaseAngles[i][1] = g_storedConfig.phaseAngles[i][1];
-    g_phaseAngles[i][2] = g_storedConfig.phaseAngles[i][2];
-  }
-
+  LoadSetup();
 
 #if 1
   InitComs();

@@ -11,8 +11,6 @@ extern "C" {
 
 int InitPWM(void);
 
-int PWMSetPosition(uint16_t postion,uint16_t torque);
-
 int PWMRun(void);
 int PWMStop(void);
 

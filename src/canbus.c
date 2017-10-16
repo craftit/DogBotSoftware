@@ -201,18 +201,18 @@ bool CANSendError(
 }
 
 
-bool CANSendParam(uint16_t index)
+bool CANSendParam(enum ComsParameterIndexT index)
 {
   union BufferTypeT buff;
   int len = -1;
   /* Retrieve the requested parameter information */
-  if(!ReadParam((enum ComsParameterIndexT) index,&len,&buff)) {
-    CANSendError(CET_ParameterOutOfRange, index);
+  if(!ReadParam(index,&len,&buff)) {
+    CANSendError(CET_ParameterOutOfRange, (uint8_t) index);
     // Report error ?
     return false;
   }
   if(len <= 0) {
-    CANSendError(CET_InternalError, index);
+    CANSendError(CET_InternalError, (uint8_t) index);
     // Report error ?
     return false;
   }
@@ -220,7 +220,7 @@ bool CANSendParam(uint16_t index)
   CANTxFrame txmsg;
   CANSetAddress(&txmsg,g_deviceId,CPT_ReportParam);
   txmsg.RTR = CAN_RTR_DATA;
-  txmsg.data8[0] = index;
+  txmsg.data8[0] = (uint8_t) index;
 
   // Limit length to bytes we can send over can.
   if(len > 7) len = 7;
@@ -356,7 +356,7 @@ static THD_FUNCTION(can_rx, p) {
               CANSendError(CET_UnexpectedPacketSize,CPT_ReadParam);
               break;
             }
-            int index = rxmsg.data8[0];
+            enum ComsParameterIndexT index = (enum ComsParameterIndexT) rxmsg.data8[0];
             CANSendParam(index);
           }
         } break;
@@ -366,15 +366,27 @@ static THD_FUNCTION(can_rx, p) {
               CANSendError(CET_UnexpectedPacketSize,CPT_SetParam);
               break;
             }
-            int index = rxmsg.data8[0];
+            enum ComsParameterIndexT index = (enum ComsParameterIndexT) rxmsg.data8[0];
             union BufferTypeT dataBuff;
-            int len = rxmsg.DLC-1;
+            int len = ((int)rxmsg.DLC)-1;
             if(len > 7) len = 7;
             memcpy(dataBuff.uint8,&rxmsg.data8[1],len);
-            if(!SetParam((enum ComsParameterIndexT) index,&dataBuff,len)) {
+            if(!SetParam(index,&dataBuff,len)) {
               CANSendError(CET_ParameterOutOfRange,index);
             }
           }
+#if 0
+          if(g_canBridgeMode) {
+            // Forward SetParam to bridge, useful for debugging.
+            struct PacketParam8ByteC reply;
+            reply.m_header.m_packetType = CPT_SetParam;
+            reply.m_header.m_deviceId = rxDeviceId;
+            reply.m_header.m_index = rxmsg.data8[0];
+            int dlen = rxmsg.DLC-1;
+            memcpy(reply.m_data.uint8,&rxmsg.data8[1],dlen);
+            USBSendPacket((uint8_t *) &reply,sizeof(reply.m_header) + dlen);
+          }
+#endif
 
         } break;
         case CPT_SetDeviceId: {
@@ -409,6 +421,11 @@ static THD_FUNCTION(can_rx, p) {
           }
         } break;
         case CPT_ServoReport:
+          if(rxDeviceId == g_otherJointId &&
+              g_otherJointId != 0 &&
+              g_otherJointId != g_deviceId) {
+            MotionOtherJointUpdate(rxmsg.data16[0],rxmsg.data16[1],rxmsg.data8[4]);
+          }
           if(g_canBridgeMode) {
             if(rxmsg.DLC != 5) {
               USBSendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_ServoReport);
@@ -433,6 +450,16 @@ static THD_FUNCTION(can_rx, p) {
             uint16_t torque = rxmsg.data16[1];
             uint8_t mode = rxmsg.data8[4];
             MotionSetPosition(mode,position,torque);
+          }
+        } break;
+        case CPT_SaveSetup: {
+          if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
+            enum FaultCodeT ret = SaveSetup();
+          }
+        } break;
+        case CPT_LoadSetup: {
+          if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
+            enum FaultCodeT ret = LoadSetup();
           }
         } break;
       }

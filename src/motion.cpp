@@ -4,6 +4,7 @@
 #include "mathfunc.h"
 #include "coms.h"
 #include "canbus.h"
+#include "storedconf.h"
 
 float g_angleOffset = 0;      // Offset from phase position to actuator position.
 float g_actuatorRatio = 21.0; // Gear ratio
@@ -18,12 +19,17 @@ float g_absoluteIndexPosition[g_positionIndexCount]; // Position of indexes
 bool g_haveIndexPositionSample[g_positionIndexCount];
 float g_measuredIndexPosition[g_positionIndexCount]; // Measured position
 
-MotionCalibrationT g_motionCalibration = MC_Uncalibrated;
-PositionReferenceT g_motionPositionReference = PR_Relative;
+enum MotionCalibrationT g_motionCalibration = MC_Uncalibrated;
+enum PositionReferenceT g_motionPositionReference = PR_Relative;
 enum ControlStateT g_controlState = CS_StartUp;
 enum FaultCodeT g_lastFaultCode = FC_Ok;
 bool g_indicatorState = false;
 bool g_newCalibrationData = false;
+
+uint8_t g_otherJointId = 0;
+float g_relativePositionGain = 1.0;
+float g_relativePositionOffset = 0.0;
+
 
 void MotionResetCalibration() {
   for(int i = 0;i < g_positionIndexCount;i++) {
@@ -78,19 +84,55 @@ bool MotionEstimateOffset(float &value)
   return true;
 }
 
-bool MotionSetPosition(uint8_t mode,uint16_t position,uint16_t torque)
-{
-  if((mode & 0x1) == 0) {
-    PWMSetPosition(position,torque);
-    return true;
-  }
-  if(g_motionCalibration != MC_Calibrated)
-    return false;
+uint8_t g_requestedJointMode = 0;
+uint16_t g_requestedJointPosition = 0;
+uint8_t g_otherJointMode = 0;
+uint16_t g_otherJointPosition = 0;
+float g_otherPhaseOffset = 0;
 
-  g_torqueLimit = ((float) torque) * g_absoluteMaxTorque / (2 * 65536.0);
-  g_demandPhasePosition = (((float) position) * 7.0 * g_actuatorRatio * M_PI * 2.0/ 65535.0) + g_angleOffset;
+static float DemandToPhasePosition(uint16_t position)
+{
+  return (((float) position) * 7.0 * g_actuatorRatio * M_PI * 2.0/ 65535.0);
+}
+
+bool UpdateRequestedPosition()
+{
+  float posf = DemandToPhasePosition(g_requestedJointPosition);
+
+  if((g_motionPositionReference & 0x1) != 0) { // Calibrated position ?
+    if(g_motionCalibration != MC_Calibrated)
+      return false;
+    g_demandPhasePosition += g_angleOffset;
+  }
+
+  if((g_motionPositionReference & 0x2) != 0) { // relative position ?
+    g_otherPhaseOffset =  DemandToPhasePosition(g_otherJointPosition) * g_relativePositionGain + g_relativePositionOffset;
+    posf += g_otherPhaseOffset;
+  }
+
+  g_demandPhasePosition = posf;
   return true;
 }
+
+
+bool MotionSetPosition(uint8_t mode,uint16_t position,uint16_t torque)
+{
+  g_requestedJointMode = mode;
+  g_torqueLimit = ((float) torque) * g_absoluteMaxTorque / (65536.0);
+  g_requestedJointPosition = position;
+
+  return UpdateRequestedPosition();
+}
+
+bool MotionOtherJointUpdate(uint16_t position,uint16_t torque,uint8_t mode)
+{
+  g_otherJointPosition = position;
+  g_otherJointMode = mode;
+  if((g_motionPositionReference & 0x2) != 0)
+    return UpdateRequestedPosition();
+  return true;
+}
+
 
 bool MotionReport(uint16_t position,int16_t torque,PositionReferenceT posRef)
 {
@@ -178,10 +220,10 @@ void MotionStep()
 
   switch(g_motionPositionReference)
   {
-    case PR_OtherJointRelative:
     case PR_OtherJointAbsolute:
-      // TODO: Correct for other joint offset.
-    case PR_Absolute:
+      position -= g_otherPhaseOffset;
+      /* no break */
+    case PR_Absolute: {
       if(g_motionCalibration == MC_Calibrated) {
         position -= g_angleOffset;
       } else {
@@ -189,11 +231,70 @@ void MotionStep()
         position = g_currentPhasePosition;
         posRef = PR_Relative;
       }
-    /* no break */
+      uint16_t reportPosition = (position * 65535.0) / (7.0 * g_actuatorRatio * M_PI * 2.0) ;
+      MotionReport(reportPosition,torque,posRef);
+    } break;
+    case PR_OtherJointRelative:
+      position -= g_otherPhaseOffset;
+      /* no break */
     case PR_Relative: {
       uint16_t reportPosition = (position * 65535.0) / (7.0 * g_actuatorRatio * M_PI * 2.0) ;
       MotionReport(reportPosition,torque,posRef);
     } break;
   }
 #endif
+}
+
+
+enum FaultCodeT LoadSetup(void) {
+  if(!g_eeInitDone) {
+    StoredConf_Init();
+    g_eeInitDone = true;
+  }
+  StoredConf_Load(&g_storedConfig);
+
+  g_deviceId = g_storedConfig.deviceId;
+  g_otherJointId = g_storedConfig.otherJointId;
+  g_relativePositionGain = g_storedConfig.m_relativePositionGain;
+  g_relativePositionOffset = g_storedConfig.m_relativePositionOffset;
+  g_motionPositionReference = (enum PositionReferenceT) g_storedConfig.m_motionPositionReference;
+
+  // Setup angles.
+  for(int i = 0;i < 12;i++) {
+    g_phaseAngles[i][0] = g_storedConfig.phaseAngles[i][0];
+    g_phaseAngles[i][1] = g_storedConfig.phaseAngles[i][1];
+    g_phaseAngles[i][2] = g_storedConfig.phaseAngles[i][2];
+  }
+
+  // Should send an announce as this could change our id ?
+  //uint8_t oldDevice = g_deviceId;
+  //if(oldDevice != g_deviceId) {}
+
+  return FC_Ok;
+}
+
+enum FaultCodeT SaveSetup(void) {
+  if(!g_eeInitDone) {
+    StoredConf_Init();
+    g_eeInitDone = true;
+  }
+
+  g_storedConfig.configState = 1;
+  g_storedConfig.deviceId = g_deviceId;
+  g_storedConfig.otherJointId = g_otherJointId;
+
+  g_storedConfig.m_relativePositionGain = g_relativePositionGain;
+  g_storedConfig.m_relativePositionOffset =  g_relativePositionOffset;
+  g_storedConfig.m_motionPositionReference = (int) g_motionPositionReference;
+
+
+  for(int i = 0;i < 12;i++) {
+    g_storedConfig.phaseAngles[i][0] = g_phaseAngles[i][0];
+    g_storedConfig.phaseAngles[i][1] = g_phaseAngles[i][1];
+    g_storedConfig.phaseAngles[i][2] = g_phaseAngles[i][2];
+  }
+  if(!StoredConf_Save(&g_storedConfig)) {
+    return FC_InternalStoreFailed;
+  }
+  return FC_Ok;
 }

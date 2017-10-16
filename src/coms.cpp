@@ -155,11 +155,7 @@ void SerialDecodeC::AcceptByte(uint8_t sendByte)
   }
 }
 
-
-bool SetParamMsg(struct PacketParam8ByteC *psp,int len)
-{
-  return SetParam((enum ComsParameterIndexT) psp->m_header.m_index,&psp->m_data,len);
-}
+uint8_t g_debugIndex = 0x55;
 
 bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len)
 {
@@ -177,19 +173,19 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
       }
       break;
     case CPI_PWMMode:
-      if(len < 1)
+      if(len != 1)
         return false;
       if(dataBuff->uint8[0] >= (int) CM_Final)
         return false;
       g_controlMode = (PWMControlModeT) dataBuff->uint8[0];
       break;
     case CPI_PWMFullReport:
-      if(len < 1)
+      if(len != 1)
         return false;
       g_pwmFullReport = dataBuff->uint8[0] > 0;
       break;
     case CPI_CANBridgeMode:
-      if(len < 1)
+      if(len != 1)
         return false;
       g_canBridgeMode = dataBuff->uint8[0] > 0;
       break;
@@ -206,7 +202,7 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
       return false;
 
     case CPI_PositionCal: {
-      if(len < 1)
+      if(len != 1)
         return false;
       enum MotionCalibrationT newCal = (enum MotionCalibrationT) dataBuff->uint8[0];
       switch(newCal)
@@ -224,7 +220,7 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
       }
     } break;
     case CPI_PositionRef: {
-      if(len < 1)
+      if(len != 1)
         return false;
       enum PositionReferenceT posRef = (enum PositionReferenceT) dataBuff->uint8[0];
       switch(posRef)
@@ -234,12 +230,13 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
         case PR_OtherJointRelative:
         case PR_OtherJointAbsolute:
           g_motionPositionReference = posRef;
+          break;
         default:
           return false;
       }
     } break;
     case CPI_ControlState: {
-      if(len < 1)
+      if(len != 1)
         return false;
       enum ControlStateT newState = (enum ControlStateT) dataBuff->uint8[0];
       if(!ChangeControlState(newState))
@@ -250,9 +247,27 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
       g_lastFaultCode = FC_Ok;
       break;
     case CPI_Indicator:
-      if(len < 1)
+      if(len != 1)
         return false;
       g_indicatorState = dataBuff->uint8[0] > 0;
+      break;
+    case CPI_OtherJoint:
+      if(len != 1)
+        return false;
+      g_otherJointId = dataBuff->uint8[0];
+      break;
+    case CPI_OtherJointGain:
+      if(len != 4)
+        return false;
+      g_relativePositionGain = dataBuff->float32[0];
+      break;
+    case CPI_OtherJointOffset:
+      if(len != 4)
+        return false;
+      g_relativePositionOffset = dataBuff->float32[0];
+      break;
+    case CPI_DebugIndex:
+      g_debugIndex = len;
       break;
     //case CPI_ANGLE_CAL: // 12 Values
     case CPI_ANGLE_CAL_0:
@@ -275,6 +290,9 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     default:
       return false;
   }
+
+  SendParamUpdate(index);
+
   return true;
 }
 
@@ -336,7 +354,6 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
     case CPI_PositionCal:
       *len = 1;
       data->uint8[0] = (int) g_motionCalibration;
-      extern enum ControlStateT g_controlState;
       break;
     case CPI_PositionRef:
       *len = 1;
@@ -366,6 +383,18 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       *len = 4;
       data->float32[0] = 0;
       break;
+    case CPI_OtherJoint:
+      *len = 1;
+      data->uint8[0] = g_otherJointId;
+      break;
+    case CPI_OtherJointGain:
+      *len = 4;
+      data->float32[0] = g_relativePositionGain;
+      break;
+    case CPI_OtherJointOffset:
+      *len = 4;
+      data->float32[0] = g_relativePositionOffset;
+      break;
     //case CPI_ANGLE_CAL: // 12 Values
     case CPI_ANGLE_CAL_0:
     case CPI_ANGLE_CAL_1:
@@ -384,13 +413,17 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       for(int i = 0;i < 3;i++)
         data->uint16[i] = g_phaseAngles[reg][i];
     } break;
+    case CPI_DebugIndex:
+      *len = 1;
+      data->uint8[0] = g_debugIndex;
+      break;
     default:
       return false;
   }
   return true;
 }
 
-bool USBReadParamAndReply(ComsParameterIndexT paramIndex)
+bool USBReadParamAndReply(enum ComsParameterIndexT paramIndex)
 {
   struct PacketParam8ByteC reply;
   reply.m_header.m_packetType = CPT_ReportParam;
@@ -401,9 +434,9 @@ bool USBReadParamAndReply(ComsParameterIndexT paramIndex)
     return false;
 
   USBSendPacket((uint8_t *)&reply,sizeof(reply.m_header) + len);
-
   return true;
 }
+
 
 void SendParamUpdate(enum ComsParameterIndexT paramIndex) {
   if(g_deviceId == 0 || g_canBridgeMode) {
@@ -412,9 +445,12 @@ void SendParamUpdate(enum ComsParameterIndexT paramIndex) {
     }
   }
   if(g_deviceId != 0) {
+    CANSendParam(paramIndex);
+#if 0
     if(!CANSendReadParam(g_deviceId,paramIndex)) {
       USBSendError(g_deviceId,CET_CANTransmitFailed,(uint8_t) paramIndex);
     }
+#endif
   }
 }
 
@@ -471,8 +507,9 @@ void SerialDecodeC::ProcessPacket()
       USBSendError(g_deviceId,CET_UnexpectedPacketSize,m_data[0]);
       break;
     }
+    int dataLen = m_packetLen-sizeof(psp->m_header);
     if(psp->m_header.m_deviceId == g_deviceId || psp->m_header.m_deviceId == 0) {
-      if(!SetParamMsg(psp,m_packetLen)) {
+      if(!SetParam((enum ComsParameterIndexT) psp->m_header.m_index,&psp->m_data,dataLen)) {
         USBSendError(g_deviceId,CET_ParameterOutOfRange,m_data[0]);
       }
     }
@@ -480,8 +517,7 @@ void SerialDecodeC::ProcessPacket()
         (psp->m_header.m_deviceId != g_deviceId  || psp->m_header.m_deviceId == 0) &&
         g_deviceId != 0)
     {
-      int len = m_packetLen-sizeof(psp->m_header);
-      if(!CANSendSetParam(psp->m_header.m_deviceId,psp->m_header.m_index,&psp->m_data,len)) {
+      if(!CANSendSetParam(psp->m_header.m_deviceId,psp->m_header.m_index,&psp->m_data,dataLen)) {
         USBSendError(g_deviceId,CET_CANTransmitFailed,m_data[0]);
       }
     }
@@ -542,6 +578,14 @@ void SerialDecodeC::ProcessPacket()
         CANSendSetDevice(pkt->m_deviceId,pkt->m_uid[0],pkt->m_uid[1]);
       }
     }
+  } break;
+  case CPT_SaveSetup: { // Save setup from eeprom
+    enum FaultCodeT ret = SaveSetup();
+
+  } break;
+  case CPT_LoadSetup: {  // Load setup from eeprom
+    enum FaultCodeT ret = LoadSetup();
+
   } break;
 #if 1
   default: {

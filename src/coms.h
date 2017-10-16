@@ -36,6 +36,8 @@ extern "C" {
   /* Retrieve the requested parameter information */
   bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data);
 
+  bool USBReadParamAndReply(enum ComsParameterIndexT paramIndex);
+
   void USBSendError(uint8_t deviceId,enum ComsErrorTypeT code,uint8_t data);
 
   /* Broadcast new parameter value.

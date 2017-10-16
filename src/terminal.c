@@ -250,7 +250,7 @@ static void cmd_eeLoad(BaseSequentialStream *chp, int argc, char *argv[])
     chprintf(chp, "Phase: %d %d %d \r\n",g_phaseAngles[i][0],g_phaseAngles[i][1],g_phaseAngles[i][2]);
   }
 
-  chprintf(chp, "Initalised system ok %d \r\n",(int) g_storedConfig.controllerId);
+  chprintf(chp, "Initalised system ok %d \r\n",(int) g_storedConfig.deviceId);
 }
 
 static void cmd_eeSave(BaseSequentialStream *chp, int argc, char *argv[])
@@ -263,7 +263,7 @@ static void cmd_eeSave(BaseSequentialStream *chp, int argc, char *argv[])
     g_eeInitDone = true;
   }
   g_storedConfig.configState = 1;
-  g_storedConfig.controllerId = 2;
+  g_storedConfig.deviceId = 2;
   for(int i = 0;i < 12;i++) {
     g_storedConfig.phaseAngles[i][0] = g_phaseAngles[i][0];
     g_storedConfig.phaseAngles[i][1] = g_phaseAngles[i][1];

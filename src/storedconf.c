@@ -91,6 +91,11 @@ bool StoredConf_Load(struct StoredConfigT *conf)
       conf->phaseAngles[i][1] = g_defaultPhaseAngles[i][1];
       conf->phaseAngles[i][2] = g_defaultPhaseAngles[i][2];
     }
+    conf->deviceId = 0;
+    conf->otherJointId = 0;
+    conf->m_motionPositionReference = 0;
+    conf->m_relativePositionGain = 1.0;
+    conf->m_relativePositionOffset = 0.0;
   }
 
   return is_ok;

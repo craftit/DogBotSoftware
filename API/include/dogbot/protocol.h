@@ -17,10 +17,12 @@ extern "C" {
     CPT_Servo        =  7, // Servo control position
     CPT_ServoReport  =  8, // Report servo position
     // 9 is unused.
-    CPT_PWMState     = 10, // PWM State.
+    CPT_PWMState     = 10, // PWM State. Packet holding internal drive data.
     CPT_QueryDevices = 11, // Query connected devices
     CPT_AnnounceId   = 12, // Query connected devices
-    CPT_SetDeviceId  = 13  // Set device id
+    CPT_SetDeviceId  = 13, // Set device id
+    CPT_SaveSetup    = 14, // Save setup to eeprom
+    CPT_LoadSetup    = 15  // Load setup from eeprom
   };
 
 
@@ -74,13 +76,18 @@ extern "C" {
     CPI_Indicator       = 14,
     CPI_DriveTemp       = 15,
     CPI_MotorTemp       = 16,
-    CPI_DRV8305         = 0x20,
+    CPI_OtherJoint      = 17,
+    CPI_OtherJointGain  = 18,
+    CPI_OtherJointOffset= 19,
+    CPI_DebugIndex      = 20,
+
+    CPI_DRV8305         = 32,
     CPI_DRV8305_01      = 0x20,
     CPI_DRV8305_02      = 0x21,
     CPI_DRV8305_03      = 0x22,
     CPI_DRV8305_04      = 0x23,
     CPI_DRV8305_05      = 0x24,
-    CPI_ANGLE_CAL       = 0x30, // 12 Values
+    CPI_ANGLE_CAL       = 48,  // 12 Values
     CPI_ANGLE_CAL_0     = 0x30,
     CPI_ANGLE_CAL_1     = 0x31,
     CPI_ANGLE_CAL_2     = 0x32,

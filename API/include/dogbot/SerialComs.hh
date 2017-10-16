@@ -51,7 +51,7 @@ namespace DogBotN {
     void SendPacket(const uint8_t *data,int len);
 
     //! Send a move command with an effort level.
-    void SendMoveWithEffort(int deviceId,float pos,float effort);
+    void SendMoveWithEffort(int deviceId,float pos,float effort,enum PositionReferenceT posRef);
 
     //! Set a parameter
     void SendSetParam(int deviceId,ComsParameterIndexT param,uint8_t value);
