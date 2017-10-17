@@ -85,14 +85,19 @@ bool MotionEstimateOffset(float &value)
 }
 
 uint8_t g_requestedJointMode = 0;
-uint16_t g_requestedJointPosition = 0;
+int16_t g_requestedJointPosition = 0;
 uint8_t g_otherJointMode = 0;
-uint16_t g_otherJointPosition = 0;
+int16_t g_otherJointPosition = 0;
 float g_otherPhaseOffset = 0;
 
-static float DemandToPhasePosition(uint16_t position)
+static float DemandToPhasePosition(int16_t position)
 {
-  return (((float) position) * 7.0 * g_actuatorRatio * M_PI * 2.0/ 65535.0);
+  return (((float) position) * 7.0 * g_actuatorRatio * M_PI * 4.0/ 65535.0);
+}
+
+static int16_t PhasePositionToDemand(float angle)
+{
+  return (angle * 65535.0) / (7.0 * g_actuatorRatio * M_PI * 4.0);
 }
 
 bool UpdateRequestedPosition()
@@ -115,16 +120,16 @@ bool UpdateRequestedPosition()
 }
 
 
-bool MotionSetPosition(uint8_t mode,uint16_t position,uint16_t torque)
+bool MotionSetPosition(uint8_t mode,int16_t position,uint16_t torqueLimit)
 {
   g_requestedJointMode = mode;
-  g_torqueLimit = ((float) torque) * g_absoluteMaxTorque / (65536.0);
+  g_torqueLimit = ((float) torqueLimit) * g_absoluteMaxTorque / (65536.0);
   g_requestedJointPosition = position;
 
   return UpdateRequestedPosition();
 }
 
-bool MotionOtherJointUpdate(uint16_t position,uint16_t torque,uint8_t mode)
+bool MotionOtherJointUpdate(int16_t position,int16_t torque,uint8_t mode)
 {
   g_otherJointPosition = position;
   g_otherJointMode = mode;
@@ -134,7 +139,7 @@ bool MotionOtherJointUpdate(uint16_t position,uint16_t torque,uint8_t mode)
 }
 
 
-bool MotionReport(uint16_t position,int16_t torque,PositionReferenceT posRef)
+bool MotionReport(int16_t position,int16_t torque,PositionReferenceT posRef)
 {
   uint8_t mode = posRef & 0x3;
 
@@ -231,14 +236,14 @@ void MotionStep()
         position = g_currentPhasePosition;
         posRef = PR_Relative;
       }
-      uint16_t reportPosition = (position * 65535.0) / (7.0 * g_actuatorRatio * M_PI * 2.0) ;
+      uint16_t reportPosition = PhasePositionToDemand(position);
       MotionReport(reportPosition,torque,posRef);
     } break;
     case PR_OtherJointRelative:
       position -= g_otherPhaseOffset;
       /* no break */
     case PR_Relative: {
-      uint16_t reportPosition = (position * 65535.0) / (7.0 * g_actuatorRatio * M_PI * 2.0) ;
+      uint16_t reportPosition = PhasePositionToDemand(position);
       MotionReport(reportPosition,torque,posRef);
     } break;
   }

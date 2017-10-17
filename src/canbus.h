@@ -17,14 +17,14 @@ bool CANPing(
 
 bool CANSendServo(
     uint8_t deviceId,
-    uint16_t position,
+    int16_t position,
     uint16_t torque,
     uint8_t mode
     );
 
 bool CANSendServoReport(
     uint8_t deviceId,
-    uint16_t position,
+    int16_t position,
     int16_t torque,
     uint8_t state
     );

@@ -170,10 +170,13 @@
      </rect>
     </property>
     <property name="minimum">
-     <number>0</number>
+     <number>-360</number>
     </property>
     <property name="maximum">
      <number>360</number>
+    </property>
+    <property name="value">
+     <number>0</number>
     </property>
     <property name="orientation">
      <enum>Qt::Vertical</enum>

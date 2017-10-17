@@ -457,10 +457,12 @@ namespace DogBotN
     struct PacketServoC servoPkt;
     servoPkt.m_packetType = CPT_Servo;
     servoPkt.m_deviceId = deviceId;
-    while(pos < 0)
-      pos += 3.14159265359;
-    servoPkt.m_position = pos * 65535.0 / (2.0 * 3.14159265359);
-    servoPkt.m_torque = effort * 65535.0 / (10.0);
+    //while(pos < ()-2.0 * M_PI)
+    //pos += 3.14159265359;
+    servoPkt.m_position = pos * 65535.0 / (4.0 * M_PI);
+    if(effort < 0) effort = 0;
+    if(effort > 10.0) effort = 10.0;
+    servoPkt.m_torqueLimit = effort * 65535.0 / (10.0);
     servoPkt.m_mode = (int) posRef;
 
     SendPacket((uint8_t *)&servoPkt,sizeof servoPkt);

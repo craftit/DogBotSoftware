@@ -14,11 +14,11 @@ extern "C" {
 
   void MotionUpdateEndStop(int num,bool state,float position,float velocity);
 
-  bool MotionSetPosition(uint8_t mode,uint16_t position,uint16_t torque);
+  bool MotionSetPosition(uint8_t mode,int16_t position,uint16_t torqueLimit);
 
-  bool MotionReport(uint16_t position,uint16_t torque,enum PositionReferenceT posRef);
+  bool MotionReport(int16_t position,int16_t torque,enum PositionReferenceT posRef);
 
-  bool MotionOtherJointUpdate(uint16_t position,uint16_t torque,uint8_t mode);
+  bool MotionOtherJointUpdate(int16_t position,int16_t torque,uint8_t mode);
 
   extern enum MotionCalibrationT g_motionCalibration;
   extern enum PositionReferenceT g_motionPositionReference;

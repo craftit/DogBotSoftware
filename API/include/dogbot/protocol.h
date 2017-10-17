@@ -216,8 +216,8 @@ extern "C" {
     uint8_t m_packetType; // CPT_ServoAbs / CPT_ServoRel
     uint8_t m_deviceId;
     uint8_t m_mode;
-    uint16_t m_position;
-    uint16_t m_torque;
+    int16_t m_position;
+    uint16_t m_torqueLimit;
   } __attribute__((packed));
 
   struct PacketServoReportC {
@@ -225,7 +225,7 @@ extern "C" {
     uint8_t m_deviceId;
     uint8_t m_mode;
     uint16_t m_timestamp;
-    uint16_t m_position;
+    int16_t m_position;
     int16_t m_torque;
   } __attribute__((packed));
 

@@ -63,7 +63,7 @@ bool CANPing(
 
 bool CANSendServoReport(
     uint8_t deviceId,
-    uint16_t position,
+    int16_t position,
     int16_t torque,
     uint8_t state
     )
@@ -84,8 +84,8 @@ bool CANSendServoReport(
 
 bool CANSendServo(
     uint8_t deviceId,
-    uint16_t position,
-    uint16_t torque,
+    int16_t position,
+    uint16_t torqueLimit,
     uint8_t state
     )
 {
@@ -94,7 +94,7 @@ bool CANSendServo(
   txmsg.RTR = CAN_RTR_DATA;
   txmsg.DLC = 5;
   txmsg.data16[0] = position;
-  txmsg.data16[1] = torque;
+  txmsg.data16[1] = torqueLimit;
   txmsg.data8[4] = state;
   if(canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, 100) != MSG_OK) {
     //SendError(CET_CANTransmitFailed,m_data[0]);

@@ -254,7 +254,7 @@ void MainWindow::SetupComs()
       return;
     }
     const PacketServoC *pkt = (const PacketServoC *) data;
-    std::cout << "Servo " << (int) pkt->m_deviceId << " Position:" << pkt->m_position << " Torque: " << pkt->m_torque << " State:" << pkt->m_mode << std::endl;
+    std::cout << "Servo " << (int) pkt->m_deviceId << " Position:" << pkt->m_position << " Torque: " << pkt->m_torqueLimit << " State:" << pkt->m_mode << std::endl;
   });
 
   m_coms->SetHandler(CPT_ServoReport,[this](uint8_t *data,int size) mutable

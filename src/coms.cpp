@@ -530,10 +530,10 @@ void SerialDecodeC::ProcessPacket()
     }
     PacketServoC *ps = (PacketServoC *) m_data;
     if(ps->m_deviceId == g_deviceId || ps->m_deviceId == 0) {
-      MotionSetPosition(ps->m_mode,ps->m_position,ps->m_torque);
+      MotionSetPosition(ps->m_mode,ps->m_position,ps->m_torqueLimit);
     } else {
       if(g_canBridgeMode && g_deviceId != 0) {
-        CANSendServo(ps->m_deviceId,ps->m_position,ps->m_torque,ps->m_mode);
+        CANSendServo(ps->m_deviceId,ps->m_position,ps->m_torqueLimit,ps->m_mode);
       }
     }
   } break;
