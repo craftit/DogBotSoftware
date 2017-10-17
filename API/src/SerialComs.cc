@@ -405,6 +405,30 @@ namespace DogBotN
     SendPacket((uint8_t*) &msg,sizeof(msg.m_header)+1);
   }
 
+  //! Set a parameter
+  void SerialComsC::SendSetParam(int deviceId,ComsParameterIndexT param,int value)
+  {
+    PacketParam8ByteC msg;
+    msg.m_header.m_packetType = CPT_SetParam;
+    msg.m_header.m_deviceId = deviceId;
+    msg.m_header.m_index = (uint16_t) param;
+    msg.m_data.uint8[0] = value;
+    SendPacket((uint8_t*) &msg,sizeof(msg.m_header)+1);
+  }
+
+
+
+  //! Set a parameter
+  void SerialComsC::SendSetParam(int deviceId,ComsParameterIndexT param,float value)
+  {
+    PacketParam8ByteC msg;
+    msg.m_header.m_packetType = CPT_SetParam;
+    msg.m_header.m_deviceId = deviceId;
+    msg.m_header.m_index = (uint16_t) param;
+    msg.m_data.float32[0] = value;
+    SendPacket((uint8_t*) &msg,sizeof(msg.m_header)+4);
+  }
+
 
   //! Set a parameter
   void SerialComsC::SendSetParam(int deviceId,ComsParameterIndexT param,BufferTypeT &buff,int len)
@@ -468,6 +492,14 @@ namespace DogBotN
     SendPacket((uint8_t *)&servoPkt,sizeof servoPkt);
   }
 
+  //! Send a calibration zero
+  void SerialComsC::SendCalZero(int deviceId)
+  {
+    struct PacketCalZeroC pkt;
+    pkt.m_packetType = CPT_CalZero;
+    pkt.m_deviceId = deviceId;
+    SendPacket((uint8_t *)&pkt,sizeof pkt);
+  }
 
   //! Send a move command
   void SerialComsC::SendPing(int deviceId)

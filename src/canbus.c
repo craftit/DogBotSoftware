@@ -61,6 +61,25 @@ bool CANPing(
   return true;
 }
 
+bool CANSendCalZero(
+    uint8_t deviceId
+    )
+{
+  enum ComsPacketTypeT pktType = CPT_CalZero;
+
+  CANTxFrame txmsg;
+  CANSetAddress(&txmsg,deviceId,pktType);
+  txmsg.RTR = CAN_RTR_DATA;
+  txmsg.DLC = 0;
+  if(canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, 100) != MSG_OK) {
+    //USBSendError(CET_CANTransmitFailed,m_data[0]);
+    return false;
+  }
+
+  return true;
+}
+
+
 bool CANSendServoReport(
     uint8_t deviceId,
     int16_t position,
@@ -183,15 +202,17 @@ bool CANSendReadParam(
 
 bool CANSendError(
     uint16_t errorCode,
-    uint16_t data
+    uint8_t causeType,
+    uint8_t data
     )
 {
   CANTxFrame txmsg;
   CANSetAddress(&txmsg,g_deviceId,CPT_Error);
   txmsg.RTR = CAN_RTR_DATA;
-  txmsg.DLC = 4;
-  txmsg.data16[0] = errorCode;
-  txmsg.data16[1] = data;
+  txmsg.DLC = 3;
+  txmsg.data8[0] = errorCode;
+  txmsg.data8[1] = causeType;
+  txmsg.data8[2] = data;
 
   if(canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, MS2ST(100)) != MSG_OK) {
     return false;
@@ -207,12 +228,12 @@ bool CANSendParam(enum ComsParameterIndexT index)
   int len = -1;
   /* Retrieve the requested parameter information */
   if(!ReadParam(index,&len,&buff)) {
-    CANSendError(CET_ParameterOutOfRange, (uint8_t) index);
+    CANSendError(CET_ParameterOutOfRange, CPT_ReadParam,(uint8_t) index);
     // Report error ?
     return false;
   }
   if(len <= 0) {
-    CANSendError(CET_InternalError, (uint8_t) index);
+    CANSendError(CET_InternalError, CPT_ReadParam,(uint8_t) index);
     // Report error ?
     return false;
   }
@@ -283,7 +304,7 @@ static THD_FUNCTION(can_rx, p) {
         case CPT_Ping: { // Ping request
           if(g_deviceId == rxDeviceId || rxDeviceId == 0) {
             if(rxmsg.DLC != 0) {
-              CANSendError(CET_UnexpectedPacketSize,CPT_Ping);
+              CANSendError(CET_UnexpectedPacketSize,CPT_Ping,rxmsg.DLC);
               break;
             }
             CANPing(CPT_Pong,g_deviceId);
@@ -292,7 +313,7 @@ static THD_FUNCTION(can_rx, p) {
         case CPT_Pong: {
           if(g_canBridgeMode) {
             if(rxmsg.DLC != 0) {
-              USBSendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_Pong);
+              USBSendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_Pong,rxmsg.DLC);
               break;
             }
             struct PacketPingPongC pkt;
@@ -303,15 +324,16 @@ static THD_FUNCTION(can_rx, p) {
         } break;
         case CPT_Error:
           if(g_canBridgeMode) {
-            if(rxmsg.DLC != 4) {
-              USBSendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_Error);
+            if(rxmsg.DLC != 3) {
+              USBSendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_Error,rxmsg.DLC);
               break;
             }
             struct PacketErrorC pkt;
             pkt.m_packetType = CPT_Error;
             pkt.m_deviceId = rxDeviceId;
-            pkt.m_errorCode = rxmsg.data16[0];
-            pkt.m_errorData = rxmsg.data16[1];
+            pkt.m_errorCode = rxmsg.data8[0];
+            pkt.m_causeType = rxmsg.data8[1];
+            pkt.m_errorData = rxmsg.data8[2];
             USBSendPacket((uint8_t *) &pkt,sizeof(struct PacketErrorC));
           }
           break;
@@ -323,7 +345,7 @@ static THD_FUNCTION(can_rx, p) {
         case CPT_ReportParam: {
           if(g_canBridgeMode) {
             if(rxmsg.DLC < 1) {
-              USBSendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_ReportParam);
+              USBSendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_ReportParam,rxmsg.DLC);
               break;
             }
             struct PacketParam8ByteC reply;
@@ -338,7 +360,7 @@ static THD_FUNCTION(can_rx, p) {
         case CPT_AnnounceId: {
           if(g_canBridgeMode) {
             if(rxmsg.DLC != 8) {
-              USBSendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_ReportParam);
+              USBSendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_ReportParam,rxmsg.DLC);
               break;
             }
             struct PacketDeviceIdC pkt;
@@ -353,7 +375,7 @@ static THD_FUNCTION(can_rx, p) {
         case CPT_ReadParam: {
           if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
             if(rxmsg.DLC != 1) {
-              CANSendError(CET_UnexpectedPacketSize,CPT_ReadParam);
+              CANSendError(CET_UnexpectedPacketSize,CPT_ReadParam,rxmsg.DLC);
               break;
             }
             enum ComsParameterIndexT index = (enum ComsParameterIndexT) rxmsg.data8[0];
@@ -363,7 +385,7 @@ static THD_FUNCTION(can_rx, p) {
         case CPT_SetParam: {
           if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
             if(rxmsg.DLC < 1) {
-              CANSendError(CET_UnexpectedPacketSize,CPT_SetParam);
+              CANSendError(CET_UnexpectedPacketSize,CPT_SetParam,rxmsg.DLC);
               break;
             }
             enum ComsParameterIndexT index = (enum ComsParameterIndexT) rxmsg.data8[0];
@@ -372,7 +394,7 @@ static THD_FUNCTION(can_rx, p) {
             if(len > 7) len = 7;
             memcpy(dataBuff.uint8,&rxmsg.data8[1],len);
             if(!SetParam(index,&dataBuff,len)) {
-              CANSendError(CET_ParameterOutOfRange,index);
+              CANSendError(CET_ParameterOutOfRange,CPT_SetParam,index);
             }
           }
 #if 0
@@ -391,7 +413,7 @@ static THD_FUNCTION(can_rx, p) {
         } break;
         case CPT_SetDeviceId: {
           if(rxmsg.DLC != 8) {
-            CANSendError(CET_UnexpectedPacketSize,CPT_SetDeviceId);
+            CANSendError(CET_UnexpectedPacketSize,CPT_SetDeviceId,rxmsg.DLC);
             break;
           }
           // Check if we're the targeted node.
@@ -405,7 +427,7 @@ static THD_FUNCTION(can_rx, p) {
         /* no break */
         case CPT_QueryDevices: {
           if(rxmsg.DLC != 0) {
-            CANSendError(CET_UnexpectedPacketSize,CPT_QueryDevices);
+            CANSendError(CET_UnexpectedPacketSize,CPT_QueryDevices,rxmsg.DLC);
             break;
           }
           CANTxFrame txmsg;
@@ -416,7 +438,7 @@ static THD_FUNCTION(can_rx, p) {
           txmsg.data32[1] = g_nodeUId[1];
           if(canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, 100) != MSG_OK) {
             if(g_canBridgeMode) {
-              USBSendError(rxDeviceId,CET_CANTransmitFailed,CPT_QueryDevices);
+              USBSendError(rxDeviceId,CET_CANTransmitFailed,CPT_QueryDevices,0);
             }
           }
         } break;
@@ -428,7 +450,7 @@ static THD_FUNCTION(can_rx, p) {
           }
           if(g_canBridgeMode) {
             if(rxmsg.DLC != 5) {
-              USBSendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_ServoReport);
+              USBSendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_ServoReport,rxmsg.DLC);
               break;
             }
             struct PacketServoReportC pkt;
@@ -443,7 +465,7 @@ static THD_FUNCTION(can_rx, p) {
         case CPT_Servo: {
           if(rxDeviceId == g_deviceId && rxDeviceId != 0) {
             if(rxmsg.DLC != 5) {
-              USBSendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_Servo);
+              USBSendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_Servo,rxmsg.DLC);
               break;
             }
             uint16_t position = rxmsg.data16[0];
@@ -460,6 +482,11 @@ static THD_FUNCTION(can_rx, p) {
         case CPT_LoadSetup: {
           if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
             enum FaultCodeT ret = LoadSetup();
+          }
+        } break;
+        case CPT_CalZero: {
+          if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
+            MotionCalZero();
           }
         } break;
       }

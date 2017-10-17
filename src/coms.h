@@ -38,7 +38,7 @@ extern "C" {
 
   bool USBReadParamAndReply(enum ComsParameterIndexT paramIndex);
 
-  void USBSendError(uint8_t deviceId,enum ComsErrorTypeT code,uint8_t data);
+  void USBSendError(uint8_t deviceId,enum ComsErrorTypeT code,uint8_t originalPacketType,uint8_t data);
 
   /* Broadcast new parameter value.
    * This will send the update message over the appropriate channels, and will likely broadcast

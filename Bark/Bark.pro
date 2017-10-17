@@ -7,9 +7,13 @@
 QT       += core gui
 
 CONFIG += c++11
+CONFIG += link_pkgconfig
+
 QMAKE_CXXFLAGS += -std=c++11
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+
+PKGCONFIG += jsoncpp
 
 TARGET = Bark
 TEMPLATE = app

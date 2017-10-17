@@ -22,6 +22,87 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(this,SIGNAL(setOtherJoint(int)),ui->spinOtherJointId,SLOT(setValue(int)));
   connect(this,SIGNAL(setPositionRef(const QString &)),ui->comboBoxPositionRef,SLOT(setCurrentText(const QString &)));
   connect(this,SIGNAL(setIndicator(bool)),ui->checkBoxIndicator,SLOT(setChecked(bool)));
+
+
+  connect(this,SIGNAL(setOtherJointGain(double)),ui->doubleSpinBoxJointRelGain,SLOT(setValue(double)));
+  connect(this,SIGNAL(setOtherJointOffset(double)),ui->doubleSpinBoxJointRelOffset,SLOT(setValue(double)));
+
+  startTimer(10);
+}
+
+void MainWindow::on_checkBoxBounce_clicked(bool checked)
+{
+    EnableBounce(checked);
+}
+
+void MainWindow::EnableBounce(bool state)
+{
+  m_startBounce = std::chrono::steady_clock::now();
+  m_bounceRunning = state;
+}
+
+void MainWindow::timerEvent(QTimerEvent *event)
+{
+  //std::cout << "Setting " << m_servoAngle * 360.0 / (2.0* M_PI) << std::endl;
+  ui->doubleSpinBoxPostion->setValue(m_servoAngle * 360.0 / (2.0* M_PI));
+  ui->doubleSpinBoxTorque_2->setValue(m_servoTorque);
+
+  std::string posRefStr = "unknown";
+  switch(m_servoRef)
+  {
+    case PR_Relative: posRefStr = "Relative"; break;
+    case PR_Absolute: posRefStr = "Absolute"; break;
+    case PR_OtherJointRelative: posRefStr = "Relative Other"; break;
+    case PR_OtherJointAbsolute: posRefStr = "Absolute Other"; break;
+  }
+  ui->labelCalState->setText(posRefStr.c_str());
+
+  if(!m_bounceRunning)
+    return ;
+
+  auto now = std::chrono::steady_clock::now();
+
+  std::chrono::duration<double> diff = now-m_startBounce;
+
+  float phase = diff.count() * m_omega;
+  float height = sin(phase) * m_bounceRange + m_bounceOffset;
+
+  float position[3] = { 0,0,0 };
+  float angles[3] = { 0,0,0 };
+  position[2] = height;
+  if(!m_legKinematics.Inverse(position,angles)) {
+    std::cout << "Kinematics failed. \n";
+    return ;
+  }
+
+  std::cout << " Pelvis: " << angles[0] <<  " Hip:" << angles[1] << " Knee:" <<  angles[2] << std::endl;
+
+  m_coms->SendMoveWithEffort(m_hipJointId,angles[1],m_bounceTorque,PR_Absolute);
+  m_coms->SendMoveWithEffort(m_kneeJointId,-angles[2],m_bounceTorque,PR_Absolute);
+  //  int m_hipJointId = 1;
+  //int m_kneeJointId = 2;
+}
+
+
+void MainWindow::on_doubleSpinBoxBounceTorque_valueChanged(double arg1)
+{
+  m_bounceTorque = arg1;
+}
+
+void MainWindow::on_doubleSpinBoxOmega_valueChanged(double arg1)
+{
+  m_omega = arg1;
+}
+
+void MainWindow::on_verticalSliderBounceOffset_valueChanged(int value)
+{
+  m_bounceOffset = 0.2 + (float) value * 0.01;
+}
+
+
+void MainWindow::on_verticalSliderBounceRange_valueChanged(int value)
+{
+  m_bounceRange = (float) value * 0.01;
 }
 
 void MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &displayStr)
@@ -140,6 +221,16 @@ void MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
       emit setIndicator(psp->m_data.uint8[0] > 0);
     }
   } break;
+  case CPI_OtherJointGain:
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      emit setOtherJointGain(psp->m_data.float32[0]);
+    }
+    break;
+  case CPI_OtherJointOffset:
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      emit setOtherJointOffset(psp->m_data.float32[0] * 360.0 / (2.0 * M_PI));
+    }
+    break;
   default:
     break;
   }
@@ -149,7 +240,7 @@ void MainWindow::SetupComs()
 {
   m_coms = std::make_shared<DogBotN::SerialComsC>();
 
-  //m_dogbotAPI.Connect(m_coms);
+  m_dogbotAPI.Connect(m_coms);
 
   m_coms->SetHandler(CPT_PWMState,[this](uint8_t *data,int size) mutable
   {
@@ -257,6 +348,7 @@ void MainWindow::SetupComs()
     std::cout << "Servo " << (int) pkt->m_deviceId << " Position:" << pkt->m_position << " Torque: " << pkt->m_torqueLimit << " State:" << pkt->m_mode << std::endl;
   });
 
+
   m_coms->SetHandler(CPT_ServoReport,[this](uint8_t *data,int size) mutable
   {
     if(size != sizeof(struct PacketServoReportC)) {
@@ -264,7 +356,13 @@ void MainWindow::SetupComs()
       return;
     }
     const PacketServoReportC *pkt = (const PacketServoReportC *) data;
-  //    std::cout << "ServoReport " << (int) pkt->m_deviceId << ((pkt->m_mode & 1) ? " Abs " : " Rel ") << " Position:" << pkt->m_position << " Torque: " << pkt->m_torque  << " State:" << (int) pkt->m_mode << std::endl;
+    if(pkt->m_deviceId == m_targetDeviceId) {
+      m_servoAngle = m_coms->PositionReport2Angle(pkt->m_position);
+      m_servoTorque = m_coms->TorqueReport2Value(pkt->m_torque);
+      m_servoRef = (enum PositionReferenceT) (pkt->m_mode & 0x3);
+    }
+
+    //std::cout << "ServoReport " << (int) pkt->m_deviceId << ((pkt->m_mode & 1) ? " Abs " : " Rel ") << " Position:" << pkt->m_position << " Torque: " << pkt->m_torque  << " State:" << (int) pkt->m_mode << std::endl;
   });
 
   m_coms->SetHandler(CPT_Error,[this](uint8_t *data,int size) mutable
@@ -274,7 +372,7 @@ void MainWindow::SetupComs()
       return;
     }
     const PacketErrorC *pkt = (const PacketErrorC *) data;
-    std::cout << "Device: " << (int) pkt->m_deviceId << " Error:" << (int) pkt->m_errorCode << "  Data:" << (int)  pkt->m_errorData << " \n";
+    std::cout << "Device: " << (int) pkt->m_deviceId << " Error:" << (int) pkt->m_errorCode << "  Data:" << (int)  pkt->m_causeType << " " << (int)  pkt->m_errorData << " " << std::endl;
   });
 
 }
@@ -296,6 +394,8 @@ void MainWindow::QueryAll()
   m_coms->SendQueryParam(m_targetDeviceId,CPI_PositionRef);
   m_coms->SendQueryParam(m_targetDeviceId,CPI_OtherJoint);
   m_coms->SendQueryParam(m_targetDeviceId,CPI_Indicator);
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_OtherJointOffset);
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_OtherJointGain);
 }
 
 void MainWindow::on_pushButtonConnect_clicked()
@@ -565,4 +665,20 @@ void MainWindow::on_comboBoxPositionRef_activated(const QString &arg1)
 void MainWindow::on_pushButton_2_clicked()
 {
   m_coms->SendSetParam(m_targetDeviceId,CPI_DebugIndex,(uint8_t) 7);
+}
+
+void MainWindow::on_pushButtonCalZero_clicked()
+{
+  std::cout << "Sending cal zero. " << std::endl;
+  m_coms->SendCalZero(m_targetDeviceId);
+}
+
+void MainWindow::on_doubleSpinBoxJointRelGain_valueChanged(double arg1)
+{
+   m_coms->SendSetParam(m_targetDeviceId,CPI_OtherJointGain,(float) arg1);
+}
+
+void MainWindow::on_doubleSpinBoxJointRelOffset_valueChanged(double arg1)
+{
+  m_coms->SendSetParam(m_targetDeviceId,CPI_OtherJointOffset,(float) (arg1 * M_PI * 2.0 / 360.0f));
 }

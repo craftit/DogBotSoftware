@@ -2,9 +2,11 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <chrono>
 
 #include "../API/include/dogbot/SerialComs.hh"
-//#include "../API/include/dogbot/DogBotAPI.hh"
+#include "../API/include/dogbot/DogBotAPI.hh"
+#include "../API/include/dogbot/LegKinematics.hh"
 
 namespace Ui {
 class MainWindow;
@@ -17,6 +19,9 @@ class MainWindow : public QMainWindow
 public:
   explicit MainWindow(QWidget *parent = 0);
   ~MainWindow();
+
+protected:
+  void timerEvent(QTimerEvent *event) override;
 
 private slots:
   void on_pushButtonConnect_clicked();
@@ -84,6 +89,22 @@ private slots:
 
   void on_pushButton_2_clicked();
 
+  void on_checkBoxBounce_clicked(bool checked);
+
+  void on_verticalSliderBounceOffset_valueChanged(int value);
+
+  void on_verticalSliderBounceRange_valueChanged(int value);
+
+  void on_doubleSpinBoxOmega_valueChanged(double arg1);
+
+  void on_doubleSpinBoxBounceTorque_valueChanged(double arg1);
+
+  void on_pushButtonCalZero_clicked();
+
+  void on_doubleSpinBoxJointRelGain_valueChanged(double arg1);
+
+  void on_doubleSpinBoxJointRelOffset_valueChanged(double arg1);
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);
@@ -94,6 +115,8 @@ signals:
   void setOtherJoint(int jointId);
   void setPositionRef(const QString &str);
   void setIndicator(bool state);
+  void setOtherJointGain(double gain);
+  void setOtherJointOffset(double offset);
 
 private:
   void SetupComs();
@@ -102,9 +125,11 @@ private:
 
   void ProcessParam(struct PacketParam8ByteC *psp, std::string &displayStr);
 
+  void EnableBounce(bool state);
+
   Ui::MainWindow *ui;
   std::shared_ptr<DogBotN::SerialComsC> m_coms;
-  //DogBotN::DogBotAPIC m_dogbotAPI;
+  DogBotN::DogBotAPIC m_dogbotAPI;
   bool m_PWMReportRequested = false;
 
   std::vector<PacketDeviceIdC> m_devices;
@@ -113,6 +138,20 @@ private:
   std::shared_ptr<std::ostream> m_logStrm;
   int m_targetDeviceId = 0;
   enum PositionReferenceT g_positionReference = PR_Relative;
+
+  bool m_bounceRunning = false;
+  std::chrono::time_point<std::chrono::steady_clock> m_startBounce;
+  float m_omega = M_PI ;
+  float m_bounceOffset = 0.4;
+  float m_bounceRange = 0.3;
+  float m_bounceTorque = 2.0;
+  int m_hipJointId = 1;
+  int m_kneeJointId = 2;
+  DogBotN::LegKinematicsC m_legKinematics;
+
+  float m_servoAngle = 0;
+  float m_servoTorque = 0;
+  enum PositionReferenceT m_servoRef = PR_Relative;
 };
 
 #endif // MAINWINDOW_H

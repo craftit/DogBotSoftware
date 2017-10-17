@@ -57,6 +57,12 @@ namespace DogBotN {
     void SendSetParam(int deviceId,ComsParameterIndexT param,uint8_t value);
 
     //! Set a parameter
+    void SendSetParam(int deviceId,ComsParameterIndexT param,int value);
+
+    //! Set a parameter
+    void SendSetParam(int deviceId,ComsParameterIndexT param,float value);
+
+    //! Set a parameter
     void SendSetParam(int deviceId,ComsParameterIndexT param,BufferTypeT &buff,int len);
 
     //! Query a parameter
@@ -71,12 +77,24 @@ namespace DogBotN {
     //! Send a ping
     void SendPing(int deviceId);
 
+    //! Send a calibration zero
+    void SendCalZero(int deviceId);
+
     //! Set the handler for a particular type of packet.
     //! Returns the id of the handler or -1 if failed.
     int SetHandler(ComsPacketTypeT packetType,const std::function<void (uint8_t *data,int )> &handler);
 
     //! Delete given handler
     void DeleteHandler(ComsPacketTypeT packetType,int id);
+
+    //! Convert a report value to an angle in radians
+    static float PositionReport2Angle(int16_t val)
+    { return val * M_PI * 4.0/ 65535.0; }
+
+    //! Convert a report value to a torque
+    static float TorqueReport2Value(int16_t val)
+    { return val * 10.0/ 65535.0; }
+
 
     volatile bool m_terminate = false;
     int m_state = 0;

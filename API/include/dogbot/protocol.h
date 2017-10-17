@@ -22,7 +22,8 @@ extern "C" {
     CPT_AnnounceId   = 12, // Query connected devices
     CPT_SetDeviceId  = 13, // Set device id
     CPT_SaveSetup    = 14, // Save setup to eeprom
-    CPT_LoadSetup    = 15  // Load setup from eeprom
+    CPT_LoadSetup    = 15, // Load setup from eeprom
+    CPT_CalZero      = 16  // Set current position as calibrated zero.
   };
 
 
@@ -164,6 +165,7 @@ extern "C" {
     uint8_t m_packetType;
     uint8_t m_deviceId;
     uint8_t m_errorCode;
+    uint8_t m_causeType;
     uint8_t m_errorData;
   } __attribute__((packed));
 
@@ -235,6 +237,10 @@ extern "C" {
     uint32_t m_uid[2];
   } __attribute__((packed)) ;
 
+  struct PacketCalZeroC {
+    uint8_t m_packetType; // CPT_CalZero
+    uint8_t m_deviceId;
+  } __attribute__((packed));
 
 #ifdef __cplusplus
 }

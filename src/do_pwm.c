@@ -346,11 +346,12 @@ static void MotorControlLoop(void) {
             TIM_1_8_PERIOD_CLOCKS/2,
             TIM_1_8_PERIOD_CLOCKS/2
             );
+        g_torqueAverage = 0;
         break;
       case CM_Fault:
       case CM_Final:
       case CM_Break:
-        // Just turn everything off, this will passively break the motor
+        // Just turn everything off, this should passively break the motor
         PWMUpdateDrivePhase(
             TIM_1_8_PERIOD_CLOCKS/2,
             TIM_1_8_PERIOD_CLOCKS/2,

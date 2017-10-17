@@ -7,7 +7,7 @@
 #include "storedconf.h"
 
 float g_angleOffset = 0;      // Offset from phase position to actuator position.
-float g_actuatorRatio = 21.0; // Gear ratio
+float g_actuatorRatio = 7.0 * 21.0; // Gear ratio
 
 float g_endStopMin = 0;    // Minimum angle
 float g_endStopMax = M_PI*2; // Maximum angle
@@ -92,25 +92,29 @@ float g_otherPhaseOffset = 0;
 
 static float DemandToPhasePosition(int16_t position)
 {
-  return (((float) position) * 7.0 * g_actuatorRatio * M_PI * 4.0/ 65535.0);
+  return (((float) position) * g_actuatorRatio * M_PI * 4.0/ 65535.0);
 }
 
 static int16_t PhasePositionToDemand(float angle)
 {
-  return (angle * 65535.0) / (7.0 * g_actuatorRatio * M_PI * 4.0);
+  return (angle * 65535.0) / (g_actuatorRatio * M_PI * 4.0);
 }
 
 bool UpdateRequestedPosition()
 {
   float posf = DemandToPhasePosition(g_requestedJointPosition);
 
-  if((g_motionPositionReference & 0x1) != 0) { // Calibrated position ?
+  if((g_requestedJointMode & 0x1) != 0) { // Calibrated position ?
     if(g_motionCalibration != MC_Calibrated)
       return false;
     g_demandPhasePosition += g_angleOffset;
   }
 
   if((g_motionPositionReference & 0x2) != 0) { // relative position ?
+    // If we want a calibrated position and the other joint is uncalibrated then
+    if((g_otherJointMode & 0x1) == 0 && (g_motionPositionReference & 0x1) != 0) {
+      return false;
+    }
     g_otherPhaseOffset =  DemandToPhasePosition(g_otherJointPosition) * g_relativePositionGain + g_relativePositionOffset;
     posf += g_otherPhaseOffset;
   }
@@ -174,6 +178,15 @@ void CalibrationCheckFailed() {
   g_motionCalibration = MC_Uncalibrated;
   FaultDetected(FC_PositionLost);
   SendParamUpdate(CPI_PositionCal);
+}
+
+bool MotionCalZero()
+{
+  g_angleOffset = g_currentPhasePosition;
+  g_motionCalibration = MC_Calibrated;
+  SendParamUpdate(CPI_CalibrationOffset);
+  SendParamUpdate(CPI_PositionCal);
+  return true;
 }
 
 void MotionStep()

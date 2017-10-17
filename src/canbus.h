@@ -15,6 +15,10 @@ bool CANPing(
     uint8_t deviceId
     );
 
+bool CANSendCalZero(
+    uint8_t deviceId
+    );
+
 bool CANSendServo(
     uint8_t deviceId,
     int16_t position,
@@ -50,7 +54,8 @@ bool CANSendQueryDevices(void);
 
 bool CANSendError(
     uint16_t errorCode,
-    uint16_t data
+    uint8_t causeType,
+    uint8_t data
     );
 
 bool CANSendSetDevice(
@@ -58,6 +63,7 @@ bool CANSendSetDevice(
     uint32_t uid0,
     uint32_t uid1
     );
+
 
 extern uint32_t g_nodeUId[2];
 
