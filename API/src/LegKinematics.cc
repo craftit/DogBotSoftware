@@ -50,7 +50,12 @@ namespace DogBotN {
     if(ac2 < -1 || ac2 > 1)
       return false;
 
-    angles[2] = M_PI - acos(ac2);
+    float kneeTarget = M_PI - acos(ac2);
+
+    float servoAngle = 0;
+    if(!Linkage4BarBack(kneeTarget,servoAngle))
+      return false;
+    angles[2] = servoAngle;
 
     return true;
   }
@@ -58,18 +63,49 @@ namespace DogBotN {
   //! Forward kinematics for the leg.
   bool LegKinematicsC::Forward(const float (&angles)[3],float (&at)[3]) const
   {
-    float y = m_l1 * sin(angles[1]) + m_l2 * sin(angles[1] + angles[2]);
-    float z = m_l1 * cos(angles[1]) + m_l2 * cos(angles[1] + angles[2]);
+    float kneeAngle = Linkage4BarForward(angles[2]);
+
+    float y = m_l1 * sin(angles[1]) + m_l2 * sin(angles[1] + kneeAngle);
+    float z = m_l1 * cos(angles[1]) + m_l2 * cos(angles[1] + kneeAngle);
 
     float xr = 0;
     at[0] = cos(angles[0]) * xr + sin(angles[0]) * (m_zoff + z);
     at[1] = y;
     at[2] = sin(angles[0]) * xr + cos(angles[0]) * (m_zoff + z);
 
-    //RavlDebug("Len:%f ",Sqrt(Sqr(at[1]) + Sqr(at[2])));
-
     return true;
   }
+
+  //! 4 bar linkage angle backward,
+  // Returns true if angle exists.
+  bool LegKinematicsC::Linkage4BarBack(float angleIn,float &ret) const
+  {
+    return Linkage4Bar(angleIn,m_linkB,m_linkA,m_l1,m_linkH,ret);
+  }
+
+
+  float LegKinematicsC::Linkage4BarForward(float angleIn) const
+  {
+    float ret;
+    Linkage4Bar(angleIn,m_linkA,m_linkB,m_l1,m_linkH,ret);
+    return ret;
+  }
+
+  bool LegKinematicsC::Linkage4Bar(float angleIn,float a,float b,float g,float h,float &result) const
+  {
+
+    float At = 2 * b * g - 2 * a * b * cos(angleIn);
+    float Bt = -2 * a * b * sin(angleIn);
+    float Ct = a*a + b * b + g * g -h * h - 2 * a * g * cos(angleIn);
+
+    float delta = atan(Bt/At);
+    float cosAngle = -Ct / sqrt(At * At + Bt * Bt);
+    if(cosAngle > 1.0 || cosAngle < -1.0)
+      return false;
+    result = delta + acos(cosAngle);
+    return true;
+  }
+
 
 }
 
