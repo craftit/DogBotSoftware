@@ -1,6 +1,7 @@
 
 #include "dogbot/LegKinematics.hh"
 #include <math.h>
+#include <assert.h>
 
 namespace DogBotN {
 
@@ -80,20 +81,23 @@ namespace DogBotN {
   // Returns true if angle exists.
   bool LegKinematicsC::Linkage4BarBack(float angleIn,float &ret) const
   {
-    return Linkage4Bar(angleIn,m_linkB,m_linkA,m_l1,m_linkH,ret);
+    float val = 0;
+    if(!Linkage4Bar(M_PI - angleIn,m_linkB,m_linkA,m_l1,m_linkH,val))
+      return false;
+    ret = M_PI - val;
+    return true;
   }
-
 
   float LegKinematicsC::Linkage4BarForward(float angleIn) const
   {
-    float ret;
-    Linkage4Bar(angleIn,m_linkA,m_linkB,m_l1,m_linkH,ret);
+    float ret = 0;
+    bool ok = Linkage4Bar(angleIn,m_linkA,m_linkB,m_l1,m_linkH,ret);
+    //assert(ok);
     return ret;
   }
 
   bool LegKinematicsC::Linkage4Bar(float angleIn,float a,float b,float g,float h,float &result) const
   {
-
     float At = 2 * b * g - 2 * a * b * cos(angleIn);
     float Bt = -2 * a * b * sin(angleIn);
     float Ct = a*a + b * b + g * g -h * h - 2 * a * g * cos(angleIn);
