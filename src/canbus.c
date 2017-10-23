@@ -61,6 +61,32 @@ bool CANPing(
   return true;
 }
 
+bool CANSendStoredSetup(
+    uint8_t deviceId,
+    enum ComsPacketTypeT pktType // Must be either CPT_SaveSetup or CPT_LoadSetup
+)
+{
+  switch(pktType)
+  {
+    case CPT_SaveSetup:
+    case CPT_LoadSetup:
+      break;
+    default:
+      return false;
+  }
+  CANTxFrame txmsg;
+  CANSetAddress(&txmsg,deviceId,pktType);
+  txmsg.RTR = CAN_RTR_DATA;
+  txmsg.DLC = 0;
+  if(canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, 100) != MSG_OK) {
+    //USBSendError(CET_CANTransmitFailed,m_data[0]);
+    return false;
+  }
+
+  return true;
+}
+
+
 bool CANSendCalZero(
     uint8_t deviceId
     )
@@ -465,7 +491,7 @@ static THD_FUNCTION(can_rx, p) {
         case CPT_Servo: {
           if(rxDeviceId == g_deviceId && rxDeviceId != 0) {
             if(rxmsg.DLC != 5) {
-              USBSendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_Servo,rxmsg.DLC);
+              CANSendError(CET_UnexpectedPacketSize,CPT_Servo,rxmsg.DLC);
               break;
             }
             uint16_t position = rxmsg.data16[0];
@@ -477,16 +503,25 @@ static THD_FUNCTION(can_rx, p) {
         case CPT_SaveSetup: {
           if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
             enum FaultCodeT ret = SaveSetup();
+            if(ret != FC_Ok) {
+              CANSendError(CET_InternalError,CPT_SaveSetup,ret);
+            }
           }
         } break;
         case CPT_LoadSetup: {
           if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
             enum FaultCodeT ret = LoadSetup();
+            if(ret != FC_Ok) {
+              CANSendError(CET_InternalError,CPT_LoadSetup,ret);
+            }
           }
         } break;
         case CPT_CalZero: {
           if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
-            MotionCalZero();
+            if(!MotionCalZero()) {
+              CANSendError(CET_MotorNotRunning,CPT_CalZero,0);
+            }
+
           }
         } break;
       }

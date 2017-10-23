@@ -64,6 +64,11 @@ bool CANSendSetDevice(
     uint32_t uid1
     );
 
+bool CANSendStoredSetup(
+    uint8_t deviceId,
+    enum ComsPacketTypeT pktType // Must be either CPT_SaveSetup or CPT_LoadSetup
+);
+
 
 extern uint32_t g_nodeUId[2];
 

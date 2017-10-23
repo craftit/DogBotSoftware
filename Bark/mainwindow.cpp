@@ -18,7 +18,7 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(this,SIGNAL(setControlState(const QString &)),ui->lineEditContrlolState,SLOT(setText(const QString &)));
   connect(this,SIGNAL(setControlMode(const QString &)),ui->comboBoxMotorControlMode,SLOT(setCurrentText(const QString &)));
   connect(this,SIGNAL(setFault(const QString &)),ui->lineEditFault,SLOT(setText(const QString &)));
-  connect(this,SIGNAL(setCalibrationAngle(const QString &)),ui->lineEditCalibration,SLOT(setText(const QString &)));
+  connect(this,SIGNAL(setCalibrationAngle(double)),ui->doubleSpinBoxCalibrationOffset,SLOT(setValue(double)));
   connect(this,SIGNAL(setOtherJoint(int)),ui->spinOtherJointId,SLOT(setValue(int)));
   connect(this,SIGNAL(setPositionRef(const QString &)),ui->comboBoxPositionRef,SLOT(setCurrentText(const QString &)));
   connect(this,SIGNAL(setIndicator(bool)),ui->checkBoxIndicator,SLOT(setChecked(bool)));
@@ -26,6 +26,10 @@ MainWindow::MainWindow(QWidget *parent) :
 
   connect(this,SIGNAL(setOtherJointGain(double)),ui->doubleSpinBoxJointRelGain,SLOT(setValue(double)));
   connect(this,SIGNAL(setOtherJointOffset(double)),ui->doubleSpinBoxJointRelOffset,SLOT(setValue(double)));
+
+  connect(this,SIGNAL(setSupplyVoltage(QString)),ui->label_SupplyVoltage,SLOT(setText(QString)));
+  connect(this,SIGNAL(setDriveTemperature(QString)),ui->label_DriverTemperature,SLOT(setText(QString)));
+
 
   startTimer(10);
 }
@@ -77,7 +81,7 @@ void MainWindow::timerEvent(QTimerEvent *event)
 
   std::cout << " Pelvis: " << angles[0] <<  " Hip:" << angles[1] << " Knee:" <<  angles[2] << std::endl;
 
-  m_coms->SendMoveWithEffort(m_hipJointId,angles[1],m_bounceTorque,PR_Absolute);
+  m_coms->SendMoveWithEffort(m_hipJointId,m_reverseHip ? -angles[1] : angles[1],m_bounceTorque,PR_Absolute);
   m_coms->SendMoveWithEffort(m_kneeJointId,-angles[2],m_bounceTorque,PR_Absolute);
   //  int m_hipJointId = 1;
   //int m_kneeJointId = 2;
@@ -96,26 +100,37 @@ void MainWindow::on_doubleSpinBoxOmega_valueChanged(double arg1)
 
 void MainWindow::on_verticalSliderBounceOffset_valueChanged(int value)
 {
-  m_bounceOffset = 0.2 + (float) value * 0.01;
+  m_bounceOffset = 0.3 + (float) value * 0.01;
 }
 
 
 void MainWindow::on_verticalSliderBounceRange_valueChanged(int value)
 {
-  m_bounceRange = (float) value * 0.01;
+  m_bounceRange = (float) value * 0.002;
 }
 
-void MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &displayStr)
+bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &displayStr)
 {
   char buff[64];
+  bool ret = true;
 
   switch ((enum ComsParameterIndexT) psp->m_header.m_index) {
   case CPI_DriveTemp: {
-    sprintf(buff,"\n Drive temp:%f ",((float) psp->m_data.float32[0]));
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      sprintf(buff,"%3.1f",((float) psp->m_data.float32[0]));
+      emit setDriveTemperature(buff);
+    }
+    ret = false;
+    sprintf(buff,"\n Drive temp:%3.1f ",((float) psp->m_data.float32[0]));
     displayStr += buff;
   } break;
   case CPI_VSUPPLY: {
-    sprintf(buff,"\n Supply Voltage:%f ",((float) psp->m_data.uint16[0] / 1000.0f));
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      sprintf(buff,"%2.1f",((float) psp->m_data.uint16[0] / 1000.0f));
+      emit setSupplyVoltage(buff);
+    }
+    ret = false;
+    sprintf(buff,"\n Supply Voltage:%2.1f ",((float) psp->m_data.uint16[0] / 1000.0f));
     displayStr += buff;
   } break;
   case CPI_PositionCal: {
@@ -132,10 +147,11 @@ void MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     }
   } break;
   case CPI_CalibrationOffset: {
-    sprintf(buff,"%f",(psp->m_data.float32[0] * 360.0f / (M_PI * 2.0)));
+    float calAngleDeg =  (psp->m_data.float32[0] * 360.0f / (M_PI * 2.0));
+    sprintf(buff,"%f",calAngleDeg);
     displayStr += buff;
     if(psp->m_header.m_deviceId == m_targetDeviceId) {
-      emit setCalibrationAngle(buff);
+      emit setCalibrationAngle(calAngleDeg);
     }
   } break;
   case CPI_ControlState: {
@@ -234,6 +250,8 @@ void MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
   default:
     break;
   }
+
+  return ret;
 }
 
 void MainWindow::SetupComs()
@@ -305,9 +323,10 @@ void MainWindow::SetupComs()
       sprintf(buff,"%02x ",(unsigned) psp->m_data.uint8[i]);
       displayStr += buff;
     }
-    ProcessParam(psp,displayStr);
-    std::cout << "ReportParam: " << displayStr << std::endl;
-    emit setLogText(displayStr.c_str());
+    if(ProcessParam(psp,displayStr)) {
+      std::cout << "ReportParam: " << displayStr << std::endl;
+      emit setLogText(displayStr.c_str());
+    }
   });
 
   m_coms->SetHandler(CPT_AnnounceId,[this](uint8_t *data,int size) mutable
@@ -403,26 +422,16 @@ void MainWindow::on_pushButtonConnect_clicked()
   if(m_coms->Open(ui->lineEditDevice->text().toStdString().c_str())) {
     ui->labelConnectionState->setText("Ok");
     emit setLogText("Connect ok");
-    QueryAll();
 
+    // Put connected device into bridge mode.
+    m_coms->SendSetParam(0,CPI_CANBridgeMode,1);
+
+    QueryAll();
   } else {
     ui->labelConnectionState->setText("Failed");
     emit setLogText("Connect failed");
   }
 }
-
-void MainWindow::on_pushButtonPWM_clicked()
-{
-  m_coms->SendSetParam(m_targetDeviceId,CPI_PWMState,1);
-  emit setLogText("Start PWM clicked");
-}
-
-void MainWindow::on_pushButtonStopPWM_clicked()
-{
-  m_coms->SendSetParam(m_targetDeviceId,CPI_PWMState,0);
-  emit setLogText("Stop PWM clicked");
-}
-
 
 void MainWindow::on_pushButtonPWMReport_clicked()
 {
@@ -470,14 +479,19 @@ void MainWindow::on_comboBoxMotorControlMode_activated(const QString &arg1)
 
 void MainWindow::on_sliderPosition_sliderMoved(int position)
 {
+  // Convert position to radians
   m_position = position * 2.0 * 3.14159265359/ 360.0;
+  std::cout << "Sending move. Pos: " << m_position << " Torque:" << m_torque << " Ref:" << (int) g_positionReference << std::endl << std::flush;
   m_coms->SendMoveWithEffort(m_targetDeviceId,m_position,m_torque,g_positionReference);
+  ui->doubleSpinBoxDemandPosition->setValue(position);
 }
 
 void MainWindow::on_sliderTorque_sliderMoved(int torque)
 {
   m_torque = torque / 10.0;
+  std::cout << "Sending move. Pos: " << m_position << " Torque:" << m_torque << " Ref:" << (int) g_positionReference << std::endl << std::flush;
   m_coms->SendMoveWithEffort(m_targetDeviceId,m_position,m_torque,g_positionReference);
+  ui->doubleSpinBoxTorqueLimit->setValue(m_torque);
 }
 
 void MainWindow::on_pushButtonQueryId_clicked()
@@ -493,11 +507,6 @@ void MainWindow::on_pushButtonGetVersion_clicked()
 void MainWindow::on_pushButtonState_clicked()
 {
   m_coms->SendQueryParam(m_targetDeviceId,CPI_PWMState);
-}
-
-void MainWindow::on_pushButtonSetBridgeMode_clicked()
-{
-  m_coms->SendSetParam(m_targetDeviceId,CPI_CANBridgeMode,1);
 }
 
 void MainWindow::on_pushButtonQueryDevices_clicked()
@@ -641,7 +650,7 @@ void MainWindow::on_comboBox_activated(const QString &arg1)
   if(arg1 == "AbsoluteOther") {
     g_positionReference = PR_OtherJointAbsolute;
   }
-  m_coms->SendMoveWithEffort(m_targetDeviceId,m_position,m_torque,g_positionReference);
+  std::cout << "Changing send positions to " << (int) g_positionReference << std::endl << std::flush;
 }
 
 void MainWindow::on_comboBoxPositionRef_activated(const QString &arg1)
@@ -659,6 +668,7 @@ void MainWindow::on_comboBoxPositionRef_activated(const QString &arg1)
   if(arg1 == "AbsoluteOther") {
     positionReference = PR_OtherJointAbsolute;
   }
+  std::cout << "Changing requested ref to " << (int) positionReference << std::endl  << std::flush;
   m_coms->SendSetParam(m_targetDeviceId,CPI_PositionRef,(uint8_t) positionReference);
 }
 
@@ -681,4 +691,50 @@ void MainWindow::on_doubleSpinBoxJointRelGain_valueChanged(double arg1)
 void MainWindow::on_doubleSpinBoxJointRelOffset_valueChanged(double arg1)
 {
   m_coms->SendSetParam(m_targetDeviceId,CPI_OtherJointOffset,(float) (arg1 * M_PI * 2.0 / 360.0f));
+}
+
+void MainWindow::on_doubleSpinBoxDemandPosition_editingFinished()
+{
+  double demandAngleDeg = ui->doubleSpinBoxDemandPosition->value();
+  double newPosition = (demandAngleDeg * 2.0 * M_PI) / 360.0;
+  m_position = newPosition;
+  std::cout << "Sending move. Pos: " << m_position << " Torque:" << m_torque << " Ref:" << (int) g_positionReference << std::endl << std::flush;
+  m_coms->SendMoveWithEffort(m_targetDeviceId,m_position,m_torque,g_positionReference);
+  ui->sliderPosition->setValue(demandAngleDeg);
+}
+
+void MainWindow::on_doubleSpinBoxTorqueLimit_editingFinished()
+{
+  double newTorqueLimit = ui->doubleSpinBoxTorqueLimit->value();
+  m_torque = newTorqueLimit;
+  std::cout << "Sending move. Pos: " << m_position << " Torque:" << m_torque << " Ref:" << (int) g_positionReference << std::endl  << std::flush;
+  m_coms->SendMoveWithEffort(m_targetDeviceId,m_position,m_torque,g_positionReference);
+  ui->sliderTorque->setValue(newTorqueLimit * 10.0);
+}
+
+void MainWindow::on_doubleSpinBoxDemandPosition_valueChanged(double arg1)
+{
+  std::cout << "DemandPosition: " << arg1 << std::endl;
+}
+
+void MainWindow::on_doubleSpinBoxCalibrationOffset_editingFinished()
+{
+  float calAngleRad =(ui->doubleSpinBoxCalibrationOffset->value() * (M_PI * 2.0) / 360.0f);
+  m_coms->SendSetParam(m_targetDeviceId,CPI_CalibrationOffset,calAngleRad);
+
+}
+
+void MainWindow::on_spinBoxHipJointId_valueChanged(int arg1)
+{
+   m_hipJointId = arg1;
+}
+
+void MainWindow::on_spinBoxKneeJointId_valueChanged(int arg1)
+{
+   m_kneeJointId = arg1;
+}
+
+void MainWindow::on_checkBoxReverseHip_clicked(bool checked)
+{
+  m_reverseHip = checked;
 }
