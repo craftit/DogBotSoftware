@@ -47,8 +47,12 @@ int main() {
     float angle = deg2rad((float) i);
     float out = legKinamtics.Linkage4BarForward(angle);
     float back = 0;
+    float back2 = 0;
     bool ok = legKinamtics.Linkage4BarBack(out,back);
-    std::cout << i << " Fwd:" << rad2deg(out) << " Inv:" << rad2deg(back) << "  (" << ok << ")" << std::endl;
+    legKinamtics.Linkage4BarBack(out,back2,true);
+    float ratio1 = legKinamtics.LinkageSpeedRatio(out,back);
+    float ratio2 = legKinamtics.LinkageSpeedRatio(out,back2);
+    std::cout << i << " Fwd:" << rad2deg(out) << " Inv:" << rad2deg(back) << " (" << ratio1 << ") " << rad2deg(back2) << " (" << ratio2 << ") " << "  [" << ok << "]" << std::endl;
   }
 
   return 0;
