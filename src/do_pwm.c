@@ -320,7 +320,8 @@ static void SetTorque(float torque) {
 
 
 
-static void MotorControlLoop(void) {
+static void MotorControlLoop(void)
+{
 
   int loopCount = 0;
   g_motorControlLoopReady = true;
@@ -466,6 +467,8 @@ static THD_FUNCTION(ThreadPWM, arg) {
 
   // Reset calibration state.
   MotionResetCalibration();
+
+  g_phaseRotationCount = 0; // Reset the rotation count to zero.
 
   // Do main control loop
   MotorControlLoop();

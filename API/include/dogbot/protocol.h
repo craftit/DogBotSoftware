@@ -32,7 +32,8 @@ extern "C" {
     CET_UnexpectedPacketSize = 1,
     CET_ParameterOutOfRange = 2,
     CET_CANTransmitFailed = 3,
-    CET_InternalError = 4
+    CET_InternalError = 4,
+    CET_MotorNotRunning = 5 // Command requires motor to be running. (Like CalZero)
   };
 
   enum FaultCodeT {
@@ -241,6 +242,11 @@ extern "C" {
     uint8_t m_packetType; // CPT_CalZero
     uint8_t m_deviceId;
   } __attribute__((packed));
+
+  struct PacketStoredConfigC {
+    uint8_t m_packetType; // CPT_SaveSetup / CPT_LoadSetup
+    uint8_t m_deviceId;
+  }  __attribute__((packed));
 
 #ifdef __cplusplus
 }

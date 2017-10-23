@@ -26,8 +26,6 @@ protected:
 private slots:
   void on_pushButtonConnect_clicked();
 
-  void on_pushButtonPWM_clicked();
-
   void on_pushButtonPWMReport_clicked();
 
   void on_pushButtonPing_clicked();
@@ -38,15 +36,11 @@ private slots:
 
   void on_sliderTorque_sliderMoved(int torque);
 
-  void on_pushButtonStopPWM_clicked();
-
   void on_pushButtonQueryId_clicked();
 
   void on_pushButtonGetVersion_clicked();
 
   void on_pushButtonState_clicked();
-
-  void on_pushButtonSetBridgeMode_clicked();
 
   void on_pushButtonQueryDevices_clicked();
 
@@ -105,25 +99,41 @@ private slots:
 
   void on_doubleSpinBoxJointRelOffset_valueChanged(double arg1);
 
+  void on_doubleSpinBoxDemandPosition_editingFinished();
+
+  void on_doubleSpinBoxTorqueLimit_editingFinished();
+
+  void on_doubleSpinBoxDemandPosition_valueChanged(double arg1);
+
+  void on_doubleSpinBoxCalibrationOffset_editingFinished();
+
+  void on_spinBoxHipJointId_valueChanged(int arg1);
+
+  void on_spinBoxKneeJointId_valueChanged(int arg1);
+
+  void on_checkBoxReverseHip_clicked(bool checked);
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);
   void setControlMode(const QString &str);
   void setFault(const QString &str);
   void setCalibrationState(int index);
-  void setCalibrationAngle(const QString &str);
+  void setCalibrationAngle(double value);
   void setOtherJoint(int jointId);
   void setPositionRef(const QString &str);
   void setIndicator(bool state);
   void setOtherJointGain(double gain);
   void setOtherJointOffset(double offset);
+  void setSupplyVoltage(QString str);
+  void setDriveTemperature(QString str);
 
 private:
   void SetupComs();
 
   void QueryAll();
 
-  void ProcessParam(struct PacketParam8ByteC *psp, std::string &displayStr);
+  bool ProcessParam(struct PacketParam8ByteC *psp, std::string &displayStr);
 
   void EnableBounce(bool state);
 
@@ -145,8 +155,9 @@ private:
   float m_bounceOffset = 0.4;
   float m_bounceRange = 0.3;
   float m_bounceTorque = 2.0;
-  int m_hipJointId = 1;
-  int m_kneeJointId = 2;
+  int m_hipJointId = 2;
+  int m_kneeJointId = 1;
+  bool m_reverseHip = false;
   DogBotN::LegKinematicsC m_legKinematics;
 
   float m_servoAngle = 0;

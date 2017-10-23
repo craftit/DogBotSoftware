@@ -120,6 +120,9 @@ namespace DogBotN
         m_threadRecieve = std::move(std::thread { [this]{ RunRecieve(); } });
       }
     }
+    // Send some messages to make sure receiver is in sync
+    for(int i =0;i < 3;i++)
+      SendSync();
     return true;
   }
 
@@ -461,6 +464,13 @@ namespace DogBotN
     SendPacket(data,1);
   }
 
+  //! Send a sync message
+  void SerialComsC::SendSync()
+  {
+    uint8_t data[2];
+    data[0] = CPT_Sync;
+    SendPacket(data,1);
+  }
 
   //! Set a device id
   void SerialComsC::SendSetDeviceId(uint8_t deviceId,uint32_t uid0,uint32_t uid1)

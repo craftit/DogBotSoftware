@@ -74,6 +74,9 @@ namespace DogBotN {
     //! Set a device id
     void SendSetDeviceId(uint8_t deviceId,uint32_t uid0,uint32_t uid1);
 
+    //! Send a sync message
+    void SendSync();
+
     //! Send a ping
     void SendPing(int deviceId);
 

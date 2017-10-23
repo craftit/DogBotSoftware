@@ -14,6 +14,19 @@ static float rad2deg(float deg)
   return ((float) deg * 360.0) / (2.0 * M_PI);
 }
 
+
+void DisplayBounceAngles()
+{
+  float m_omega = M_PI ;
+  float m_bounceOffset = 0.4;
+  float m_bounceRange = 0.3;
+  float m_bounceTorque = 2.0;
+  int m_hipJointId = 1;
+  int m_kneeJointId = 2;
+  DogBotN::LegKinematicsC m_legKinematics;
+
+}
+
 int main() {
   DogBotN::LegKinematicsC legKinamtics(0.36,0.31);
 
@@ -42,7 +55,6 @@ int main() {
   }
 
   std::cout <<" 0,0,0 at: "<< pos[0] << " " << pos[1] << " " << pos[2] << " " << std::endl;
-
   for(int i = 0;i < 360;i+=10) {
     float angle = deg2rad((float) i);
     float out = legKinamtics.Linkage4BarForward(angle);

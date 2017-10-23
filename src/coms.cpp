@@ -462,7 +462,8 @@ void SendParamUpdate(enum ComsParameterIndexT paramIndex) {
 //! Process received packet.
 void SerialDecodeC::ProcessPacket()
 {
-  switch(m_data[0])
+  enum ComsPacketTypeT cpt = (enum ComsPacketTypeT) m_data[0];
+  switch(cpt)
   {
   case CPT_Ping: { // Ping.
     if(m_packetLen != sizeof(struct PacketPingPongC)) {
@@ -583,13 +584,30 @@ void SerialDecodeC::ProcessPacket()
       }
     }
   } break;
+  case CPT_LoadSetup:
   case CPT_SaveSetup: { // Save setup from eeprom
-    enum FaultCodeT ret = SaveSetup();
-
-  } break;
-  case CPT_LoadSetup: {  // Load setup from eeprom
-    enum FaultCodeT ret = LoadSetup();
-
+    if(m_packetLen != sizeof(struct PacketStoredConfigC)) {
+      USBSendError(g_deviceId,CET_UnexpectedPacketSize,CPT_SaveSetup,m_packetLen);
+      break;
+    }
+    const struct PacketStoredConfigC *psp = (const struct PacketStoredConfigC *) m_data;
+    if(psp->m_deviceId == g_deviceId || psp->m_deviceId == 0) {
+      enum FaultCodeT ret;
+      // Having to do this suggests there should be a way of refactoring.
+      switch(cpt) {
+      case CPT_SaveSetup: ret = SaveSetup(); break;
+      case CPT_LoadSetup: ret = LoadSetup(); break;
+      default: ret = FC_Internal; break;
+      }
+      if(ret != FC_Ok) {
+        USBSendError(g_deviceId,CET_InternalError,CPT_LoadSetup,ret);
+      }
+    }
+    if((psp->m_deviceId != g_deviceId || psp->m_deviceId == 0) && g_deviceId != 0) {
+      if(!CANSendStoredSetup(psp->m_deviceId,cpt)) {
+        USBSendError(g_deviceId,CET_CANTransmitFailed,CPT_SaveSetup,m_data[0]);
+      }
+    }
   } break;
   case CPT_CalZero: {
     if(m_packetLen != sizeof(struct PacketCalZeroC)) {
@@ -598,7 +616,9 @@ void SerialDecodeC::ProcessPacket()
     }
     struct PacketCalZeroC *psp = (struct PacketCalZeroC *) m_data;
     if(psp->m_deviceId == g_deviceId || psp->m_deviceId == 0) {
-      MotionCalZero();
+      if(!MotionCalZero()) {
+        USBSendError(g_deviceId,CET_MotorNotRunning,CPT_CalZero,0);
+      }
     }
     if((psp->m_deviceId != g_deviceId || psp->m_deviceId == 0) && g_deviceId != 0) {
       if(!CANSendCalZero(psp->m_deviceId)) {

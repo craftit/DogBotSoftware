@@ -200,6 +200,12 @@ bool ChangeControlState(enum ControlStateT newState)
   return true;
 }
 
+void SetBackgroundStateReport()
+{
+  SendParamUpdate(CPI_VSUPPLY);
+  SendParamUpdate(CPI_DriveTemp);
+}
+
 /*
  * Application entry point.
  */
@@ -243,7 +249,7 @@ int main(void) {
 
   chThdCreateStatic(waThreadOrangeLed, sizeof(waThreadOrangeLed), NORMALPRIO, ThreadOrangeLed, NULL);
 
-
+  int cycleCount = 0;
   /* Is button pressed at startup ?  */
   bool doFactoryCal = !palReadPad(GPIOB, GPIOA_PIN2);
 
@@ -275,10 +281,12 @@ int main(void) {
         ChangeControlState(CS_Manual);
         break;
       case CS_FactoryCalibrate:
+        SetBackgroundStateReport();
         faultCode = PWMFactoryCal();
         if(faultCode != FC_Ok) {
           FaultDetected(faultCode);
         }
+        SetBackgroundStateReport();
         ChangeControlState(CS_StartUp);
         break;
       case CS_Standby:
@@ -288,6 +296,7 @@ int main(void) {
           ChangeControlState(CS_StartUp);
           break;
         }
+        SetBackgroundStateReport();
         break;
       case CS_SelfTest:
         break;
@@ -295,6 +304,8 @@ int main(void) {
       case CS_Fault:
       case CS_EmergencyStop:
         chThdSleepMilliseconds(1000);
+
+        SetBackgroundStateReport();
         break;
       case CS_PositionCalibration:
       case CS_Teach:
@@ -310,6 +321,12 @@ int main(void) {
 #endif
         // This runs at 100Hz
         MotionStep();
+
+        // 5Hz
+        if(cycleCount++ > 20) {
+          cycleCount = 0;
+          SetBackgroundStateReport();
+        }
         break;
     }
 

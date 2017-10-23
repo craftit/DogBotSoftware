@@ -88,7 +88,7 @@ uint8_t g_requestedJointMode = 0;
 int16_t g_requestedJointPosition = 0;
 uint8_t g_otherJointMode = 0;
 int16_t g_otherJointPosition = 0;
-float g_otherPhaseOffset = 0;
+float g_otherPhaseOffset = 0; // Last reported position of other joint.
 
 static float DemandToPhasePosition(int16_t position)
 {
@@ -107,11 +107,12 @@ bool UpdateRequestedPosition()
   if((g_requestedJointMode & 0x1) != 0) { // Calibrated position ?
     if(g_motionCalibration != MC_Calibrated)
       return false;
-    g_demandPhasePosition += g_angleOffset;
+    posf += g_angleOffset;
   }
 
   if((g_motionPositionReference & 0x2) != 0) { // relative position ?
     // If we want a calibrated position and the other joint is uncalibrated then
+    // give up.
     if((g_otherJointMode & 0x1) == 0 && (g_motionPositionReference & 0x1) != 0) {
       return false;
     }
@@ -182,8 +183,17 @@ void CalibrationCheckFailed() {
 
 bool MotionCalZero()
 {
+  // Can only calibrate if pwm loop is running and we are updating our position.
+  if(!g_pwmRun)
+    return false;
+
+  // Make sure we don't fly off somewhere.
+  g_requestedJointMode = 0;
+  g_requestedJointPosition = g_currentPhasePosition;
+
   g_angleOffset = g_currentPhasePosition;
   g_motionCalibration = MC_Calibrated;
+
   SendParamUpdate(CPI_CalibrationOffset);
   SendParamUpdate(CPI_PositionCal);
   return true;
