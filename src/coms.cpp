@@ -212,14 +212,15 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
       switch(newCal)
       {
         case MC_Uncalibrated:
-          MotionResetCalibration();
+          MotionResetCalibration(newCal);
           break;
         case MC_Measuring:
-          g_motionCalibration = MC_Measuring;
+          MotionResetCalibration(MC_Measuring);
           break;
         case MC_Calibrated:
-          // Can't set it into calibrated mode directly at the moment.
-          // Maybe if calibration offset is send with it ?
+          // Let user know it hasn't changed.
+          if(g_motionCalibration  != newCal)
+            SendParamUpdate(CPI_PositionCal);
           return false;
       }
     } break;

@@ -466,7 +466,7 @@ static THD_FUNCTION(ThreadPWM, arg) {
   ShuntCalibration();
 
   // Reset calibration state.
-  MotionResetCalibration();
+  MotionResetCalibration(MC_Measuring);
 
   g_phaseRotationCount = 0; // Reset the rotation count to zero.
 
@@ -621,7 +621,7 @@ int PWMStop()
   }
 
   // Don't claim to be calibrated.
-  MotionResetCalibration();
+  MotionResetCalibration(MC_Uncalibrated);
 
   //palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
   return 0;

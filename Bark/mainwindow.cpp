@@ -106,7 +106,7 @@ void MainWindow::on_verticalSliderBounceOffset_valueChanged(int value)
 
 void MainWindow::on_verticalSliderBounceRange_valueChanged(int value)
 {
-  m_bounceRange = (float) value * 0.002;
+  m_bounceRange = (float) value * 0.01;
 }
 
 bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &displayStr)
@@ -410,7 +410,6 @@ void MainWindow::QueryAll()
   m_coms->SendQueryParam(m_targetDeviceId,CPI_PositionRef);
   m_coms->SendQueryParam(m_targetDeviceId,CPI_PWMMode);
   m_coms->SendQueryParam(m_targetDeviceId,CPI_CalibrationOffset);
-  m_coms->SendQueryParam(m_targetDeviceId,CPI_PositionRef);
   m_coms->SendQueryParam(m_targetDeviceId,CPI_OtherJoint);
   m_coms->SendQueryParam(m_targetDeviceId,CPI_Indicator);
   m_coms->SendQueryParam(m_targetDeviceId,CPI_OtherJointOffset);

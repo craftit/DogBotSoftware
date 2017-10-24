@@ -200,7 +200,7 @@ bool ChangeControlState(enum ControlStateT newState)
   return true;
 }
 
-void SetBackgroundStateReport()
+void SetBackgroundStateReport(void)
 {
   SendParamUpdate(CPI_VSUPPLY);
   SendParamUpdate(CPI_DriveTemp);
@@ -258,6 +258,8 @@ int main(void) {
     {
       case CS_StartUp:
         PWMStop();
+        MotionResetCalibration(MC_Measuring);
+
         g_lastFaultCode = FC_Ok; // Clear any errors
         SendParamUpdate(CPI_FaultCode);
         g_vbus_voltage = ReadSupplyVoltage();
@@ -278,6 +280,7 @@ int main(void) {
           ChangeControlState(CS_FactoryCalibrate);
           break;
         }
+
         ChangeControlState(CS_Manual);
         break;
       case CS_FactoryCalibrate:
