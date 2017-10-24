@@ -961,7 +961,7 @@
          </rect>
         </property>
         <property name="maximum">
-         <number>100</number>
+         <number>10</number>
         </property>
         <property name="orientation">
          <enum>Qt::Vertical</enum>

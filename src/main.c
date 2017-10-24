@@ -258,6 +258,7 @@ int main(void) {
     {
       case CS_StartUp:
         PWMStop();
+        MotionResetCalibration();
         g_lastFaultCode = FC_Ok; // Clear any errors
         SendParamUpdate(CPI_FaultCode);
         g_vbus_voltage = ReadSupplyVoltage();

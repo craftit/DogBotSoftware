@@ -106,7 +106,7 @@ void MainWindow::on_verticalSliderBounceOffset_valueChanged(int value)
 
 void MainWindow::on_verticalSliderBounceRange_valueChanged(int value)
 {
-  m_bounceRange = (float) value * 0.002;
+  m_bounceRange = (float) value * 0.01;
 }
 
 bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &displayStr)

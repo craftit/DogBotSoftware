@@ -7,7 +7,8 @@
 #include "storedconf.h"
 
 float g_angleOffset = 0;      // Offset from phase position to actuator position.
-float g_actuatorRatio = 7.0 * 21.0; // Gear ratio
+float g_motorPhase2RotationRatio = 7.0;
+float g_actuatorRatio = g_motorPhase2RotationRatio * 21.0; // Gear ratio
 
 float g_endStopMin = 0;    // Minimum angle
 float g_endStopMax = M_PI*2; // Maximum angle
@@ -50,6 +51,7 @@ static int EndStopUpdateOffset(bool newState,bool velocityPositive)
 void MotionUpdateEndStop(int num,bool state,float position,float velocity)
 {
   if(g_motionCalibration != MC_Uncalibrated && num == 2) {
+
     int entry = EndStopUpdateOffset(state,velocity > 0);
     if(!g_haveIndexPositionSample[entry]) {
       g_haveIndexPositionSample[entry] = true;
@@ -62,7 +64,9 @@ void MotionUpdateEndStop(int num,bool state,float position,float velocity)
 bool MotionEstimateOffset(float &value)
 {
   int points = 0;
-  float offset = 0;
+
+  float meanS = 0;
+  float meanC = 0;
 
   int off1,off2;
   for(int i = 0;i < 2;i++) {
@@ -74,13 +78,19 @@ bool MotionEstimateOffset(float &value)
       off2 = EndStopUpdateOffset(true,false);
     }
     if(g_haveIndexPositionSample[off1] && g_haveIndexPositionSample[off2]) {
-      offset += (g_measuredIndexPosition[off1] + g_measuredIndexPosition[off2])/2.0;
-      points++;
+
+      float pos1 = g_measuredIndexPosition[off1] / g_actuatorRatio;
+      float pos2 = g_measuredIndexPosition[off2] / g_actuatorRatio;
+      meanS += sin(pos1);
+      meanC += cos(pos1);
+      meanS += sin(pos2);
+      meanC += cos(pos2);
+      points += 2;
     }
   }
-  if(points <= 0)
+  if(points <= 2)
     return false;
-  value = offset / (float) points;
+  value = atan2(meanS,meanC) * g_actuatorRatio;
   return true;
 }
 
@@ -177,7 +187,11 @@ void CalibrationCheckFailed() {
   if(g_motionCalibration == MC_Uncalibrated)
     return ;
   g_motionCalibration = MC_Uncalibrated;
-  FaultDetected(FC_PositionLost);
+  if(g_motionPositionReference == PR_Absolute ||
+      g_motionPositionReference == PR_OtherJointAbsolute) {
+    FaultDetected(FC_PositionLost);
+  }
+  MotionResetCalibration();
   SendParamUpdate(CPI_PositionCal);
 }
 
@@ -224,17 +238,17 @@ void MotionStep()
       // If we're calibrated, we're just going to check all is fine.
       if(g_newCalibrationData) {
         g_newCalibrationData = false;
+        // If this is manual set, this will disagree and cause an error.
 #if 0
         MotionEstimateOffset(g_angleOffset);
         SendParamUpdate(CPI_CalibrationOffset);
 #else
 #if 0
-        float estimate;
-        if(!MotionEstimateOffset(estimate)) {
-          CalibrationCheckFailed();
-        }
-        if(fabs(estimate - g_angleOffset) > (M_PI/2.0)) {
-          CalibrationCheckFailed();
+        float estimate = 0;
+        if(MotionEstimateOffset(estimate)) {
+          if(fabs(estimate - g_angleOffset) > M_PI/2.0) {
+            CalibrationCheckFailed();
+          }
         }
 #endif
 #endif
