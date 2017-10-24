@@ -32,12 +32,14 @@ float g_relativePositionGain = 1.0;
 float g_relativePositionOffset = 0.0;
 
 
-void MotionResetCalibration() {
+void MotionResetCalibration(enum MotionCalibrationT defaultCalibrationState) {
   for(int i = 0;i < g_positionIndexCount;i++) {
     g_haveIndexPositionSample[i] = false;
   }
-  bool changed = g_motionCalibration != MC_Uncalibrated;
-  g_motionCalibration = MC_Uncalibrated;
+
+  bool changed = g_motionCalibration != defaultCalibrationState;
+
+  g_motionCalibration = defaultCalibrationState;
   if(changed) {
     SendParamUpdate(CPI_PositionCal);
   }
@@ -191,7 +193,7 @@ void CalibrationCheckFailed() {
       g_motionPositionReference == PR_OtherJointAbsolute) {
     FaultDetected(FC_PositionLost);
   }
-  MotionResetCalibration();
+  MotionResetCalibration(MC_Uncalibrated);
   SendParamUpdate(CPI_PositionCal);
 }
 

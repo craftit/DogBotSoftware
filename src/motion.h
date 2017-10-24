@@ -10,7 +10,7 @@ extern "C" {
 #endif
   void MotionStep(void);
 
-  void MotionResetCalibration(void);
+  void MotionResetCalibration(enum MotionCalibrationT defaultCalibrationState);
 
   void MotionUpdateEndStop(int num,bool state,float position,float velocity);
 
