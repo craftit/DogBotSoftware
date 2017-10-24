@@ -74,7 +74,7 @@ bool MotionEstimateOffset(float &value)
       off2 = EndStopUpdateOffset(true,false);
     }
     if(g_haveIndexPositionSample[off1] && g_haveIndexPositionSample[off2]) {
-      offset += (g_measuredIndexPosition[off1] + g_absoluteIndexPosition[off2])/2.0;
+      offset += (g_measuredIndexPosition[off1] + g_measuredIndexPosition[off2])/2.0;
       points++;
     }
   }
