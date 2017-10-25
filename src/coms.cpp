@@ -200,6 +200,8 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_VSUPPLY:
     case CPI_DriveTemp:
     case CPI_MotorTemp:
+    case CPI_MotorResistance:
+    case CPI_MotorInductance:
       break;
     case CPI_CalibrationOffset:
       g_angleOffset = dataBuff->float32[0] * g_actuatorRatio;
@@ -273,6 +275,16 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
       break;
     case CPI_DebugIndex:
       g_debugIndex = len;
+      break;
+    case CPI_MotorIGain:
+      if(len != 4)
+        return false;
+      g_motor_i_gain = dataBuff->float32[0];
+      break;
+    case CPI_MotorPGain:
+      if(len != 4)
+        return false;
+      g_motor_p_gain = dataBuff->float32[0];
       break;
     //case CPI_ANGLE_CAL: // 12 Values
     case CPI_ANGLE_CAL_0:
@@ -421,6 +433,22 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
     case CPI_DebugIndex:
       *len = 1;
       data->uint8[0] = g_debugIndex;
+      break;
+    case CPI_MotorResistance:
+      *len = 4;
+      data->float32[0] = g_phaseResistance;
+      break;
+    case CPI_MotorInductance:
+      *len = 4;
+      data->float32[0] = g_phaseInductance;
+      break;
+    case CPI_MotorIGain:
+      *len = 4;
+      data->float32[0] = g_motor_i_gain;
+      break;
+    case CPI_MotorPGain:
+      *len = 4;
+      data->float32[0] = g_motor_p_gain;
       break;
     default:
       return false;

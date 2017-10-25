@@ -285,7 +285,7 @@ int main(void) {
         break;
       case CS_FactoryCalibrate:
         SetBackgroundStateReport();
-        faultCode = PWMFactoryCal();
+        faultCode = PWMMotorCal();
         if(faultCode != FC_Ok) {
           FaultDetected(faultCode);
         }

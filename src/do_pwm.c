@@ -21,8 +21,13 @@
 float g_maxSupplyVoltage = 40.0;
 float g_maxOperatingTemperature = 75.0;
 
+float g_phaseResistance = 0.002;
+float g_phaseOffsetVoltage = 0.1;
+float g_phaseInductance = 1e-9;
+
 #define TIM_1_8_CLOCK_HZ (SYSTEM_CORE_CLOCK/4)
-#define TIM_1_8_PERIOD_CLOCKS (2047)
+#define TIM_1_8_PERIOD_CLOCKS (2047)   // 20 KHz
+//#define TIM_1_8_PERIOD_CLOCKS (4095)  // 10 KHz
 #define CURRENT_MEAS_PERIOD ((float)(TIM_1_8_PERIOD_CLOCKS)/(float)TIM_1_8_CLOCK_HZ)
 
 int g_motorReportSampleRate = 1.0 / (100.0 * CURRENT_MEAS_PERIOD);  //CURRENT_MEAS_PERIOD/100; // The target rate is 100Hz
@@ -50,12 +55,16 @@ volatile bool g_pwmRun = true;
 int g_pwmTimeoutCount = 0 ;
 bool g_pwmFullReport = false;
 bool g_motorControlLoopReady = true;
-bool g_lastLimitState[3];
+bool g_lastLimitState = false;
+
+float g_current_control_integral_d = 0;
+float g_current_control_integral_q = 0;
 
 static THD_WORKING_AREA(waThreadPWM, 512);
 
 void PWMUpdateDrivePhase(int pa,int pb,int pc);
 
+void SetupMotorCurrentPID(void);
 
 int CheckHallInRange(void) {
   // Are sensor readings outside the expected range ?
@@ -83,21 +92,6 @@ static void queue_voltage_timings(float v_alpha, float v_beta) {
   queue_modulation_timings(mod_alpha, mod_beta);
 }
 
-
-static void scan_motor_loop(float omega, float voltage_magnitude) {
-  while (g_pwmRun) {
-    for (float ph = 0.0f; ph < 2.0f * M_PI; ph += omega * CURRENT_MEAS_PERIOD) {
-      chThdSleepMicroseconds(CURRENT_MEAS_PERIOD*1000000);
-      //osSignalWait(M_SIGNAL_PH_CURRENT_MEAS, osWaitForever);
-      float v_alpha = voltage_magnitude * arm_cos_f32(ph);
-      float v_beta  = voltage_magnitude * arm_sin_f32(ph);
-      queue_modulation_timings(v_alpha, v_beta);
-    }
-    if (!palReadPad(GPIOB, GPIOA_PIN2)) {
-      break;
-    }
-  }
-}
 
 
 void ShuntCalibration(void)
@@ -155,16 +149,15 @@ float g_Ierr_q;
 bool g_breakMode = false;
 // The following function is based on that from the ODrive project.
 
-static bool FOC_current(float Id_des, float Iq_des) {
-  //Current_control_t* ictrl = &motor->current_control;
+static bool FOC_current(float phaseAngle,float Id_des, float Iq_des) {
 
   // Clarke transform
   float Ialpha = -g_current[1] - g_current[2];
   float Ibeta = one_by_sqrt3 * (g_current[1] - g_current[2]);
 
   // Park transform
-  float c = arm_cos_f32(g_phaseAngle);
-  float s = arm_sin_f32(g_phaseAngle);
+  float c = arm_cos_f32(phaseAngle);
+  float s = arm_sin_f32(phaseAngle);
   g_Id = c*Ialpha + s*Ibeta;
   g_Iq = c*Ibeta  - s*Ialpha;
 
@@ -172,21 +165,21 @@ static bool FOC_current(float Id_des, float Iq_des) {
   g_Ierr_d = Id_des - g_Id;
   g_Ierr_q = Iq_des - g_Iq;
 
-  static float g_current_control_integral_d = 0;
-  static float g_current_control_integral_q = 0;
   // TODO look into feed forward terms (esp omega, since PI pole maps to RL tau)
   // Apply PI control
 
-  float Vd = g_current_control_integral_d + g_Ierr_d * g_motor_p_gain;
-  float Vq = g_current_control_integral_q + g_Ierr_q * g_motor_p_gain;
+  float Vd = g_current_control_integral_d + g_Ierr_d * g_motor_p_gain + Id_des * g_phaseResistance;
+  float Vq = g_current_control_integral_q + g_Ierr_q * g_motor_p_gain + Iq_des * g_phaseResistance;
 
-  float vfactor = 1.0f / ((2.0f / 3.0f) * g_vbus_voltage);
-  float mod_d = vfactor * Vd;
-  float mod_q = vfactor * Vq;
+  float mod_to_V = (2.0f / 3.0f) * g_vbus_voltage;
+  float V_to_mod = 1.0f / mod_to_V;
+
+  float mod_d = V_to_mod * Vd;
+  float mod_q = V_to_mod * Vq;
 
   // Vector modulation saturation, lock integrator if saturated
   // TODO make maximum modulation configurable
-  float mod_scalefactor = 0.80f * sqrt3_by_2 * 1.0f/mysqrtf(mod_d*mod_d + mod_q*mod_q);
+  float mod_scalefactor = 0.80f * sqrt3_by_2 * 1.0f/sqrtf(mod_d*mod_d + mod_q*mod_q);
   if (mod_scalefactor < 1.0f)
   {
     mod_d *= mod_scalefactor;
@@ -201,26 +194,11 @@ static bool FOC_current(float Id_des, float Iq_des) {
 
   // Compute estimated bus current
   g_current_Ibus = mod_d * g_Id + mod_q * g_Iq;
-#if 0
-  if(g_current_Ibus < 0) {
-    // Breaking...
-    if(!g_breakMode) {
-      g_breakMode = true;
-      SetModeBreak();
-    }
-  } else {
-    if(g_breakMode) {
-      g_breakMode = false;
-      SetModeFOC();
-    }
-  }
-#endif
 
   // Inverse park transform
   float mod_alpha = c*mod_d - s*mod_q;
   float mod_beta  = c*mod_q + s*mod_d;
 
-  // Apply SVM
   queue_modulation_timings(mod_alpha, mod_beta);
 
   return true;
@@ -238,13 +216,35 @@ float g_velocityFilter = 16.0;
 float g_positionGain = 1.0;
 float g_torqueLimit = 5.0;
 float g_torqueAverage = 0.0;
-float g_positionIGain = 0.1;
+float g_positionIGain = 0.0;
 float g_positionIClamp = 5.0;
 float g_positionISum = 0.0;
 float g_Id = 0.0;
 float g_Iq = 0.0;
 
 enum PWMControlModeT g_controlMode = CM_Break;
+
+static void UpdateCurrentMeasurementsFromADCValues(void) {
+  // Compute motor currents;
+  // Make sure they sum to zero
+#if 0
+  float sum = 0;
+  float tmpCurrent[3];
+  for(int i = 0;i < 3;i++) {
+    float c = ((float) g_currentADCValue[i] * g_shuntADCValue2Amps) - g_currentZeroOffset[i];
+    tmpCurrent[i] = c;
+    sum += c;
+  }
+  sum /= 3.0f;
+  for(int i = 0;i < 3;i++) {
+    g_current[i] = tmpCurrent[i] - sum;
+  }
+#else
+  for(int i = 0;i < 3;i++) {
+    g_current[i] = ((float) g_currentADCValue[i] * g_shuntADCValue2Amps) - g_currentZeroOffset[i];
+  }
+#endif
+}
 
 static void ComputeState(void)
 {
@@ -272,20 +272,8 @@ static void ComputeState(void)
   // Velocity estimate, filtered a little.
   g_currentPhaseVelocity = (g_currentPhaseVelocity * (g_velocityFilter-1.0) + angleDiff / CURRENT_MEAS_PERIOD )/g_velocityFilter;
 
-  // Compute motor currents;
-  // Make sure they sum to zero
-  float sum = 0;
-  float tmpCurrent[3];
-  for(int i = 0;i < 3;i++) {
-    float c = ((float) g_currentADCValue[i] * g_shuntADCValue2Amps) - g_currentZeroOffset[i];
-    tmpCurrent[i] = c;
-    sum += c;
-  }
-  sum /= 3.0f;
-  for(int i = 0;i < 3;i++) {
-    g_current[i] = tmpCurrent[i] - sum;
-  }
-
+  // Update currents
+  UpdateCurrentMeasurementsFromADCValues();
 }
 
 static void SetTorque(float torque) {
@@ -298,7 +286,7 @@ static void SetTorque(float torque) {
 
   g_torqueAverage = (g_torqueAverage * 30.0 + torque)/31.0;
 
-  FOC_current(0,-torque);
+  FOC_current(g_phaseAngle,0,-torque);
 #else
 
   float voltage_magnitude = torque;
@@ -365,11 +353,14 @@ static void MotorControlLoop(void)
       }
       /* no break */
       case CM_Position: {
-        float positionError = targetPosition - g_currentPhasePosition;
+        float positionError = (targetPosition - g_currentPhasePosition);
         g_positionISum += positionError * CURRENT_MEAS_PERIOD;
         if(g_positionISum > g_positionIClamp)  g_positionISum = g_positionIClamp;
         if(g_positionISum < -g_positionIClamp) g_positionISum = -g_positionIClamp;
+
+        //
         torque = -positionError * g_positionGain + -g_positionISum * g_positionIGain;
+
         SetTorque(torque);
       } break;
       case CM_Torque: {
@@ -379,22 +370,10 @@ static void MotorControlLoop(void)
 
     // Check limit switches.
     {
-#if 0
-      bool es1 = palReadPad(GPIOC, GPIOC_PIN6);
-      if(es1 != g_lastLimitState[0]) {
-        g_lastLimitState[0] = es1;
-        MotionUpdateEndStop(0,es1,g_currentPhasePosition,g_currentPhaseVelocity);
-      }
-      bool es2 = palReadPad(GPIOC, GPIOC_PIN7);
-      if(es2 != g_lastLimitState[1]) {
-        g_lastLimitState[1] = es2;
-        MotionUpdateEndStop(1,es2,g_currentPhasePosition,g_currentPhaseVelocity);
-      }
-#endif
       bool es3 = palReadPad(GPIOC, GPIOC_PIN8);
-      if(es3 != g_lastLimitState[2]) {
-        g_lastLimitState[2] = es3;
-        MotionUpdateEndStop(2,es3,g_currentPhasePosition,g_currentPhaseVelocity);
+      if(es3 != g_lastLimitState) {
+        g_lastLimitState = es3;
+        MotionUpdateIndex(0,es3,g_currentPhasePosition,g_currentPhaseVelocity);
       }
     }
 
@@ -447,9 +426,7 @@ static THD_FUNCTION(ThreadPWM, arg) {
   }
 
   //! Read initial state of endstop switches
-  g_lastLimitState[0] = palReadPad(GPIOC, GPIOC_PIN6); // Endstop 1
-  g_lastLimitState[1] = palReadPad(GPIOC, GPIOC_PIN7); // Endstop 2
-  g_lastLimitState[2] = palReadPad(GPIOC, GPIOC_PIN8); // Index
+  g_lastLimitState = palReadPad(GPIOC, GPIOC_PIN8); // Index
 
   //! Make sure controller is setup.
   Drv8503Init();
@@ -462,11 +439,14 @@ static THD_FUNCTION(ThreadPWM, arg) {
 
   palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
 
+  // Reset calibration state.
+  MotionResetCalibration(MC_Measuring);
+
   // This is quick, so may as well do it every time.
   ShuntCalibration();
 
-  // Reset calibration state.
-  MotionResetCalibration(MC_Measuring);
+  // Setup motor PID.
+  SetupMotorCurrentPID();
 
   g_phaseRotationCount = 0; // Reset the rotation count to zero.
 
@@ -528,6 +508,10 @@ int InitPWM(void)
 
   rccEnableTIM1(FALSE);
   rccResetTIM1();
+
+  // Make sure integrals are reset.
+  g_current_control_integral_d = 0;
+  g_current_control_integral_q = 0;
 
   stm32_tim_t *tim = (stm32_tim_t *)TIM1_BASE;
 
@@ -729,50 +713,336 @@ enum FaultCodeT PWMSelfTest()
   return FC_Ok;
 }
 
-enum FaultCodeT PWMFactoryCal()
+enum FaultCodeT PWMMotorCalResistance(void);
+enum FaultCodeT PWMMotorCalInductance(void);
+enum FaultCodeT PWMMotorPhaseCal(void);
+
+enum FaultCodeT PWMMotorCal()
 {
+  enum FaultCodeT ret = FC_Ok;
+
+  palSetPad(GPIOC, GPIOC_PIN13); // Wake
+
+  //! Wait for powerup to complete
+  // TODO: Add a timeout and report and error
+  while (!palReadPad(GPIOD, GPIOD_PIN2)) {
+    chThdSleepMilliseconds(100);
+  }
+
+  // Make sure PWM is running.
+  InitPWM();
+
   palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
 
 
+  // Calibrate shunts.
+  ShuntCalibration();
+
+  if((ret = PWMMotorCalResistance()) != FC_Ok) {
+    palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
+    return ret;
+  }
+  SendParamUpdate(CPI_MotorResistance);
+
+  if((ret = PWMMotorCalInductance()) != FC_Ok) {
+    palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
+    return ret;
+  }
+  SendParamUpdate(CPI_MotorInductance);
+
+  // Setup motor controller parameters
+  SetupMotorCurrentPID();
+  SendParamUpdate(CPI_MotorPGain);
+
+  if((ret = PWMMotorPhaseCal()) != FC_Ok) {
+    palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
+    return ret;
+  }
+  palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
+
+  // Restore igain
+
+  SendParamUpdate(CPI_MotorIGain);
+
+  SaveSetup();
+
+  return ret;
+}
+
+void SetupMotorCurrentPID()
+{
+  // Calculate current control gains
+  float current_control_bandwidth = 1000.0f; // [rad/s]
+  g_motor_p_gain = current_control_bandwidth * g_phaseInductance;
+
+#if 0
+  float plant_pole = g_phaseResistance / g_phaseInductance;
+  g_motor_i_gain = plant_pole * g_motor_p_gain;
+#else
+  g_motor_i_gain = 0;
+#endif
+}
+
+static float sqrf(float v)
+{ return v * v; }
+
+enum FaultCodeT PWMMotorCalResistance()
+{
+  enum FaultCodeT ret = FC_Ok;
+  static const float kI = 10.0f; //[(V/s)/A]
+
+  int cyclesPerSecond = 1.0 / (1.0 * CURRENT_MEAS_PERIOD);
+
+  float targetCurrent = 5.0;
+  float maxVoltage = 3.0;
+
+  float testVoltage = 0;
+  float actualCurrent = 0;//targetCurrent;
+
+  g_phaseOffsetVoltage = 0;
+
+#if 1
+  int cyclesSample = 32;
+
+  for(int i = 0;i < cyclesPerSecond * 3;i++) {
+    g_vbus_voltage = ReadSupplyVoltage();
+    if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
+      ret = FC_InternalTiming;
+      break;
+    }
+    // Update in case we're monitoring currents from another thread.
+    UpdateCurrentMeasurementsFromADCValues();
+
+    float Ialpha = -(g_current[1] + g_current[2]);
+    actualCurrent = actualCurrent * 0.99 + 0.01 * Ialpha;
+    testVoltage += (kI * CURRENT_MEAS_PERIOD) * (targetCurrent - Ialpha);
+
+    if (testVoltage > maxVoltage) testVoltage = maxVoltage;
+    if (testVoltage < -maxVoltage) testVoltage = -maxVoltage;
+
+    queue_voltage_timings(testVoltage, 0.0f);
+  }
+
+  if(ret == FC_Ok) {
+    if(testVoltage >= maxVoltage || testVoltage <= -maxVoltage) {
+      ret = FC_MotorResistanceOutOfRange;
+      //return ret;
+    }
+
+    g_phaseResistance = testVoltage / actualCurrent;
+    //g_phaseInductance = off;
+  }
+
+#else
+  const int samples = 4;
+
+  float voltage[samples];
+  float current[samples];
+
+//  g_vbus_voltage = ReadSupplyVoltage();
+  for(int l = 0;l < samples;l++) {
+    targetCurrent = 1.0 + l * 1.0;
+    current[l] = targetCurrent;
+    for(int i = 0;i < cyclesPerSecond * 1;i++) {
+      g_vbus_voltage = ReadSupplyVoltage();
+      if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
+        ret = FC_InternalTiming;
+        break;
+      }
+      UpdateCurrentMeasurementsFromADCValues();
+
+      float Ialpha = -(g_current[1] + g_current[2]);
+      actualCurrent = actualCurrent * 0.99 + 0.01 * Ialpha;
+      testVoltage += (kI * CURRENT_MEAS_PERIOD) * (targetCurrent - Ialpha);
+
+      if (testVoltage > maxVoltage) testVoltage = maxVoltage;
+      if (testVoltage < -maxVoltage) testVoltage = -maxVoltage;
+
+      queue_voltage_timings(testVoltage, 0.0f);
+    }
+    voltage[l] = testVoltage;
+  }
+
+  // De-energize motor
+  queue_voltage_timings(0.0f, 0.0f);
+
+  // x = i;
+  // y = v;
+  // y = a  + r * i
+  float meanV = 0;
+  float meanI = 0;
+  for(int i = 0;i < samples;i++) {
+    meanV += voltage[i];
+    meanI += current[i];
+  }
+  meanV /= samples;
+  meanI /= samples;
+
+  float sumI2 = 0;
+  float sumIV = 0;
+  for(int i = 0;i < samples;i++) {
+    sumI2 += sqrf(current[i] - meanI);
+    sumIV += (current[i] - meanI) * (voltage[i] - meanV);
+  }
+
+  float r = sumIV / sumI2;
+  float off = meanV - r * meanI;
+
+  g_phaseResistance = r;// / targetCurrent;
+  g_phaseOffsetVoltage = off;
+
+  if(testVoltage >= maxVoltage || testVoltage <= -maxVoltage) {
+    ret = FC_MotorResistanceOutOfRange;
+  }
+#endif
+  return ret;
+}
+
+enum FaultCodeT PWMMotorCalInductance()
+{
+  enum FaultCodeT ret = FC_Ok;
+
+  float voltage_low = -1;
+  float voltage_high = 1;
+  float Ialphas[2] = {0.0f,0.0f};
+  static const int num_cycles = 5000;
+
+  for (int t = 0; t < num_cycles; ++t) {
+    for (int i = 0; i < 2; ++i) {
+      if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
+        ret = FC_InternalTiming;
+        break;
+      }
+      UpdateCurrentMeasurementsFromADCValues();
+      Ialphas[i] += -(g_current[1] + g_current[2]);
+
+      // Test voltage along phase A
+      queue_voltage_timings( i != 0 ? (voltage_low - g_phaseOffsetVoltage): (voltage_high+g_phaseOffsetVoltage), 0.0f);
+    }
+  }
+
+  // De-energize motor
+  queue_voltage_timings(0.0f, 0.0f);
+
+  float v_L = 0.5f * (voltage_high - voltage_low);
+  // Note: A more correct formula would also take into account that there is a finite timestep.
+  // However, the discretisation in the current control loop inverts the same discrepancy
+  float dI_by_dt = (Ialphas[1] - Ialphas[0]) / (CURRENT_MEAS_PERIOD * (float)num_cycles);
+  float L = v_L / dI_by_dt;
+
+  g_phaseInductance = L;
+
+  // TODO arbitrary values set for now
+  if (L < 1e-6f || L > 1e-3f) {
+    ret = FC_MotorInducetanceOutOfRange;
+    return ret;
+  }
+
+  return ret;
+}
+
+enum FaultCodeT PWMMotorPhaseCal()
+{
+  enum FaultCodeT ret = FC_Ok;
+
+  // This assumes the motor is powered up, and the current shunts are calibrated.
+
+  // Make sure PWM is running.
   InitPWM();
 
+  palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
 
-  for(int phase = 0;phase < 12*7;phase++) {
+  int phaseRotations = 7;
+  int numberOfReadings = 8;
+
+  int cyclesPerSecond = 1.0 / (1.0 * CURRENT_MEAS_PERIOD);
+
+  float torqueValue = 3.0;
+  float lastAngle = 0;
+
+  g_vbus_voltage = ReadSupplyVoltage();
+
+  // Turn up torque slowly until we're at the initial angle
+
+  for(int i = 0;i < cyclesPerSecond;i++) {
+    if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
+      ret = FC_InternalTiming;
+      break;
+    }
+    UpdateCurrentMeasurementsFromADCValues();
+    float tv = (float) i * torqueValue / (float) cyclesPerSecond;
+    FOC_current(lastAngle,tv,0);
+  }
+
+  for(int phase = 0;phase < 12*phaseRotations && ret == FC_Ok;phase++) {
     g_vbus_voltage = ReadSupplyVoltage();
-    if(g_vbus_voltage < 12.0)
-      return FC_UnderVoltage;
-    float voltage_magnitude = (0.12 * 12.0) / g_vbus_voltage;
 
     int phaseStep = phase % 12;
     float phaseAngle = (float) phase * M_PI * 2.0 / 12.0;
-    float v_alpha = voltage_magnitude * arm_cos_f32(phaseAngle);
-    float v_beta  = voltage_magnitude * arm_sin_f32(phaseAngle);
 
-    queue_modulation_timings(v_alpha, v_beta);
+    int shiftPeriod = cyclesPerSecond / 8;
 
-    // Wait for position to settle
-    chThdSleepMilliseconds(1000);
+    // Move to position slowly to reduce vibration
 
-    // Sync to avoid reading variables when they're being updated.
-    chBSemWait(&g_adcInjectedDataReady);
+    if(phaseAngle != lastAngle) {
+      for(int i = 0;i < shiftPeriod;i++) {
+        if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
+          ret = FC_InternalTiming;
+          break;
+        }
+        UpdateCurrentMeasurementsFromADCValues();
+        float fract= (float) i / (float) shiftPeriod;
+        float targetAngle = lastAngle * (1.0 - fract) + phaseAngle * fract;
+        FOC_current(targetAngle,torqueValue,0);
+      }
+    }
+    lastAngle = phaseAngle;
 
-    for(int i = 0;i < 3;i++) {
-      g_phaseAngles[phaseStep][i] += g_hall[i];
+    g_vbus_voltage = ReadSupplyVoltage();
+    // Settle
+
+    for(int i = 0;i < shiftPeriod;i++) {
+      if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
+        ret = FC_InternalTiming;
+        break;
+      }
+      UpdateCurrentMeasurementsFromADCValues();
+
+      FOC_current(phaseAngle,torqueValue,0);
+    }
+
+    // Take some readings.
+
+    for(int i = 0;i < numberOfReadings;i++) {
+      if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
+        ret = FC_InternalTiming;
+        break;
+      }
+      UpdateCurrentMeasurementsFromADCValues();
+
+      FOC_current(phaseAngle,torqueValue,0);
+
+      for(int i = 0;i < 3;i++) {
+        g_phaseAngles[phaseStep][i] += g_hall[i];
+      }
     }
   }
-  for(int i = 0;i < 12;i++) {
-    g_phaseAngles[i][0] /= 7;
-    g_phaseAngles[i][1] /= 7;
-    g_phaseAngles[i][2] /= 7;
+
+  if(ret == FC_Ok) {
+    for(int i = 0;i < 12;i++) {
+      g_phaseAngles[i][0] /= phaseRotations * numberOfReadings;
+      g_phaseAngles[i][1] /= phaseRotations * numberOfReadings;
+      g_phaseAngles[i][2] /= phaseRotations * numberOfReadings;
+    }
   }
 
   palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
 
-  SaveSetup();
-
   //DisplayAngle(chp);
-  return FC_Ok;
+  return ret;
 }
+
+
 
 
 int PWMCalSVM(BaseSequentialStream *chp)

@@ -18,7 +18,7 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
@@ -165,8 +165,8 @@
        <widget class="QPushButton" name="pushButton">
         <property name="geometry">
          <rect>
-          <x>670</x>
-          <y>70</y>
+          <x>660</x>
+          <y>40</y>
           <width>85</width>
           <height>27</height>
          </rect>
@@ -541,8 +541,8 @@
        <widget class="QPushButton" name="pushButton_2">
         <property name="geometry">
          <rect>
-          <x>670</x>
-          <y>150</y>
+          <x>660</x>
+          <y>100</y>
           <width>80</width>
           <height>21</height>
          </rect>
@@ -580,8 +580,8 @@
        <widget class="QPushButton" name="pushButtonDriveTemp">
         <property name="geometry">
          <rect>
-          <x>670</x>
-          <y>120</y>
+          <x>660</x>
+          <y>70</y>
           <width>80</width>
           <height>21</height>
          </rect>
@@ -823,8 +823,8 @@
        <widget class="QLabel" name="label_SupplyVoltage">
         <property name="geometry">
          <rect>
-          <x>660</x>
-          <y>300</y>
+          <x>670</x>
+          <y>340</y>
           <width>59</width>
           <height>14</height>
          </rect>
@@ -836,8 +836,8 @@
        <widget class="QLabel" name="label_DriverTemperature">
         <property name="geometry">
          <rect>
-          <x>660</x>
-          <y>320</y>
+          <x>670</x>
+          <y>360</y>
           <width>59</width>
           <height>14</height>
          </rect>
@@ -849,8 +849,8 @@
        <widget class="QLabel" name="label_18">
         <property name="geometry">
          <rect>
-          <x>550</x>
-          <y>300</y>
+          <x>560</x>
+          <y>330</y>
           <width>101</width>
           <height>16</height>
          </rect>
@@ -862,8 +862,8 @@
        <widget class="QLabel" name="label_19">
         <property name="geometry">
          <rect>
-          <x>570</x>
-          <y>320</y>
+          <x>580</x>
+          <y>360</y>
           <width>81</width>
           <height>16</height>
          </rect>
@@ -915,6 +915,58 @@
         </property>
         <property name="maximum">
          <double>720.000000000000000</double>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="pushButton_3">
+        <property name="geometry">
+         <rect>
+          <x>660</x>
+          <y>130</y>
+          <width>121</width>
+          <height>21</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Phase Resistance</string>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="pushButton_4">
+        <property name="geometry">
+         <rect>
+          <x>660</x>
+          <y>160</y>
+          <width>121</width>
+          <height>21</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Phase Inductance</string>
+        </property>
+       </widget>
+       <widget class="QLabel" name="label_22">
+        <property name="geometry">
+         <rect>
+          <x>590</x>
+          <y>300</y>
+          <width>59</width>
+          <height>14</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>I gain:</string>
+        </property>
+       </widget>
+       <widget class="QDoubleSpinBox" name="doubleSpinBoxIGain">
+        <property name="geometry">
+         <rect>
+          <x>650</x>
+          <y>300</y>
+          <width>121</width>
+          <height>22</height>
+         </rect>
+        </property>
+        <property name="maximum">
+         <double>1000000.000000000000000</double>
         </property>
        </widget>
       </widget>

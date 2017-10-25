@@ -29,7 +29,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
   connect(this,SIGNAL(setSupplyVoltage(QString)),ui->label_SupplyVoltage,SLOT(setText(QString)));
   connect(this,SIGNAL(setDriveTemperature(QString)),ui->label_DriverTemperature,SLOT(setText(QString)));
-
+  connect(this,SIGNAL(setMotorIGain(double)),this,SLOT(updateIGain(double)));
 
   startTimer(10);
 }
@@ -247,6 +247,25 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
       emit setOtherJointOffset(psp->m_data.float32[0] * 360.0 / (2.0 * M_PI));
     }
     break;
+  case CPI_MotorInductance:
+    sprintf(buff,"\n Inductance: %f ", psp->m_data.float32[0]);
+    displayStr += buff;
+    break;
+  case CPI_MotorResistance:
+    sprintf(buff,"\n Resistance: %f ",psp->m_data.float32[0]);
+    displayStr += buff;
+    break;
+  case CPI_MotorIGain:
+    emit setMotorIGain(psp->m_data.float32[0]);
+    sprintf(buff,"\n IGain: %f ",psp->m_data.float32[0]);
+    displayStr += buff;
+    break;
+  case CPI_MotorPGain:
+    sprintf(buff,"\n PGain: %f ",psp->m_data.float32[0]);
+    displayStr += buff;
+    break;
+
+
   default:
     break;
   }
@@ -414,6 +433,7 @@ void MainWindow::QueryAll()
   m_coms->SendQueryParam(m_targetDeviceId,CPI_Indicator);
   m_coms->SendQueryParam(m_targetDeviceId,CPI_OtherJointOffset);
   m_coms->SendQueryParam(m_targetDeviceId,CPI_OtherJointGain);
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_MotorIGain);
 }
 
 void MainWindow::on_pushButtonConnect_clicked()
@@ -736,4 +756,26 @@ void MainWindow::on_spinBoxKneeJointId_valueChanged(int arg1)
 void MainWindow::on_checkBoxReverseHip_clicked(bool checked)
 {
   m_reverseHip = checked;
+}
+
+void MainWindow::on_pushButton_3_clicked()
+{
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_MotorResistance);
+}
+
+void MainWindow::on_pushButton_4_clicked()
+{
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_MotorInductance);
+}
+
+void MainWindow::on_doubleSpinBoxIGain_valueChanged(double arg1)
+{
+  m_coms->SendSetParam(m_targetDeviceId,CPI_MotorIGain,(float) arg1);
+}
+
+void MainWindow::updateIGain(double arg1)
+{
+  ui->doubleSpinBoxIGain->blockSignals(true);
+  ui->doubleSpinBoxIGain->setValue(arg1);
+  ui->doubleSpinBoxIGain->blockSignals(false);
 }

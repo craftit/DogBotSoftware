@@ -16,7 +16,9 @@ struct StoredConfigT {
   uint8_t m_motionPositionReference;
   float m_relativePositionGain;
   float m_relativePositionOffset;
-
+  float m_phaseResistance;
+  float m_phaseOffsetVoltage;
+  float m_phaseInductance;
 };
 
 void StoredConf_Init(void);
