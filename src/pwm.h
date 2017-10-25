@@ -15,7 +15,7 @@ int PWMRun(void);
 int PWMStop(void);
 
 enum FaultCodeT PWMSelfTest(void);
-enum FaultCodeT PWMFactoryCal(void);
+enum FaultCodeT PWMMotorCal(void);
 
 int PWMCal(BaseSequentialStream *chp);
 int PWMCalSVM(BaseSequentialStream *chp);
@@ -88,6 +88,9 @@ extern float g_Iq;
 extern float g_Ierr_d;
 extern float g_Ierr_q;
 
+extern float g_phaseResistance;
+extern float g_phaseOffsetVoltage;
+extern float g_phaseInductance;
 
 extern enum PWMControlModeT g_controlMode;
 

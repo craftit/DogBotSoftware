@@ -275,7 +275,7 @@ void MotionStep()
         position = g_currentPhasePosition;
         posRef = PR_Relative;
       }
-      uint16_t reportPosition = PhasePositionToDemand(position);
+      int16_t reportPosition = PhasePositionToDemand(position);
       MotionReport(reportPosition,torque,posRef);
     } break;
     case PR_OtherJointRelative:
@@ -303,16 +303,16 @@ enum FaultCodeT LoadSetup(void) {
   g_relativePositionOffset = g_storedConfig.m_relativePositionOffset;
   g_motionPositionReference = (enum PositionReferenceT) g_storedConfig.m_motionPositionReference;
 
+  g_phaseResistance = g_storedConfig.m_phaseResistance;
+  g_phaseInductance = g_storedConfig.m_phaseInductance;
+  g_phaseOffsetVoltage = g_storedConfig.m_phaseOffsetVoltage;
+
   // Setup angles.
   for(int i = 0;i < 12;i++) {
     g_phaseAngles[i][0] = g_storedConfig.phaseAngles[i][0];
     g_phaseAngles[i][1] = g_storedConfig.phaseAngles[i][1];
     g_phaseAngles[i][2] = g_storedConfig.phaseAngles[i][2];
   }
-
-  // Should send an announce as this could change our id ?
-  //uint8_t oldDevice = g_deviceId;
-  //if(oldDevice != g_deviceId) {}
 
   return FC_Ok;
 }
@@ -330,7 +330,9 @@ enum FaultCodeT SaveSetup(void) {
   g_storedConfig.m_relativePositionGain = g_relativePositionGain;
   g_storedConfig.m_relativePositionOffset =  g_relativePositionOffset;
   g_storedConfig.m_motionPositionReference = (int) g_motionPositionReference;
-
+  g_storedConfig.m_phaseResistance = g_phaseResistance;
+  g_storedConfig.m_phaseInductance = g_phaseInductance;
+  g_storedConfig.m_phaseOffsetVoltage = g_phaseOffsetVoltage;
 
   for(int i = 0;i < 12;i++) {
     g_storedConfig.phaseAngles[i][0] = g_phaseAngles[i][0];

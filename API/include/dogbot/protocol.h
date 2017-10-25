@@ -49,7 +49,9 @@ extern "C" {
     FC_InternalTiming = 10,
     FC_InternalStoreFailed = 11,
     FC_Internal5VRailOutOfRange = 12,
-    FC_Internal = 13
+    FC_Internal = 13,
+    FC_MotorResistanceOutOfRange = 14,
+    FC_MotorInducetanceOutOfRange = 15
   };
 
   enum DeviceTypeT
@@ -82,7 +84,11 @@ extern "C" {
     CPI_OtherJointGain  = 18,
     CPI_OtherJointOffset= 19,
     CPI_DebugIndex      = 20,
-
+    CPI_MotorResistance = 21,
+    CPI_MotorInductance = 22,
+    CPI_MotorOffsetVoltage = 23,
+    CPI_MotorIGain      = 24,
+    CPI_MotorPGain      = 25,
     CPI_DRV8305         = 32,
     CPI_DRV8305_01      = 0x20,
     CPI_DRV8305_02      = 0x21,

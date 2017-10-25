@@ -113,6 +113,13 @@ private slots:
 
   void on_checkBoxReverseHip_clicked(bool checked);
 
+  void on_pushButton_3_clicked();
+
+  void on_pushButton_4_clicked();
+
+  void on_doubleSpinBoxIGain_valueChanged(double arg1);
+
+  void updateIGain(double arg1);
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);
@@ -127,6 +134,7 @@ signals:
   void setOtherJointOffset(double offset);
   void setSupplyVoltage(QString str);
   void setDriveTemperature(QString str);
+  void setMotorIGain(double offset);
 
 private:
   void SetupComs();
