@@ -12,7 +12,7 @@ extern "C" {
 
   void MotionResetCalibration(enum MotionCalibrationT defaultCalibrationState);
 
-  void MotionUpdateEndStop(int num,bool state,float position,float velocity);
+  void MotionUpdateIndex(int num,bool state,float position,float velocity);
 
   bool MotionSetPosition(uint8_t mode,int16_t position,uint16_t torqueLimit);
 

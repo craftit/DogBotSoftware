@@ -50,9 +50,9 @@ static int EndStopUpdateOffset(bool newState,bool velocityPositive)
   return (newState ? 1 : 0) + ((velocityPositive ? 2 : 0));
 }
 
-void MotionUpdateEndStop(int num,bool state,float position,float velocity)
+void MotionUpdateIndex(int num,bool state,float position,float velocity)
 {
-  if(g_motionCalibration != MC_Uncalibrated && num == 2) {
+  if(g_motionCalibration != MC_Uncalibrated) {
 
     int entry = EndStopUpdateOffset(state,velocity > 0);
     if(!g_haveIndexPositionSample[entry]) {

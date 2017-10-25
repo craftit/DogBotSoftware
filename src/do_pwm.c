@@ -50,7 +50,7 @@ volatile bool g_pwmRun = true;
 int g_pwmTimeoutCount = 0 ;
 bool g_pwmFullReport = false;
 bool g_motorControlLoopReady = true;
-bool g_lastLimitState[3];
+bool g_lastLimitState = false;
 
 static THD_WORKING_AREA(waThreadPWM, 512);
 
@@ -155,7 +155,7 @@ float g_Ierr_q;
 bool g_breakMode = false;
 // The following function is based on that from the ODrive project.
 
-static bool FOC_current(float Id_des, float Iq_des) {
+static bool FOC_current(float phaseAngle,float Id_des, float Iq_des) {
   //Current_control_t* ictrl = &motor->current_control;
 
   // Clarke transform
@@ -163,8 +163,8 @@ static bool FOC_current(float Id_des, float Iq_des) {
   float Ibeta = one_by_sqrt3 * (g_current[1] - g_current[2]);
 
   // Park transform
-  float c = arm_cos_f32(g_phaseAngle);
-  float s = arm_sin_f32(g_phaseAngle);
+  float c = arm_cos_f32(phaseAngle);
+  float s = arm_sin_f32(phaseAngle);
   g_Id = c*Ialpha + s*Ibeta;
   g_Iq = c*Ibeta  - s*Ialpha;
 
@@ -246,6 +246,22 @@ float g_Iq = 0.0;
 
 enum PWMControlModeT g_controlMode = CM_Break;
 
+static void UpdateCurrentMeasurementsFromADCValues(void) {
+  // Compute motor currents;
+  // Make sure they sum to zero
+  float sum = 0;
+  float tmpCurrent[3];
+  for(int i = 0;i < 3;i++) {
+    float c = ((float) g_currentADCValue[i] * g_shuntADCValue2Amps) - g_currentZeroOffset[i];
+    tmpCurrent[i] = c;
+    sum += c;
+  }
+  sum /= 3.0f;
+  for(int i = 0;i < 3;i++) {
+    g_current[i] = tmpCurrent[i] - sum;
+  }
+}
+
 static void ComputeState(void)
 {
   // Compute current phase angle
@@ -272,20 +288,8 @@ static void ComputeState(void)
   // Velocity estimate, filtered a little.
   g_currentPhaseVelocity = (g_currentPhaseVelocity * (g_velocityFilter-1.0) + angleDiff / CURRENT_MEAS_PERIOD )/g_velocityFilter;
 
-  // Compute motor currents;
-  // Make sure they sum to zero
-  float sum = 0;
-  float tmpCurrent[3];
-  for(int i = 0;i < 3;i++) {
-    float c = ((float) g_currentADCValue[i] * g_shuntADCValue2Amps) - g_currentZeroOffset[i];
-    tmpCurrent[i] = c;
-    sum += c;
-  }
-  sum /= 3.0f;
-  for(int i = 0;i < 3;i++) {
-    g_current[i] = tmpCurrent[i] - sum;
-  }
-
+  // Update currents
+  UpdateCurrentMeasurementsFromADCValues();
 }
 
 static void SetTorque(float torque) {
@@ -298,7 +302,7 @@ static void SetTorque(float torque) {
 
   g_torqueAverage = (g_torqueAverage * 30.0 + torque)/31.0;
 
-  FOC_current(0,-torque);
+  FOC_current(g_phaseAngle,0,-torque);
 #else
 
   float voltage_magnitude = torque;
@@ -379,22 +383,10 @@ static void MotorControlLoop(void)
 
     // Check limit switches.
     {
-#if 0
-      bool es1 = palReadPad(GPIOC, GPIOC_PIN6);
-      if(es1 != g_lastLimitState[0]) {
-        g_lastLimitState[0] = es1;
-        MotionUpdateEndStop(0,es1,g_currentPhasePosition,g_currentPhaseVelocity);
-      }
-      bool es2 = palReadPad(GPIOC, GPIOC_PIN7);
-      if(es2 != g_lastLimitState[1]) {
-        g_lastLimitState[1] = es2;
-        MotionUpdateEndStop(1,es2,g_currentPhasePosition,g_currentPhaseVelocity);
-      }
-#endif
       bool es3 = palReadPad(GPIOC, GPIOC_PIN8);
-      if(es3 != g_lastLimitState[2]) {
-        g_lastLimitState[2] = es3;
-        MotionUpdateEndStop(2,es3,g_currentPhasePosition,g_currentPhaseVelocity);
+      if(es3 != g_lastLimitState) {
+        g_lastLimitState = es3;
+        MotionUpdateIndex(0,es3,g_currentPhasePosition,g_currentPhaseVelocity);
       }
     }
 
@@ -447,9 +439,7 @@ static THD_FUNCTION(ThreadPWM, arg) {
   }
 
   //! Read initial state of endstop switches
-  g_lastLimitState[0] = palReadPad(GPIOC, GPIOC_PIN6); // Endstop 1
-  g_lastLimitState[1] = palReadPad(GPIOC, GPIOC_PIN7); // Endstop 2
-  g_lastLimitState[2] = palReadPad(GPIOC, GPIOC_PIN8); // Index
+  g_lastLimitState = palReadPad(GPIOC, GPIOC_PIN8); // Index
 
   //! Make sure controller is setup.
   Drv8503Init();
@@ -462,11 +452,11 @@ static THD_FUNCTION(ThreadPWM, arg) {
 
   palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
 
-  // This is quick, so may as well do it every time.
-  ShuntCalibration();
-
   // Reset calibration state.
   MotionResetCalibration(MC_Measuring);
+
+  // This is quick, so may as well do it every time.
+  ShuntCalibration();
 
   g_phaseRotationCount = 0; // Reset the rotation count to zero.
 
@@ -731,13 +721,103 @@ enum FaultCodeT PWMSelfTest()
 
 enum FaultCodeT PWMFactoryCal()
 {
-  palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
+  enum FaultCodeT ret = FC_Ok;
 
+  palSetPad(GPIOC, GPIOC_PIN13); // Wake
 
+  //! Wait for powerup to complete
+  // TODO: Add a timeout and report and error
+  while (!palReadPad(GPIOD, GPIOD_PIN2)) {
+    chThdSleepMilliseconds(100);
+  }
+
+  // Make sure PWM is running.
   InitPWM();
 
+  palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
 
-  for(int phase = 0;phase < 12*7;phase++) {
+  // Calibrate shunts.
+
+  ShuntCalibration();
+
+  int phaseRotations = 7;
+  int numberOfReadings = 8;
+#if 1
+
+  int cyclesPerSecond = 1.0 / (1.0 * CURRENT_MEAS_PERIOD);
+
+  float torqueValue = 3.0;
+  float lastAngle = 0;
+
+  // Settle at initial angle
+
+  for(int i = 0;i < cyclesPerSecond;i++) {
+    if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
+      ret = FC_InternalTiming;
+      break;
+    }
+    UpdateCurrentMeasurementsFromADCValues();
+    float tv = (float) i * torqueValue / (float) cyclesPerSecond;
+    FOC_current(lastAngle,tv,0);
+  }
+
+  for(int phase = 0;phase < 12*phaseRotations && ret == FC_Ok;phase++) {
+    g_vbus_voltage = ReadSupplyVoltage();
+
+    int phaseStep = phase % 12;
+    float phaseAngle = (float) phase * M_PI * 2.0 / 12.0;
+
+    int shiftPeriod = cyclesPerSecond / 8;
+
+    // Move to position slowly to reduce vibration
+
+    if(phaseAngle != lastAngle) {
+      for(int i = 0;i < shiftPeriod;i++) {
+        if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
+          ret = FC_InternalTiming;
+          break;
+        }
+        UpdateCurrentMeasurementsFromADCValues();
+        float fract= (float) i / (float) shiftPeriod;
+        float targetAngle = lastAngle * (1.0 - fract) + phaseAngle * fract;
+        FOC_current(targetAngle,torqueValue,0);
+      }
+    }
+    lastAngle = phaseAngle;
+
+    // Settle
+
+    for(int i = 0;i < shiftPeriod;i++) {
+      if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
+        ret = FC_InternalTiming;
+        break;
+      }
+      UpdateCurrentMeasurementsFromADCValues();
+
+      FOC_current(phaseAngle,torqueValue,0);
+    }
+
+    // Take some readings.
+
+    for(int i = 0;i < numberOfReadings;i++) {
+      if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
+        ret = FC_InternalTiming;
+        break;
+      }
+      UpdateCurrentMeasurementsFromADCValues();
+
+      FOC_current(phaseAngle,torqueValue,0);
+
+      for(int i = 0;i < 3;i++) {
+        g_phaseAngles[phaseStep][i] += g_hall[i];
+      }
+    }
+
+  }
+
+
+#else
+  for(int phase = 0;phase < 12*phaseRotations;phase++) {
     g_vbus_voltage = ReadSupplyVoltage();
     if(g_vbus_voltage < 12.0)
       return FC_UnderVoltage;
@@ -753,17 +833,21 @@ enum FaultCodeT PWMFactoryCal()
     // Wait for position to settle
     chThdSleepMilliseconds(1000);
 
-    // Sync to avoid reading variables when they're being updated.
-    chBSemWait(&g_adcInjectedDataReady);
+    for(int i = 0;i < numberOfReadings;i++) {
+      // Sync to avoid reading variables when they're being updated.
+      chBSemWait(&g_adcInjectedDataReady);
 
-    for(int i = 0;i < 3;i++) {
-      g_phaseAngles[phaseStep][i] += g_hall[i];
+      for(int i = 0;i < 3;i++) {
+        g_phaseAngles[phaseStep][i] += g_hall[i];
+      }
     }
   }
+#endif
+
   for(int i = 0;i < 12;i++) {
-    g_phaseAngles[i][0] /= 7;
-    g_phaseAngles[i][1] /= 7;
-    g_phaseAngles[i][2] /= 7;
+    g_phaseAngles[i][0] /= phaseRotations * numberOfReadings;
+    g_phaseAngles[i][1] /= phaseRotations * numberOfReadings;
+    g_phaseAngles[i][2] /= phaseRotations * numberOfReadings;
   }
 
   palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
@@ -771,8 +855,10 @@ enum FaultCodeT PWMFactoryCal()
   SaveSetup();
 
   //DisplayAngle(chp);
-  return FC_Ok;
+  return ret;
 }
+
+
 
 
 int PWMCalSVM(BaseSequentialStream *chp)
