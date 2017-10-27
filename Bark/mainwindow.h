@@ -120,6 +120,10 @@ private slots:
   void on_doubleSpinBoxIGain_valueChanged(double arg1);
 
   void updateIGain(double arg1);
+  void on_sliderPosition_valueChanged(int value);
+
+  void on_doubleSpinBoxVelocityGain_valueChanged(double arg1);
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);
@@ -135,6 +139,9 @@ signals:
   void setSupplyVoltage(QString str);
   void setDriveTemperature(QString str);
   void setMotorIGain(double offset);
+  void setMotorVelocity(double offset);
+  void setVelocityGain(double offset);
+  void setDemandPhaseVelocity(double offset);
 
 private:
   void SetupComs();
@@ -171,6 +178,7 @@ private:
   float m_servoAngle = 0;
   float m_servoTorque = 0;
   enum PositionReferenceT m_servoRef = PR_Relative;
+  enum PWMControlModeT m_controlMode = CM_Idle;
 };
 
 #endif // MAINWINDOW_H

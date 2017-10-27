@@ -161,6 +161,8 @@ static bool FOC_current(float phaseAngle,float Id_des, float Iq_des) {
   g_Id = c*Ialpha + s*Ibeta;
   g_Iq = c*Ibeta  - s*Ialpha;
 
+  g_torqueAverage = (g_torqueAverage * 30.0 - g_Iq)/31.0;
+
   // Current error
   g_Ierr_d = Id_des - g_Id;
   g_Ierr_q = Iq_des - g_Iq;
@@ -284,7 +286,7 @@ static void SetTorque(float torque) {
   if(torque < -g_torqueLimit)
     torque = -g_torqueLimit;
 
-  g_torqueAverage = (g_torqueAverage * 30.0 + torque)/31.0;
+  //g_torqueAverage = (g_torqueAverage * 30.0 + torque)/31.0;
 
   FOC_current(g_phaseAngle,0,-torque);
 #else
@@ -348,9 +350,15 @@ static void MotorControlLoop(void)
             );
         break;
       case CM_Velocity: {
-        g_demandPhasePosition += g_demandPhaseVelocity * CURRENT_MEAS_PERIOD;
-        targetPosition = g_demandPhasePosition;
-      }
+        //g_demandPhasePosition += g_demandPhaseVelocity * CURRENT_MEAS_PERIOD;
+        //targetPosition = g_demandPhasePosition;
+
+        float err = g_demandPhaseVelocity - g_currentPhaseVelocity;
+        torque = err * g_velocityGain;
+
+        SetTorque(torque);
+
+      } break;
       /* no break */
       case CM_Position: {
         float positionError = (targetPosition - g_currentPhasePosition);

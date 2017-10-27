@@ -204,6 +204,10 @@ void SetBackgroundStateReport(void)
 {
   SendParamUpdate(CPI_VSUPPLY);
   SendParamUpdate(CPI_DriveTemp);
+
+  // for debug...
+  SendParamUpdate(CPI_PhaseVelocity);
+  SendParamUpdate(CPI_DemandPhaseVelocity);
 }
 
 /*

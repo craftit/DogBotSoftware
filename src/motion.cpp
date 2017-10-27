@@ -116,23 +116,36 @@ bool UpdateRequestedPosition()
 {
   float posf = DemandToPhasePosition(g_requestedJointPosition);
 
-  if((g_requestedJointMode & 0x1) != 0) { // Calibrated position ?
-    if(g_motionCalibration != MC_Calibrated)
-      return false;
-    posf += g_angleOffset;
-  }
+  enum PWMControlModeT mode = static_cast<enum PWMControlModeT>(g_requestedJointMode >> 2);
+  switch(mode)
+  {
+    default:
+    case CM_Position:
+      {
+        if((g_requestedJointMode & 0x1) != 0) { // Calibrated position ?
+          if(g_motionCalibration != MC_Calibrated) return false;
+          posf += g_angleOffset;
+        }
 
-  if((g_motionPositionReference & 0x2) != 0) { // relative position ?
-    // If we want a calibrated position and the other joint is uncalibrated then
-    // give up.
-    if((g_otherJointMode & 0x1) == 0 && (g_motionPositionReference & 0x1) != 0) {
-      return false;
-    }
-    g_otherPhaseOffset =  DemandToPhasePosition(g_otherJointPosition) * g_relativePositionGain + g_relativePositionOffset;
-    posf += g_otherPhaseOffset;
+        if((g_motionPositionReference & 0x2) != 0) { // relative position ?
+          // If we want a calibrated position and the other joint is uncalibrated then
+          // give up.
+          if((g_otherJointMode & 0x1) == 0
+              && (g_motionPositionReference & 0x1) != 0) {
+            return false;
+          }
+          g_otherPhaseOffset = DemandToPhasePosition(g_otherJointPosition)
+              * g_relativePositionGain + g_relativePositionOffset;
+          posf += g_otherPhaseOffset;
+        }
+        g_demandPhasePosition = posf;
+      }
+      break;
+    case CM_Velocity:
+      g_demandPhaseVelocity = PhasePositionToDemand(g_requestedJointPosition) / 100 ;// * g_motorPhase2RotationRatio;
+      break;
+      break;
   }
-
-  g_demandPhasePosition = posf;
   return true;
 }
 
