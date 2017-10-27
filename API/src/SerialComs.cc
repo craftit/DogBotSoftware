@@ -491,16 +491,32 @@ namespace DogBotN
     struct PacketServoC servoPkt;
     servoPkt.m_packetType = CPT_Servo;
     servoPkt.m_deviceId = deviceId;
-    //while(pos < ()-2.0 * M_PI)
-    //pos += 3.14159265359;
     servoPkt.m_position = pos * 65535.0 / (4.0 * M_PI);
     if(effort < 0) effort = 0;
     if(effort > 10.0) effort = 10.0;
     servoPkt.m_torqueLimit = effort * 65535.0 / (10.0);
-    servoPkt.m_mode = (int) posRef;
+    servoPkt.m_mode = ((int) posRef) | (((int) CM_Position) << 2);
 
     SendPacket((uint8_t *)&servoPkt,sizeof servoPkt);
   }
+
+  //! Send velocity command with an effort limit.
+  void SerialComsC::SendVelocityWithEffort(int deviceId,float velocity,float effort)
+  {
+    int at = 0;
+
+    struct PacketServoC servoPkt;
+    servoPkt.m_packetType = CPT_Servo;
+    servoPkt.m_deviceId = deviceId;
+    servoPkt.m_position = velocity * 65535.0 / (4.0 * M_PI);
+    if(effort < 0) effort = 0;
+    if(effort > 10.0) effort = 10.0;
+    servoPkt.m_torqueLimit = effort * 65535.0 / (10.0);
+    servoPkt.m_mode = (((int) CM_Velocity) << 2);
+
+    SendPacket((uint8_t *)&servoPkt,sizeof servoPkt);
+  }
+
 
   //! Send a calibration zero
   void SerialComsC::SendCalZero(int deviceId)

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>841</width>
-    <height>551</height>
+    <height>600</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -675,8 +675,8 @@
        <widget class="QDoubleSpinBox" name="doubleSpinBoxPostion">
         <property name="geometry">
          <rect>
-          <x>593</x>
-          <y>390</y>
+          <x>630</x>
+          <y>380</y>
           <width>81</width>
           <height>22</height>
          </rect>
@@ -694,8 +694,8 @@
        <widget class="QLabel" name="labelCalState">
         <property name="geometry">
          <rect>
-          <x>680</x>
-          <y>390</y>
+          <x>720</x>
+          <y>380</y>
           <width>81</width>
           <height>16</height>
          </rect>
@@ -707,8 +707,8 @@
        <widget class="QDoubleSpinBox" name="doubleSpinBoxTorque_2">
         <property name="geometry">
          <rect>
-          <x>600</x>
-          <y>420</y>
+          <x>630</x>
+          <y>400</y>
           <width>81</width>
           <height>22</height>
          </rect>
@@ -723,8 +723,8 @@
        <widget class="QLabel" name="label_13">
         <property name="geometry">
          <rect>
-          <x>520</x>
-          <y>390</y>
+          <x>560</x>
+          <y>380</y>
           <width>59</width>
           <height>14</height>
          </rect>
@@ -736,8 +736,8 @@
        <widget class="QLabel" name="label_14">
         <property name="geometry">
          <rect>
-          <x>520</x>
-          <y>420</y>
+          <x>560</x>
+          <y>400</y>
           <width>59</width>
           <height>14</height>
          </rect>
@@ -967,6 +967,86 @@
         </property>
         <property name="maximum">
          <double>1000000.000000000000000</double>
+        </property>
+       </widget>
+       <widget class="QDoubleSpinBox" name="doubleSpinBoxVelocity">
+        <property name="geometry">
+         <rect>
+          <x>550</x>
+          <y>430</y>
+          <width>81</width>
+          <height>22</height>
+         </rect>
+        </property>
+        <property name="minimum">
+         <double>-1000000.000000000000000</double>
+        </property>
+        <property name="maximum">
+         <double>1000000.000000000000000</double>
+        </property>
+       </widget>
+       <widget class="QLabel" name="label_23">
+        <property name="geometry">
+         <rect>
+          <x>490</x>
+          <y>430</y>
+          <width>59</width>
+          <height>14</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Velocity:</string>
+        </property>
+       </widget>
+       <widget class="QLabel" name="label_24">
+        <property name="geometry">
+         <rect>
+          <x>460</x>
+          <y>460</y>
+          <width>81</width>
+          <height>16</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Velocity Gain:</string>
+        </property>
+       </widget>
+       <widget class="QDoubleSpinBox" name="doubleSpinBoxVelocityGain">
+        <property name="geometry">
+         <rect>
+          <x>550</x>
+          <y>460</y>
+          <width>71</width>
+          <height>22</height>
+         </rect>
+        </property>
+        <property name="decimals">
+         <number>4</number>
+        </property>
+        <property name="minimum">
+         <double>-10.000000000000000</double>
+        </property>
+        <property name="maximum">
+         <double>10.000000000000000</double>
+        </property>
+       </widget>
+       <widget class="QDoubleSpinBox" name="doubleSpinBoxDemandVelocity">
+        <property name="geometry">
+         <rect>
+          <x>690</x>
+          <y>430</y>
+          <width>91</width>
+          <height>22</height>
+         </rect>
+        </property>
+        <property name="decimals">
+         <number>1</number>
+        </property>
+        <property name="minimum">
+         <double>-10000.000000000000000</double>
+        </property>
+        <property name="maximum">
+         <double>10000.000000000000000</double>
         </property>
        </widget>
       </widget>

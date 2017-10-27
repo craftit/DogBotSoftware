@@ -89,6 +89,9 @@ extern "C" {
     CPI_MotorOffsetVoltage = 23,
     CPI_MotorIGain      = 24,
     CPI_MotorPGain      = 25,
+    CPI_PhaseVelocity   = 26,
+    CPI_VelocityPGain   = 27,
+    CPI_DemandPhaseVelocity = 28,
     CPI_DRV8305         = 32,
     CPI_DRV8305_01      = 0x20,
     CPI_DRV8305_02      = 0x21,
@@ -224,8 +227,8 @@ extern "C" {
   struct PacketServoC {
     uint8_t m_packetType; // CPT_ServoAbs / CPT_ServoRel
     uint8_t m_deviceId;
-    uint8_t m_mode;
-    int16_t m_position;
+    uint8_t m_mode;       //
+    int16_t m_position;   // Or velocity.
     uint16_t m_torqueLimit;
   } __attribute__((packed));
 

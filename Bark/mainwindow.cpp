@@ -30,6 +30,9 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(this,SIGNAL(setSupplyVoltage(QString)),ui->label_SupplyVoltage,SLOT(setText(QString)));
   connect(this,SIGNAL(setDriveTemperature(QString)),ui->label_DriverTemperature,SLOT(setText(QString)));
   connect(this,SIGNAL(setMotorIGain(double)),this,SLOT(updateIGain(double)));
+  connect(this,SIGNAL(setMotorVelocity(double)),ui->doubleSpinBoxVelocity,SLOT(setValue(double)));
+  connect(this,SIGNAL(setVelocityGain(double)),ui->doubleSpinBoxVelocityGain,SLOT(setValue(double)));
+  connect(this,SIGNAL(setDemandPhaseVelocity(double)),ui->doubleSpinBoxDemandVelocity,SLOT(setValue(double)));
 
   startTimer(10);
 }
@@ -203,6 +206,7 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     enum PWMControlModeT controlMode =  (enum PWMControlModeT) psp->m_data.uint8[0];
     if(psp->m_header.m_deviceId == m_targetDeviceId) {
       printf("Setting control mode %d ",(int) psp->m_data.uint8[0]);
+      m_controlMode = controlMode;
       switch(controlMode) {
       case CM_Idle:     emit setControlMode("Idle"); break;
       case CM_Break:    emit setControlMode("Break"); break;
@@ -256,7 +260,9 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     displayStr += buff;
     break;
   case CPI_MotorIGain:
-    emit setMotorIGain(psp->m_data.float32[0]);
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      emit setMotorIGain(psp->m_data.float32[0]);
+    }
     sprintf(buff,"\n IGain: %f ",psp->m_data.float32[0]);
     displayStr += buff;
     break;
@@ -264,8 +270,29 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     sprintf(buff,"\n PGain: %f ",psp->m_data.float32[0]);
     displayStr += buff;
     break;
-
-
+  case CPI_PhaseVelocity:
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      emit setMotorVelocity(psp->m_data.float32[0]);
+    }
+    sprintf(buff,"\n Velocity: %f ",psp->m_data.float32[0]);
+    displayStr += buff;
+    ret = false;
+    break;
+  case CPI_VelocityPGain:
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      emit setVelocityGain(psp->m_data.float32[0]);
+    }
+    sprintf(buff,"\n VelocityGain: %f ",psp->m_data.float32[0]);
+    displayStr += buff;
+    //ret = false;
+    break;
+  case CPI_DemandPhaseVelocity:
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      emit setDemandPhaseVelocity(psp->m_data.float32[0]);
+    }
+    sprintf(buff,"\n DemandVelocity: %f ",psp->m_data.float32[0]);
+    displayStr += buff;
+    break;
   default:
     break;
   }
@@ -329,7 +356,7 @@ void MainWindow::SetupComs()
 
   m_coms->SetHandler(CPT_ReportParam,[this](uint8_t *data,int size) mutable
   {
-    printf("Got ReportParam.  Size:%d \n",size);
+//    printf("Got ReportParam.  Size:%d \n",size);
     std::string displayStr;
     struct PacketParam8ByteC *psp = (struct PacketParam8ByteC *) data;
     displayStr += "Index:";
@@ -434,6 +461,7 @@ void MainWindow::QueryAll()
   m_coms->SendQueryParam(m_targetDeviceId,CPI_OtherJointOffset);
   m_coms->SendQueryParam(m_targetDeviceId,CPI_OtherJointGain);
   m_coms->SendQueryParam(m_targetDeviceId,CPI_MotorIGain);
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_VelocityPGain);
 }
 
 void MainWindow::on_pushButtonConnect_clicked()
@@ -493,16 +521,35 @@ void MainWindow::on_comboBoxMotorControlMode_activated(const QString &arg1)
     printf("Unhandled control mode %s ",arg1.toStdString().c_str());
     return ;
   }
+  m_controlMode = controlMode;
   m_coms->SendSetParam(m_targetDeviceId,CPI_PWMMode,controlMode);
 }
 
 void MainWindow::on_sliderPosition_sliderMoved(int position)
 {
-  // Convert position to radians
   m_position = position * 2.0 * 3.14159265359/ 360.0;
-  std::cout << "Sending move. Pos: " << m_position << " Torque:" << m_torque << " Ref:" << (int) g_positionReference << std::endl << std::flush;
-  m_coms->SendMoveWithEffort(m_targetDeviceId,m_position,m_torque,g_positionReference);
-  ui->doubleSpinBoxDemandPosition->setValue(position);
+  std::cerr << "Mode: " << (int) m_controlMode << std::endl;
+  // Convert position to radians
+  switch(m_controlMode)
+  {
+  case CM_Position:
+  {
+    std::cerr << "Sending pos: " << std::endl;
+    m_position = position * 2.0 * 3.14159265359/ 360.0;
+    std::cout << "Sending move. Pos: " << m_position << " Torque:" << m_torque << " Ref:" << (int) g_positionReference << std::endl << std::flush;
+    m_coms->SendMoveWithEffort(m_targetDeviceId,m_position,m_torque,g_positionReference);
+    ui->doubleSpinBoxDemandPosition->setValue(position);
+  } break;
+  case CM_Velocity:
+  {
+    float velocity = position * 2.0 * 3.14159265359/ 360.0;
+    std::cout << "Sending velocity. Pos: " << velocity << " Torque:" << m_torque << " Ref:" << (int) g_positionReference << std::endl << std::flush;
+    m_coms->SendVelocityWithEffort(m_targetDeviceId,velocity,m_torque);
+  } break;
+  default:
+    break;
+  }
+
 }
 
 void MainWindow::on_sliderTorque_sliderMoved(int torque)
@@ -778,4 +825,14 @@ void MainWindow::updateIGain(double arg1)
   ui->doubleSpinBoxIGain->blockSignals(true);
   ui->doubleSpinBoxIGain->setValue(arg1);
   ui->doubleSpinBoxIGain->blockSignals(false);
+}
+
+void MainWindow::on_sliderPosition_valueChanged(int value)
+{
+
+}
+
+void MainWindow::on_doubleSpinBoxVelocityGain_valueChanged(double arg1)
+{
+  m_coms->SendSetParam(m_targetDeviceId,CPI_VelocityPGain,(float) arg1);
 }
