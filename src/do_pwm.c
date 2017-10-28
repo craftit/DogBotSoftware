@@ -46,8 +46,8 @@ float g_current_Ibus = 0;
 float g_motor_p_gain = 1.2;  // 1.2
 float g_motor_i_gain = 0.0;  // 0.0
 
-int g_phaseAngles[12][3];
-float g_phaseDistance[12];
+int g_phaseAngles[g_calibrationPointCount][3];
+float g_phaseDistance[g_calibrationPointCount];
 
 bool g_pwmThreadRunning = false;
 volatile bool g_pwmRun = true;
@@ -196,6 +196,9 @@ static bool FOC_current(float phaseAngle,float Id_des, float Iq_des) {
 
   // Compute estimated bus current
   g_current_Ibus = mod_d * g_Id + mod_q * g_Iq;
+
+  // Dead time compensation.
+
 
   // Inverse park transform
   float mod_alpha = c*mod_d - s*mod_q;
@@ -349,6 +352,20 @@ static void MotorControlLoop(void)
             TIM_1_8_PERIOD_CLOCKS/2
             );
         break;
+      case CM_Position: {
+        float positionError = (targetPosition - g_currentPhasePosition);
+        g_positionISum += positionError * CURRENT_MEAS_PERIOD;
+        if(g_positionISum > g_positionIClamp)  g_positionISum = g_positionIClamp;
+        if(g_positionISum < -g_positionIClamp) g_positionISum = -g_positionIClamp;
+
+        //
+        g_demandPhaseVelocity = -positionError * 10.0 + -g_positionISum * g_positionIGain;
+
+        float err = g_demandPhaseVelocity - g_currentPhaseVelocity;
+        torque = err * g_velocityGain;
+
+        SetTorque(torque);
+      } break;
       case CM_Velocity: {
         //g_demandPhasePosition += g_demandPhaseVelocity * CURRENT_MEAS_PERIOD;
         //targetPosition = g_demandPhasePosition;
@@ -358,18 +375,6 @@ static void MotorControlLoop(void)
 
         SetTorque(torque);
 
-      } break;
-      /* no break */
-      case CM_Position: {
-        float positionError = (targetPosition - g_currentPhasePosition);
-        g_positionISum += positionError * CURRENT_MEAS_PERIOD;
-        if(g_positionISum > g_positionIClamp)  g_positionISum = g_positionIClamp;
-        if(g_positionISum < -g_positionIClamp) g_positionISum = -g_positionIClamp;
-
-        //
-        torque = -positionError * g_positionGain + -g_positionISum * g_positionIGain;
-
-        SetTorque(torque);
       } break;
       case CM_Torque: {
         SetTorque(torque);
@@ -783,7 +788,7 @@ void SetupMotorCurrentPID()
   float current_control_bandwidth = 1000.0f; // [rad/s]
   g_motor_p_gain = current_control_bandwidth * g_phaseInductance;
 
-#if 0
+#if 1
   float plant_pole = g_phaseResistance / g_phaseInductance;
   g_motor_i_gain = plant_pole * g_motor_p_gain;
 #else
@@ -982,11 +987,11 @@ enum FaultCodeT PWMMotorPhaseCal()
     FOC_current(lastAngle,tv,0);
   }
 
-  for(int phase = 0;phase < 12*phaseRotations && ret == FC_Ok;phase++) {
+  for(int phase = 0;phase < g_calibrationPointCount*phaseRotations && ret == FC_Ok;phase++) {
     g_vbus_voltage = ReadSupplyVoltage();
 
-    int phaseStep = phase % 12;
-    float phaseAngle = (float) phase * M_PI * 2.0 / 12.0;
+    int phaseStep = phase % g_calibrationPointCount;
+    float phaseAngle = (float) phase * M_PI * 2.0 / ((float) g_calibrationPointCount) ;
 
     int shiftPeriod = cyclesPerSecond / 8;
 
@@ -1037,7 +1042,7 @@ enum FaultCodeT PWMMotorPhaseCal()
   }
 
   if(ret == FC_Ok) {
-    for(int i = 0;i < 12;i++) {
+    for(int i = 0;i < g_calibrationPointCount;i++) {
       g_phaseAngles[i][0] /= phaseRotations * numberOfReadings;
       g_phaseAngles[i][1] /= phaseRotations * numberOfReadings;
       g_phaseAngles[i][2] /= phaseRotations * numberOfReadings;
@@ -1059,9 +1064,9 @@ int PWMCalSVM(BaseSequentialStream *chp)
 
   float voltage_magnitude = 0.06;
 
-  for(int phase = 0;phase < 12*7;phase++) {
-    int phaseStep = phase % 12;
-    float phaseAngle = (float) phase * M_PI * 2.0 / 12.0;
+  for(int phase = 0;phase <  g_calibrationPointCount*7;phase++) {
+    int phaseStep = phase % g_calibrationPointCount;
+    float phaseAngle = (float) phase * M_PI * 2.0 / ((float) g_calibrationPointCount);
     float v_alpha = voltage_magnitude * arm_cos_f32(phaseAngle);
     float v_beta  = voltage_magnitude * arm_sin_f32(phaseAngle);
 
@@ -1081,7 +1086,7 @@ int PWMCalSVM(BaseSequentialStream *chp)
     }
     chprintf(chp, "Cal %d : %04d %04d %04d   \r\n",phase,g_hall[0],g_hall[1],g_hall[2]);
   }
-  for(int i = 0;i < 12;i++) {
+  for(int i = 0;i < g_calibrationPointCount;i++) {
     g_phaseAngles[i][0] /= 7;
     g_phaseAngles[i][1] /= 7;
     g_phaseAngles[i][2] /= 7;
@@ -1099,7 +1104,7 @@ int PWMCalSVM(BaseSequentialStream *chp)
 
 float hallToAngleRef(uint16_t *sensors)
 {
-  int distTable[12];
+  int distTable[g_calibrationPointCount];
   int phase = 0;
 
   int minDist = sqr(g_phaseAngles[0][0] - sensors[0]) +
@@ -1107,7 +1112,7 @@ float hallToAngleRef(uint16_t *sensors)
                 sqr(g_phaseAngles[0][2] - sensors[2]);
   distTable[0] = minDist;
 
-  for(int i = 1;i < 12;i++) {
+  for(int i = 1;i < g_calibrationPointCount;i++) {
     int dist = sqr(g_phaseAngles[i][0] - sensors[0]) +
                   sqr(g_phaseAngles[i][1] - sensors[1]) +
                   sqr(g_phaseAngles[i][2] - sensors[2]);
@@ -1118,29 +1123,30 @@ float hallToAngleRef(uint16_t *sensors)
     }
   }
   int last = phase - 1;
-  if(last < 0) last = 11;
+  if(last < 0) last = g_calibrationPointCount;
   int next = phase + 1;
-  if(next > 11) next = 0;
+  if(next >= g_calibrationPointCount) next = 0;
   int lastDist2 = distTable[last];
   int nextDist2 = distTable[next];
   float angle = phase * 2.0;
   float lastDist = mysqrtf(lastDist2) / g_phaseDistance[phase];
   float nextDist = mysqrtf(nextDist2) / g_phaseDistance[next];
   angle -= (nextDist-lastDist)/(nextDist + lastDist);
-  if(angle < 0.0) angle += 24.0;
-  if(angle > 24.0) angle -= 24.0;
-  return (angle * M_PI * 2.0 / 24.0) + 1.04;
+  const float calibRange = g_calibrationPointCount*2.0f;
+  if(angle < 0.0) angle += calibRange;
+  if(angle > calibRange) angle -= calibRange;
+  return (angle * M_PI * 2.0 / calibRange) + 1.04;
 }
 
 float g_hallToAngleOriginOffset = -2000;
-float g_phaseAnglesNormOrg[12][3];
+float g_phaseAnglesNormOrg[g_calibrationPointCount][3];
 
 void InitHall2Angle(void)
 {
   {
     // Pre-compute the distance between this position and the last.
-    int lastIndex = 11;
-    for(int i = 0;i < 12;i++) {
+    int lastIndex = g_calibrationPointCount-1;
+    for(int i = 0;i < g_calibrationPointCount;i++) {
       int sum = 0;
       for(int k = 0;k < 3;k++) {
         int diff = g_phaseAngles[i][k] - g_phaseAngles[lastIndex][k];
@@ -1151,7 +1157,7 @@ void InitHall2Angle(void)
     }
   }
 
-  for(int i = 0;i < 12;i++) {
+  for(int i = 0;i < g_calibrationPointCount;i++) {
     float sumMag = 0;
 
     for(int k = 0;k < 3;k++) {
@@ -1169,7 +1175,7 @@ void InitHall2Angle(void)
 
 float hallToAngleDot2(uint16_t *sensors)
 {
-  float distTable[12];
+  float distTable[g_calibrationPointCount];
   int phase = 0;
   float norm[3];
   norm[0] = (float) sensors[0] - g_hallToAngleOriginOffset;
@@ -1189,7 +1195,7 @@ float hallToAngleDot2(uint16_t *sensors)
 
   distTable[0] = maxCorr;
 
-  for(int i = 1;i < 12;i++) {
+  for(int i = 1;i < g_calibrationPointCount;i++) {
     //mag = mysqrtf(sqr(g_phaseAngles[i][0]) + sqr(g_phaseAngles[i][1]) + sqr(g_phaseAngles[i][2]));
     float corr = ((g_phaseAnglesNormOrg[i][0]) * norm[0]) +
                   ((g_phaseAnglesNormOrg[i][1]) * norm[1]) +
@@ -1202,9 +1208,9 @@ float hallToAngleDot2(uint16_t *sensors)
     }
   }
   int last = phase - 1;
-  if(last < 0) last = 11;
+  if(last < 0) last = g_calibrationPointCount-1;
   int next = phase + 1;
-  if(next > 11) next = 0;
+  if(next >= g_calibrationPointCount) next = 0;
   float lastDist2 = distTable[last];
   float nextDist2 = distTable[next];
   float angle = phase * 2.0;
@@ -1214,10 +1220,10 @@ float hallToAngleDot2(uint16_t *sensors)
   float corr = (nextDist-lastDist)/(nextDist + lastDist);
   angle -= corr;
   //RavlDebug("Last:%f  Max:%f Next:%f Corr:%f ",lastDist,maxCorr,nextDist,corr);
-  if(angle < 0.0) angle += 24.0;
-  if(angle > 24.0) angle -= 24.0;
-  return (angle * M_PI * 2.0 / 24.0);
-  //return angle;
+  const float calibRange = g_calibrationPointCount*2.0f;
+  if(angle < 0.0) angle += calibRange;
+  if(angle > calibRange) angle -= calibRange;
+  return (angle * M_PI * 2.0 / calibRange);
 }
 
 

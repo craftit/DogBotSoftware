@@ -142,7 +142,7 @@ bool UpdateRequestedPosition()
       }
       break;
     case CM_Velocity:
-      g_demandPhaseVelocity = PhasePositionToDemand(g_requestedJointPosition) / 100 ;// * g_motorPhase2RotationRatio;
+      g_demandPhaseVelocity = PhasePositionToDemand(g_requestedJointPosition) / 400 ;// * g_motorPhase2RotationRatio;
       break;
       break;
   }
@@ -321,7 +321,7 @@ enum FaultCodeT LoadSetup(void) {
   g_phaseOffsetVoltage = g_storedConfig.m_phaseOffsetVoltage;
 
   // Setup angles.
-  for(int i = 0;i < 12;i++) {
+  for(int i = 0;i < g_calibrationPointCount;i++) {
     g_phaseAngles[i][0] = g_storedConfig.phaseAngles[i][0];
     g_phaseAngles[i][1] = g_storedConfig.phaseAngles[i][1];
     g_phaseAngles[i][2] = g_storedConfig.phaseAngles[i][2];
@@ -347,7 +347,7 @@ enum FaultCodeT SaveSetup(void) {
   g_storedConfig.m_phaseInductance = g_phaseInductance;
   g_storedConfig.m_phaseOffsetVoltage = g_phaseOffsetVoltage;
 
-  for(int i = 0;i < 12;i++) {
+  for(int i = 0;i < g_calibrationPointCount;i++) {
     g_storedConfig.phaseAngles[i][0] = g_phaseAngles[i][0];
     g_storedConfig.phaseAngles[i][1] = g_phaseAngles[i][1];
     g_storedConfig.phaseAngles[i][2] = g_phaseAngles[i][2];

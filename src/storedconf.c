@@ -17,7 +17,7 @@ uint16_t VirtAddVarTab[NB_OF_VAR];
 
 // Private variables
 #if 1
-uint16_t g_defaultPhaseAngles[12][3] = {
+uint16_t g_defaultPhaseAngles[g_calibrationPointCount][3] = {
  { 2416, 2693, 2841 },
  { 2231, 2538, 2843 },
  { 2219, 2386, 2797 },
@@ -33,7 +33,7 @@ uint16_t g_defaultPhaseAngles[12][3] = {
 };
 
 #else
-uint16_t g_defaultPhaseAngles[12][3] = {
+uint16_t g_defaultPhaseAngles[g_calibrationPointCount][3] = {
 {2123,2290,2409},
 {1997,2183,2409},
 {1980,2079,2373},
@@ -86,7 +86,7 @@ bool StoredConf_Load(struct StoredConfigT *conf)
   // Set the default configuration
   if (!is_ok) {
     memset(conf,0,sizeof(struct StoredConfigT));
-    for(int i = 0;i < 12;i++) {
+    for(int i = 0;i < g_calibrationPointCount;i++) {
       conf->phaseAngles[i][0] = g_defaultPhaseAngles[i][0];
       conf->phaseAngles[i][1] = g_defaultPhaseAngles[i][1];
       conf->phaseAngles[i][2] = g_defaultPhaseAngles[i][2];

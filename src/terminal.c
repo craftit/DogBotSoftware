@@ -243,7 +243,7 @@ static void cmd_eeLoad(BaseSequentialStream *chp, int argc, char *argv[])
   if(!StoredConf_Load(&g_storedConfig)) {
     chprintf(chp, "No stored configuration found \r\n",(int) ret);
   }
-  for(int i = 0;i < 12;i++) {
+  for(int i = 0;i < g_calibrationPointCount;i++) {
     g_phaseAngles[i][0] = g_storedConfig.phaseAngles[i][0];
     g_phaseAngles[i][1] = g_storedConfig.phaseAngles[i][1];
     g_phaseAngles[i][2] = g_storedConfig.phaseAngles[i][2];
@@ -264,7 +264,7 @@ static void cmd_eeSave(BaseSequentialStream *chp, int argc, char *argv[])
   }
   g_storedConfig.configState = 1;
   g_storedConfig.deviceId = 2;
-  for(int i = 0;i < 12;i++) {
+  for(int i = 0;i < g_calibrationPointCount;i++) {
     g_storedConfig.phaseAngles[i][0] = g_phaseAngles[i][0];
     g_storedConfig.phaseAngles[i][1] = g_phaseAngles[i][1];
     g_storedConfig.phaseAngles[i][2] = g_phaseAngles[i][2];
@@ -285,7 +285,7 @@ static void cmd_doDump(BaseSequentialStream *chp, int argc, char *argv[]) {
       isAngle = true;
 
     if(*argv[0] == 'b') {
-      for(int i = 0;i < 12;i++) {
+      for(int i = 0;i < g_calibrationPointCount;i++) {
         chprintf(chp, "Phase: %d %d %d \r\n",g_phaseAngles[i][0],g_phaseAngles[i][1],g_phaseAngles[i][2]);
       }
       return ;
