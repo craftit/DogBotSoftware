@@ -79,24 +79,29 @@ namespace DogBotN {
 
   //! 4 bar linkage angle backward,
   // Returns true if angle exists.
-  bool LegKinematicsC::Linkage4BarBack(float angleIn,float &ret) const
+  bool LegKinematicsC::Linkage4BarBack(float angleIn,float &ret,bool solution2) const
   {
     float val = 0;
-    if(!Linkage4Bar(M_PI - angleIn,m_linkB,m_linkA,m_l1,m_linkH,val))
+    if(!Linkage4Bar(M_PI - angleIn,m_linkB,m_linkA,m_l1,m_linkH,val,solution2))
       return false;
     ret = M_PI - val;
     return true;
   }
 
-  float LegKinematicsC::Linkage4BarForward(float angleIn) const
+  float LegKinematicsC::Linkage4BarForward(float angleIn,bool solution2) const
   {
     float ret = 0;
-    bool ok = Linkage4Bar(angleIn,m_linkA,m_linkB,m_l1,m_linkH,ret);
+    bool ok = Linkage4Bar(angleIn,m_linkA,m_linkB,m_l1,m_linkH,ret,solution2);
     //assert(ok);
     return ret;
   }
 
-  bool LegKinematicsC::Linkage4Bar(float angleIn,float a,float b,float g,float h,float &result) const
+  bool LegKinematicsC::Linkage4Bar(
+      float angleIn,
+      float a,float b,float g,float h,
+      float &result,
+      bool solution2
+      ) const
   {
     float At = 2 * b * g - 2 * a * b * cos(angleIn);
     float Bt = -2 * a * b * sin(angleIn);
@@ -106,8 +111,24 @@ namespace DogBotN {
     float cosAngle = -Ct / sqrt(At * At + Bt * Bt);
     if(cosAngle > 1.0 || cosAngle < -1.0)
       return false;
-    result = delta + acos(cosAngle);
+    result = delta + (solution2 ? -1 : 1) * acos(cosAngle);
     return true;
+  }
+
+  // Compute the speed ratio at the given input angle.
+
+  float LegKinematicsC::LinkageSpeedRatio(float theta,float psi)
+  {
+    float a = m_linkA;
+    float b = m_linkB;
+    float g = m_l1;
+    float h = m_linkH;
+
+    float result =
+        (- a * g * cos(psi) * sin(theta) - b * g * sin(psi) + a * b * cos(theta) * sin(psi)) /
+        (a * g * sin(theta) + a * b * cos(psi) * sin(theta) - a * b * cos(theta) * sin(psi) );
+
+    return result;
   }
 
 
