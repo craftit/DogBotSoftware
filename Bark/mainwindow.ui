@@ -1001,7 +1001,7 @@
        <widget class="QLabel" name="label_24">
         <property name="geometry">
          <rect>
-          <x>460</x>
+          <x>420</x>
           <y>460</y>
           <width>81</width>
           <height>16</height>
@@ -1014,7 +1014,7 @@
        <widget class="QDoubleSpinBox" name="doubleSpinBoxVelocityGain">
         <property name="geometry">
          <rect>
-          <x>550</x>
+          <x>510</x>
           <y>460</y>
           <width>71</width>
           <height>22</height>
@@ -1047,6 +1047,61 @@
         </property>
         <property name="maximum">
          <double>10000.000000000000000</double>
+        </property>
+       </widget>
+       <widget class="QDoubleSpinBox" name="doubleSpinBoxVelocityIGain">
+        <property name="geometry">
+         <rect>
+          <x>680</x>
+          <y>460</y>
+          <width>68</width>
+          <height>24</height>
+         </rect>
+        </property>
+        <property name="maximum">
+         <double>1000.000000000000000</double>
+        </property>
+       </widget>
+       <widget class="QLabel" name="label_25">
+        <property name="geometry">
+         <rect>
+          <x>590</x>
+          <y>460</y>
+          <width>91</width>
+          <height>16</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Velocity I Gain</string>
+        </property>
+       </widget>
+       <widget class="QDoubleSpinBox" name="doubleSpinBoxVelocityLimit">
+        <property name="geometry">
+         <rect>
+          <x>287</x>
+          <y>450</y>
+          <width>101</width>
+          <height>24</height>
+         </rect>
+        </property>
+        <property name="decimals">
+         <number>0</number>
+        </property>
+        <property name="maximum">
+         <double>20000.000000000000000</double>
+        </property>
+       </widget>
+       <widget class="QLabel" name="label_26">
+        <property name="geometry">
+         <rect>
+          <x>210</x>
+          <y>450</y>
+          <width>60</width>
+          <height>16</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Velocity limit</string>
         </property>
        </widget>
       </widget>
@@ -1253,7 +1308,7 @@
      <x>0</x>
      <y>0</y>
      <width>841</width>
-     <height>19</height>
+     <height>22</height>
     </rect>
    </property>
   </widget>

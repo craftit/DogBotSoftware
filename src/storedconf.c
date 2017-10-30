@@ -97,8 +97,9 @@ bool StoredConf_Load(struct StoredConfigT *conf)
     conf->m_relativePositionGain = 1.0;
     conf->m_relativePositionOffset = 0.0;
     conf->m_phaseResistance = 0.002;
-    conf->m_phaseInductance = 1e-9;
+    conf->m_phaseInductance = 1e-4;
     conf->m_phaseOffsetVoltage = 0.1;
+    conf->m_velocityLimit = 1000.0;
   }
 
   return is_ok;

@@ -20,6 +20,7 @@ struct StoredConfigT {
   float m_phaseResistance;
   float m_phaseOffsetVoltage;
   float m_phaseInductance;
+  float m_velocityLimit;
 };
 
 void StoredConf_Init(void);

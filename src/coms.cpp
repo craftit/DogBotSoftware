@@ -204,6 +204,7 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_MotorInductance:
     case CPI_PhaseVelocity:
       break;
+
     case CPI_CalibrationOffset:
       if(len != 4)
         return false;
@@ -292,12 +293,22 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_VelocityPGain:
       if(len != 4)
         return false;
-      g_velocityGain =  dataBuff->float32[0];
+      g_velocityPGain =  dataBuff->float32[0];
+      break;
+    case CPI_VelocityIGain:
+      if(len != 4)
+        return false;
+      g_velocityIGain =  dataBuff->float32[0];
       break;
     case CPI_DemandPhaseVelocity:
       if(len != 4)
         return false;
       g_demandPhaseVelocity = dataBuff->float32[0];
+      break;
+    case CPI_VelocityLimit:
+      if(len != 4)
+        return false;
+      g_velocityLimit = dataBuff->float32[0];
       break;
     //case CPI_ANGLE_CAL: // 12 Values
     case CPI_ANGLE_CAL_0:
@@ -469,11 +480,19 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       break;
     case CPI_VelocityPGain:
       *len = 4;
-      data->float32[0] = g_velocityGain;
+      data->float32[0] = g_velocityPGain;
+      break;
+    case CPI_VelocityIGain:
+      *len = 4;
+      data->float32[0] = g_velocityIGain;
       break;
     case CPI_DemandPhaseVelocity:
       *len = 4;
       data->float32[0] = g_demandPhaseVelocity;
+      break;
+    case CPI_VelocityLimit:
+      *len = 4;
+      data->float32[0] = g_velocityLimit;
       break;
     default:
       return false;

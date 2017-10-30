@@ -34,21 +34,23 @@ namespace DogBotN {
     bool Forward(const float (&angles)[3],float (&position)[3]) const;
 
     //! 4 bar linkage angle forward.
-    float Linkage4BarForward(float angleIn) const;
+    float Linkage4BarForward(float theta,bool solution2 = false) const;
 
     //! 4 bar linkage angle backward,
     // Returns true if angle exists.
-    bool Linkage4BarBack(float angleIn,float &ret) const;
+    bool Linkage4BarBack(float psi,float &ret,bool solution2 = false) const;
 
     // See: https://synthetica.eng.uci.edu/mechanicaldesign101/McCarthyNotes-2.pdf
-    bool Linkage4Bar(float angleIn,float a,float b,float g,float h,float &result) const;
+    bool Linkage4Bar(float theta,float a,float b,float g,float h,float &psi,bool solution2 = false) const;
+
+    // Compute the speed ratio at the given input angle.
+    float LinkageSpeedRatio(float theta,float psi);
 
   protected:
-    float m_l1 = 0.361;
+
+    float m_l1 = 0.361; // Upper leg length
     float m_l2 = 0.31;
     float m_zoff = 0.08;
-
-
 
     float m_linkA = 0.032; // Hip CAD: 0.032
     float m_linkB = 0.04;  // Knee CAD: 0.04

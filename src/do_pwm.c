@@ -97,10 +97,16 @@ static void queue_voltage_timings(float v_alpha, float v_beta) {
 void ShuntCalibration(void)
 {
   // Enable shunt calibration mode.
-  int gainMode = DRV8503_GAIN_CS1_40 | DRV8503_GAIN_CS2_40 | DRV8503_GAIN_CS3_40;
+  int gainMode = DRV8503_GAIN_CS1_40 | DRV8503_GAIN_CS2_40 | DRV8503_GAIN_CS3_40 |
+      DRV8503_CS_BLANK_2_5US ;
+
+  // The following can deal with +- 40 Amps or so
 
   float ampGain = 40.0; // V/V gain
   float shuntResistance = 0.001;
+
+  // 90% of half the range of possible values.
+  g_maxCurrentSense = (3.3 * 0.5 * 0.9) / (ampGain/shuntResistance);
 
   Drv8503SetRegister(DRV8503_REG_SHUNT_AMPLIFIER_CONTROL,
       DRV8503_DC_CAL_CH1 |
@@ -150,6 +156,7 @@ bool g_breakMode = false;
 // The following function is based on that from the ODrive project.
 
 static bool FOC_current(float phaseAngle,float Id_des, float Iq_des) {
+
 
   // Clarke transform
   float Ialpha = -g_current[1] - g_current[2];
@@ -216,10 +223,14 @@ float g_demandTorque = 0;
 int g_phaseRotationCount = 0;
 float g_currentPhasePosition = 0;
 float g_currentPhaseVelocity = 0;
-float g_velocityGain = 0.01;
+float g_velocityLimit = 4000.0; // Phase is radians a second.
+float g_velocityPGain = 0.03;
+float g_velocityIGain = 3.0;
+float g_velocityISum = 0.0;
 float g_velocityFilter = 16.0;
 float g_positionGain = 1.0;
-float g_torqueLimit = 5.0;
+float g_currentLimit = 5.0;
+float g_maxCurrentSense = 20.0;
 float g_torqueAverage = 0.0;
 float g_positionIGain = 0.0;
 float g_positionIClamp = 5.0;
@@ -232,7 +243,7 @@ enum PWMControlModeT g_controlMode = CM_Break;
 static void UpdateCurrentMeasurementsFromADCValues(void) {
   // Compute motor currents;
   // Make sure they sum to zero
-#if 0
+#if 1
   float sum = 0;
   float tmpCurrent[3];
   for(int i = 0;i < 3;i++) {
@@ -245,8 +256,10 @@ static void UpdateCurrentMeasurementsFromADCValues(void) {
     g_current[i] = tmpCurrent[i] - sum;
   }
 #else
+  //static float shuntFilter[3] = { 0.0,0.0,0.0 };
   for(int i = 0;i < 3;i++) {
-    g_current[i] = ((float) g_currentADCValue[i] * g_shuntADCValue2Amps) - g_currentZeroOffset[i];
+    float newValue = ((float) g_currentADCValue[i] * g_shuntADCValue2Amps) - g_currentZeroOffset[i];
+    g_current[i] = newValue;
   }
 #endif
 }
@@ -257,6 +270,7 @@ static void ComputeState(void)
   float lastAngle = g_phaseAngle;
 
   // This returns an angle between 0 and 2 pi
+  //g_phaseAngle += (hallToAngle(g_hall) - g_phaseAngle) * 0.6;
   g_phaseAngle = hallToAngle(g_hall);
 
   float angleDiff = lastAngle - g_phaseAngle;
@@ -281,34 +295,16 @@ static void ComputeState(void)
   UpdateCurrentMeasurementsFromADCValues();
 }
 
-static void SetTorque(float torque) {
+static void SetCurrent(float current)
+{
 
-#if 1
-  if(torque > g_torqueLimit)
-    torque = g_torqueLimit;
-  if(torque < -g_torqueLimit)
-    torque = -g_torqueLimit;
+  if(current > g_currentLimit)
+    current = g_currentLimit;
+  if(current < -g_currentLimit)
+    current = -g_currentLimit;
 
   //g_torqueAverage = (g_torqueAverage * 30.0 + torque)/31.0;
-
-  FOC_current(g_phaseAngle,0,-torque);
-#else
-
-  float voltage_magnitude = torque;
-
-  if(voltage_magnitude > g_torqueLimit)
-    voltage_magnitude = g_torqueLimit;
-  if(voltage_magnitude < -g_torqueLimit)
-    voltage_magnitude = -g_torqueLimit;
-
-  // Apply velocity limits ?
-
-  float pangle = g_phaseAngle;
-  pangle -= M_PI/2.0;
-  float v_alpha = voltage_magnitude * arm_cos_f32(pangle);
-  float v_beta  = voltage_magnitude * arm_sin_f32(pangle);
-  queue_modulation_timings(v_alpha, v_beta);
-#endif
+  FOC_current(g_phaseAngle,0,-current);
 }
 
 
@@ -328,7 +324,7 @@ static void MotorControlLoop(void)
 
     ComputeState();
 
-    float torque = g_demandTorque;
+    float demandCurrent = g_demandTorque;
     //float targetVelocity = g_demandPhaseVelocity;
     float targetPosition = g_demandPhasePosition;
 
@@ -354,30 +350,56 @@ static void MotorControlLoop(void)
         break;
       case CM_Position: {
         float positionError = (targetPosition - g_currentPhasePosition);
+#if 0
         g_positionISum += positionError * CURRENT_MEAS_PERIOD;
         if(g_positionISum > g_positionIClamp)  g_positionISum = g_positionIClamp;
         if(g_positionISum < -g_positionIClamp) g_positionISum = -g_positionIClamp;
+#endif
 
         //
-        g_demandPhaseVelocity = -positionError * 10.0 + -g_positionISum * g_positionIGain;
+        float targetVelocity =  -positionError * 10.0 ;
 
-        float err = g_demandPhaseVelocity - g_currentPhaseVelocity;
-        torque = err * g_velocityGain;
+        if(targetVelocity > g_velocityLimit)
+          targetVelocity = g_velocityLimit;
+        if(targetVelocity < -g_velocityLimit)
+          targetVelocity = -g_velocityLimit;
 
-        SetTorque(torque);
-      } break;
+        g_demandPhaseVelocity = targetVelocity;
+      }
+      // no break
       case CM_Velocity: {
         //g_demandPhasePosition += g_demandPhaseVelocity * CURRENT_MEAS_PERIOD;
         //targetPosition = g_demandPhasePosition;
 
         float err = g_demandPhaseVelocity - g_currentPhaseVelocity;
-        torque = err * g_velocityGain;
 
-        SetTorque(torque);
+        // Add a small deadzone.
+        const float deadZone = M_PI/8.0f;
+        if(err < 0) {
+          if(err > -deadZone)
+            err = 0;
+          else
+            err += deadZone;
+        } else {
+          if(err < deadZone)
+            err = 0;
+          else
+            err -= deadZone;
+        }
+
+        g_velocityISum += err * CURRENT_MEAS_PERIOD * g_velocityIGain;
+        if(g_velocityISum > g_velocityLimit)
+          g_velocityISum = g_velocityLimit;
+        if(g_velocityISum < -g_velocityLimit)
+          g_velocityISum = -g_velocityLimit;
+
+        demandCurrent = err * g_velocityPGain + g_velocityISum;
+
+        SetCurrent(demandCurrent);
 
       } break;
       case CM_Torque: {
-        SetTorque(torque);
+        SetCurrent(demandCurrent);
       } break;
     }
 
@@ -461,6 +483,7 @@ static THD_FUNCTION(ThreadPWM, arg) {
   // Setup motor PID.
   SetupMotorCurrentPID();
 
+  g_velocityISum = 0; // Reset velocity integral
   g_phaseRotationCount = 0; // Reset the rotation count to zero.
 
   // Do main control loop
@@ -1024,6 +1047,7 @@ enum FaultCodeT PWMMotorPhaseCal()
       FOC_current(phaseAngle,torqueValue,0);
     }
 
+    g_vbus_voltage = ReadSupplyVoltage();
     // Take some readings.
 
     for(int i = 0;i < numberOfReadings;i++) {
@@ -1176,12 +1200,17 @@ void InitHall2Angle(void)
 float hallToAngleDot2(uint16_t *sensors)
 {
   float distTable[g_calibrationPointCount];
-  int phase = 0;
   float norm[3];
   norm[0] = (float) sensors[0] - g_hallToAngleOriginOffset;
   norm[1] = (float) sensors[1] - g_hallToAngleOriginOffset;
   norm[2] = (float) sensors[2] - g_hallToAngleOriginOffset;
   float mag = mysqrtf(sqr(norm[0]) + sqr(norm[1]) + sqr(norm[2]));
+  // This shouldn't happen, but just in case of some extreme noise, avoid returning a NAN.
+  if(mag == 0) {
+    // Log an error?
+    return g_phaseAngle;
+  }
+
   for(int j = 0;j < 3;j++)
     norm[j] /= mag;
 
@@ -1194,6 +1223,7 @@ float hallToAngleDot2(uint16_t *sensors)
                   ((g_phaseAnglesNormOrg[0][2]) * norm[2]);
 
   distTable[0] = maxCorr;
+  int phase = 0;
 
   for(int i = 1;i < g_calibrationPointCount;i++) {
     //mag = mysqrtf(sqr(g_phaseAngles[i][0]) + sqr(g_phaseAngles[i][1]) + sqr(g_phaseAngles[i][2]));

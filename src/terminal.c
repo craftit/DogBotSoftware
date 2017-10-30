@@ -355,7 +355,7 @@ static void cmd_doSet(BaseSequentialStream *chp, int argc, char *argv[]) {
 
   if(strcmp("vel_gain",argv[0]) == 0 || strcmp("vg",argv[0]) == 0) {
     int val = atoi(argv[1]);
-    g_velocityGain = (float) val / 1000.0f;
+    g_velocityPGain = (float) val / 1000.0f;
     chprintf(chp, "Setting velocity gain to %d \r\n",val);
   }
 
@@ -368,7 +368,7 @@ static void cmd_doSet(BaseSequentialStream *chp, int argc, char *argv[]) {
 
   if(strcmp("torque_limit",argv[0]) == 0 || strcmp("tl",argv[0]) == 0) {
     int val = atoi(argv[1]);
-    g_torqueLimit = (float) val / 1000.0;
+    g_currentLimit = (float) val / 1000.0;
     chprintf(chp, "Setting torque limit to %d \r\n",val);
   }
 

@@ -9,8 +9,8 @@ MainWindow::MainWindow(QWidget *parent) :
   ui(new Ui::MainWindow)
 {
   ui->setupUi(this);
-  ui->lineEditDevice->setText("/dev/ttyACM1");
-
+//  ui->lineEditDevice->setText("/dev/ttyACM1");
+  ui->lineEditDevice->setText("/dev/tty.usbmodem401");
   SetupComs();
 
   connect(this,SIGNAL(setLogText(const QString &)),ui->textEditLog,SLOT(setText(const QString &)));
@@ -31,8 +31,10 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(this,SIGNAL(setDriveTemperature(QString)),ui->label_DriverTemperature,SLOT(setText(QString)));
   connect(this,SIGNAL(setMotorIGain(double)),this,SLOT(updateIGain(double)));
   connect(this,SIGNAL(setMotorVelocity(double)),ui->doubleSpinBoxVelocity,SLOT(setValue(double)));
-  connect(this,SIGNAL(setVelocityGain(double)),ui->doubleSpinBoxVelocityGain,SLOT(setValue(double)));
+  connect(this,SIGNAL(setVelocityPGain(double)),ui->doubleSpinBoxVelocityGain,SLOT(setValue(double)));
+  connect(this,SIGNAL(setVelocityIGain(double)),ui->doubleSpinBoxVelocityIGain,SLOT(setValue(double)));
   connect(this,SIGNAL(setDemandPhaseVelocity(double)),ui->doubleSpinBoxDemandVelocity,SLOT(setValue(double)));
+  connect(this,SIGNAL(setVelocityLimit(double)),ui->doubleSpinBoxVelocityLimit,SLOT(setValue(double)));
 
   startTimer(10);
 }
@@ -48,7 +50,7 @@ void MainWindow::EnableBounce(bool state)
   m_bounceRunning = state;
 }
 
-void MainWindow::timerEvent(QTimerEvent *event)
+void MainWindow::timerEvent(QTimerEvent *)
 {
   //std::cout << "Setting " << m_servoAngle * 360.0 / (2.0* M_PI) << std::endl;
   ui->doubleSpinBoxPostion->setValue(m_servoAngle * 360.0 / (2.0* M_PI));
@@ -280,9 +282,25 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     break;
   case CPI_VelocityPGain:
     if(psp->m_header.m_deviceId == m_targetDeviceId) {
-      emit setVelocityGain(psp->m_data.float32[0]);
+      emit setVelocityPGain(psp->m_data.float32[0]);
     }
-    sprintf(buff,"\n VelocityGain: %f ",psp->m_data.float32[0]);
+    sprintf(buff,"\n VelocityPGain: %f ",psp->m_data.float32[0]);
+    displayStr += buff;
+    //ret = false;
+    break;
+  case CPI_VelocityIGain:
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      emit setVelocityIGain(psp->m_data.float32[0]);
+    }
+    sprintf(buff,"\n VelocityIGain: %f ",psp->m_data.float32[0]);
+    displayStr += buff;
+    //ret = false;
+    break;
+  case CPI_VelocityLimit:
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      emit setVelocityLimit(psp->m_data.float32[0]);
+    }
+    sprintf(buff,"\n VelocityLimit: %f ",psp->m_data.float32[0]);
     displayStr += buff;
     //ret = false;
     break;
@@ -292,6 +310,7 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     }
     sprintf(buff,"\n DemandVelocity: %f ",psp->m_data.float32[0]);
     displayStr += buff;
+    ret = false;
     break;
   default:
     break;
@@ -462,6 +481,8 @@ void MainWindow::QueryAll()
   m_coms->SendQueryParam(m_targetDeviceId,CPI_OtherJointGain);
   m_coms->SendQueryParam(m_targetDeviceId,CPI_MotorIGain);
   m_coms->SendQueryParam(m_targetDeviceId,CPI_VelocityPGain);
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_VelocityIGain);
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_VelocityLimit);
 }
 
 void MainWindow::on_pushButtonConnect_clicked()
@@ -835,4 +856,14 @@ void MainWindow::on_sliderPosition_valueChanged(int value)
 void MainWindow::on_doubleSpinBoxVelocityGain_valueChanged(double arg1)
 {
   m_coms->SendSetParam(m_targetDeviceId,CPI_VelocityPGain,(float) arg1);
+}
+
+void MainWindow::on_doubleSpinBoxVelocityIGain_valueChanged(double arg1)
+{
+  m_coms->SendSetParam(m_targetDeviceId,CPI_VelocityIGain,(float) arg1);
+}
+
+void MainWindow::on_doubleSpinBoxVelocityLimit_valueChanged(double arg1)
+{
+    m_coms->SendSetParam(m_targetDeviceId,CPI_VelocityLimit,(float) arg1);
 }

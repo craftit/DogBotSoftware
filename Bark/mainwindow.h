@@ -124,6 +124,10 @@ private slots:
 
   void on_doubleSpinBoxVelocityGain_valueChanged(double arg1);
 
+  void on_doubleSpinBoxVelocityIGain_valueChanged(double arg1);
+
+  void on_doubleSpinBoxVelocityLimit_valueChanged(double arg1);
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);
@@ -140,8 +144,10 @@ signals:
   void setDriveTemperature(QString str);
   void setMotorIGain(double offset);
   void setMotorVelocity(double offset);
-  void setVelocityGain(double offset);
+  void setVelocityPGain(double offset);
+  void setVelocityIGain(double offset);
   void setDemandPhaseVelocity(double offset);
+  void setVelocityLimit(double offset);
 
 private:
   void SetupComs();

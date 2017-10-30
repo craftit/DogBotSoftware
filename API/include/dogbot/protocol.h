@@ -91,7 +91,10 @@ extern "C" {
     CPI_MotorPGain      = 25,
     CPI_PhaseVelocity   = 26,
     CPI_VelocityPGain   = 27,
-    CPI_DemandPhaseVelocity = 28,
+    CPI_VelocityIGain   = 28,
+    CPI_DemandPhaseVelocity = 29,
+    CPI_VelocityLimit   = 30,
+
     CPI_DRV8305         = 32,
     CPI_DRV8305_01      = 0x20,
     CPI_DRV8305_02      = 0x21,

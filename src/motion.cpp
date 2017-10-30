@@ -153,7 +153,7 @@ bool UpdateRequestedPosition()
 bool MotionSetPosition(uint8_t mode,int16_t position,uint16_t torqueLimit)
 {
   g_requestedJointMode = mode;
-  g_torqueLimit = ((float) torqueLimit) * g_absoluteMaxTorque / (65536.0);
+  g_currentLimit = ((float) torqueLimit) * g_absoluteMaxTorque / (65536.0);
   g_requestedJointPosition = position;
 
   return UpdateRequestedPosition();
@@ -319,6 +319,7 @@ enum FaultCodeT LoadSetup(void) {
   g_phaseResistance = g_storedConfig.m_phaseResistance;
   g_phaseInductance = g_storedConfig.m_phaseInductance;
   g_phaseOffsetVoltage = g_storedConfig.m_phaseOffsetVoltage;
+  g_velocityLimit = g_storedConfig.m_velocityLimit;
 
   // Setup angles.
   for(int i = 0;i < g_calibrationPointCount;i++) {
@@ -346,6 +347,7 @@ enum FaultCodeT SaveSetup(void) {
   g_storedConfig.m_phaseResistance = g_phaseResistance;
   g_storedConfig.m_phaseInductance = g_phaseInductance;
   g_storedConfig.m_phaseOffsetVoltage = g_phaseOffsetVoltage;
+  g_storedConfig.m_velocityLimit = g_velocityLimit;
 
   for(int i = 0;i < g_calibrationPointCount;i++) {
     g_storedConfig.phaseAngles[i][0] = g_phaseAngles[i][0];

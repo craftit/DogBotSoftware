@@ -53,8 +53,9 @@ extern float g_maxSupplyVoltage;
 extern float g_maxOperatingTemperature;
 
 extern float g_driveTemperature;
+extern float g_maxCurrentSense;
 
-#define g_calibrationPointCount (24)
+#define g_calibrationPointCount (12)
 
 extern int g_phaseAngles[g_calibrationPointCount][3];
 
@@ -69,13 +70,15 @@ extern float g_demandPhasePosition;
 extern float g_demandPhaseVelocity;
 extern float g_demandTorque;
 
-extern float g_velocityGain;
+extern float g_velocityLimit;
+extern float g_velocityPGain;
+extern float g_velocityIGain;
 extern float g_velocityFilter;
 extern float g_positionGain;
 extern float g_positionIGain;
 extern float g_positionIClamp;
 
-extern float g_torqueLimit;
+extern float g_currentLimit;
 
 extern int g_phaseRotationCount;
 extern float g_currentPhasePosition;

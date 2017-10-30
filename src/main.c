@@ -137,7 +137,7 @@ extern void InitADC(void);
 extern pid_t getpid(void);
 
 void FaultDetected(enum FaultCodeT faultCode) {
-  g_torqueLimit = 0;
+  g_currentLimit = 0;
   if(g_lastFaultCode == faultCode) {
     ChangeControlState(CS_Fault);
     return ;
@@ -147,7 +147,7 @@ void FaultDetected(enum FaultCodeT faultCode) {
   ChangeControlState(CS_Fault);
 }
 
-float g_minSupplyVoltage = 12.0;
+float g_minSupplyVoltage = 6.0;
 
 bool ChangeControlState(enum ControlStateT newState)
 {
@@ -186,7 +186,7 @@ bool ChangeControlState(enum ControlStateT newState)
 
     case CS_EmergencyStop:
     case CS_Fault: {
-      g_torqueLimit = 0;
+      g_currentLimit = 0;
       PWMStop();
       SendParamUpdate(CPI_PositionCal);
     } break;
