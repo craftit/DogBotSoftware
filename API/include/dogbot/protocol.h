@@ -94,6 +94,7 @@ extern "C" {
     CPI_VelocityIGain   = 28,
     CPI_DemandPhaseVelocity = 29,
     CPI_VelocityLimit   = 30,
+    CPI_PositionGain   = 31,
 
     CPI_DRV8305         = 32,
     CPI_DRV8305_01      = 0x20,

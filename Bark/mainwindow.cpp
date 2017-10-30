@@ -9,8 +9,8 @@ MainWindow::MainWindow(QWidget *parent) :
   ui(new Ui::MainWindow)
 {
   ui->setupUi(this);
-//  ui->lineEditDevice->setText("/dev/ttyACM1");
-  ui->lineEditDevice->setText("/dev/tty.usbmodem401");
+  ui->lineEditDevice->setText("/dev/ttyACM1");
+//  ui->lineEditDevice->setText("/dev/tty.usbmodem401");
   SetupComs();
 
   connect(this,SIGNAL(setLogText(const QString &)),ui->textEditLog,SLOT(setText(const QString &)));
@@ -35,6 +35,7 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(this,SIGNAL(setVelocityIGain(double)),ui->doubleSpinBoxVelocityIGain,SLOT(setValue(double)));
   connect(this,SIGNAL(setDemandPhaseVelocity(double)),ui->doubleSpinBoxDemandVelocity,SLOT(setValue(double)));
   connect(this,SIGNAL(setVelocityLimit(double)),ui->doubleSpinBoxVelocityLimit,SLOT(setValue(double)));
+  connect(this,SIGNAL(setPositionGain(double)),ui->doubleSpinBoxPositionGain,SLOT(setValue(double)));
 
   startTimer(10);
 }
@@ -312,6 +313,14 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     displayStr += buff;
     ret = false;
     break;
+  case CPI_PositionGain:
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      emit setPositionGain(psp->m_data.float32[0]);
+    }
+    sprintf(buff,"\n PositionGain: %f ",psp->m_data.float32[0]);
+    displayStr += buff;
+    ret = false;
+    break;
   default:
     break;
   }
@@ -483,6 +492,7 @@ void MainWindow::QueryAll()
   m_coms->SendQueryParam(m_targetDeviceId,CPI_VelocityPGain);
   m_coms->SendQueryParam(m_targetDeviceId,CPI_VelocityIGain);
   m_coms->SendQueryParam(m_targetDeviceId,CPI_VelocityLimit);
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_PositionGain);
 }
 
 void MainWindow::on_pushButtonConnect_clicked()
@@ -865,5 +875,10 @@ void MainWindow::on_doubleSpinBoxVelocityIGain_valueChanged(double arg1)
 
 void MainWindow::on_doubleSpinBoxVelocityLimit_valueChanged(double arg1)
 {
-    m_coms->SendSetParam(m_targetDeviceId,CPI_VelocityLimit,(float) arg1);
+  m_coms->SendSetParam(m_targetDeviceId,CPI_VelocityLimit,(float) arg1);
+}
+
+void MainWindow::on_doubleSpinBoxPositionGain_valueChanged(double arg1)
+{
+  m_coms->SendSetParam(m_targetDeviceId,CPI_PositionGain,(float) arg1);
 }

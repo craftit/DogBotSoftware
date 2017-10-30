@@ -55,7 +55,7 @@ extern float g_maxOperatingTemperature;
 extern float g_driveTemperature;
 extern float g_maxCurrentSense;
 
-#define g_calibrationPointCount (12)
+#define g_calibrationPointCount (18)
 
 extern int g_phaseAngles[g_calibrationPointCount][3];
 

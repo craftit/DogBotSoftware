@@ -227,8 +227,8 @@ float g_velocityLimit = 4000.0; // Phase is radians a second.
 float g_velocityPGain = 0.03;
 float g_velocityIGain = 3.0;
 float g_velocityISum = 0.0;
-float g_velocityFilter = 16.0;
-float g_positionGain = 1.0;
+float g_velocityFilter = 20.0;
+float g_positionGain = 5.0;
 float g_currentLimit = 5.0;
 float g_maxCurrentSense = 20.0;
 float g_torqueAverage = 0.0;
@@ -357,7 +357,7 @@ static void MotorControlLoop(void)
 #endif
 
         //
-        float targetVelocity =  -positionError * 10.0 ;
+        float targetVelocity =  -positionError * g_positionGain;
 
         if(targetVelocity > g_velocityLimit)
           targetVelocity = g_velocityLimit;

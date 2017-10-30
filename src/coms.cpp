@@ -310,6 +310,12 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
         return false;
       g_velocityLimit = dataBuff->float32[0];
       break;
+    case CPI_PositionGain:
+      if(len != 4)
+        return false;
+      g_positionGain = dataBuff->float32[0];
+      break;
+
     //case CPI_ANGLE_CAL: // 12 Values
     case CPI_ANGLE_CAL_0:
     case CPI_ANGLE_CAL_1:
@@ -439,6 +445,10 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
     case CPI_PhaseVelocity:
       *len = 4;
       data->float32[0] = g_currentPhaseVelocity;
+      break;
+    case CPI_PositionGain:
+      *len = 4;
+      data->float32[0] = g_positionGain;
       break;
     //case CPI_ANGLE_CAL: // 12 Values
     case CPI_ANGLE_CAL_0:

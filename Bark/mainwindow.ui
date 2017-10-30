@@ -1065,7 +1065,7 @@
        <widget class="QLabel" name="label_25">
         <property name="geometry">
          <rect>
-          <x>590</x>
+          <x>580</x>
           <y>460</y>
           <width>91</width>
           <height>16</height>
@@ -1078,8 +1078,8 @@
        <widget class="QDoubleSpinBox" name="doubleSpinBoxVelocityLimit">
         <property name="geometry">
          <rect>
-          <x>287</x>
-          <y>450</y>
+          <x>280</x>
+          <y>440</y>
           <width>101</width>
           <height>24</height>
          </rect>
@@ -1094,14 +1094,43 @@
        <widget class="QLabel" name="label_26">
         <property name="geometry">
          <rect>
-          <x>210</x>
-          <y>450</y>
-          <width>60</width>
+          <x>190</x>
+          <y>440</y>
+          <width>81</width>
           <height>16</height>
          </rect>
         </property>
         <property name="text">
          <string>Velocity limit</string>
+        </property>
+       </widget>
+       <widget class="QDoubleSpinBox" name="doubleSpinBoxPositionGain">
+        <property name="geometry">
+         <rect>
+          <x>280</x>
+          <y>470</y>
+          <width>91</width>
+          <height>22</height>
+         </rect>
+        </property>
+        <property name="minimum">
+         <double>-1000.000000000000000</double>
+        </property>
+        <property name="maximum">
+         <double>1000.000000000000000</double>
+        </property>
+       </widget>
+       <widget class="QLabel" name="label_27">
+        <property name="geometry">
+         <rect>
+          <x>178</x>
+          <y>470</y>
+          <width>81</width>
+          <height>16</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>PositionGain:</string>
         </property>
        </widget>
       </widget>
@@ -1308,7 +1337,7 @@
      <x>0</x>
      <y>0</y>
      <width>841</width>
-     <height>22</height>
+     <height>19</height>
     </rect>
    </property>
   </widget>
