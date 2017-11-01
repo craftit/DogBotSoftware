@@ -66,6 +66,9 @@ void PWMUpdateDrivePhase(int pa,int pb,int pc);
 
 void SetupMotorCurrentPID(void);
 
+static float sqrf(float v)
+{ return v * v; }
+
 int CheckHallInRange(void) {
   // Are sensor readings outside the expected range ?
   for(int i = 0;i < 3;i++) {
@@ -227,7 +230,7 @@ float g_velocityLimit = 4000.0; // Phase is radians a second.
 float g_velocityPGain = 0.03;
 float g_velocityIGain = 3.0;
 float g_velocityISum = 0.0;
-float g_velocityFilter = 20.0;
+float g_velocityFilter = 2.0;
 float g_positionGain = 5.0;
 float g_currentLimit = 5.0;
 float g_maxCurrentSense = 20.0;
@@ -264,13 +267,21 @@ static void UpdateCurrentMeasurementsFromADCValues(void) {
 #endif
 }
 
+static float wrapAngle(float theta) {
+    while (theta >= M_PI) theta -= (2.0f * M_PI);
+    while (theta < -M_PI) theta += (2.0f * M_PI);
+    return theta;
+}
+
+
 static void ComputeState(void)
 {
+
+#if 0
   // Compute current phase angle
   float lastAngle = g_phaseAngle;
 
   // This returns an angle between 0 and 2 pi
-  //g_phaseAngle += (hallToAngle(g_hall) - g_phaseAngle) * 0.6;
   g_phaseAngle = hallToAngle(g_hall);
 
   float angleDiff = lastAngle - g_phaseAngle;
@@ -286,10 +297,51 @@ static void ComputeState(void)
 
   // If we just sum up difference things will drift.
   g_currentPhasePosition = (float) g_phaseRotationCount * 2 * M_PI + g_phaseAngle;
-
-  //
-  // Velocity estimate, filtered a little.
   g_currentPhaseVelocity = (g_currentPhaseVelocity * (g_velocityFilter-1.0) + angleDiff / CURRENT_MEAS_PERIOD )/g_velocityFilter;
+#else
+
+  float rawPhase = hallToAngle(g_hall);
+
+  // Compute current phase angle
+  float lastAngle = g_phaseAngle;
+
+  {
+    const float pllBandwidth = 1000.0f; // [rad/s]
+
+    static const float pllKp = 2.0f * pllBandwidth;
+    static const float pllKi = 0.25f * pllKp * pllKp; // Critically damped
+    static float pllPhase = 0;
+    static float pllVel = 0;
+
+    // predict PLL phase with velocity
+    pllPhase = wrapAngle(pllPhase + CURRENT_MEAS_PERIOD * pllVel);
+    float phaseError = wrapAngle(rawPhase - pllPhase);
+    pllPhase = wrapAngle(pllPhase + CURRENT_MEAS_PERIOD * pllKp * phaseError);
+
+    // update PLL velocity
+    pllVel += CURRENT_MEAS_PERIOD * pllKi * phaseError;
+
+    g_currentPhaseVelocity = pllVel;
+
+    //g_phaseAngle = rawPhase; //pll_pos;
+    g_phaseAngle = pllPhase;
+  }
+
+  // Update continuous angle.
+  float angleDiff = lastAngle - g_phaseAngle;
+  // If the change is large we have wrapped around.
+  if(angleDiff > M_PI) {
+    g_phaseRotationCount++;
+  }
+  if(angleDiff < -M_PI) {
+    g_phaseRotationCount--;
+  }
+
+  // If we just sum up difference things will drift.
+  g_currentPhasePosition = (float) g_phaseRotationCount * 2 * M_PI + g_phaseAngle;
+
+#endif
+  // Velocity estimate, filtered a little.
 
   // Update currents
   UpdateCurrentMeasurementsFromADCValues();
@@ -304,7 +356,7 @@ static void SetCurrent(float current)
     current = -g_currentLimit;
 
   //g_torqueAverage = (g_torqueAverage * 30.0 + torque)/31.0;
-  FOC_current(g_phaseAngle,0,-current);
+  FOC_current(g_phaseAngle,0,current);
 }
 
 
@@ -357,7 +409,7 @@ static void MotorControlLoop(void)
 #endif
 
         //
-        float targetVelocity =  -positionError * g_positionGain;
+        float targetVelocity =  positionError * g_positionGain;
 
         if(targetVelocity > g_velocityLimit)
           targetVelocity = g_velocityLimit;
@@ -819,8 +871,6 @@ void SetupMotorCurrentPID()
 #endif
 }
 
-static float sqrf(float v)
-{ return v * v; }
 
 enum FaultCodeT PWMMotorCalResistance()
 {
@@ -1016,7 +1066,7 @@ enum FaultCodeT PWMMotorPhaseCal()
     int phaseStep = phase % g_calibrationPointCount;
     float phaseAngle = (float) phase * M_PI * 2.0 / ((float) g_calibrationPointCount) ;
 
-    int shiftPeriod = cyclesPerSecond / 8;
+    int shiftPeriod = cyclesPerSecond / 12; // 8 is ok
 
     // Move to position slowly to reduce vibration
 
@@ -1251,8 +1301,8 @@ float hallToAngleDot2(uint16_t *sensors)
   angle -= corr;
   //RavlDebug("Last:%f  Max:%f Next:%f Corr:%f ",lastDist,maxCorr,nextDist,corr);
   const float calibRange = g_calibrationPointCount*2.0f;
-  if(angle < 0.0) angle += calibRange;
-  if(angle > calibRange) angle -= calibRange;
+  //if(angle < -g_calibrationPointCount) angle += calibRange;
+  if(angle > g_calibrationPointCount) angle -= calibRange;
   return (angle * M_PI * 2.0 / calibRange);
 }
 
