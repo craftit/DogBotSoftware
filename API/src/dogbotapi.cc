@@ -3,6 +3,7 @@
 #include <fstream>
 #include <chrono>
 #include <mutex>
+#include <assert.h>
 
 namespace DogBotN {
 
@@ -170,18 +171,51 @@ namespace DogBotN {
     return true;
   }
 
+  //! Create a new entry for device.
+  //! This assumes 'm_mutexDevices' is held.
+  void DogBotAPIC::CreateDeviceEntry(int deviceId)
+  {
+    assert(deviceId <= 255 && deviceId >= 0);
+
+    while(m_devices.size() <= deviceId)
+      m_devices.push_back(nullptr);
+
+    std::shared_ptr<ServoC> &ptr = m_devices[deviceId];
+    if(!ptr) {
+      ptr = std::make_shared<ServoC>(m_coms,deviceId);
+    }
+  }
+
   //! Monitor thread
   void DogBotAPIC::RunMonitor()
   {
     m_log->debug("Running monitor. ");
 
-    m_coms->SetHandler(CPT_Pong,
-                      [this](uint8_t *data,int size) mutable
-                      {
+    m_coms->SetHandler(CPT_Pong, [this](uint8_t *data,int size) mutable
+    {
 
-                      }
-      );
+    });
 
+    m_coms->SetHandler(CPT_ServoReport,
+             [this](uint8_t *data,int size) mutable
+        {
+          if(size != sizeof(struct PacketServoReportC)) {
+            m_log->error("Unexpected 'ServoReport' packet length {} ",size);
+            return;
+          }
+          const PacketServoReportC *pkt = (const PacketServoReportC *) data;
+          std::lock_guard<std::mutex> lock(m_mutexDevices);
+
+          // The device clearly exists, so make sure there is an entry.
+          if(pkt->m_deviceId >= m_devices.size() ||
+              !m_devices[pkt->m_deviceId])
+            CreateDeviceEntry(pkt->m_deviceId);
+
+          std::shared_ptr<ServoC> &ptr = m_devices[pkt->m_deviceId];
+          ptr->ProcessServoReport(*pkt);
+
+        }
+    );
 
     while(!m_terminate)
     {
@@ -211,6 +245,22 @@ namespace DogBotN {
     }
 
     m_log->debug("Exiting monitor. ");
+  }
+
+  //! Set the handler for servo reports for a device.
+  int DogBotAPIC::SetServoUpdateHandler(int deviceId,const std::function<void (const PacketServoReportC &report)> &handler)
+  {
+
+    return 0;
+  }
+
+
+  //! Get list of configured servos
+  std::vector<std::shared_ptr<ServoC> > DogBotAPIC::ListServos()
+  {
+    std::lock_guard<std::mutex> lock(m_mutexDevices);
+    std::vector<std::shared_ptr<ServoC> > ret = m_devices;
+    return ret;
   }
 
 

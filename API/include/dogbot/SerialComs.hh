@@ -56,6 +56,9 @@ namespace DogBotN {
     //! Send velocity command with an effort limit.
     void SendVelocityWithEffort(int deviceId,float velocity,float effort);
 
+    //! Send torque to apply
+    void SendTorque(int deviceId,float torque);
+
     //! Set a parameter
     void SendSetParam(int deviceId,ComsParameterIndexT param,uint8_t value);
 

@@ -68,7 +68,63 @@ namespace DogBotN {
 
   //! --------------------------
 
-  ServoC::ServoC()
-  {}
+  ServoC::ServoC(const std::shared_ptr<SerialComsC> &coms,int deviceId)
+   : m_id(deviceId),
+     m_coms(coms)
+  {
+    m_timeOfLastReport = std::chrono::steady_clock::now();
+    m_timeEpoch = m_timeOfLastReport;
+  }
+
+  //! Process update
+  bool ServoC::ProcessServoReport(const PacketServoReportC &report)
+  {
+    auto timeNow = std::chrono::steady_clock::now();
+
+    std::lock_guard<std::mutex> lock(m_mutexState);
+
+    std::chrono::duration<double> timeSinceLastReport = timeNow - m_timeOfLastReport;
+    if(timeSinceLastReport < m_tickRate * 200) {
+      m_log->warn("Lost sync on servo {} ",m_id);
+    }
+    m_timeOfLastReport = timeNow;
+
+    int tickDiff = (int) report.m_timestamp - (int) m_lastTimestamp;
+    while(tickDiff < 0)
+      tickDiff += 256;
+
+    m_tick += tickDiff;
+
+    m_position = SerialComsC::PositionReport2Angle(report.m_position);
+    m_torque =  SerialComsC::TorqueReport2Value(report.m_torque);
+
+    //m_servoRef = 0;// (enum PositionReferenceT) (pkt->m_mode & 0x3);
+
+    return true;
+  }
+
+  //! Get last reported state of the servo.
+  bool ServoC::GetState(TimePointT &tick,float &position,float &velocity,float &torque) const
+  {
+    std::lock_guard<std::mutex> lock(m_mutexState);
+    tick = m_timeEpoch + m_tick * m_tickRate;
+    position = m_position;
+    torque = m_torque;
+    return true;
+  }
+
+  //! Update torque for the servo.
+  bool ServoC::DemandTorque(float torque)
+  {
+    m_coms->SendTorque(m_id,torque);
+    return true;
+  }
+
+  //! Demand a position for the servo
+  bool ServoC::DemandPosition(float position,float torqueLimit)
+  {
+    m_coms->SendMoveWithEffort(m_id,position,torqueLimit,PR_Absolute);
+    return true;
+  }
 
 }

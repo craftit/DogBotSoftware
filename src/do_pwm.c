@@ -276,35 +276,12 @@ static float wrapAngle(float theta) {
 
 static void ComputeState(void)
 {
-
-#if 0
-  // Compute current phase angle
-  float lastAngle = g_phaseAngle;
-
-  // This returns an angle between 0 and 2 pi
-  g_phaseAngle = hallToAngle(g_hall);
-
-  float angleDiff = lastAngle - g_phaseAngle;
-  // If the change is large we have wrapped around.
-  if(angleDiff > M_PI) {
-    angleDiff -= 2*M_PI;
-    g_phaseRotationCount++;
-  }
-  if(angleDiff < -M_PI) {
-    angleDiff += 2*M_PI;
-    g_phaseRotationCount--;
-  }
-
-  // If we just sum up difference things will drift.
-  g_currentPhasePosition = (float) g_phaseRotationCount * 2 * M_PI + g_phaseAngle;
-  g_currentPhaseVelocity = (g_currentPhaseVelocity * (g_velocityFilter-1.0) + angleDiff / CURRENT_MEAS_PERIOD )/g_velocityFilter;
-#else
-
   float rawPhase = hallToAngle(g_hall);
 
   // Compute current phase angle
   float lastAngle = g_phaseAngle;
 
+  // PLL based position / velocity tracker.
   {
     const float pllBandwidth = 1000.0f; // [rad/s]
 
@@ -339,9 +316,6 @@ static void ComputeState(void)
 
   // If we just sum up difference things will drift.
   g_currentPhasePosition = (float) g_phaseRotationCount * 2 * M_PI + g_phaseAngle;
-
-#endif
-  // Velocity estimate, filtered a little.
 
   // Update currents
   UpdateCurrentMeasurementsFromADCValues();

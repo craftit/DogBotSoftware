@@ -240,7 +240,7 @@ extern "C" {
     uint8_t m_packetType; // CPT_ServoAbs / CPT_ServoRel
     uint8_t m_deviceId;
     uint8_t m_mode;
-    uint16_t m_timestamp;
+    uint8_t m_timestamp;
     int16_t m_position;
     int16_t m_torque;
   } __attribute__((packed));

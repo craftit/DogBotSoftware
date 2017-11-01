@@ -35,10 +35,20 @@ namespace DogBotN {
     //! Write calibration to a device.
     bool WriteCalibration(int deviceId,const MotorCalibrationC &cal);
 
+    //! Set the handler for servo reports for a device.
+    int SetServoUpdateHandler(int deviceId,const std::function<void (const PacketServoReportC &report)> &handler);
+
+    //! Get list of configured servos
+    std::vector<std::shared_ptr<ServoC> > ListServos();
+
     //! Shutdown controller.
     bool Shutdown();
 
   protected:
+    //! Create a new entry for device.
+    //! This assumes 'm_mutexDevices' is held.
+    void CreateDeviceEntry(int deviceId);
+
     enum DriverStateT {
       DS_Init,
       DS_NoConnection,
@@ -50,12 +60,15 @@ namespace DogBotN {
     //! Monitor thread
     void RunMonitor();
 
+    std::vector<int> m_comsHandlerIds;
+
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("console");
 
     std::string m_deviceName;
     Json::Value m_configRoot;
     std::shared_ptr<SerialComsC> m_coms;
-    std::vector<ServoC> m_devices;
+    std::mutex m_mutexDevices;
+    std::vector<std::shared_ptr<ServoC> > m_devices; // Indexed by device id.
 
     std::thread m_threadMonitor;
 

@@ -486,8 +486,6 @@ namespace DogBotN
   //! Send a move command
   void SerialComsC::SendMoveWithEffort(int deviceId,float pos,float effort,enum PositionReferenceT posRef)
   {
-    int at = 0;
-
     struct PacketServoC servoPkt;
     servoPkt.m_packetType = CPT_Servo;
     servoPkt.m_deviceId = deviceId;
@@ -503,18 +501,37 @@ namespace DogBotN
   //! Send velocity command with an effort limit.
   void SerialComsC::SendVelocityWithEffort(int deviceId,float velocity,float effort)
   {
-    int at = 0;
 
     struct PacketServoC servoPkt;
     servoPkt.m_packetType = CPT_Servo;
     servoPkt.m_deviceId = deviceId;
-    servoPkt.m_position = velocity * 65535.0 / (4.0 * M_PI);
+    servoPkt.m_position = velocity * 32767.0 / (4.0 * M_PI);
     if(effort < 0) effort = 0;
     if(effort > 10.0) effort = 10.0;
     servoPkt.m_torqueLimit = effort * 65535.0 / (10.0);
     servoPkt.m_mode = (((int) CM_Velocity) << 2);
 
     SendPacket((uint8_t *)&servoPkt,sizeof servoPkt);
+  }
+
+  //! Send torque to apply
+  void SerialComsC::SendTorque(int deviceId,float torque)
+  {
+    struct PacketServoC servoPkt;
+    servoPkt.m_packetType = CPT_Servo;
+    servoPkt.m_deviceId = deviceId;
+    if(torque > 10) torque = 10;
+    if(torque < -10) torque = -10;
+    servoPkt.m_position = torque * 32767.0 / (10.0);
+#if 0
+    if(effort < 0) effort = 0;
+    if(effort > 10.0) effort = 10.0;
+    servoPkt.m_torqueLimit = effort * 65535.0 / (10.0);
+#endif
+    servoPkt.m_mode = (((int) CM_Torque) << 2);
+
+    SendPacket((uint8_t *)&servoPkt,sizeof servoPkt);
+
   }
 
 
