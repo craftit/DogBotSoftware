@@ -2,12 +2,14 @@
 #define SERVOTABLE_HH
 
 #include <QAbstractTableModel>
+#include "dogbot/DogBotAPI.hh"
+#include "dogbot/Servo.hh"
 
 class ServoTable
   : public QAbstractTableModel
 {
 public:
-  ServoTable();
+  ServoTable(const std::shared_ptr<DogBotN::DogBotAPIC> &api);
 
   enum Column {
     ColumnDeviceId = 0,
@@ -26,12 +28,12 @@ public:
   int columnCount(const QModelIndex &parent) const override;
   int rowCount(const QModelIndex &parent) const override;
 
-  //QVariant data(const QModelIndex &index, int role) const override;
+  QVariant data(const QModelIndex &index, int role) const override;
   //bool setData(const QModelIndex &index, const QVariant &value, int role) override;
   //QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
 
 protected:
-  //std::shared_ptr<DogBotAPIC> m_api;
+  std::shared_ptr<DogBotN::DogBotAPIC> m_api;
 };
 
 #endif // DEVICETABLE_HH

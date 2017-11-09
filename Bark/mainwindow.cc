@@ -1,5 +1,6 @@
 #include "mainwindow.hh"
 #include "ui_mainwindow.h"
+#include "dogbot/DogBotAPI.hh"
 #include <iostream>
 #include <QFileDialog>
 #include <fstream>
@@ -184,25 +185,7 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
   case CPI_FaultCode: {
     enum FaultCodeT faultCode = (enum FaultCodeT) psp->m_data.uint8[0];
     if(psp->m_header.m_deviceId == m_targetDeviceId) {
-      switch(faultCode) {
-      case FC_Ok: emit setFault("Ok"); break;
-      case FC_CalibrationFailed: emit setFault("Calibration Failed"); break;
-      case FC_DriverFault: emit setFault("Driver Fault"); break;
-      case FC_Internal: emit setFault("Internal error"); break;
-      case FC_Internal5VRailOutOfRange: emit setFault("5V Rail Out Of Range"); break;
-      case FC_InternalStoreFailed: emit setFault("Store failed"); break;
-      case FC_InternalTiming: emit setFault("Timing error"); break;
-      case FC_OverTemprature: emit setFault("Over Temprature"); break;
-      case FC_OverVoltage: emit setFault("Over Voltage"); break;
-      case FC_UnderVoltage: emit setFault("Under Voltage"); break;
-      case FC_NoSensor: emit setFault("No sensor"); break;
-      case FC_NoMotor: emit setFault("No motor"); break;
-      case FC_PositionLost: emit setFault("Position Lost"); break;
-      default: {
-        sprintf(buff,"Unknown fault %d ", (int) psp->m_data.uint8[0]);
-        emit setFault(buff);
-        } break;
-      }
+      emit setFault(DogBotN::FaultCodeToString(faultCode));
     }
   } break;
   case CPI_PWMMode: {

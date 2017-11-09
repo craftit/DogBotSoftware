@@ -7,6 +7,43 @@
 
 namespace DogBotN {
 
+  //! Convert a fault code to a string
+  const char *FaultCodeToString(FaultCodeT faultCode)
+  {
+    switch(faultCode) {
+    case FC_Ok: return "Ok";
+    case FC_CalibrationFailed: return "Calibration Failed";
+    case FC_DriverFault: return "Driver Fault";
+    case FC_Internal: return "Internal error";
+    case FC_Internal5VRailOutOfRange: return "5V Rail Out Of Range";
+    case FC_InternalStoreFailed: return "Store failed";
+    case FC_InternalTiming: return "Timing error";
+    case FC_OverTemprature: return "Over Temprature";
+    case FC_OverVoltage:    return "Over Voltage";
+    case FC_UnderVoltage:   return "Under Voltage";
+    case FC_NoSensor:       return "No sensor";
+    case FC_NoMotor:        return "No motor";
+    case FC_PositionLost:   return "Position Lost";
+    }
+
+    printf("Unknown fault code %d \n", (int) faultCode);
+    return "Unknown";
+  }
+
+  //! Convert the calibration state to a string
+  const char *CalibrationStateToString(MotionCalibrationT calibrationState)
+  {
+    switch(calibrationState) {
+      case MC_Uncalibrated: return "Uncalibrated";
+      case MC_Measuring: return "Measuring";
+      case MC_Calibrated: return "Calibrated";
+    }
+    return "Unknown";
+  }
+
+
+  // ---------------------------------------------------------
+
   //! Constructor
   DogBotAPIC::DogBotAPIC(const std::string &configFile)
   {

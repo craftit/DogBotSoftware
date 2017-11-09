@@ -59,6 +59,14 @@ namespace DogBotN {
     //! Demand a position for the servo
     bool DemandPosition(float position,float torqueLimit);
 
+    //! Last fault code received.
+    FaultCodeT FaultCode() const
+    { return m_faultCode; }
+
+    //! Get the current calibration state.
+    MotionCalibrationT CalibrationState() const
+    { return m_calibrationState; }
+
   protected:
     //! Process update
     bool ProcessServoReport(const PacketServoReportC &);
@@ -72,6 +80,9 @@ namespace DogBotN {
 
     int32_t m_uid2 = 0;
     bool m_online = false;
+
+    FaultCodeT m_faultCode = FC_Ok;
+    MotionCalibrationT m_calibrationState = MC_Uncalibrated;
 
     mutable std::mutex m_mutexState;
 

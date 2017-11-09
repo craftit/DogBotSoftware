@@ -54,6 +54,7 @@ extern "C" {
     FC_MotorInducetanceOutOfRange = 15
   };
 
+
   enum DeviceTypeT
   {
     DT_Unknown = 0,

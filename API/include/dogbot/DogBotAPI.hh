@@ -7,6 +7,12 @@
 
 namespace DogBotN {
 
+  //! Convert a fault code to a string
+  const char *FaultCodeToString(FaultCodeT faultCode);
+
+  //! Convert the calibration state to a string
+  const char *CalibrationStateToString(MotionCalibrationT calibrationState);
+
   //! Dogbot device control
 
   //! This does low level management of the robot, configuration of the drivers and status monitoring.
