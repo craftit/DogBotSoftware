@@ -321,6 +321,16 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     displayStr += buff;
     ret = false;
     break;
+  case CPI_DRV8305_01:
+  case CPI_DRV8305_02:
+  case CPI_DRV8305_03:
+  case CPI_DRV8305_04:
+  case CPI_DRV8305_05: {
+    int reg = (psp->m_header.m_index - (int) CPI_DRV8305_01)+1;
+    sprintf(buff,"\n Reg %d contents: %04X ",reg,(int) psp->m_data.uint16[0]);
+    displayStr += buff;
+
+   } break;
   default:
     break;
   }
@@ -881,4 +891,9 @@ void MainWindow::on_doubleSpinBoxVelocityLimit_valueChanged(double arg1)
 void MainWindow::on_doubleSpinBoxPositionGain_valueChanged(double arg1)
 {
   m_coms->SendSetParam(m_targetDeviceId,CPI_PositionGain,(float) arg1);
+}
+
+void MainWindow::on_checkBoxFan_toggled(bool checked)
+{
+  m_coms->SendSetParam(m_targetDeviceId,CPI_AuxPower,checked ? 1 : 0);
 }

@@ -130,6 +130,8 @@ private slots:
 
   void on_doubleSpinBoxPositionGain_valueChanged(double arg1);
 
+  void on_checkBoxFan_toggled(bool checked);
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);

@@ -205,6 +205,15 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_PhaseVelocity:
       break;
 
+    case CPI_AuxPower:
+      if(len != 1)
+        return false;
+      if(dataBuff->uint8[0] > 0)
+        palSetPad(GPIOA, GPIOA_PIN7);
+      else
+        palClearPad(GPIOA, GPIOA_PIN7);
+      return true;
+
     case CPI_CalibrationOffset:
       if(len != 4)
         return false;
@@ -387,6 +396,11 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       int reg = ((int) index - CPI_DRV8305)+1;
       *len = 2;
       data->uint16[0] = Drv8503ReadRegister(reg);
+    } break;
+
+    case CPI_AuxPower: {
+      *len = 1;
+      data->uint8[0] = palReadPad(GPIOA,GPIOA_PIN7);
     } break;
     case CPI_TIM1_SR: {
       stm32_tim_t *tim = (stm32_tim_t *)TIM1_BASE;

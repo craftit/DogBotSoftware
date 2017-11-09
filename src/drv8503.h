@@ -18,9 +18,25 @@ extern void Drv8503Init(void);
 // ------------------------------------------------------
 // Register 0x9 : IC Operation
 
-#define DRV8503_FLIP_OTSD  (1U<<10)
-#define DRV8503_EN_SNS_CLAMP (1U<<7)
-#define DRV8503_CLR_FLTS (1U<<2)
+
+#define DRV8503_REG_IC_CONTROL   (0x9)
+
+#define DRV8503_IC_VCPH_UV_4_9V  (0U)
+#define DRV8503_IC_VCPH_UV_4_6V  (1U)
+#define DRV8503_IC_CLR_FLTS      (1U<<1)
+#define DRV8503_IC_SLEEP         (1U<<2)
+#define DRV8503_IC_WD_EN         (1U<<3)
+#define DRV8503_IC_DIS_SNS_OCP   (1U<<4)
+
+#define DRV8503_IC_WD_DLY_10ms  (0b00 << 5)
+#define DRV8503_IC_WD_DLY_20ms  (0b01 << 5)
+#define DRV8503_IC_WD_DLY_50ms  (0b10 << 5)
+#define DRV8503_IC_WD_DLY_100ms (0b11 << 5)
+
+#define DRV8503_IC_EN_SNS_CLAMP   (1U<<7)
+#define DRV8503_IC_DIS_GDRV_FAULT (1U<<8)
+#define DRV8503_IC_DIS_PVDD_UVLO2 (1U<<9)
+#define DRV8503_IC_FLIP_OTSD    (1U<<10)
 
 // ------------------------------------------------------
 // Register 0xA : Shunt Amplifier Control
@@ -131,6 +147,9 @@ extern void Drv8503Init(void);
 #define DRV8503_VDS_PROTECTION_DISABLE      (0b010)
 
 #define DRV8503_REG_VDS_SENSE_CONTROL     (0xC)
+
+
+
 
 #ifdef __cplusplus
 }

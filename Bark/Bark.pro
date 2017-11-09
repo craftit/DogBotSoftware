@@ -18,10 +18,14 @@ PKGCONFIG += jsoncpp
 TARGET = Bark
 TEMPLATE = app
 
-SOURCES += main.cpp\
-        mainwindow.cpp
+SOURCES +=\
+    main.cc \
+    mainwindow.cc \
+    ServoTable.cc
 
-HEADERS  += mainwindow.h
+HEADERS  += \
+    mainwindow.hh \
+    ServoTable.hh
 
 FORMS    += mainwindow.ui
 

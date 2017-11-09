@@ -1133,6 +1133,19 @@
          <string>PositionGain:</string>
         </property>
        </widget>
+       <widget class="QCheckBox" name="checkBoxFan">
+        <property name="geometry">
+         <rect>
+          <x>180</x>
+          <y>80</y>
+          <width>83</width>
+          <height>20</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Fan</string>
+        </property>
+       </widget>
       </widget>
       <widget class="QWidget" name="tab_2">
        <attribute name="title">

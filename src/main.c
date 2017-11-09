@@ -136,6 +136,13 @@ extern void InitADC(void);
 
 extern pid_t getpid(void);
 
+void SetSensorPower(bool enable) {
+  if(enable)
+    palSetPad(GPIOB, GPIOB_PIN12); // Turn off sensor power
+  else
+    palClearPad(GPIOB, GPIOB_PIN12); // Turn off sensor power
+}
+
 void FaultDetected(enum FaultCodeT faultCode) {
   g_currentLimit = 0;
   if(g_lastFaultCode == faultCode) {
@@ -173,19 +180,26 @@ bool ChangeControlState(enum ControlStateT newState)
     case CS_PositionCalibration:
     case CS_Manual:
     case CS_Teach:
+      //SetSensorPower(true);
       PWMRun();
       break;
-    case CS_StartUp:
     case CS_SelfTest:
     case CS_FactoryCalibrate:
+      //SetSensorPower(true);
+      PWMStop();
+      SendParamUpdate(CPI_PositionCal);
+      break;
+    case CS_StartUp:
     case CS_Standby:
     case CS_LowPower:
+      //SetSensorPower(false);
       PWMStop();
       SendParamUpdate(CPI_PositionCal);
       break;
 
     case CS_EmergencyStop:
     case CS_Fault: {
+      //SetSensorPower(false);
       g_currentLimit = 0;
       PWMStop();
       SendParamUpdate(CPI_PositionCal);
@@ -210,6 +224,7 @@ void SetBackgroundStateReport(void)
   SendParamUpdate(CPI_DemandPhaseVelocity);
 }
 
+
 /*
  * Application entry point.
  */
@@ -227,6 +242,8 @@ int main(void) {
   halInit();
   chSysInit();
 
+  SetSensorPower(true);
+  palClearPad(GPIOA, GPIOA_PIN7); // Turn off fan
 
   InitADC();
 

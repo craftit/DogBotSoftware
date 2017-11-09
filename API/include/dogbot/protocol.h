@@ -97,11 +97,14 @@ extern "C" {
     CPI_PositionGain   = 31,
 
     CPI_DRV8305         = 32,
-    CPI_DRV8305_01      = 0x20,
-    CPI_DRV8305_02      = 0x21,
-    CPI_DRV8305_03      = 0x22,
-    CPI_DRV8305_04      = 0x23,
-    CPI_DRV8305_05      = 0x24,
+    CPI_DRV8305_01      = 32,
+    CPI_DRV8305_02      = 33,
+    CPI_DRV8305_03      = 34,
+    CPI_DRV8305_04      = 35,
+    CPI_DRV8305_05      = 36,
+
+    CPI_AuxPower        = 38,
+
     CPI_ANGLE_CAL       = 48,  // 12 Values
     CPI_ANGLE_CAL_0     = 0x30,
     CPI_ANGLE_CAL_1     = 0x31,

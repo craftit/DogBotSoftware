@@ -342,7 +342,7 @@ static void MotorControlLoop(void)
   g_motorControlLoopReady = true;
 
   while (g_pwmRun) {
-    palClearPad(GPIOB, GPIOB_PIN12); // Turn output off to measure timing
+    //palClearPad(GPIOB, GPIOB_PIN12); // Turn output off to measure timing
     if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
       g_pwmTimeoutCount++;
       continue;

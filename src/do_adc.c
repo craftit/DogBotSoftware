@@ -268,12 +268,12 @@ OSAL_IRQ_HANDLER(STM32_ADC_HANDLER) {
   if(count > 0) {
     g_adcInjCount = count;
     if(!isRisingEdge) {
-      palSetPad(GPIOB, GPIOB_PIN12); // Flag data captured
+      //palSetPad(GPIOB, GPIOB_PIN12); // Flag data captured
       g_adcTickCount++;
       //ADCSampleVoltage(); // Sample voltage on next rising edge.
       chBSemSignalI(&g_adcInjectedDataReady);
     } else {
-      palClearPad(GPIOB, GPIOB_PIN12); // Turn output off to measure timing
+      //palClearPad(GPIOB, GPIOB_PIN12); // Turn output off to measure timing
       // Sample current next
       ADCSampleCurrentAndHall();
     }

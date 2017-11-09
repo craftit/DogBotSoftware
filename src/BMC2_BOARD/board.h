@@ -280,7 +280,7 @@
                                      PIN_MODE_ANALOG(GPIOA_PIN4) |           \
                                      PIN_MODE_ANALOG(GPIOA_PIN5) |     \
                                      PIN_MODE_ANALOG(GPIOA_PIN6) |           \
-                                     PIN_MODE_INPUT(GPIOA_PIN7) |           \
+                                     PIN_MODE_OUTPUT(GPIOA_PIN7) |           \
                                      PIN_MODE_ALTERNATE(GPIOA_PIN8) |           \
                                      PIN_MODE_ALTERNATE(GPIOA_PIN9) |           \
                                      PIN_MODE_ALTERNATE(GPIOA_PIN10) |          \
@@ -312,7 +312,7 @@
                                      PIN_OSPEED_HIGH(GPIOA_PIN4) |          \
                                      PIN_OSPEED_HIGH(GPIOA_PIN5) |   \
                                      PIN_OSPEED_HIGH(GPIOA_PIN6) |          \
-                                     PIN_OSPEED_HIGH(GPIOA_PIN7) |          \
+                                     PIN_OSPEED_LOW(GPIOA_PIN7) |          \
                                      PIN_OSPEED_HIGH(GPIOA_PIN8) |          \
                                      PIN_OSPEED_HIGH(GPIOA_PIN9) |          \
                                      PIN_OSPEED_HIGH(GPIOA_PIN10) |         \
@@ -328,7 +328,7 @@
                                      PIN_PUPDR_FLOATING(GPIOA_PIN4) |         \
                                      PIN_PUPDR_FLOATING(GPIOA_PIN5) |  \
                                      PIN_PUPDR_FLOATING(GPIOA_PIN6) |         \
-                                     PIN_PUPDR_PULLUP(GPIOA_PIN7) |         \
+                                     PIN_PUPDR_PULLDOWN(GPIOA_PIN7) |         \
                                      PIN_PUPDR_FLOATING(GPIOA_PIN8) |         \
                                      PIN_PUPDR_FLOATING(GPIOA_PIN9) |         \
                                      PIN_PUPDR_FLOATING(GPIOA_PIN10) |        \
@@ -385,7 +385,7 @@
  * PB9  - CAN_RX                    (alternate 9).
  * PB10 - I2C_SCL/USART3_TX         (alternate 4).
  * PB11 - I2C_SDA/USART3_RX         (alternate 4).
- * PB12 - W14                       (output).
+ * PB12 - SENSOR_POWER              (output).
  * PB13 - INLC                      (output).
  * PB14 - INLB                      (output).
  * PB15 - INLA                      (output).
@@ -434,7 +434,7 @@
                                      PIN_OSPEED_HIGH(GPIOB_PIN9) |          \
                                      PIN_OSPEED_HIGH(GPIOB_PIN10) |         \
                                      PIN_OSPEED_HIGH(GPIOB_PIN11) |         \
-                                     PIN_OSPEED_MEDIUM(GPIOB_PIN12) |         \
+                                     PIN_OSPEED_LOW(GPIOB_PIN12) |         \
                                      PIN_OSPEED_MEDIUM(GPIOB_PIN13) |         \
                                      PIN_OSPEED_MEDIUM(GPIOB_PIN14) |         \
                                      PIN_OSPEED_MEDIUM(GPIOB_PIN15))
