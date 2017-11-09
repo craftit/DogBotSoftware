@@ -136,14 +136,30 @@ extern void InitADC(void);
 
 extern pid_t getpid(void);
 
-void SetSensorPower(bool enable) {
+bool HasSensorPower()
+{
+  return palReadPad(GPIOB, GPIOB_PIN12);
+}
+
+void EnableSensorPower(bool enable)
+{
   if(enable)
     palSetPad(GPIOB, GPIOB_PIN12); // Turn off sensor power
   else
     palClearPad(GPIOB, GPIOB_PIN12); // Turn off sensor power
 }
 
-void FaultDetected(enum FaultCodeT faultCode) {
+void EnableAuxPower(bool enable)
+{
+  if(enable)
+    palSetPad(GPIOA, GPIOA_PIN7); // Turn on aux power
+  else
+    palClearPad(GPIOA, GPIOA_PIN7); // Turn off aux power
+}
+
+
+void FaultDetected(enum FaultCodeT faultCode)
+{
   g_currentLimit = 0;
   if(g_lastFaultCode == faultCode) {
     ChangeControlState(CS_Fault);
@@ -180,26 +196,26 @@ bool ChangeControlState(enum ControlStateT newState)
     case CS_PositionCalibration:
     case CS_Manual:
     case CS_Teach:
-      //SetSensorPower(true);
+      EnableSensorPower(true);
       PWMRun();
       break;
     case CS_SelfTest:
     case CS_FactoryCalibrate:
-      //SetSensorPower(true);
+      EnableSensorPower(true);
       PWMStop();
       SendParamUpdate(CPI_PositionCal);
       break;
     case CS_StartUp:
     case CS_Standby:
     case CS_LowPower:
-      //SetSensorPower(false);
+      EnableSensorPower(false);
       PWMStop();
       SendParamUpdate(CPI_PositionCal);
       break;
 
     case CS_EmergencyStop:
     case CS_Fault: {
-      //SetSensorPower(false);
+      EnableSensorPower(false);
       g_currentLimit = 0;
       PWMStop();
       SendParamUpdate(CPI_PositionCal);
@@ -214,7 +230,7 @@ bool ChangeControlState(enum ControlStateT newState)
   return true;
 }
 
-void SetBackgroundStateReport(void)
+void SendBackgroundStateReport(void)
 {
   SendParamUpdate(CPI_VSUPPLY);
   SendParamUpdate(CPI_DriveTemp);
@@ -242,8 +258,8 @@ int main(void) {
   halInit();
   chSysInit();
 
-  SetSensorPower(true);
-  palClearPad(GPIOA, GPIOA_PIN7); // Turn off fan
+  EnableSensorPower(true);
+  EnableAuxPower(false);
 
   InitADC();
 
@@ -305,12 +321,12 @@ int main(void) {
         ChangeControlState(CS_Manual);
         break;
       case CS_FactoryCalibrate:
-        SetBackgroundStateReport();
+        SendBackgroundStateReport();
         faultCode = PWMMotorCal();
         if(faultCode != FC_Ok) {
           FaultDetected(faultCode);
         }
-        SetBackgroundStateReport();
+        SendBackgroundStateReport();
         ChangeControlState(CS_StartUp);
         break;
       case CS_Standby:
@@ -320,7 +336,7 @@ int main(void) {
           ChangeControlState(CS_StartUp);
           break;
         }
-        SetBackgroundStateReport();
+        SendBackgroundStateReport();
         break;
       case CS_SelfTest:
         break;
@@ -329,7 +345,7 @@ int main(void) {
       case CS_EmergencyStop:
         chThdSleepMilliseconds(1000);
 
-        SetBackgroundStateReport();
+        SendBackgroundStateReport();
         break;
       case CS_PositionCalibration:
       case CS_Teach:
@@ -349,7 +365,7 @@ int main(void) {
         // 5Hz
         if(cycleCount++ > 20) {
           cycleCount = 0;
-          SetBackgroundStateReport();
+          SendBackgroundStateReport();
         }
         break;
     }

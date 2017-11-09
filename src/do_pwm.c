@@ -716,6 +716,7 @@ void DisplayAngle(BaseSequentialStream *chp);
 
 enum FaultCodeT PWMSelfTest()
 {
+  EnableSensorPower(true);
 
   float rail5V = Read5VRailVoltage();
   if(rail5V < 4.5 || rail5V > 5.5)

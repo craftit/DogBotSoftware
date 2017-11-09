@@ -14,6 +14,10 @@ int InitPWM(void);
 int PWMRun(void);
 int PWMStop(void);
 
+void EnableSensorPower(bool enable);
+bool HasSensorPower(void);
+void EnableAuxPower(bool enable);
+
 enum FaultCodeT PWMSelfTest(void);
 enum FaultCodeT PWMMotorCal(void);
 

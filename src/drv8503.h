@@ -21,8 +21,8 @@ extern void Drv8503Init(void);
 
 #define DRV8503_REG_IC_CONTROL   (0x9)
 
-#define DRV8503_IC_VCPH_UV_4_9V  (0U)
-#define DRV8503_IC_VCPH_UV_4_6V  (1U)
+#define DRV8503_IC_VCPH_UV_4V9   (0U)
+#define DRV8503_IC_VCPH_UV_4V6   (1U)
 #define DRV8503_IC_CLR_FLTS      (1U<<1)
 #define DRV8503_IC_SLEEP         (1U<<2)
 #define DRV8503_IC_WD_EN         (1U<<3)
