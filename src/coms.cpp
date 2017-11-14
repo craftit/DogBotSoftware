@@ -198,6 +198,7 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_DRV8305_04:
     case CPI_DRV8305_05:
     case CPI_VSUPPLY:
+    case CPI_5VRail:
     case CPI_DriveTemp:
     case CPI_MotorTemp:
     case CPI_MotorResistance:
@@ -411,6 +412,10 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       unsigned val = g_vbus_voltage * 1000.0f;
       *len = 2;
       data->uint16[0] = val;
+    } break;
+    case CPI_5VRail: {
+      *len = 4;
+      data->float32[0] = Read5VRailVoltage();
     } break;
     case CPI_PositionCal:
       *len = 1;

@@ -132,6 +132,8 @@ private slots:
 
   void on_checkBoxFan_toggled(bool checked);
 
+  void on_pushButton_5_clicked();
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);

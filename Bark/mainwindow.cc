@@ -10,8 +10,8 @@ MainWindow::MainWindow(QWidget *parent) :
   ui(new Ui::MainWindow)
 {
   ui->setupUi(this);
-  ui->lineEditDevice->setText("/dev/ttyACM1");
-//  ui->lineEditDevice->setText("/dev/tty.usbmodem401");
+//  ui->lineEditDevice->setText("/dev/ttyACM1");
+  ui->lineEditDevice->setText("/dev/tty.usbmodem401");
   SetupComs();
 
   connect(this,SIGNAL(setLogText(const QString &)),ui->textEditLog,SLOT(setText(const QString &)));
@@ -314,6 +314,11 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     displayStr += buff;
 
    } break;
+  case CPI_5VRail: {
+    sprintf(buff,"\n 5VRail: %f ",psp->m_data.float32[0]);
+    displayStr += buff;
+    break;
+  }
   default:
     break;
   }
@@ -879,4 +884,9 @@ void MainWindow::on_doubleSpinBoxPositionGain_valueChanged(double arg1)
 void MainWindow::on_checkBoxFan_toggled(bool checked)
 {
   m_coms->SendSetParam(m_targetDeviceId,CPI_AuxPower,checked ? 1 : 0);
+}
+
+void MainWindow::on_pushButton_5_clicked()
+{
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_5VRail);
 }

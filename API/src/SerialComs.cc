@@ -332,8 +332,10 @@ namespace DogBotN
             errno == EINTR
             )
           continue;
-        perror("Failed to read data.");
-        continue;
+        perror("Failed to read data. device most likely disconnected: ");
+        close(theFd);
+        m_fd = 0;
+        break;
       }
 #if 0
       m_log->debug("Got %d bytes: ",n);

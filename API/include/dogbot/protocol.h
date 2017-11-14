@@ -104,6 +104,7 @@ extern "C" {
     CPI_DRV8305_04      = 35,
     CPI_DRV8305_05      = 36,
 
+    CPI_5VRail          = 37,
     CPI_AuxPower        = 38,
 
     CPI_ANGLE_CAL       = 48,  // 12 Values

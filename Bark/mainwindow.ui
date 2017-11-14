@@ -166,7 +166,7 @@
         <property name="geometry">
          <rect>
           <x>660</x>
-          <y>40</y>
+          <y>20</y>
           <width>85</width>
           <height>27</height>
          </rect>
@@ -180,7 +180,7 @@
          <rect>
           <x>540</x>
           <y>50</y>
-          <width>85</width>
+          <width>91</width>
           <height>27</height>
          </rect>
         </property>
@@ -203,7 +203,7 @@
          <rect>
           <x>540</x>
           <y>140</y>
-          <width>85</width>
+          <width>91</width>
           <height>27</height>
          </rect>
         </property>
@@ -252,7 +252,7 @@
          <rect>
           <x>540</x>
           <y>80</y>
-          <width>85</width>
+          <width>91</width>
           <height>27</height>
          </rect>
         </property>
@@ -299,9 +299,9 @@
        <widget class="QPushButton" name="pushButtonQueryState">
         <property name="geometry">
          <rect>
-          <x>540</x>
+          <x>520</x>
           <y>20</y>
-          <width>101</width>
+          <width>121</width>
           <height>27</height>
          </rect>
         </property>
@@ -326,7 +326,7 @@
         <property name="geometry">
          <rect>
           <x>660</x>
-          <y>10</y>
+          <y>0</y>
           <width>85</width>
           <height>27</height>
          </rect>
@@ -375,7 +375,7 @@
          <rect>
           <x>540</x>
           <y>110</y>
-          <width>85</width>
+          <width>91</width>
           <height>27</height>
          </rect>
         </property>
@@ -1146,6 +1146,19 @@
          <string>Fan</string>
         </property>
        </widget>
+       <widget class="QPushButton" name="pushButton_5">
+        <property name="geometry">
+         <rect>
+          <x>650</x>
+          <y>40</y>
+          <width>113</width>
+          <height>32</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>5V Rail</string>
+        </property>
+       </widget>
       </widget>
       <widget class="QWidget" name="tab_2">
        <attribute name="title">
@@ -1350,7 +1363,7 @@
      <x>0</x>
      <y>0</y>
      <width>841</width>
-     <height>19</height>
+     <height>22</height>
     </rect>
    </property>
   </widget>
