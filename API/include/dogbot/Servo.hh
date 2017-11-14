@@ -59,7 +59,19 @@ namespace DogBotN {
     //! Demand a position for the servo
     bool DemandPosition(float position,float torqueLimit);
 
-    //! Last fault code received.
+    //! Last reported position
+    float Position() const
+    { return m_position; }
+
+    //! Last reported torque
+    float Torque() const
+    { return m_torque; }
+
+    //! Last reported velocity
+    float Speed() const
+    { return m_speed; }
+
+    //! Last fault code received
     FaultCodeT FaultCode() const
     { return m_faultCode; }
 
@@ -67,23 +79,43 @@ namespace DogBotN {
     MotionCalibrationT CalibrationState() const
     { return m_calibrationState; }
 
+    //! Access the control state.
+    ControlStateT ControlState() const
+    { return m_controlState; }
+
+    //! Last reported temperature
+    float Temperature() const
+    { return m_temperature; }
+
+    //! Access supply voltage
+    float SupplyVoltage() const
+    { return m_supplyVoltage; }
+
   protected:
     //! Process update
-    bool ProcessServoReport(const PacketServoReportC &);
+    //! Returns true if state changed
+    bool HandlePacketServoReport(const PacketServoReportC &);
+
+    //! Handle an incoming announce message.
+    //! Returns true if state changed.
+    bool HandlePacketAnnounce(const PacketDeviceIdC &pkt);
+
+    //! Handle parameter update.
+    bool HandlePacketReportParam(const PacketParam8ByteC &pkt);
 
     int32_t m_uid1 = 0;
+    int32_t m_uid2 = 0;
     int m_id = -1; // Device id.
     std::string m_name;
 
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("console");
     std::shared_ptr<SerialComsC> m_coms;
 
-    int32_t m_uid2 = 0;
     bool m_online = false;
 
     FaultCodeT m_faultCode = FC_Ok;
     MotionCalibrationT m_calibrationState = MC_Uncalibrated;
-
+    ControlStateT m_controlState = CS_Fault;
     mutable std::mutex m_mutexState;
 
     TimePointT m_timeEpoch;
@@ -93,9 +125,11 @@ namespace DogBotN {
 
     std::chrono::duration<double> m_tickRate; // Default is 100Hz
     unsigned m_tick = 0;
+    float m_supplyVoltage = 0;
     float m_position = 0;
-    float m_velocity = 0;
+    float m_speed = 0;
     float m_torque = 0;
+    float m_temperature = 0;
 
     friend class DogBotAPIC;
   };

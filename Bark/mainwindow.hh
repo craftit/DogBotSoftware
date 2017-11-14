@@ -7,6 +7,7 @@
 #include "../API/include/dogbot/SerialComs.hh"
 #include "../API/include/dogbot/DogBotAPI.hh"
 #include "../API/include/dogbot/LegKinematics.hh"
+#include "ServoTable.hh"
 
 namespace Ui {
 class MainWindow;
@@ -167,7 +168,7 @@ private:
 
   Ui::MainWindow *ui;
   std::shared_ptr<DogBotN::SerialComsC> m_coms;
-  DogBotN::DogBotAPIC m_dogbotAPI;
+  std::shared_ptr<DogBotN::DogBotAPIC> m_dogbotAPI;
   bool m_PWMReportRequested = false;
 
   std::vector<PacketDeviceIdC> m_devices;
@@ -192,6 +193,7 @@ private:
   float m_servoTorque = 0;
   enum PositionReferenceT m_servoRef = PR_Relative;
   enum PWMControlModeT m_controlMode = CM_Idle;
+  ServoTable *m_servoTable = 0;
 };
 
 #endif // MAINWINDOW_H

@@ -26,8 +26,8 @@ namespace DogBotN {
     case FC_PositionLost:   return "Position Lost";
     }
 
-    printf("Unknown fault code %d \n", (int) faultCode);
-    return "Unknown";
+    printf("Invalid fault code %d \n", (int) faultCode);
+    return "Invalid";
   }
 
   //! Convert the calibration state to a string
@@ -38,23 +38,47 @@ namespace DogBotN {
       case MC_Measuring: return "Measuring";
       case MC_Calibrated: return "Calibrated";
     }
-    return "Unknown";
+    return "Invalid";
   }
 
+  //! Convert the control mode to a string
+  const char *ControlStateToString(ControlStateT controlState)
+  {
+    switch(controlState) {
+    case CS_EmergencyStop: return "Emergency Stop";
+    case CS_FactoryCalibrate: return "Factory Calibrate";
+    case CS_Standby: return "Standby";
+    case CS_LowPower: return "Low Power";
+    case CS_Manual: return "Ready";
+    case CS_PositionCalibration: return "Position Calibration";
+    case CS_SelfTest: return "Self Test";
+    case CS_Teach: return "Teach";
+    case CS_Fault: return "Fault";
+    case CS_StartUp: return "Startup";
+    default: {
+      printf("Unexpected state %d",(int)controlState);
+      return "Invalid";
+    }
+    }
+  }
 
   // ---------------------------------------------------------
 
   //! Constructor
   DogBotAPIC::DogBotAPIC(const std::string &configFile)
   {
+    m_manageComs = true;
     if(!configFile.empty())
-      Init(configFile);
+      LoadConfig(configFile);
+    Init();
   }
 
   //! Construct with coms object
   DogBotAPIC::DogBotAPIC(const std::shared_ptr<SerialComsC> &coms)
    : m_coms(coms)
-  {}
+  {
+    m_manageComs = false;
+  }
 
   //! Set the logger to use
   void DogBotAPIC::SetLogger(std::shared_ptr<spdlog::logger> &log)
@@ -179,14 +203,37 @@ namespace DogBotN {
 
     return true;
   }
+
+  //! Start API with given config
+  bool DogBotAPIC::Init(const std::string &configFile)
+  {
+    if(!LoadConfig(configFile))
+      return false;
+    return Init();
+  }
+
   //! Load configuration for the robot.
 
-  bool DogBotAPIC::Init(const std::string &configFile)
+  bool DogBotAPIC::Init()
   {
     if(m_started) {
       m_log->error("Init already called. ");
       return false;
     }
+
+    //! Initalise which serial device to use.
+    m_deviceName = m_configRoot.get("device", "/dev/ttyACM0" ).asString();
+
+    m_started = true;
+
+    m_threadMonitor = std::move(std::thread { [this]{ RunMonitor(); } });
+
+    return true;
+  }
+
+  //! Load a configuration file
+  bool DogBotAPIC::LoadConfig(const std::string &configFile)
+  {
 
     std::ifstream confStrm(configFile,std::ifstream::binary);
 
@@ -196,31 +243,69 @@ namespace DogBotN {
     }
 
     confStrm >> m_configRoot;
-
-    //! Initalise which serial device to use.
-    m_deviceName = m_configRoot.get("device", "/dev/ttyACM0" ).asString();
-
-    m_started = true;
-
-    m_threadMonitor = std::move(std::thread { [this]{ RunMonitor(); } });
-
-
-    return true;
   }
 
-  //! Create a new entry for device.
-  //! This assumes 'm_mutexDevices' is held.
-  void DogBotAPIC::CreateDeviceEntry(int deviceId)
+  //! Issue an update notification
+  void DogBotAPIC::ServoStatusUpdate(int id,ServoUpdateTypeT op)
   {
-    assert(deviceId <= 255 && deviceId >= 0);
-
-    while(m_devices.size() <= deviceId)
-      m_devices.push_back(nullptr);
-
-    std::shared_ptr<ServoC> &ptr = m_devices[deviceId];
-    if(!ptr) {
-      ptr = std::make_shared<ServoC>(m_coms,deviceId);
+    std::lock_guard<std::mutex> lock(m_mutexStatusCallbacks);
+    for(auto &a : m_statusCallbacks) {
+      if(a) a(id,op);
     }
+  }
+
+  //! Add callback for state changes.
+  int DogBotAPIC::AddServoStatusHandler(const std::function<void (int id,ServoUpdateTypeT)> &callback)
+  {
+    std::lock_guard<std::mutex> lock(m_mutexStatusCallbacks);
+    // Free slot anywhere?
+    for(int i = 0;i < (int) m_statusCallbacks.size();i++) {
+      if(!m_statusCallbacks[i]) {
+        m_statusCallbacks[i] = callback;
+        return i;
+      }
+    }
+    // Just create a new one
+    int ret = (int) m_statusCallbacks.size();
+    m_statusCallbacks.push_back(callback);
+    return ret;
+  }
+
+  //! Remove handler.
+  void DogBotAPIC::RemoveServoStatusHandler(int id)
+  {
+    assert(id >= 0);
+    assert(id < m_statusCallbacks.size());
+    std::lock_guard<std::mutex> lock(m_mutexStatusCallbacks);
+    m_statusCallbacks[id] = std::function<void (int id,ServoUpdateTypeT)>();
+  }
+
+
+  //! Access device id, create entry if needed
+  std::shared_ptr<ServoC> DogBotAPIC::DeviceEntry(int deviceId)
+  {
+    std::lock_guard<std::mutex> lock(m_mutexDevices);
+
+    // The device clearly exists, so make sure there is an entry.
+    if(deviceId >= m_devices.size() ||
+        !m_devices[deviceId]) {
+      m_log->info("Adding new device '{}' ",deviceId);
+
+      assert(deviceId <= 255 && deviceId >= 0);
+
+      while(m_devices.size() <= deviceId)
+        m_devices.push_back(nullptr);
+
+      std::shared_ptr<ServoC> &ptr = m_devices[deviceId];
+      if(!ptr) {
+        ptr = std::make_shared<ServoC>(m_coms,deviceId);
+      }
+
+      ServoStatusUpdate(deviceId,SUT_Add);
+    }
+
+    return  m_devices[deviceId];
+
   }
 
   //! Monitor thread
@@ -241,18 +326,54 @@ namespace DogBotN {
             return;
           }
           const PacketServoReportC *pkt = (const PacketServoReportC *) data;
-          std::lock_guard<std::mutex> lock(m_mutexDevices);
-
-          // The device clearly exists, so make sure there is an entry.
-          if(pkt->m_deviceId >= m_devices.size() ||
-              !m_devices[pkt->m_deviceId])
-            CreateDeviceEntry(pkt->m_deviceId);
-
-          std::shared_ptr<ServoC> &ptr = m_devices[pkt->m_deviceId];
-          ptr->ProcessServoReport(*pkt);
-
+          std::shared_ptr<ServoC> device = DeviceEntry(pkt->m_deviceId);
+          if(device->HandlePacketServoReport(*pkt)) {
+            ServoStatusUpdate(pkt->m_deviceId,SUT_Updated);
+          }
         }
     );
+
+    m_coms->SetHandler(CPT_AnnounceId,
+                       [this](uint8_t *data,int size) mutable
+                        {
+                          if(size != sizeof(struct PacketDeviceIdC)) {
+                            m_log->error("Unexpected 'AnnounceId' packet length {} ",size);
+                            return;
+                          }
+                          const PacketDeviceIdC *pkt = (const PacketDeviceIdC *) data;
+                          // We can only deal with devices after they've been allocated an id.
+                          if(pkt->m_deviceId == 0) {
+                            // Need to do something?
+                            return ;
+                          }
+                          std::shared_ptr<ServoC> device = DeviceEntry(pkt->m_deviceId);
+                          assert(device);
+                          if(device->HandlePacketAnnounce(*pkt)) {
+                            ServoStatusUpdate(pkt->m_deviceId,SUT_Updated);
+                          }
+                        }
+                       );
+
+    m_coms->SetHandler(CPT_ReportParam,
+                       [this](uint8_t *data,int size) mutable
+                        {
+                          if(size < sizeof(struct PacketParamHeaderC)) {
+                            m_log->error("'ReportParam' packet to short {} ",size);
+                            return;
+                          }
+                          const PacketParam8ByteC *pkt = (const PacketParam8ByteC *) data;
+                          // We can only deal with devices after they've been allocated an id.
+                          if(pkt->m_header.m_deviceId == 0) {
+                            return ;
+                          }
+                          std::shared_ptr<ServoC> device = DeviceEntry(pkt->m_header.m_deviceId);
+                          assert(device);
+                          if(device->HandlePacketReportParam(*pkt)) {
+                            ServoStatusUpdate(pkt->m_header.m_deviceId,SUT_Updated);
+                          }
+
+                        }
+                       );
 
     while(!m_terminate)
     {
@@ -262,17 +383,27 @@ namespace DogBotN {
           std::this_thread::sleep_for(std::chrono::seconds(1));
         } break;
         case DS_NoConnection: {
-          if(!m_coms->Open(m_deviceName.c_str())) {
-            m_log->warn("Failed to open coms channel. ");
-            std::this_thread::sleep_for(std::chrono::seconds(5));
-            break;
+          if(m_manageComs) {
+            if(!m_coms->Open(m_deviceName.c_str())) {
+              m_log->warn("Failed to open coms channel. ");
+              std::this_thread::sleep_for(std::chrono::seconds(5));
+              break;
+            } else {
+              m_driverState = DS_Connected;
+            }
           } else {
-            m_driverState = DS_Connected;
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            if(m_coms->IsReady()) {
+              m_driverState = DS_Connected;
+            }
           }
         }
         // no break
         case DS_Connected: {
-
+          std::this_thread::sleep_for(std::chrono::seconds(1));
+          if(!m_coms->IsReady()) {
+            m_driverState = DS_NoConnection;
+          }
         } break;
         case DS_Calibrated:
         case DS_Error:
