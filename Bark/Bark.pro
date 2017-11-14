@@ -13,7 +13,8 @@ QMAKE_CXXFLAGS += -std=c++11
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-PKGCONFIG += jsoncpp spdlog
+PKGCONFIG += jsoncpp
+#spdlog
 
 TARGET = Bark
 TEMPLATE = app
@@ -40,4 +41,5 @@ win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/../API/build/s
 else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/../API/build/src/debug/libDogBotAPI.a
 else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/../API/build/src/release/DogBotAPI.lib
 else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/../API/build/src/debug/DogBotAPI.lib
-else:unix: PRE_TARGETDEPS += $$PWD/../API/build/libDogBotAPI.a
+#else:unix: PRE_TARGETDEPS += $$PWD/../API/build/libDogBotAPI.a
+else:unix: PRE_TARGETDEPS += $$PWD/../API/build/src/libDogBotAPI.a

@@ -12,7 +12,12 @@ MainWindow::MainWindow(QWidget *parent) :
   ui->setupUi(this);
   ui->lineEditDevice->setText("/dev/ttyACM1");
 //  ui->lineEditDevice->setText("/dev/tty.usbmodem401");
+
+
   SetupComs();
+
+  m_servoTable = new ServoTable(m_dogbotAPI);
+  ui->tableViewServoList->setModel(m_servoTable);
 
   connect(this,SIGNAL(setLogText(const QString &)),ui->textEditLog,SLOT(setText(const QString &)));
   connect(this,SIGNAL(setCalibrationState(int)),ui->comboBoxCalibration,SLOT(setCurrentIndex(int)));
@@ -164,22 +169,7 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
   case CPI_ControlState: {
     enum ControlStateT controlState = (enum ControlStateT) psp->m_data.uint8[0];
     if(psp->m_header.m_deviceId == m_targetDeviceId) {
-      switch(controlState) {
-      case CS_EmergencyStop: emit setControlState("Emergency Stop"); break;
-      case CS_FactoryCalibrate: emit setControlState("Factory Calibrate"); break;
-      case CS_Standby: emit setControlState("Standby"); break;
-      case CS_LowPower: emit setControlState("LowPower"); break;
-      case CS_Manual: emit setControlState("Manual"); break;
-      case CS_PositionCalibration: emit setControlState("Position Calibration"); break;
-      case CS_SelfTest: emit setControlState("Self Test"); break;
-      case CS_Teach: emit setControlState("Teach"); break;
-      case CS_Fault: emit setControlState("Fault"); break;
-      case CS_StartUp: emit setControlState("Startup"); break;
-      default: {
-          sprintf(buff,"Unknown state %d ", (int) psp->m_data.uint8[0]);
-          emit setControlState(buff);
-        } break;
-      }
+      emit setControlState(DogBotN::ControlStateToString(controlState));
     }
   } break;
   case CPI_FaultCode: {
@@ -325,7 +315,9 @@ void MainWindow::SetupComs()
 {
   m_coms = std::make_shared<DogBotN::SerialComsC>();
 
-  m_dogbotAPI.Connect(m_coms);
+  m_dogbotAPI = std::make_shared<DogBotN::DogBotAPIC>(m_coms);
+
+  m_dogbotAPI->Init();
 
   m_coms->SetHandler(CPT_PWMState,[this](uint8_t *data,int size) mutable
   {
@@ -467,6 +459,7 @@ void MainWindow::SetupComs()
 MainWindow::~MainWindow()
 {
   delete ui;
+  delete m_servoTable;
 }
 
 void MainWindow::QueryAll()
