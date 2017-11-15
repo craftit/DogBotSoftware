@@ -43,22 +43,22 @@ public:
   QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
 
 signals:
-  void rowChanged(int row);
+  void dataUpdated();
 
 private slots:
   //! Queue an update for a row
-  void queueUpdateRow(int row);
+  void queueDataUpdate();
 
 protected:
-
-  //! Update a row of the table
-  void doUpdateRow(int id);
+  //! Do any pending updates.
+  void updateRows();
 
   std::shared_ptr<DogBotN::DogBotAPIC> m_api;
   int m_statusCallbackId = -1;
 
   int m_rowCount = 0;
   std::mutex m_mutexUpdateRows;
+  bool m_updateQueued = false;
   std::vector<bool> m_updateRows;
 };
 

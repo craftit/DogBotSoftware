@@ -125,7 +125,6 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
 {
   char buff[64];
   bool ret = true;
-  std::cerr << "." << std::endl;
   switch ((enum ComsParameterIndexT) psp->m_header.m_index) {
   case CPI_DriveTemp: {
     if(psp->m_header.m_deviceId == m_targetDeviceId) {
