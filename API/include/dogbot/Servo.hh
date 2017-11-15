@@ -131,6 +131,8 @@ namespace DogBotN {
     float m_torque = 0;
     float m_temperature = 0;
 
+
+
     friend class DogBotAPIC;
   };
 

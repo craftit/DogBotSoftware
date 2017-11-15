@@ -78,7 +78,7 @@ static THD_FUNCTION(Thread1, arg) {
         palClearPad(GPIOC, GPIOC_PIN4);     /* Green.  */
         chThdSleepMilliseconds(100);
       } break;
-      case CS_Manual:
+      case CS_Ready:
       case CS_Teach: {
         palSetPad(GPIOC, GPIOC_PIN4);       /* Green.  */
         chThdSleepMilliseconds(500);
@@ -194,7 +194,7 @@ bool ChangeControlState(enum ControlStateT newState)
   switch(newState)
   {
     case CS_PositionCalibration:
-    case CS_Manual:
+    case CS_Ready:
     case CS_Teach:
       EnableSensorPower(true);
       PWMRun();
@@ -318,7 +318,7 @@ int main(void) {
           break;
         }
 
-        ChangeControlState(CS_Manual);
+        ChangeControlState(CS_Ready);
         break;
       case CS_FactoryCalibrate:
         SendBackgroundStateReport();
@@ -349,7 +349,7 @@ int main(void) {
         break;
       case CS_PositionCalibration:
       case CS_Teach:
-      case CS_Manual:
+      case CS_Ready:
         if(chBSemWaitTimeout(&g_reportSampleReady,1000) != MSG_OK) {
           //FaultDetected(FC_InternalTiming);
           break;
@@ -382,7 +382,7 @@ int main(void) {
          g_vbus_voltage < g_minSupplyVoltage) {
         ChangeControlState(CS_LowPower);
       }
-      if(g_driveTemperature > 75.0) {
+      if(g_driveTemperature > 80.0) {
         FaultDetected(FC_OverTemprature);
       }
     }

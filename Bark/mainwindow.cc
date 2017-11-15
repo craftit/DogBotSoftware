@@ -125,7 +125,7 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
 {
   char buff[64];
   bool ret = true;
-
+  std::cerr << "." << std::endl;
   switch ((enum ComsParameterIndexT) psp->m_header.m_index) {
   case CPI_DriveTemp: {
     if(psp->m_header.m_deviceId == m_targetDeviceId) {
@@ -174,6 +174,7 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
   } break;
   case CPI_FaultCode: {
     enum FaultCodeT faultCode = (enum FaultCodeT) psp->m_data.uint8[0];
+    std::cerr << "Fault " << ((int) psp->m_header.m_deviceId) << " : " << DogBotN::FaultCodeToString(faultCode) << std::endl;
     if(psp->m_header.m_deviceId == m_targetDeviceId) {
       emit setFault(DogBotN::FaultCodeToString(faultCode));
     }
@@ -687,8 +688,8 @@ void MainWindow::on_comboBoxControlState_activated(const QString &arg1)
   if(arg1 == "Low Power") {
     controlState = CS_LowPower;
   }
-  if(arg1 == "Manual") {
-    controlState = CS_Manual;
+  if(arg1 == "Ready") {
+    controlState = CS_Ready;
   }
   if(arg1 == "Position Calibration") {
     controlState = CS_PositionCalibration;

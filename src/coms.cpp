@@ -365,7 +365,7 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       break;
     case CPI_FirmwareVersion:
       *len = 1;
-      data->uint8[0] = 1;
+      data->uint8[0] = 2;
       break;
     case CPI_PWMState:
       *len = 1;

@@ -49,7 +49,7 @@ namespace DogBotN {
     case CS_FactoryCalibrate: return "Factory Calibrate";
     case CS_Standby: return "Standby";
     case CS_LowPower: return "Low Power";
-    case CS_Manual: return "Ready";
+    case CS_Ready: return "Ready";
     case CS_PositionCalibration: return "Position Calibration";
     case CS_SelfTest: return "Self Test";
     case CS_Teach: return "Teach";
