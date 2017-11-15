@@ -243,7 +243,27 @@ namespace DogBotN {
     }
 
     confStrm >> m_configRoot;
+
+    return true;
   }
+
+  //! Save configuration of robot
+
+  bool DogBotAPIC::SaveConfig(const std::string &configFile)
+  {
+    std::ofstream confStrm(configFile,std::ifstream::binary);
+
+#if 0
+    if(!confStrm) {
+      m_log->error("Failed to open configuration file '{}' ",configFile);
+      return false;
+    }
+    confStrm >> m_configRoot;
+#endif
+
+    return true;
+  }
+
 
   //! Issue an update notification
   void DogBotAPIC::ServoStatusUpdate(int id,ServoUpdateTypeT op)

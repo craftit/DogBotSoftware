@@ -20,7 +20,7 @@ namespace DogBotN {
     bool LoadJSON(const Json::Value &conf);
 
     //! Save calibration as JSON
-    Json::Value SaveJSON() const;
+    Json::Value AsJSON() const;
 
     //! Set calibration point
     void SetCal(int place,uint16_t p1,uint16_t p2,uint16_t p3);
@@ -28,9 +28,49 @@ namespace DogBotN {
     //! Get calibration point
     void GetCal(int place,uint16_t &p1,uint16_t &p2,uint16_t &p3) const;
 
+    //! Send calibration to motor
+    bool SendCal(SerialComsC &coms,int deviceId);
+
+    //! Read calibration from motor
+    bool ReadCal(SerialComsC &coms,int deviceId);
+
+    //! Access velocity limit
+    float VelocityLimit() const
+    { return m_velocityLimit; }
+
+    float PositionPGain() const
+    { return m_positionPGain; }
+
+    float VelocityPGain() const
+    { return m_velocityPGain; }
+
+    float VelocityIGain() const
+    { return m_velocityIGain; }
+
+    float CurrentLimit() const
+    { return m_currentLimit; }
+
+    float MotorInductance() const
+    { return m_motorInductance; }
+
+    float MotorResistance() const
+    { return m_motorResistance; }
+
   protected:
+    //! Get json value if set.
+    bool GetJSONValue(const Json::Value &conf,const char *name,float &value);
+
     //std::vector<>
     uint16_t m_hall[18][3];
+
+    // Servo parameters
+    float m_velocityLimit = 0;
+    float m_currentLimit = 0;
+    float m_positionPGain = 0;
+    float m_velocityPGain = 0;
+    float m_velocityIGain = 0;
+    float m_motorInductance = 0;
+    float m_motorResistance = 0;
   };
 
   //! Information about a single servo.
@@ -49,6 +89,12 @@ namespace DogBotN {
     //! Access the device id.
     int Id() const
     { return m_id; }
+
+    //! Configure from JSON
+    bool ConfigureFromJSON(const Json::Value &value);
+
+    //! Get the servo configuration as JSON
+    Json::Value ServoConfigAsJSON() const;
 
     //! Get last reported state of the servo.
     bool GetState(TimePointT &tick,float &position,float &velocity,float &torque) const;
@@ -103,10 +149,12 @@ namespace DogBotN {
     //! Handle parameter update.
     bool HandlePacketReportParam(const PacketParam8ByteC &pkt);
 
-    int32_t m_uid1 = 0;
-    int32_t m_uid2 = 0;
+    uint32_t m_uid1 = 0;
+    uint32_t m_uid2 = 0;
     int m_id = -1; // Device id.
     std::string m_name;
+
+    std::shared_ptr<MotorCalibrationC> m_motorCal;
 
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("console");
     std::shared_ptr<SerialComsC> m_coms;
@@ -131,7 +179,14 @@ namespace DogBotN {
     float m_torque = 0;
     float m_temperature = 0;
 
-
+    // Current parameters
+    float m_velocityLimit = 0;
+    float m_currentLimit = 0;
+    float m_positionPGain = 0;
+    float m_velocityPGain = 0;
+    float m_velocityIGain = 0;
+    float m_motorInductance = 0;
+    float m_motorResistance = 0;
 
     friend class DogBotAPIC;
   };

@@ -1,4 +1,6 @@
+
 #include "dogbot/Servo.hh"
+#include <string>
 
 namespace DogBotN {
 
@@ -8,10 +10,44 @@ namespace DogBotN {
 
   }
 
+  //! Send calibration to motor
+  bool MotorCalibrationC::SendCal(SerialComsC &coms,int deviceId)
+  {
+
+    return true;
+  }
+
+  //! Read calibration from motor
+  bool MotorCalibrationC::ReadCal(SerialComsC &coms,int deviceId)
+  {
+
+    return true;
+  }
+
+
+  //! Get json value if set.
+  bool MotorCalibrationC::GetJSONValue(const Json::Value &conf,const char *name,float &value)
+  {
+    Json::Value val = conf[name];
+    if(!val.isDouble()) {
+      return false;
+    }
+    value = val.asFloat();
+    return true;
+  }
+
   //! Load configuration from JSON
 
   bool MotorCalibrationC::LoadJSON(const Json::Value &conf)
   {
+    GetJSONValue(conf,"velocityLimit",m_velocityLimit);
+    GetJSONValue(conf,"currentLimit",m_currentLimit);
+    GetJSONValue(conf,"positionPGain",m_positionPGain);
+    GetJSONValue(conf,"velocityPGain",m_velocityPGain);
+    GetJSONValue(conf,"velocityIGain",m_velocityIGain);
+    GetJSONValue(conf,"motorInductance",m_motorInductance);
+    GetJSONValue(conf,"motorResistance",m_motorResistance);
+
     Json::Value calArr = conf["encoder_cal"];
     if(!calArr.isNull()) {
       for(int i = 0;i < 12;i++) {
@@ -31,7 +67,7 @@ namespace DogBotN {
   }
 
   //! Save calibration as JSON
-  Json::Value MotorCalibrationC::SaveJSON() const
+  Json::Value MotorCalibrationC::AsJSON() const
   {
     Json::Value calArr;
     for(int i = 0;i < 12;i++) {
@@ -42,6 +78,15 @@ namespace DogBotN {
     }
     Json::Value ret;
     ret["encoder_cal"] = calArr;
+
+    ret["velocityLimit"] = m_velocityLimit;
+    ret["currentLimit"] = m_currentLimit;
+    ret["positionPGain"] = m_positionPGain;
+    ret["velocityPGain"] = m_velocityPGain;
+    ret["velocityIGain"] = m_velocityIGain;
+    ret["motorInductance"] = m_motorInductance;
+    ret["motorResistance"] = m_motorResistance;
+
     return ret;
   }
 
@@ -72,9 +117,32 @@ namespace DogBotN {
    : m_id(deviceId),
      m_coms(coms)
   {
+    m_name = std::to_string(deviceId);
     m_timeOfLastReport = std::chrono::steady_clock::now();
     m_timeEpoch = m_timeOfLastReport;
   }
+
+  //! Configure from JSON
+  bool ServoC::ConfigureFromJSON(const Json::Value &value)
+  {
+
+    return true;
+  }
+
+  //! Get the servo configuration as JSON
+  Json::Value ServoC::ServoConfigAsJSON() const
+  {
+    Json::Value ret;
+
+    ret["name"] = m_name;
+    ret["controllerId"] = std::to_string(m_uid1) + "-" + std::to_string(m_uid2);
+
+    if(m_motorCal) {
+      ret["setup"] = m_motorCal->AsJSON();
+    }
+    return ret;
+  }
+
 
   //! Process update
   bool ServoC::HandlePacketServoReport(const PacketServoReportC &report)
@@ -116,7 +184,6 @@ namespace DogBotN {
 
     return ret;
   }
-
   //! Handle parameter update.
   bool ServoC::HandlePacketReportParam(const PacketParam8ByteC &pkt)
   {
@@ -149,6 +216,37 @@ namespace DogBotN {
       ret = m_controlState != controlState;
       m_controlState = controlState;
     } break;
+    case CPI_PositionGain: {
+      float newGain = pkt.m_data.float32[0];
+      ret = newGain != m_positionPGain;
+      m_positionPGain = newGain;
+    } break;
+    case CPI_VelocityPGain: {
+      float newVelPGain = pkt.m_data.float32[0];
+      ret = newVelPGain != m_velocityPGain;
+      m_velocityPGain = newVelPGain;
+    } break;
+    case CPI_VelocityIGain: {
+      float newVelIGain = pkt.m_data.float32[0];
+      ret = newVelIGain != m_velocityIGain;
+      m_velocityIGain = newVelIGain;
+    } break;
+    case CPI_VelocityLimit: {
+      float newVelLimit = pkt.m_data.float32[0];
+      ret = newVelLimit != m_velocityLimit;
+      m_velocityIGain = newVelLimit;
+    } break;
+    case CPI_MotorInductance: {
+      float newVal = pkt.m_data.float32[0];
+      ret = newVal != m_motorInductance;
+      m_motorInductance = newVal;
+    } break;
+    case CPI_MotorResistance: {
+      float newVal = pkt.m_data.float32[0];
+      ret = newVal != m_motorResistance;
+      m_motorResistance = newVal;
+    } break;
+
 #if 0
     case CPI_CalibrationOffset: {
       float calAngleDeg =  (pkt.m_data.float32[0] * 360.0f / (M_PI * 2.0));
@@ -234,43 +332,11 @@ namespace DogBotN {
       displayStr += buff;
       ret = false;
       break;
-    case CPI_VelocityPGain:
-      if(pkt.m_header.m_deviceId == m_targetDeviceId) {
-        emit setVelocityPGain(pkt.m_data.float32[0]);
-      }
-      sprintf(buff,"\n VelocityPGain: %f ",pkt.m_data.float32[0]);
-      displayStr += buff;
-      //ret = false;
-      break;
-    case CPI_VelocityIGain:
-      if(pkt.m_header.m_deviceId == m_targetDeviceId) {
-        emit setVelocityIGain(pkt.m_data.float32[0]);
-      }
-      sprintf(buff,"\n VelocityIGain: %f ",pkt.m_data.float32[0]);
-      displayStr += buff;
-      //ret = false;
-      break;
-    case CPI_VelocityLimit:
-      if(pkt.m_header.m_deviceId == m_targetDeviceId) {
-        emit setVelocityLimit(pkt.m_data.float32[0]);
-      }
-      sprintf(buff,"\n VelocityLimit: %f ",pkt.m_data.float32[0]);
-      displayStr += buff;
-      //ret = false;
-      break;
     case CPI_DemandPhaseVelocity:
       if(pkt.m_header.m_deviceId == m_targetDeviceId) {
         emit setDemandPhaseVelocity(pkt.m_data.float32[0]);
       }
       sprintf(buff,"\n DemandVelocity: %f ",pkt.m_data.float32[0]);
-      displayStr += buff;
-      ret = false;
-      break;
-    case CPI_PositionGain:
-      if(pkt.m_header.m_deviceId == m_targetDeviceId) {
-        emit setPositionGain(pkt.m_data.float32[0]);
-      }
-      sprintf(buff,"\n PositionGain: %f ",pkt.m_data.float32[0]);
       displayStr += buff;
       ret = false;
       break;

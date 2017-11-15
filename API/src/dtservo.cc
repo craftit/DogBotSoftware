@@ -32,7 +32,7 @@ int main(int nargs,char **argv)
     logger->error("Failed to read calibration.");
     return 1;
   }
-  Json::Value calInfo = motorCal.SaveJSON();
+  Json::Value calInfo = motorCal.AsJSON();
   std::cout << calInfo << std::endl;
 
 #if 0

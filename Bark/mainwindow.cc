@@ -873,3 +873,13 @@ void MainWindow::on_checkBoxFan_toggled(bool checked)
 {
   m_coms->SendSetParam(m_targetDeviceId,CPI_AuxPower,checked ? 1 : 0);
 }
+
+void MainWindow::on_pushButtonEmergencyStop_clicked()
+{
+  m_coms->SendSetParam(0,CPI_ControlState,CS_EmergencyStop);
+}
+
+void MainWindow::on_pushButtonLoadConfig_clicked()
+{
+
+}
