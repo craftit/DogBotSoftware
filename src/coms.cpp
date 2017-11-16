@@ -218,25 +218,25 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_CalibrationOffset:
       if(len != 4)
         return false;
-      g_angleOffset = dataBuff->float32[0] * g_actuatorRatio;
+      g_homeAngleOffset = dataBuff->float32[0] * g_actuatorRatio;
       return true;
 
-    case CPI_PositionCal: {
+    case CPI_HomedState: {
       if(len != 1)
         return false;
-      enum MotionCalibrationT newCal = (enum MotionCalibrationT) dataBuff->uint8[0];
+      enum MotionHomedStateT newCal = (enum MotionHomedStateT) dataBuff->uint8[0];
       switch(newCal)
       {
-        case MC_Uncalibrated:
+        case MHS_Lost:
           MotionResetCalibration(newCal);
           break;
-        case MC_Measuring:
-          MotionResetCalibration(MC_Measuring);
+        case MHS_Measuring:
+          MotionResetCalibration(MHS_Measuring);
           break;
-        case MC_Calibrated:
+        case MHS_Homed:
           // Let user know it hasn't changed.
-          if(g_motionCalibration  != newCal)
-            SendParamUpdate(CPI_PositionCal);
+          if(g_motionHomedState  != newCal)
+            SendParamUpdate(CPI_HomedState);
           return false;
       }
     } break;
@@ -324,6 +324,16 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
       if(len != 4)
         return false;
       g_positionGain = dataBuff->float32[0];
+      break;
+    case CPI_MaxCurrent:
+      if(len != 4)
+        return false;
+      g_absoluteMaxCurrent = dataBuff->float32[0];
+      break;
+    case CPI_homeIndexPosition:
+      if(len != 4)
+        return false;
+      g_homeIndexPosition = dataBuff->float32[0];
       break;
 
     //case CPI_ANGLE_CAL: // 12 Values
@@ -417,9 +427,9 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       *len = 4;
       data->float32[0] = Read5VRailVoltage();
     } break;
-    case CPI_PositionCal:
+    case CPI_HomedState:
       *len = 1;
-      data->uint8[0] = (int) g_motionCalibration;
+      data->uint8[0] = (int) g_motionHomedState;
       break;
     case CPI_PositionRef:
       *len = 1;
@@ -439,7 +449,7 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       break;
     case CPI_CalibrationOffset:
       *len = 4;
-      data->float32[0] = g_angleOffset / g_actuatorRatio;
+      data->float32[0] = g_homeAngleOffset / g_actuatorRatio;
       break;
     case CPI_DriveTemp:
       *len = 4;
@@ -522,6 +532,14 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
     case CPI_VelocityLimit:
       *len = 4;
       data->float32[0] = g_velocityLimit;
+      break;
+    case CPI_MaxCurrent:
+      *len = 4;
+      data->float32[0] = g_absoluteMaxCurrent;
+      break;
+    case CPI_homeIndexPosition:
+      *len = 4;
+      data->float32[0] = g_homeIndexPosition;
       break;
     default:
       return false;

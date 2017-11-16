@@ -139,6 +139,10 @@ private slots:
 
   void on_pushButtonLoadConfig_clicked();
 
+  void on_doubleSpinBoxHomeIndexOffset_valueChanged(double arg1);
+
+  void on_pushButtonQueryHomed_clicked();
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);
@@ -160,6 +164,7 @@ signals:
   void setDemandPhaseVelocity(double offset);
   void setVelocityLimit(double offset);
   void setPositionGain(double offset);
+  void setHomeIndexOffset(double offset);
 
 private:
   void SetupComs();
@@ -169,6 +174,9 @@ private:
   bool ProcessParam(struct PacketParam8ByteC *psp, std::string &displayStr);
 
   void EnableBounce(bool state);
+
+  int m_toQuery = 0;
+  std::vector<ComsParameterIndexT> m_displayQuery;
 
   Ui::MainWindow *ui;
   std::shared_ptr<DogBotN::SerialComsC> m_coms;

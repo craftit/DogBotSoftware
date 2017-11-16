@@ -74,7 +74,7 @@ extern "C" {
     CPI_TIM1_SR         = 7,
     CPI_VSUPPLY         = 8,
     CPI_ControlState    = 9,
-    CPI_PositionCal     = 10,
+    CPI_HomedState     = 10,
     CPI_PositionRef     = 11,
     CPI_CalibrationOffset = 12,
     CPI_FaultCode       = 13,
@@ -106,6 +106,8 @@ extern "C" {
 
     CPI_5VRail          = 37,
     CPI_AuxPower        = 38,
+    CPI_MaxCurrent      = 39,
+    CPI_homeIndexPosition = 40,
 
     CPI_ANGLE_CAL       = 48,  // 12 Values
     CPI_ANGLE_CAL_0     = 0x30,
@@ -120,6 +122,13 @@ extern "C" {
     CPI_ANGLE_CAL_9     = 0x39,
     CPI_ANGLE_CAL_10    = 0x3A,
     CPI_ANGLE_CAL_11    = 0x3B,
+    CPI_ANGLE_CAL_12    = 0x3C,
+    CPI_ANGLE_CAL_13    = 0x3D,
+    CPI_ANGLE_CAL_14    = 0x3E,
+    CPI_ANGLE_CAL_15    = 0x3F,
+    CPI_ANGLE_CAL_16    = 0x40,
+    CPI_ANGLE_CAL_17    = 0x41,
+    CPI_ANGLE_CAL_18    = 0x42,
     CPI_FINAL           = 0xff
   };
 
@@ -135,7 +144,7 @@ extern "C" {
     CS_EmergencyStop = 4,
     CS_SelfTest      = 5,
     CS_FactoryCalibrate = 6,
-    CS_PositionCalibration = 7,
+    CS_Home          = 7,
     CS_Fault         = 8,
     CS_Teach         = 9
   };
@@ -174,10 +183,10 @@ extern "C" {
    *
    */
 
-  enum MotionCalibrationT {
-    MC_Uncalibrated = 0,
-    MC_Measuring    = 1,
-    MC_Calibrated   = 2
+  enum MotionHomedStateT {
+    MHS_Lost = 0,
+    MHS_Measuring    = 1,
+    MHS_Homed   = 2
   };
 
   struct PacketErrorC {

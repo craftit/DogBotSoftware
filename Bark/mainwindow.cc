@@ -41,8 +41,28 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(this,SIGNAL(setDemandPhaseVelocity(double)),ui->doubleSpinBoxDemandVelocity,SLOT(setValue(double)));
   connect(this,SIGNAL(setVelocityLimit(double)),ui->doubleSpinBoxVelocityLimit,SLOT(setValue(double)));
   connect(this,SIGNAL(setPositionGain(double)),ui->doubleSpinBoxPositionGain,SLOT(setValue(double)));
+  connect(this,SIGNAL(setHomeIndexOffset(double)),ui->doubleSpinBoxHomeIndexOffset,SLOT(setValue(double)));
 
   startTimer(10);
+
+  m_displayQuery.push_back(CPI_ControlState);
+  m_displayQuery.push_back(CPI_FaultCode);
+  m_displayQuery.push_back(CPI_HomedState);
+  m_displayQuery.push_back(CPI_PositionRef);
+  m_displayQuery.push_back(CPI_PWMMode);
+  m_displayQuery.push_back(CPI_CalibrationOffset);
+  m_displayQuery.push_back(CPI_OtherJoint);
+  m_displayQuery.push_back(CPI_Indicator);
+  m_displayQuery.push_back(CPI_OtherJointOffset);
+  m_displayQuery.push_back(CPI_OtherJointGain);
+  m_displayQuery.push_back(CPI_MotorIGain);
+  m_displayQuery.push_back(CPI_VelocityPGain);
+  m_displayQuery.push_back(CPI_VelocityIGain);
+  m_displayQuery.push_back(CPI_VelocityLimit);
+  m_displayQuery.push_back(CPI_PositionGain);
+  m_displayQuery.push_back(CPI_homeIndexPosition);
+  m_displayQuery.push_back(CPI_MaxCurrent);
+
 }
 
 void MainWindow::on_checkBoxBounce_clicked(bool checked)
@@ -58,6 +78,11 @@ void MainWindow::EnableBounce(bool state)
 
 void MainWindow::timerEvent(QTimerEvent *)
 {
+  if(m_toQuery < m_displayQuery.size() && m_coms->IsReady()) {
+    m_coms->SendQueryParam(m_targetDeviceId,m_displayQuery[m_toQuery]);
+    m_toQuery++;
+  }
+
   //std::cout << "Setting " << m_servoAngle * 360.0 / (2.0* M_PI) << std::endl;
   ui->doubleSpinBoxPostion->setValue(m_servoAngle * 360.0 / (2.0* M_PI));
   ui->doubleSpinBoxTorque_2->setValue(m_servoTorque);
@@ -143,13 +168,13 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     sprintf(buff,"\n Supply Voltage:%2.1f ",((float) psp->m_data.uint16[0] / 1000.0f));
     displayStr += buff;
   } break;
-  case CPI_PositionCal: {
-    enum MotionCalibrationT calMode = (enum MotionCalibrationT) psp->m_data.uint8[0];
+  case CPI_HomedState: {
+    enum MotionHomedStateT calMode = (enum MotionHomedStateT) psp->m_data.uint8[0];
     if(psp->m_header.m_deviceId == m_targetDeviceId) {
       switch(calMode) {
-        case MC_Uncalibrated: emit setCalibrationState(0); break;
-        case MC_Measuring: emit setCalibrationState(1);  break;
-        case MC_Calibrated: emit setCalibrationState(2); break;
+        case MHS_Lost: emit setCalibrationState(0); break;
+        case MHS_Measuring: emit setCalibrationState(1);  break;
+        case MHS_Homed: emit setCalibrationState(2); break;
       default:
         sprintf(buff,"\n Unexpected calibration mode: %02x ",(unsigned) psp->m_data.uint8[0]);
         displayStr += buff;
@@ -308,6 +333,14 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     displayStr += buff;
     break;
   }
+  case CPI_homeIndexPosition: {
+    double homePos = psp->m_data.float32[0] * 360.0 / (M_PI * 2.0);
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      emit setHomeIndexOffset(homePos);
+    }
+    sprintf(buff,"\n %d Home: %f ",psp->m_header.m_deviceId,homePos);
+    displayStr += buff;
+  } break;
   default:
     break;
   }
@@ -468,21 +501,9 @@ MainWindow::~MainWindow()
 
 void MainWindow::QueryAll()
 {
-  m_coms->SendQueryParam(m_targetDeviceId,CPI_ControlState);
-  m_coms->SendQueryParam(m_targetDeviceId,CPI_FaultCode);
-  m_coms->SendQueryParam(m_targetDeviceId,CPI_PositionCal);
-  m_coms->SendQueryParam(m_targetDeviceId,CPI_PositionRef);
-  m_coms->SendQueryParam(m_targetDeviceId,CPI_PWMMode);
-  m_coms->SendQueryParam(m_targetDeviceId,CPI_CalibrationOffset);
-  m_coms->SendQueryParam(m_targetDeviceId,CPI_OtherJoint);
-  m_coms->SendQueryParam(m_targetDeviceId,CPI_Indicator);
-  m_coms->SendQueryParam(m_targetDeviceId,CPI_OtherJointOffset);
-  m_coms->SendQueryParam(m_targetDeviceId,CPI_OtherJointGain);
-  m_coms->SendQueryParam(m_targetDeviceId,CPI_MotorIGain);
-  m_coms->SendQueryParam(m_targetDeviceId,CPI_VelocityPGain);
-  m_coms->SendQueryParam(m_targetDeviceId,CPI_VelocityIGain);
-  m_coms->SendQueryParam(m_targetDeviceId,CPI_VelocityLimit);
-  m_coms->SendQueryParam(m_targetDeviceId,CPI_PositionGain);
+  m_toQuery = 0;
+
+
 }
 
 void MainWindow::on_pushButtonConnect_clicked()
@@ -666,17 +687,17 @@ void MainWindow::on_pushButton_clicked()
 
 void MainWindow::on_comboBoxCalibration_activated(const QString &arg1)
 {
-  enum MotionCalibrationT calMode = MC_Uncalibrated;
+  enum MotionHomedStateT calMode = MHS_Lost;
   if(arg1 == "Uncalibrated") {
-    calMode = MC_Uncalibrated;
+    calMode = MHS_Lost;
   }
   if(arg1 == "Measuring") {
-    calMode = MC_Measuring;
+    calMode = MHS_Measuring;
   }
   if(arg1 == "Calibrated") {
-    calMode = MC_Calibrated;
+    calMode = MHS_Homed;
   }
-  m_coms->SendSetParam(m_targetDeviceId,CPI_PositionCal,calMode);
+  m_coms->SendSetParam(m_targetDeviceId,CPI_HomedState,calMode);
 }
 
 void MainWindow::on_comboBoxControlState_activated(const QString &arg1)
@@ -695,7 +716,7 @@ void MainWindow::on_comboBoxControlState_activated(const QString &arg1)
     controlState = CS_Ready;
   }
   if(arg1 == "Position Calibration") {
-    controlState = CS_PositionCalibration;
+    controlState = CS_Home;
   }
   if(arg1 == "Teach") {
     controlState = CS_Teach;
@@ -891,4 +912,15 @@ void MainWindow::on_pushButtonEmergencyStop_clicked()
 void MainWindow::on_pushButtonLoadConfig_clicked()
 {
 
+}
+
+void MainWindow::on_doubleSpinBoxHomeIndexOffset_valueChanged(double arg1)
+{
+  float homeAngleRad = (arg1 * (M_PI * 2.0) / 360.0f);
+  m_coms->SendSetParam(m_targetDeviceId,CPI_homeIndexPosition,homeAngleRad);
+}
+
+void MainWindow::on_pushButtonQueryHomed_clicked()
+{
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_homeIndexPosition);
 }

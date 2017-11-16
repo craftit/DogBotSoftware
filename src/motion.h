@@ -10,7 +10,7 @@ extern "C" {
 #endif
   void MotionStep(void);
 
-  void MotionResetCalibration(enum MotionCalibrationT defaultCalibrationState);
+  void MotionResetCalibration(enum MotionHomedStateT defaultCalibrationState);
 
   void MotionUpdateIndex(int num,bool state,float position,float velocity);
 
@@ -22,17 +22,19 @@ extern "C" {
 
   bool MotionCalZero(void);
 
-  extern enum MotionCalibrationT g_motionCalibration;
+  extern enum MotionHomedStateT g_motionHomedState;
   extern enum PositionReferenceT g_motionPositionReference;
   extern enum ControlStateT g_controlState;
   extern enum FaultCodeT g_lastFaultCode;
-  extern float g_angleOffset;      // Offset from phase position to actuator position.
+  extern float g_homeAngleOffset;      // Offset from phase position to actuator position.
   extern uint8_t g_otherJointId;  //! Id of other joint
   extern float g_relativePositionGain;
   extern float g_relativePositionOffset;
   extern bool g_indicatorState;
-  extern float g_absoluteMaxTorque; // Maximum torque allowed
+  extern float g_absoluteMaxCurrent; // Maximum current allowed
   extern float g_actuatorRatio;
+  extern float g_homeIndexPosition;
+
   enum FaultCodeT LoadSetup(void);
   enum FaultCodeT SaveSetup(void);
 

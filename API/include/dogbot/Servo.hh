@@ -122,8 +122,8 @@ namespace DogBotN {
     { return m_faultCode; }
 
     //! Get the current calibration state.
-    MotionCalibrationT CalibrationState() const
-    { return m_calibrationState; }
+    MotionHomedStateT HomedState() const
+    { return m_homedState; }
 
     //! Access the control state.
     ControlStateT ControlState() const
@@ -162,7 +162,7 @@ namespace DogBotN {
     bool m_online = false;
 
     FaultCodeT m_faultCode = FC_Ok;
-    MotionCalibrationT m_calibrationState = MC_Uncalibrated;
+    MotionHomedStateT m_homedState = MHS_Lost;
     ControlStateT m_controlState = CS_Fault;
     mutable std::mutex m_mutexState;
 

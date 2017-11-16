@@ -155,7 +155,7 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
     case ColumnMode:
       return DogBotN::ControlStateToString(servo.ControlState());
     case ColumnCalibrated:
-      return DogBotN::CalibrationStateToString(servo.CalibrationState());
+      return DogBotN::HomedStateToString(servo.HomedState());
     case ColumnAngle:
       return servo.Position();
     case ColumnSpeed:

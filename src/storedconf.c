@@ -16,7 +16,6 @@ struct StoredConfigT g_storedConfig;
 uint16_t VirtAddVarTab[NB_OF_VAR];
 
 // Private variables
-#if 1
 uint16_t g_defaultPhaseAngles[g_calibrationPointCount][3] = {
  { 2416, 2693, 2841 },
  { 2231, 2538, 2843 },
@@ -32,23 +31,6 @@ uint16_t g_defaultPhaseAngles[g_calibrationPointCount][3] = {
  { 2642, 2810, 2844 }
 };
 
-#else
-uint16_t g_defaultPhaseAngles[g_calibrationPointCount][3] = {
-{2123,2290,2409},
-{1997,2183,2409},
-{1980,2079,2373},
-{1972,1970,2223},
-{1978,1890,2069},
-{2102,1936,2013},
-{2229,2008,1993},
-{2367,2139,2001},
-{2381,2233,2039},
-{2391,2340,2206},
-{2384,2412,2357},
-{2265,2365,2397}
-};
-
-#endif
 
 
 void StoredConf_Init(void)
@@ -100,6 +82,8 @@ bool StoredConf_Load(struct StoredConfigT *conf)
     conf->m_phaseInductance = 1e-4;
     conf->m_phaseOffsetVoltage = 0.1;
     conf->m_velocityLimit = 1000.0;
+    conf->m_absoluteMaxCurrent = 20.0;
+    conf->m_homeIndexPosition = 0.0;
   }
 
   return is_ok;

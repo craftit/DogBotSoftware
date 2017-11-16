@@ -87,7 +87,7 @@ static THD_FUNCTION(Thread1, arg) {
       } break;
       case CS_SelfTest:
       case CS_FactoryCalibrate:
-      case CS_PositionCalibration:
+      case CS_Home:
       default: {
         palSetPad(GPIOC, GPIOC_PIN4);       /* Green.  */
         chThdSleepMilliseconds(500);
@@ -193,7 +193,7 @@ bool ChangeControlState(enum ControlStateT newState)
 
   switch(newState)
   {
-    case CS_PositionCalibration:
+    case CS_Home:
     case CS_Ready:
     case CS_Teach:
       EnableSensorPower(true);
@@ -203,14 +203,14 @@ bool ChangeControlState(enum ControlStateT newState)
     case CS_FactoryCalibrate:
       EnableSensorPower(true);
       PWMStop();
-      SendParamUpdate(CPI_PositionCal);
+      SendParamUpdate(CPI_HomedState);
       break;
     case CS_StartUp:
     case CS_Standby:
     case CS_LowPower:
       EnableSensorPower(false);
       PWMStop();
-      SendParamUpdate(CPI_PositionCal);
+      SendParamUpdate(CPI_HomedState);
       break;
 
     case CS_EmergencyStop:
@@ -218,7 +218,7 @@ bool ChangeControlState(enum ControlStateT newState)
       EnableSensorPower(false);
       g_currentLimit = 0;
       PWMStop();
-      SendParamUpdate(CPI_PositionCal);
+      SendParamUpdate(CPI_HomedState);
     } break;
 
     default:
@@ -295,7 +295,7 @@ int main(void) {
     {
       case CS_StartUp:
         PWMStop();
-        MotionResetCalibration(MC_Measuring);
+        MotionResetCalibration(MHS_Measuring);
 
         g_lastFaultCode = FC_Ok; // Clear any errors
         SendParamUpdate(CPI_FaultCode);
@@ -347,7 +347,7 @@ int main(void) {
 
         SendBackgroundStateReport();
         break;
-      case CS_PositionCalibration:
+      case CS_Home:
       case CS_Teach:
       case CS_Ready:
         if(chBSemWaitTimeout(&g_reportSampleReady,1000) != MSG_OK) {

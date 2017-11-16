@@ -31,12 +31,12 @@ namespace DogBotN {
   }
 
   //! Convert the calibration state to a string
-  const char *CalibrationStateToString(MotionCalibrationT calibrationState)
+  const char *HomedStateToString(MotionHomedStateT calibrationState)
   {
     switch(calibrationState) {
-      case MC_Uncalibrated: return "Uncalibrated";
-      case MC_Measuring: return "Measuring";
-      case MC_Calibrated: return "Calibrated";
+      case MHS_Lost: return "Lost";
+      case MHS_Measuring: return "Measuring";
+      case MHS_Homed: return "Homed";
     }
     return "Invalid";
   }
@@ -50,7 +50,7 @@ namespace DogBotN {
     case CS_Standby: return "Standby";
     case CS_LowPower: return "Low Power";
     case CS_Ready: return "Ready";
-    case CS_PositionCalibration: return "Position Calibration";
+    case CS_Home: return "Position Calibration";
     case CS_SelfTest: return "Self Test";
     case CS_Teach: return "Teach";
     case CS_Fault: return "Fault";

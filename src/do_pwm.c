@@ -26,11 +26,13 @@ float g_phaseOffsetVoltage = 0.1;
 float g_phaseInductance = 1e-9;
 
 #define TIM_1_8_CLOCK_HZ (SYSTEM_CORE_CLOCK/4)
-#define TIM_1_8_PERIOD_CLOCKS (2047)   // 20 KHz
+//#define TIM_1_8_PERIOD_CLOCKS (2100)   // 20 KHz
+#define TIM_1_8_PERIOD_CLOCKS (2333)   // 18 KHz
+//#define TIM_1_8_PERIOD_CLOCKS (2625)  // 16 KHz
 //#define TIM_1_8_PERIOD_CLOCKS (4095)  // 10 KHz
 #define CURRENT_MEAS_PERIOD ((float)(TIM_1_8_PERIOD_CLOCKS)/(float)TIM_1_8_CLOCK_HZ)
 
-int g_motorReportSampleRate = 1.0 / (100.0 * CURRENT_MEAS_PERIOD);  //CURRENT_MEAS_PERIOD/100; // The target rate is 100Hz
+int g_motorReportSampleRate = 1.0 / (100.0 * CURRENT_MEAS_PERIOD);  // The target rate is 100Hz
 
 BSEMAPHORE_DECL(g_reportSampleReady,0); // 100Hz report loop
 
@@ -366,23 +368,23 @@ static void MotorControlLoop(void)
         break;
       case CM_Fault:
       case CM_Final:
-      case CM_Break:
-        // Just turn everything off, this should passively break the motor
+        // Just turn everything off, this should mildly passively break the motor
         PWMUpdateDrivePhase(
             TIM_1_8_PERIOD_CLOCKS/2,
             TIM_1_8_PERIOD_CLOCKS/2,
             TIM_1_8_PERIOD_CLOCKS/2
             );
         break;
+      case CM_Break:
+        // Just turn everything off, this should passively break the motor
+        PWMUpdateDrivePhase(
+            0,
+            0,
+            0
+            );
+        break;
       case CM_Position: {
         float positionError = (targetPosition - g_currentPhasePosition);
-#if 0
-        g_positionISum += positionError * CURRENT_MEAS_PERIOD;
-        if(g_positionISum > g_positionIClamp)  g_positionISum = g_positionIClamp;
-        if(g_positionISum < -g_positionIClamp) g_positionISum = -g_positionIClamp;
-#endif
-
-        //
         float targetVelocity =  positionError * g_positionGain;
 
         if(targetVelocity > g_velocityLimit)
@@ -501,7 +503,7 @@ static THD_FUNCTION(ThreadPWM, arg) {
   palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
 
   // Reset calibration state.
-  MotionResetCalibration(MC_Measuring);
+  MotionResetCalibration(MHS_Measuring);
 
   // This is quick, so may as well do it every time.
   ShuntCalibration();
@@ -667,7 +669,7 @@ int PWMStop()
   }
 
   // Don't claim to be calibrated.
-  MotionResetCalibration(MC_Uncalibrated);
+  MotionResetCalibration(MHS_Lost);
 
   //palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
   return 0;

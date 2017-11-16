@@ -11,7 +11,7 @@ namespace DogBotN {
   const char *FaultCodeToString(FaultCodeT faultCode);
 
   //! Convert the calibration state to a string
-  const char *CalibrationStateToString(MotionCalibrationT calibrationState);
+  const char *HomedStateToString(MotionHomedStateT calibrationState);
 
   //! Convert the control mode to a string
   const char *ControlStateToString(ControlStateT controlState);

@@ -6,21 +6,21 @@
 #include "canbus.h"
 #include "storedconf.h"
 
-float g_angleOffset = 0;      // Offset from phase position to actuator position.
+float g_homeAngleOffset = 0;      // Offset from phase position to actuator position.
 float g_motorPhase2RotationRatio = 7.0;
 float g_actuatorRatio = g_motorPhase2RotationRatio * 21.0; // Gear ratio
 
 float g_endStopMin = 0;    // Minimum angle
 float g_endStopMax = M_PI*2; // Maximum angle
-float g_absoluteMaxTorque = 20.0; // Maximum torque allowed
-float g_uncalibratedTorqueLimit = 4.0; // Maximum torque allowed in un-calibrated mode.
+float g_absoluteMaxCurrent = 20.0; // Maximum torque allowed
+float g_uncalibratedCurrentLimit = 4.0; // Maximum torque allowed in un-calibrated mode.
 
 const int g_positionIndexCount = 4;
-float g_absoluteIndexPosition[g_positionIndexCount]; // Position of indexes
 bool g_haveIndexPositionSample[g_positionIndexCount];
 float g_measuredIndexPosition[g_positionIndexCount]; // Measured position
+float g_homeIndexPosition = 0;
 
-enum MotionCalibrationT g_motionCalibration = MC_Uncalibrated;
+enum MotionHomedStateT g_motionHomedState = MHS_Lost;
 enum PositionReferenceT g_motionPositionReference = PR_Relative;
 enum ControlStateT g_controlState = CS_StartUp;
 enum FaultCodeT g_lastFaultCode = FC_Ok;
@@ -32,16 +32,16 @@ float g_relativePositionGain = 1.0;
 float g_relativePositionOffset = 0.0;
 
 
-void MotionResetCalibration(enum MotionCalibrationT defaultCalibrationState) {
+void MotionResetCalibration(enum MotionHomedStateT defaultCalibrationState) {
   for(int i = 0;i < g_positionIndexCount;i++) {
     g_haveIndexPositionSample[i] = false;
   }
 
-  bool changed = g_motionCalibration != defaultCalibrationState;
+  bool changed = g_motionHomedState != defaultCalibrationState;
 
-  g_motionCalibration = defaultCalibrationState;
+  g_motionHomedState = defaultCalibrationState;
   if(changed) {
-    SendParamUpdate(CPI_PositionCal);
+    SendParamUpdate(CPI_HomedState);
   }
 }
 
@@ -52,7 +52,7 @@ static int EndStopUpdateOffset(bool newState,bool velocityPositive)
 
 void MotionUpdateIndex(int num,bool state,float position,float velocity)
 {
-  if(g_motionCalibration != MC_Uncalibrated) {
+  if(g_motionHomedState != MHS_Lost) {
 
     int entry = EndStopUpdateOffset(state,velocity > 0);
     if(!g_haveIndexPositionSample[entry]) {
@@ -92,7 +92,7 @@ bool MotionEstimateOffset(float &value)
   }
   if(points <= 2)
     return false;
-  value = atan2(meanS,meanC) * g_actuatorRatio;
+  value = (atan2(meanS,meanC) - g_homeIndexPosition) * g_actuatorRatio;
   return true;
 }
 
@@ -123,8 +123,8 @@ bool UpdateRequestedPosition()
     case CM_Position:
       {
         if((g_requestedJointMode & 0x1) != 0) { // Calibrated position ?
-          if(g_motionCalibration != MC_Calibrated) return false;
-          posf += g_angleOffset;
+          if(g_motionHomedState != MHS_Homed) return false;
+          posf += g_homeAngleOffset;
         }
 
         if((g_motionPositionReference & 0x2) != 0) { // relative position ?
@@ -153,7 +153,7 @@ bool UpdateRequestedPosition()
 bool MotionSetPosition(uint8_t mode,int16_t position,uint16_t torqueLimit)
 {
   g_requestedJointMode = mode;
-  g_currentLimit = ((float) torqueLimit) * g_absoluteMaxTorque / (65536.0);
+  g_currentLimit = ((float) torqueLimit) * g_absoluteMaxCurrent / (65536.0);
   g_requestedJointPosition = position;
 
   return UpdateRequestedPosition();
@@ -199,15 +199,15 @@ bool MotionReport(int16_t position,int16_t torque,PositionReferenceT posRef)
 }
 
 void CalibrationCheckFailed() {
-  if(g_motionCalibration == MC_Uncalibrated)
+  if(g_motionHomedState == MHS_Lost)
     return ;
-  g_motionCalibration = MC_Uncalibrated;
+  g_motionHomedState = MHS_Lost;
   if(g_motionPositionReference == PR_Absolute ||
       g_motionPositionReference == PR_OtherJointAbsolute) {
     FaultDetected(FC_PositionLost);
   }
-  MotionResetCalibration(MC_Uncalibrated);
-  SendParamUpdate(CPI_PositionCal);
+  MotionResetCalibration(MHS_Lost);
+  SendParamUpdate(CPI_HomedState);
 }
 
 bool MotionCalZero()
@@ -220,48 +220,48 @@ bool MotionCalZero()
   g_requestedJointMode = 0;
   g_requestedJointPosition = g_currentPhasePosition;
 
-  g_angleOffset = g_currentPhasePosition;
-  g_motionCalibration = MC_Calibrated;
+  g_homeAngleOffset = g_currentPhasePosition;
+  g_motionHomedState = MHS_Homed;
 
   SendParamUpdate(CPI_CalibrationOffset);
-  SendParamUpdate(CPI_PositionCal);
+  SendParamUpdate(CPI_HomedState);
   return true;
 }
 
 void MotionStep()
 {
 #if 1
-  int16_t torque = g_torqueAverage * (65535.0/g_absoluteMaxTorque);
+  int16_t torque = g_torqueAverage * (65535.0/g_absoluteMaxCurrent);
 
   // Should we
-  switch(g_motionCalibration)
+  switch(g_motionHomedState)
   {
-    case MC_Uncalibrated:
+    case MHS_Lost:
       break;
-    case MC_Measuring:
+    case MHS_Measuring:
       // Establishing a new calibration
       if(g_newCalibrationData) {
         g_newCalibrationData = false;
-        if(MotionEstimateOffset(g_angleOffset)) {
-          g_motionCalibration = MC_Calibrated;
+        if(MotionEstimateOffset(g_homeAngleOffset)) {
+          g_motionHomedState = MHS_Homed;
           SendParamUpdate(CPI_CalibrationOffset);
-          SendParamUpdate(CPI_PositionCal);
+          SendParamUpdate(CPI_HomedState);
         }
       }
       break;
-    case MC_Calibrated: {
+    case MHS_Homed: {
       // If we're calibrated, we're just going to check all is fine.
       if(g_newCalibrationData) {
         g_newCalibrationData = false;
         // If this is manual set, this will disagree and cause an error.
 #if 0
-        MotionEstimateOffset(g_angleOffset);
+        MotionEstimateOffset(g_homeAngleOffset);
         SendParamUpdate(CPI_CalibrationOffset);
 #else
 #if 0
         float estimate = 0;
         if(MotionEstimateOffset(estimate)) {
-          if(fabs(estimate - g_angleOffset) > M_PI/2.0) {
+          if(fabs(estimate - g_homeAngleOffset) > M_PI/2.0) {
             CalibrationCheckFailed();
           }
         }
@@ -281,8 +281,8 @@ void MotionStep()
       position -= g_otherPhaseOffset;
       /* no break */
     case PR_Absolute: {
-      if(g_motionCalibration == MC_Calibrated) {
-        position -= g_angleOffset;
+      if(g_motionHomedState == MHS_Homed) {
+        position -= g_homeAngleOffset;
       } else {
         // Without calibration we can only send relative positions.
         position = g_currentPhasePosition;
@@ -320,6 +320,8 @@ enum FaultCodeT LoadSetup(void) {
   g_phaseInductance = g_storedConfig.m_phaseInductance;
   g_phaseOffsetVoltage = g_storedConfig.m_phaseOffsetVoltage;
   g_velocityLimit = g_storedConfig.m_velocityLimit;
+  g_absoluteMaxCurrent = g_storedConfig.m_absoluteMaxCurrent;
+  g_homeIndexPosition = g_storedConfig.m_homeIndexPosition;
 
   // Setup angles.
   for(int i = 0;i < g_calibrationPointCount;i++) {
@@ -348,6 +350,8 @@ enum FaultCodeT SaveSetup(void) {
   g_storedConfig.m_phaseInductance = g_phaseInductance;
   g_storedConfig.m_phaseOffsetVoltage = g_phaseOffsetVoltage;
   g_storedConfig.m_velocityLimit = g_velocityLimit;
+  g_storedConfig.m_absoluteMaxCurrent = g_absoluteMaxCurrent;
+  g_storedConfig.m_homeIndexPosition = g_homeIndexPosition;
 
   for(int i = 0;i < g_calibrationPointCount;i++) {
     g_storedConfig.phaseAngles[i][0] = g_phaseAngles[i][0];

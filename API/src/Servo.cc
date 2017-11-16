@@ -201,11 +201,6 @@ namespace DogBotN {
       ret = m_supplyVoltage != newSupplyVoltage;
       m_supplyVoltage = newSupplyVoltage;
     } break;
-    case CPI_PositionCal: {
-      enum MotionCalibrationT calMode = (enum MotionCalibrationT) pkt.m_data.uint8[0];
-      ret = m_calibrationState != calMode;
-      calMode = m_calibrationState;
-    } break;
     case CPI_FaultCode: {
       enum FaultCodeT faultCode = (enum FaultCodeT) pkt.m_data.uint8[0];
       ret = m_faultCode != faultCode;
@@ -215,6 +210,11 @@ namespace DogBotN {
       enum ControlStateT controlState = (enum ControlStateT) pkt.m_data.uint8[0];
       ret = m_controlState != controlState;
       m_controlState = controlState;
+    } break;
+    case CPI_HomedState: {
+      enum MotionHomedStateT homedState = (enum MotionHomedStateT) pkt.m_data.uint8[0];
+      ret = m_homedState != homedState;
+      m_homedState = homedState;
     } break;
     case CPI_PositionGain: {
       float newGain = pkt.m_data.float32[0];
