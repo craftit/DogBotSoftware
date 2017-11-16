@@ -49,7 +49,7 @@ namespace DogBotN {
     case CS_FactoryCalibrate: return "Factory Calibrate";
     case CS_Standby: return "Standby";
     case CS_LowPower: return "Low Power";
-    case CS_Manual: return "Ready";
+    case CS_Ready: return "Ready";
     case CS_PositionCalibration: return "Position Calibration";
     case CS_SelfTest: return "Self Test";
     case CS_Teach: return "Teach";
@@ -243,7 +243,27 @@ namespace DogBotN {
     }
 
     confStrm >> m_configRoot;
+
+    return true;
   }
+
+  //! Save configuration of robot
+
+  bool DogBotAPIC::SaveConfig(const std::string &configFile)
+  {
+    std::ofstream confStrm(configFile,std::ifstream::binary);
+
+#if 0
+    if(!confStrm) {
+      m_log->error("Failed to open configuration file '{}' ",configFile);
+      return false;
+    }
+    confStrm >> m_configRoot;
+#endif
+
+    return true;
+  }
+
 
   //! Issue an update notification
   void DogBotAPIC::ServoStatusUpdate(int id,ServoUpdateTypeT op)

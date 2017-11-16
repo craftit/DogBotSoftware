@@ -131,7 +131,7 @@ extern "C" {
     CS_StartUp       = 0,
     CS_Standby       = 1,
     CS_LowPower      = 2,
-    CS_Manual        = 3,
+    CS_Ready         = 3,
     CS_EmergencyStop = 4,
     CS_SelfTest      = 5,
     CS_FactoryCalibrate = 6,

@@ -50,6 +50,9 @@ namespace DogBotN {
     //! Load a configuration file
     bool LoadConfig(const std::string &configFile);
 
+    //! Save configuration of roboto
+    bool SaveConfig(const std::string &configFile);
+
     //! Read calibration from a device.
     bool ReadCalibration(int deviceId,MotorCalibrationC &cal);
 

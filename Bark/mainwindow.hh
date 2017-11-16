@@ -135,6 +135,10 @@ private slots:
 
   void on_pushButton_5_clicked();
 
+  void on_pushButtonEmergencyStop_clicked();
+
+  void on_pushButtonLoadConfig_clicked();
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);

@@ -7,22 +7,24 @@ ServoTable::ServoTable(const std::shared_ptr<DogBotN::DogBotAPIC> &api)
 {
   m_statusCallbackId = m_api->AddServoStatusHandler(
           [this](int deviceId,DogBotN::DogBotAPIC::ServoUpdateTypeT opType) mutable {
-
+            // Can't handle updates from devices without an ID.
+            if(deviceId == 0)
+              return ;
             int rowId = deviceId -1;
             std::lock_guard<std::mutex> lock(m_mutexUpdateRows);
 
             while(m_updateRows.size() <= rowId)
               m_updateRows.push_back(false);
-
-            if(!m_updateRows[rowId]) {
-              emit rowChanged(rowId);
-            }
             m_updateRows[rowId] = true;
+            if(!m_updateQueued) {
+              m_updateQueued = true;
+              emit dataUpdated();
+            }
           }
         );
 
   // Use a signal to call on a Qt thread.
-  connect(this,SIGNAL(rowChanged(int)),this,SLOT(queueUpdateRow(int)));
+  connect(this,SIGNAL(dataUpdated()),this,SLOT(queueDataUpdate()));
 
 }
 
@@ -36,36 +38,45 @@ ServoTable::~ServoTable()
 }
 
 //! Queue an update for a row
-void ServoTable::queueUpdateRow(int id)
+void ServoTable::queueDataUpdate()
 {
   // Delay update by 100ms and accumulate any changes. This
   // limits the rate at which the display is updated.
-  QTimer::singleShot(100, this,[this,id](){
-    {
-      std::lock_guard<std::mutex> lock(m_mutexUpdateRows);
-      m_updateRows[id] = false;
-    }
-    doUpdateRow(id);
+  QTimer::singleShot(100, this,[this](){
+    updateRows();
   });
 }
 
-//! Update a row of the table
-void ServoTable::doUpdateRow(int id)
+void ServoTable::updateRows()
 {
-  // Inserted a new device ?
-  if(m_rowCount <= id) {
-    QModelIndex parent;
-    beginInsertRows(parent,m_rowCount,id);
-    for(int i = m_rowCount;i <= id;i++)
-      m_updateRows[i] = false;
-    m_rowCount = id+1;
-    endInsertRows();
-    return;
+  std::vector<int> rowChanged;
+  rowChanged.reserve(32);
+  int newRowCount = 0;
+  {
+    std::lock_guard<std::mutex> lock(m_mutexUpdateRows);
+    m_updateQueued = false;
+    for(int i = 0;i < m_updateRows.size();i++) {
+      if(m_updateRows[i]) {
+        m_updateRows[i] = false;
+        rowChanged.push_back(i);
+      }
+    }
+    newRowCount = m_updateRows.size();
   }
-  // Update existing device.
-  QModelIndex from = createIndex(id,ColumnName);
-  QModelIndex to = createIndex(id,ColumnTemperature);
-  emit dataChanged(from,to);
+  // Inserted a new device ?
+  if(newRowCount > m_rowCount) {
+    QModelIndex parent;
+    beginInsertRows(parent,m_rowCount,newRowCount-1);
+    // The data is there already...
+    m_rowCount = newRowCount;
+    endInsertRows();
+  }
+  for(auto a : rowChanged) {
+    // Update existing device.
+    QModelIndex from = createIndex(a,ColumnName);
+    QModelIndex to = createIndex(a,ColumnTemperature);
+    emit dataChanged(from,to);
+  }
 }
 
 
@@ -85,7 +96,7 @@ int ServoTable::columnCount(const QModelIndex &parent) const
 
 int ServoTable::rowCount(const QModelIndex &parent) const
 {
-  return m_api->ListServos().size();
+  return m_rowCount;
 }
 
 QVariant ServoTable::headerData(int section, Qt::Orientation orientation, int role) const
@@ -127,7 +138,7 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
 {
   const std::vector<std::shared_ptr<DogBotN::ServoC> > &servoList = m_api->ListServos();
   int deviceId = index.row()+1;
-  if(deviceId < 0 || deviceId >= servoList.size() )
+  if(deviceId < 0 || deviceId >= (int) servoList.size() )
     return QVariant();
   if(!servoList[deviceId])
     return QVariant(); // Doesn't seem to exist.
