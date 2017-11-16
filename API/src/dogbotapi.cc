@@ -62,6 +62,21 @@ namespace DogBotN {
     }
   }
 
+  //! Convert the control dynamic to a string
+  const char *ControlDynamicToString(PWMControlDynamicT dynamic)
+  {
+    switch(dynamic) {
+      case CM_Off: return "Off";
+      case CM_Brake : return "Brake";
+      case CM_Torque: return "Torque";
+      case CM_Velocity: return "Velocity";
+      case CM_Position: return "Position";
+      case CM_Fault: return "Fault";
+      default:
+      case CM_Final: return "Final";
+    }
+  }
+
   // ---------------------------------------------------------
 
   //! Constructor
@@ -435,10 +450,36 @@ namespace DogBotN {
     m_log->debug("Exiting monitor. ");
   }
 
+  //! Tell all servos to hold the current position
+  void DogBotAPIC::DemandHoldPosition()
+  {
+    size_t deviceCount = 0;
+    {
+      std::lock_guard<std::mutex> lock(m_mutexDevices);
+      deviceCount = m_devices.size();
+    }
+    for(int i = 0;i < deviceCount;i++) {
+      std::shared_ptr<ServoC> servo;
+      {
+        std::lock_guard<std::mutex> lock(m_mutexDevices);
+        deviceCount = m_devices.size();
+        if(i < deviceCount)
+          servo = m_devices[i];
+      }
+      if(!servo)
+        continue;
+      if(servo->Id() == 0)
+        continue;
+      m_coms->SendSetParam(servo->Id(),CPI_PWMMode,CM_Position);
+      servo->DemandPosition(servo->Position(),servo->DefaultPositionTorque());
+    }
+    // Make sure
+  }
+
   //! Set the handler for servo reports for a device.
   int DogBotAPIC::SetServoUpdateHandler(int deviceId,const std::function<void (const PacketServoReportC &report)> &handler)
   {
-
+    assert(0); // Not implemented
     return 0;
   }
 

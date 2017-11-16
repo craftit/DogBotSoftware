@@ -5,25 +5,28 @@
 extern "C" {
 #endif
 
+  // These messages are ordered by decreasing priority.
+
   enum ComsPacketTypeT
   {
-    CPT_Ping         =  0,  // Ping request
-    CPT_Pong         =  1,  // Ping reply.
-    CPT_Error        =  2,  // Error report
-    CPT_Sync         =  3,  // Sync data stream
-    CPT_ReadParam    =  4, // Read parameter
-    CPT_SetParam     =  5, // Set parameter
-    CPT_ReportParam  =  6, // Report parameter
-    CPT_Servo        =  7, // Servo control position
-    CPT_ServoReport  =  8, // Report servo position
-    // 9 is unused.
-    CPT_PWMState     = 10, // PWM State. Packet holding internal drive data.
-    CPT_QueryDevices = 11, // Query connected devices
-    CPT_AnnounceId   = 12, // Query connected devices
-    CPT_SetDeviceId  = 13, // Set device id
-    CPT_SaveSetup    = 14, // Save setup to eeprom
-    CPT_LoadSetup    = 15, // Load setup from eeprom
-    CPT_CalZero      = 16  // Set current position as calibrated zero.
+    CPT_EmergencyStop =  1, // Set parameter (Used to for emergency stop)
+    CPT_SyncTime      =  2, // Sync time across controllers.
+    CPT_Error         =  3, // Error report
+    CPT_SetParam      =  4, // Set parameter
+    CPT_Servo         =  5, // Servo control position
+    CPT_ServoReport   =  6, // Report servo position
+    CPT_ReportParam   =  7, // Report parameter
+    CPT_ReadParam     =  8, // Read parameter
+    CPT_Pong          =  9, // Ping reply.
+    CPT_Ping          = 10, // Ping request
+    CPT_AnnounceId    = 11, // Query connected devices
+    CPT_QueryDevices  = 12, // Query connected devices
+    CPT_SetDeviceId   = 13, // Set device id
+    CPT_SaveSetup     = 14, // Save setup to eeprom
+    CPT_LoadSetup     = 15, // Load setup from eeprom
+    CPT_CalZero       = 16, // Set current position as calibrated zero.
+    CPT_Sync          = 17, // Sync data stream
+    CPT_PWMState      = 18  // PWM State. Packet holding internal controller data.
   };
 
 
@@ -151,9 +154,9 @@ extern "C" {
 
 
 
-  enum PWMControlModeT {
-    CM_Idle     = 0,
-    CM_Break    = 1,
+  enum PWMControlDynamicT {
+    CM_Off      = 0,
+    CM_Brake    = 1,
     CM_Torque   = 2,
     CM_Velocity = 3,
     CM_Position = 4,

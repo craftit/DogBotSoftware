@@ -185,6 +185,10 @@ bool ChangeControlState(enum ControlStateT newState)
       if(newState != CS_StartUp)
         return false;
       break;
+    case CS_EmergencyStop:
+      if(newState != CS_StartUp)
+        return false;
+      break;
     default:
       break;
   }
@@ -208,16 +212,20 @@ bool ChangeControlState(enum ControlStateT newState)
     case CS_StartUp:
     case CS_Standby:
     case CS_LowPower:
-      EnableSensorPower(false);
       PWMStop();
+      EnableSensorPower(false);
       SendParamUpdate(CPI_HomedState);
       break;
 
     case CS_EmergencyStop:
+      // Just put the breaks on.
+      g_currentLimit = 0;
+      g_controlMode = CM_Brake;
+      break;
     case CS_Fault: {
-      EnableSensorPower(false);
       g_currentLimit = 0;
       PWMStop();
+      EnableSensorPower(false);
       SendParamUpdate(CPI_HomedState);
     } break;
 
@@ -342,11 +350,17 @@ int main(void) {
         break;
       case CS_LowPower:
       case CS_Fault:
-      case CS_EmergencyStop:
-        chThdSleepMilliseconds(1000);
-
+        chThdSleepMilliseconds(500);
         SendBackgroundStateReport();
         break;
+      case CS_EmergencyStop:
+        // Just make sure the breaks are on.
+        g_controlMode = CM_Brake;
+        g_currentLimit = 0;
+        chThdSleepMilliseconds(100);
+        SendBackgroundStateReport();
+        break;
+
       case CS_Home:
       case CS_Teach:
       case CS_Ready:

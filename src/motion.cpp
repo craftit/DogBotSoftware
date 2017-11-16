@@ -116,7 +116,7 @@ bool UpdateRequestedPosition()
 {
   float posf = DemandToPhasePosition(g_requestedJointPosition);
 
-  enum PWMControlModeT mode = static_cast<enum PWMControlModeT>(g_requestedJointMode >> 2);
+  enum PWMControlDynamicT mode = static_cast<enum PWMControlDynamicT>(g_requestedJointMode >> 2);
   switch(mode)
   {
     default:
@@ -142,7 +142,7 @@ bool UpdateRequestedPosition()
       }
       break;
     case CM_Velocity:
-      g_demandPhaseVelocity = PhasePositionToDemand(g_requestedJointPosition) / 400 ;// * g_motorPhase2RotationRatio;
+      g_demandPhaseVelocity = PhasePositionToDemand(g_requestedJointPosition);
       break;
       break;
   }

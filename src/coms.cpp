@@ -179,7 +179,7 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
         return false;
       if(dataBuff->uint8[0] >= (int) CM_Final)
         return false;
-      g_controlMode = (PWMControlModeT) dataBuff->uint8[0];
+      g_controlMode = (PWMControlDynamicT) dataBuff->uint8[0];
       break;
     case CPI_PWMFullReport:
       if(len != 1)
@@ -585,6 +585,13 @@ void SerialDecodeC::ProcessPacket()
   enum ComsPacketTypeT cpt = (enum ComsPacketTypeT) m_data[0];
   switch(cpt)
   {
+  case CPT_EmergencyStop:
+    ChangeControlState(CS_EmergencyStop);
+    if(!CANEmergencyStop()) {
+      USBSendError(g_deviceId,CET_CANTransmitFailed,CPT_EmergencyStop,0);
+      // Retry ?
+    }
+    break;
   case CPT_Ping: { // Ping.
     if(m_packetLen != sizeof(struct PacketPingPongC)) {
       USBSendError(g_deviceId,CET_UnexpectedPacketSize,CPT_Ping,m_data[0]);

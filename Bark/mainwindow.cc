@@ -203,19 +203,11 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     }
   } break;
   case CPI_PWMMode: {
-    enum PWMControlModeT controlMode =  (enum PWMControlModeT) psp->m_data.uint8[0];
+    enum PWMControlDynamicT controlMode =  (enum PWMControlDynamicT) psp->m_data.uint8[0];
     if(psp->m_header.m_deviceId == m_targetDeviceId) {
-      printf("Setting control mode %d ",(int) psp->m_data.uint8[0]);
+      //printf("Setting control mode %d ",(int) psp->m_data.uint8[0]);
       m_controlMode = controlMode;
-      switch(controlMode) {
-      case CM_Idle:     emit setControlMode("Idle"); break;
-      case CM_Break:    emit setControlMode("Break"); break;
-      case CM_Torque:   emit setControlMode("Torque"); break;
-      case CM_Velocity: emit setControlMode("Velocity"); break;
-      case CM_Position: emit setControlMode("Position"); break;
-      default:
-        printf("Unhandled control mode %d ",(int) psp->m_data.uint8[0]);
-      }
+      emit setControlMode(DogBotN::ControlDynamicToString(controlMode));
     }
   } break;
   case CPI_OtherJoint: {
@@ -543,12 +535,12 @@ void MainWindow::on_pushButtonPing_clicked()
 
 void MainWindow::on_comboBoxMotorControlMode_activated(const QString &arg1)
 {
-  enum PWMControlModeT controlMode = CM_Final;
+  enum PWMControlDynamicT controlMode = CM_Final;
   if(arg1 == "Idle") {
-    controlMode = CM_Idle;
+    controlMode = CM_Off;
   }
-  if(arg1 == "Break") {
-    controlMode = CM_Break;
+  if(arg1 == "Brake") {
+    controlMode = CM_Brake;
   }
   if(arg1 == "Torque") {
     controlMode = CM_Torque;
@@ -906,7 +898,7 @@ void MainWindow::on_pushButton_5_clicked()
 
 void MainWindow::on_pushButtonEmergencyStop_clicked()
 {
-  m_coms->SendSetParam(0,CPI_ControlState,CS_EmergencyStop);
+  m_coms->SendEmergencyStop();
 }
 
 void MainWindow::on_pushButtonLoadConfig_clicked()
@@ -924,3 +916,20 @@ void MainWindow::on_pushButtonQueryHomed_clicked()
 {
   m_coms->SendQueryParam(m_targetDeviceId,CPI_homeIndexPosition);
 }
+
+void MainWindow::on_pushButtonBrake_clicked()
+{
+  m_coms->SendSetParam(0,CPI_PWMMode,CM_Brake);
+}
+
+void MainWindow::on_pushButtonOff_clicked()
+{
+  m_coms->SendSetParam(0,CPI_PWMMode,CM_Off);
+}
+
+void MainWindow::on_pushButtonHold_clicked()
+{
+  // Go through and set demand to current position.
+  m_dogbotAPI->DemandHoldPosition();
+}
+

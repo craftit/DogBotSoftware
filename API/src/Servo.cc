@@ -163,6 +163,7 @@ namespace DogBotN {
 
     m_tick += tickDiff;
 
+    m_positionRef = (enum PositionReferenceT) (report.m_mode & 0x3);
     m_position = SerialComsC::PositionReport2Angle(report.m_position);
     m_torque =  SerialComsC::TorqueReport2Value(report.m_torque);
 
@@ -246,7 +247,11 @@ namespace DogBotN {
       ret = newVal != m_motorResistance;
       m_motorResistance = newVal;
     } break;
-
+    case CPI_PWMMode: {
+      enum PWMControlDynamicT controlDynamic =  (enum PWMControlDynamicT) pkt.m_data.uint8[0];
+      ret = controlDynamic != m_controlDynamic;
+      m_controlDynamic = controlDynamic;
+    } break;
 #if 0
     case CPI_CalibrationOffset: {
       float calAngleDeg =  (pkt.m_data.float32[0] * 360.0f / (M_PI * 2.0));
@@ -254,22 +259,6 @@ namespace DogBotN {
       displayStr += buff;
       if(pkt.m_header.m_deviceId == m_targetDeviceId) {
         emit setCalibrationAngle(calAngleDeg);
-      }
-    } break;
-    case CPI_PWMMode: {
-      enum PWMControlModeT controlMode =  (enum PWMControlModeT) pkt.m_data.uint8[0];
-      if(pkt.m_header.m_deviceId == m_targetDeviceId) {
-        printf("Setting control mode %d ",(int) pkt.m_data.uint8[0]);
-        m_controlMode = controlMode;
-        switch(controlMode) {
-        case CM_Idle:     emit setControlMode("Idle"); break;
-        case CM_Break:    emit setControlMode("Break"); break;
-        case CM_Torque:   emit setControlMode("Torque"); break;
-        case CM_Velocity: emit setControlMode("Velocity"); break;
-        case CM_Position: emit setControlMode("Position"); break;
-        default:
-          printf("Unhandled control mode %d ",(int) pkt.m_data.uint8[0]);
-        }
       }
     } break;
     case CPI_OtherJoint: {
@@ -379,7 +368,7 @@ namespace DogBotN {
   //! Demand a position for the servo
   bool ServoC::DemandPosition(float position,float torqueLimit)
   {
-    m_coms->SendMoveWithEffort(m_id,position,torqueLimit,PR_Absolute);
+    m_coms->SendMoveWithEffort(m_id,position,torqueLimit,m_positionRef);
     return true;
   }
 

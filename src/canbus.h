@@ -10,6 +10,9 @@ int InitCAN(void);
 // nodeID == 0 is broadcast.
 bool CANSetAddress(CANTxFrame *txmsg,int nodeId,int packetType);
 
+// Send an emergency stop
+bool CANEmergencyStop(void);
+
 bool CANPing(
     enum ComsPacketTypeT pktType, // Must be either ping or pong
     uint8_t deviceId

@@ -16,6 +16,9 @@ namespace DogBotN {
   //! Convert the control mode to a string
   const char *ControlStateToString(ControlStateT controlState);
 
+  //! Convert the control dynamic to a string
+  const char *ControlDynamicToString(PWMControlDynamicT dynamic);
+
   //! Dogbot device control
 
   //! This does low level management of the robot, configuration of the drivers and status monitoring.
@@ -68,6 +71,9 @@ namespace DogBotN {
 
     //! Remove handler.
     void RemoveServoStatusHandler(int id);
+
+    //! Tell all servos to hold the current position
+    void DemandHoldPosition();
 
     //! Get list of configured servos
     std::vector<std::shared_ptr<ServoC> > ListServos();

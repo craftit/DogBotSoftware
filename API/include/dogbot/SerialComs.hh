@@ -51,6 +51,9 @@ namespace DogBotN {
     //! Send packet
     void SendPacket(const uint8_t *data,int len);
 
+    //! Send an emergency stop
+    void SendEmergencyStop();
+
     //! Send a move command with an effort limit.
     void SendMoveWithEffort(int deviceId,float pos,float effort,enum PositionReferenceT posRef);
 

@@ -114,6 +114,8 @@ QVariant ServoTable::headerData(int section, Qt::Orientation orientation, int ro
       return tr("Status");
     case ColumnMode:
       return tr("Mode");
+    case ColumnDynamic:
+      return tr("Dynamic");
     case ColumnCalibrated:
       return tr("Cal");
     case ColumnAngle:
@@ -154,6 +156,8 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
       return DogBotN::FaultCodeToString(servo.FaultCode());
     case ColumnMode:
       return DogBotN::ControlStateToString(servo.ControlState());
+    case ColumnDynamic:
+      return DogBotN::ControlDynamicToString(servo.ControlDynamic());
     case ColumnCalibrated:
       return DogBotN::HomedStateToString(servo.HomedState());
     case ColumnAngle:

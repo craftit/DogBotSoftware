@@ -143,6 +143,12 @@ private slots:
 
   void on_pushButtonQueryHomed_clicked();
 
+  void on_pushButtonOff_clicked();
+
+  void on_pushButtonHold_clicked();
+
+  void on_pushButtonBrake_clicked();
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);
@@ -204,7 +210,7 @@ private:
   float m_servoAngle = 0;
   float m_servoTorque = 0;
   enum PositionReferenceT m_servoRef = PR_Relative;
-  enum PWMControlModeT m_controlMode = CM_Idle;
+  enum PWMControlDynamicT m_controlMode = CM_Off;
   ServoTable *m_servoTable = 0;
 };
 

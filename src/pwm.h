@@ -101,7 +101,7 @@ extern float g_phaseResistance;
 extern float g_phaseOffsetVoltage;
 extern float g_phaseInductance;
 
-extern enum PWMControlModeT g_controlMode;
+extern enum PWMControlDynamicT g_controlMode;
 
 #ifdef __cplusplus
 }

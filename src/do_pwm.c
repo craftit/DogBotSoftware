@@ -154,10 +154,9 @@ void ShuntCalibration(void)
 
 }
 
-float g_Ierr_d;
-float g_Ierr_q;
+float g_Ierr_d = 0;
+float g_Ierr_q = 0;
 
-bool g_breakMode = false;
 // The following function is based on that from the ODrive project.
 
 static bool FOC_current(float phaseAngle,float Id_des, float Iq_des) {
@@ -243,7 +242,7 @@ float g_positionISum = 0.0;
 float g_Id = 0.0;
 float g_Iq = 0.0;
 
-enum PWMControlModeT g_controlMode = CM_Break;
+enum PWMControlDynamicT g_controlMode = CM_Brake;
 
 static void UpdateCurrentMeasurementsFromADCValues(void) {
   // Compute motor currents;
@@ -358,7 +357,7 @@ static void MotorControlLoop(void)
 
     switch(g_controlMode)
     {
-      case CM_Idle: // Maybe turn off the MOSFETS ?
+      case CM_Off: // Maybe turn off the MOSFETS ?
         PWMUpdateDrivePhase(
             TIM_1_8_PERIOD_CLOCKS/2,
             TIM_1_8_PERIOD_CLOCKS/2,
@@ -368,15 +367,15 @@ static void MotorControlLoop(void)
         break;
       case CM_Fault:
       case CM_Final:
-        // Just turn everything off, this should mildly passively break the motor
+        // Just turn everything off, this should mildly passively brake the motor
         PWMUpdateDrivePhase(
             TIM_1_8_PERIOD_CLOCKS/2,
             TIM_1_8_PERIOD_CLOCKS/2,
             TIM_1_8_PERIOD_CLOCKS/2
             );
         break;
-      case CM_Break:
-        // Just turn everything off, this should passively break the motor
+      case CM_Brake:
+        // Just turn everything off, this should passively brake the motor
         PWMUpdateDrivePhase(
             0,
             0,
@@ -545,7 +544,7 @@ void SetModeFOC(void)
 }
 
 // Not implemented yet.
-void SetModeBreak(void)
+void SetModeBrake(void)
 {
   stm32_tim_t *tim = (stm32_tim_t *)TIM1_BASE;
   tim->CCER  =

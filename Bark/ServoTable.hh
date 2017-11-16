@@ -24,13 +24,14 @@ public:
     ColumnName = 1,
     ColumnStatus = 2,
     ColumnMode = 3,
-    ColumnCalibrated = 4,
-    ColumnAngle = 5,
-    ColumnSpeed = 6,
-    ColumnTorque = 7,
-    ColumnTemperature = 8,
-    ColumnSupplyVoltage = 9,
-    ColumnCount = 10
+    ColumnDynamic = 4,
+    ColumnCalibrated = 5,
+    ColumnAngle = 6,
+    ColumnSpeed = 7,
+    ColumnTorque = 8,
+    ColumnTemperature = 9,
+    ColumnSupplyVoltage = 10,
+    ColumnCount = 11
   };
 
   Qt::ItemFlags flags(const QModelIndex &index) const override;

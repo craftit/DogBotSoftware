@@ -407,7 +407,7 @@ static void cmd_doSet(BaseSequentialStream *chp, int argc, char *argv[]) {
       g_controlMode = CM_Torque;
     }
     if(strcmp("i",argv[1]) == 0) {
-      g_controlMode = CM_Idle;
+      g_controlMode = CM_Off;
     }
 
     chprintf(chp, "Setting mode to %d \r\n",(int) g_controlMode);

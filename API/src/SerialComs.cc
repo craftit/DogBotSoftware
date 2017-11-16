@@ -525,11 +525,6 @@ namespace DogBotN
     if(torque > 10) torque = 10;
     if(torque < -10) torque = -10;
     servoPkt.m_position = torque * 32767.0 / (10.0);
-#if 0
-    if(effort < 0) effort = 0;
-    if(effort > 10.0) effort = 10.0;
-    servoPkt.m_torqueLimit = effort * 65535.0 / (10.0);
-#endif
     servoPkt.m_mode = (((int) CM_Torque) << 2);
 
     SendPacket((uint8_t *)&servoPkt,sizeof servoPkt);
@@ -554,4 +549,13 @@ namespace DogBotN
     pkt.m_deviceId = deviceId;
     SendPacket((uint8_t *)&pkt,sizeof(struct PacketPingPongC));
   }
+
+  //! Send an emergency stop
+  void SerialComsC::SendEmergencyStop()
+  {
+    uint8_t packetType = CPT_EmergencyStop;
+    SendPacket((uint8_t *)&packetType,sizeof(packetType));
+  }
+
+
 }

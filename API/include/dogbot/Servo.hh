@@ -137,6 +137,13 @@ namespace DogBotN {
     float SupplyVoltage() const
     { return m_supplyVoltage; }
 
+    //! Access default torque to use.
+    float DefaultPositionTorque() const
+    { return m_defaultPositionTorque; }
+
+    //! Access control dynamic
+    PWMControlDynamicT ControlDynamic() const
+    { return m_controlDynamic; }
   protected:
     //! Process update
     //! Returns true if state changed
@@ -164,6 +171,7 @@ namespace DogBotN {
     FaultCodeT m_faultCode = FC_Ok;
     MotionHomedStateT m_homedState = MHS_Lost;
     ControlStateT m_controlState = CS_Fault;
+    PWMControlDynamicT m_controlDynamic = CM_Off;
     mutable std::mutex m_mutexState;
 
     TimePointT m_timeEpoch;
@@ -173,8 +181,11 @@ namespace DogBotN {
 
     std::chrono::duration<double> m_tickRate; // Default is 100Hz
     unsigned m_tick = 0;
+
+    float m_defaultPositionTorque = 4.0;
     float m_supplyVoltage = 0;
     float m_position = 0;
+    enum PositionReferenceT m_positionRef = PR_Relative;
     float m_speed = 0;
     float m_torque = 0;
     float m_temperature = 0;

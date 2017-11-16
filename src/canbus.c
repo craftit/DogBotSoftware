@@ -22,6 +22,7 @@
 #include "canbus.h"
 #include "dogbot/protocol.h"
 #include "motion.h"
+#include "pwm.h"
 
 #define STM32_UID ((uint32_t *)0x1FFF7A10)
 
@@ -38,6 +39,21 @@ bool CANSetAddress(CANTxFrame *txmsg,int nodeId,int packetType)
   txmsg->SID = (packetType & 0x1f) << MSG_TYPE_BIT | (nodeId & 0x3f);
   txmsg->IDE = CAN_IDE_STD;
 
+  return true;
+}
+
+// Send an emergency stop
+bool CANEmergencyStop()
+{
+  CANTxFrame txmsg;
+  enum ComsPacketTypeT pktType = CPT_EmergencyStop;
+  CANSetAddress(&txmsg,0,pktType);
+  txmsg.RTR = CAN_RTR_DATA;
+  txmsg.DLC = 0;
+  if(canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, 100) != MSG_OK) {
+    //USBSendError(CET_CANTransmitFailed,m_data[0]);
+    return false;
+  }
   return true;
 }
 
@@ -327,6 +343,13 @@ static THD_FUNCTION(can_rx, p) {
 
       switch((enum ComsPacketTypeT) msgType)
       {
+        case CPT_EmergencyStop: { // Ping request
+          ChangeControlState(CS_EmergencyStop);
+          if(g_canBridgeMode) {
+            uint8_t pktType = CPT_EmergencyStop;
+            USBSendPacket((uint8_t *) &pktType,sizeof(pktType));
+          }
+        } break;
         case CPT_Ping: { // Ping request
           if(g_deviceId == rxDeviceId || rxDeviceId == 0) {
             if(rxmsg.DLC != 0) {
