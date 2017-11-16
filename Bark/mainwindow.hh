@@ -149,6 +149,8 @@ private slots:
 
   void on_pushButtonBrake_clicked();
 
+  void on_comboBoxServoName_activated(const QString &arg1);
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);

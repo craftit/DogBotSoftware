@@ -476,6 +476,29 @@ namespace DogBotN {
     // Make sure
   }
 
+  //! Get servo entry by id
+  std::shared_ptr<ServoC> DogBotAPIC::GetServoById(int id)
+  {
+    if(id < 0)
+      return std::shared_ptr<ServoC>();
+    std::lock_guard<std::mutex> lock(m_mutexDevices);
+    if(id >= m_devices.size())
+      return std::shared_ptr<ServoC>();
+    return m_devices[id];
+  }
+
+  //! Get servo entry by name
+  std::shared_ptr<ServoC> DogBotAPIC::GetServoByName(const std::string &name)
+  {
+    std::lock_guard<std::mutex> lock(m_mutexDevices);
+    for(auto &a : m_devices) {
+      if(a->Name() == name)
+        return a;
+    }
+    return std::shared_ptr<ServoC>();
+  }
+
+
   //! Set the handler for servo reports for a device.
   int DogBotAPIC::SetServoUpdateHandler(int deviceId,const std::function<void (const PacketServoReportC &report)> &handler)
   {

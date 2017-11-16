@@ -495,7 +495,10 @@ void MainWindow::QueryAll()
 {
   m_toQuery = 0;
 
-
+  // Update name
+  std::shared_ptr<DogBotN::ServoC> servo = m_dogbotAPI->GetServoById(m_targetDeviceId);
+  if(servo)
+    ui->comboBoxServoName->setCurrentText(servo->Name().c_str());
 }
 
 void MainWindow::on_pushButtonConnect_clicked()
@@ -933,3 +936,9 @@ void MainWindow::on_pushButtonHold_clicked()
   m_dogbotAPI->DemandHoldPosition();
 }
 
+void MainWindow::on_comboBoxServoName_activated(const QString &arg1)
+{
+  std::shared_ptr<DogBotN::ServoC> servo = m_dogbotAPI->GetServoById(m_targetDeviceId);
+  if(servo)
+    servo->SetName(arg1.toLatin1().data());
+}

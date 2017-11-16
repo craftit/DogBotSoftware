@@ -25,7 +25,7 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>2</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
@@ -232,7 +232,7 @@
         <property name="geometry">
          <rect>
           <x>180</x>
-          <y>50</y>
+          <y>80</y>
           <width>83</width>
           <height>20</height>
          </rect>
@@ -1118,7 +1118,7 @@
         <property name="geometry">
          <rect>
           <x>180</x>
-          <y>80</y>
+          <y>100</y>
           <width>83</width>
           <height>20</height>
          </rect>
@@ -1185,10 +1185,33 @@
          <string>Query Homed</string>
         </property>
        </widget>
+       <widget class="QComboBox" name="comboBoxServoName">
+        <property name="geometry">
+         <rect>
+          <x>150</x>
+          <y>40</y>
+          <width>121</width>
+          <height>22</height>
+         </rect>
+        </property>
+        <property name="editable">
+         <bool>true</bool>
+        </property>
+        <item>
+         <property name="text">
+          <string>FrontLeft</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>FrontRight</string>
+         </property>
+        </item>
+       </widget>
       </widget>
       <widget class="QWidget" name="tab_2">
        <attribute name="title">
-        <string>Leg Movment</string>
+        <string>Leg Movement</string>
        </attribute>
        <widget class="QCheckBox" name="checkBoxBounce">
         <property name="geometry">

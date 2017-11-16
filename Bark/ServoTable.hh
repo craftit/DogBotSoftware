@@ -25,7 +25,7 @@ public:
     ColumnStatus = 2,
     ColumnMode = 3,
     ColumnDynamic = 4,
-    ColumnCalibrated = 5,
+    ColumnHomed = 5,
     ColumnAngle = 6,
     ColumnSpeed = 7,
     ColumnTorque = 8,

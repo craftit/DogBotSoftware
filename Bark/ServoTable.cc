@@ -116,8 +116,8 @@ QVariant ServoTable::headerData(int section, Qt::Orientation orientation, int ro
       return tr("Mode");
     case ColumnDynamic:
       return tr("Dynamic");
-    case ColumnCalibrated:
-      return tr("Cal");
+    case ColumnHomed:
+      return tr("Homed");
     case ColumnAngle:
       return tr("Angle");
     case ColumnSpeed:
@@ -158,10 +158,10 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
       return DogBotN::ControlStateToString(servo.ControlState());
     case ColumnDynamic:
       return DogBotN::ControlDynamicToString(servo.ControlDynamic());
-    case ColumnCalibrated:
+    case ColumnHomed:
       return DogBotN::HomedStateToString(servo.HomedState());
     case ColumnAngle:
-      return servo.Position();
+      return servo.Position() * 360.0 / (M_PI * 2.0);
     case ColumnSpeed:
       return servo.Speed();
     case ColumnTorque:
@@ -182,6 +182,19 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
         return QColor(Qt::green);
       else
         return QColor(Qt::red);
+    case ColumnHomed:
+      switch(servo.HomedState())
+      {
+      case MHS_Lost:
+        return QColor(Qt::red);
+      case MHS_Measuring:
+        return QColor(Qt::yellow);
+      case MHS_Homed:
+        return QColor(Qt::green);
+      default:
+        return QColor(Qt::red);
+      }
+      break;
     case ColumnTemperature:
       if(servo.Temperature() < 60.0)
         return QColor(Qt::white);

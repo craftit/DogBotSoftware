@@ -83,8 +83,10 @@ namespace DogBotN {
     ServoC(const std::shared_ptr<SerialComsC> &coms,int deviceId);
 
     //! Access name of device
-    const std::string &Name() const
-    { return m_name; }
+    std::string Name() const;
+
+    //! Set name of servo
+    void SetName(const std::string &name);
 
     //! Access the device id.
     int Id() const
@@ -156,9 +158,12 @@ namespace DogBotN {
     //! Handle parameter update.
     bool HandlePacketReportParam(const PacketParam8ByteC &pkt);
 
+    mutable std::mutex m_mutexAdmin;
+
     uint32_t m_uid1 = 0;
     uint32_t m_uid2 = 0;
     int m_id = -1; // Device id.
+
     std::string m_name;
 
     std::shared_ptr<MotorCalibrationC> m_motorCal;

@@ -122,9 +122,28 @@ namespace DogBotN {
     m_timeEpoch = m_timeOfLastReport;
   }
 
+  //! Access name of device
+  std::string ServoC::Name() const
+  {
+    std::lock_guard<std::mutex> lock(m_mutexAdmin);
+    return m_name;
+  }
+
+  //! Set name of servo
+  void ServoC::SetName(const std::string &name)
+  {
+    std::lock_guard<std::mutex> lock(m_mutexAdmin);
+    m_name = name;
+
+  }
+
   //! Configure from JSON
   bool ServoC::ConfigureFromJSON(const Json::Value &value)
   {
+    {
+      std::lock_guard<std::mutex> lock(m_mutexAdmin);
+      m_name = value["name"].asString();
+    }
 
     return true;
   }
@@ -134,8 +153,11 @@ namespace DogBotN {
   {
     Json::Value ret;
 
-    ret["name"] = m_name;
-    ret["controllerId"] = std::to_string(m_uid1) + "-" + std::to_string(m_uid2);
+    {
+      std::lock_guard<std::mutex> lock(m_mutexAdmin);
+      ret["name"] = m_name;
+      ret["controllerId"] = std::to_string(m_uid1) + "-" + std::to_string(m_uid2);
+    }
 
     if(m_motorCal) {
       ret["setup"] = m_motorCal->AsJSON();
