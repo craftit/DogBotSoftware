@@ -240,12 +240,28 @@ bool ChangeControlState(enum ControlStateT newState)
 
 void SendBackgroundStateReport(void)
 {
-  SendParamUpdate(CPI_VSUPPLY);
-  SendParamUpdate(CPI_DriveTemp);
+  static int stateCount = 0;
 
-  // for debug...
-  SendParamUpdate(CPI_PhaseVelocity);
-  SendParamUpdate(CPI_DemandPhaseVelocity);
+  // Distribute these over time.
+  switch(stateCount)
+  {
+    default:
+      stateCount = 0;
+      /* no break */
+    case 0:
+      SendParamUpdate(CPI_VSUPPLY);
+      break;
+    case 1:
+      SendParamUpdate(CPI_DriveTemp);
+      break;
+    case 2:
+      SendParamUpdate(CPI_PhaseVelocity);
+      break;
+    case 3:
+      SendParamUpdate(CPI_DemandPhaseVelocity);
+      break;
+  }
+  stateCount++;
 }
 
 
@@ -307,10 +323,25 @@ int main(void) {
 
         g_lastFaultCode = FC_Ok; // Clear any errors
         SendParamUpdate(CPI_FaultCode);
-        g_vbus_voltage = ReadSupplyVoltage();
+
+        {
+          float sum = 0;
+          for(int i = 0;i < 10;i++)
+            sum += ReadSupplyVoltage();
+          g_vbus_voltage = sum / 10.0;
+        }
+
         if(g_vbus_voltage < g_minSupplyVoltage) {
           ChangeControlState(CS_Standby);
           break;
+        }
+
+        {
+          float sum = 0;
+          for(int i = 0;i < 10;i++) {
+            sum += ReadDriveTemperature();
+          }
+          g_driveTemperature = sum/10.0;
         }
 
         faultCode = PWMSelfTest();
@@ -319,6 +350,7 @@ int main(void) {
           FaultDetected(faultCode);
           break;
         }
+
 
         if(doFactoryCal) {
           doFactoryCal = false;
@@ -339,7 +371,6 @@ int main(void) {
         break;
       case CS_Standby:
         chThdSleepMilliseconds(500);
-        g_vbus_voltage = ReadSupplyVoltage();
         if(g_vbus_voltage > (g_minSupplyVoltage + 0.1)) {
           ChangeControlState(CS_StartUp);
           break;
@@ -377,7 +408,7 @@ int main(void) {
         MotionStep();
 
         // 5Hz
-        if(cycleCount++ > 20) {
+        if(cycleCount++ > 5) {
           cycleCount = 0;
           SendBackgroundStateReport();
         }
@@ -385,8 +416,8 @@ int main(void) {
     }
 
     // Stuff we want to check all the time.
-    g_driveTemperature = ReadDriveTemperature();
-    g_vbus_voltage = ReadSupplyVoltage();
+    g_driveTemperature +=  (ReadDriveTemperature() - g_driveTemperature)*0.1;
+    g_vbus_voltage += (ReadSupplyVoltage() - g_vbus_voltage) * 0.2;
     if(g_controlState != CS_Fault) {
       if(g_vbus_voltage > g_maxSupplyVoltage) {
         FaultDetected(FC_OverVoltage);
