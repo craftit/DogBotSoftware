@@ -322,6 +322,7 @@ enum FaultCodeT LoadSetup(void) {
   g_velocityLimit = g_storedConfig.m_velocityLimit;
   g_absoluteMaxCurrent = g_storedConfig.m_absoluteMaxCurrent;
   g_homeIndexPosition = g_storedConfig.m_homeIndexPosition;
+  g_minSupplyVoltage = g_storedConfig.m_minSupplyVoltage;
 
   // Setup angles.
   for(int i = 0;i < g_calibrationPointCount;i++) {
@@ -352,6 +353,7 @@ enum FaultCodeT SaveSetup(void) {
   g_storedConfig.m_velocityLimit = g_velocityLimit;
   g_storedConfig.m_absoluteMaxCurrent = g_absoluteMaxCurrent;
   g_storedConfig.m_homeIndexPosition = g_homeIndexPosition;
+  g_storedConfig.m_minSupplyVoltage = g_minSupplyVoltage;
 
   for(int i = 0;i < g_calibrationPointCount;i++) {
     g_storedConfig.phaseAngles[i][0] = g_phaseAngles[i][0];

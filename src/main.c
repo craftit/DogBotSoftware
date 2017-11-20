@@ -129,7 +129,7 @@ static THD_FUNCTION(ThreadOrangeLed, arg) {
 /* Generic code.                                                             */
 /*===========================================================================*/
 
-extern void Drv8503Init(void);
+extern void InitDrv8503(void);
 extern void RunTerminal(void);
 extern void InitUSB(void);
 extern void InitADC(void);
@@ -242,6 +242,7 @@ void SendBackgroundStateReport(void)
 {
   static int stateCount = 0;
 
+
   // Distribute these over time.
   switch(stateCount)
   {
@@ -256,12 +257,69 @@ void SendBackgroundStateReport(void)
       break;
     case 2:
       SendParamUpdate(CPI_PhaseVelocity);
+
+      // Finish here unless we're in diagnostic mode.
+      if(g_controlState != CS_Diagnostic) {
+        stateCount = -1;
+        return ;
+      }
       break;
     case 3:
       SendParamUpdate(CPI_DemandPhaseVelocity);
       break;
+    case 4:
+      SendParamUpdate(CPI_HallSensors);
+      break;
   }
   stateCount++;
+}
+
+bool g_doFactoryCal = false;
+
+void DoStartup(void)
+{
+  PWMStop();
+  MotionResetCalibration(MHS_Measuring);
+
+  g_lastFaultCode = FC_Ok; // Clear any errors
+  SendParamUpdate(CPI_FaultCode);
+
+  {
+    float sum = 0;
+    for(int i = 0;i < 10;i++)
+      sum += ReadSupplyVoltage();
+    g_vbus_voltage = sum / 10.0;
+  }
+
+  if(g_vbus_voltage < g_minSupplyVoltage) {
+    ChangeControlState(CS_Standby);
+    return ;
+  }
+
+  {
+    float sum = 0;
+    for(int i = 0;i < 10;i++) {
+      sum += ReadDriveTemperature();
+    }
+    g_driveTemperature = sum/10.0;
+  }
+
+  enum FaultCodeT faultCode = PWMSelfTest();
+  if(faultCode != FC_Ok) {
+    /* Self test failed. */
+    FaultDetected(faultCode);
+    return ;
+  }
+
+
+  if(g_doFactoryCal) {
+    g_doFactoryCal = false;
+    ChangeControlState(CS_FactoryCalibrate);
+    return ;
+  }
+
+  ChangeControlState(CS_Ready);
+  return ;
 }
 
 
@@ -282,18 +340,16 @@ int main(void) {
   halInit();
   chSysInit();
 
-  EnableSensorPower(true);
+  EnableSensorPower(false);
   EnableAuxPower(false);
 
   InitADC();
 
-  Drv8503Init();
+  InitDrv8503();
 
   InitSerial();
-
   InitUSB();
   InitCAN();
-
 
   g_eeInitDone = true;
   StoredConf_Init();
@@ -311,54 +367,15 @@ int main(void) {
   chThdCreateStatic(waThreadOrangeLed, sizeof(waThreadOrangeLed), NORMALPRIO, ThreadOrangeLed, NULL);
 
   int cycleCount = 0;
-  /* Is button pressed at startup ?  */
-  bool doFactoryCal = !palReadPad(GPIOB, GPIOA_PIN2);
+
+  /* Is button pressed ?  */
+  g_doFactoryCal = !palReadPad(GPIOB, GPIOA_PIN2);
 
   while(1) {
     switch(g_controlState)
     {
       case CS_StartUp:
-        PWMStop();
-        MotionResetCalibration(MHS_Measuring);
-
-        g_lastFaultCode = FC_Ok; // Clear any errors
-        SendParamUpdate(CPI_FaultCode);
-
-        {
-          float sum = 0;
-          for(int i = 0;i < 10;i++)
-            sum += ReadSupplyVoltage();
-          g_vbus_voltage = sum / 10.0;
-        }
-
-        if(g_vbus_voltage < g_minSupplyVoltage) {
-          ChangeControlState(CS_Standby);
-          break;
-        }
-
-        {
-          float sum = 0;
-          for(int i = 0;i < 10;i++) {
-            sum += ReadDriveTemperature();
-          }
-          g_driveTemperature = sum/10.0;
-        }
-
-        faultCode = PWMSelfTest();
-        if(faultCode != FC_Ok) {
-          /* Self test failed. */
-          FaultDetected(faultCode);
-          break;
-        }
-
-
-        if(doFactoryCal) {
-          doFactoryCal = false;
-          ChangeControlState(CS_FactoryCalibrate);
-          break;
-        }
-
-        ChangeControlState(CS_Ready);
+        DoStartup();
         break;
       case CS_FactoryCalibrate:
         SendBackgroundStateReport();
@@ -394,6 +411,7 @@ int main(void) {
 
       case CS_Home:
       case CS_Teach:
+      case CS_Diagnostic:
       case CS_Ready:
         if(chBSemWaitTimeout(&g_reportSampleReady,1000) != MSG_OK) {
           //FaultDetected(FC_InternalTiming);

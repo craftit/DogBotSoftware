@@ -24,6 +24,8 @@ namespace DogBotN {
     case FC_NoSensor:       return "No sensor";
     case FC_NoMotor:        return "No motor";
     case FC_PositionLost:   return "Position Lost";
+    case FC_MotorResistanceOutOfRange: return "Resistance out of range.";
+    case FC_MotorInducetanceOutOfRange: return "Inductance out of range.";
     }
 
     printf("Invalid fault code %d \n", (int) faultCode);
@@ -55,6 +57,7 @@ namespace DogBotN {
     case CS_Teach: return "Teach";
     case CS_Fault: return "Fault";
     case CS_StartUp: return "Startup";
+    case CS_Diagnostic: return "Diagnostic";
     default: {
       printf("Unexpected state %d",(int)controlState);
       return "Invalid";

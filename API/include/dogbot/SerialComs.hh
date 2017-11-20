@@ -103,7 +103,7 @@ namespace DogBotN {
       });
       assert(sizeof(value) <= 7);
       if(sizeof(value) > 7) {
-        std::cerr << "Parameter " << (int) param << " too large. " << std::endl;
+        m_log->error("Parameter {} too large.",(int) param);
         return false;
       }
       for(int i = 0;i < 4 && ret;i++) {

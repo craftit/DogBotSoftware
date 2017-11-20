@@ -23,6 +23,7 @@ struct StoredConfigT {
   float m_velocityLimit;
   float m_absoluteMaxCurrent;
   float m_homeIndexPosition;
+  float m_minSupplyVoltage;
 };
 
 void StoredConf_Init(void);

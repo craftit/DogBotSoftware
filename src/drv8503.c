@@ -57,7 +57,7 @@ uint16_t Drv8503ReadStatus(void)
 }
 
 
-void Drv8503Init(void)
+void InitDrv8503(void)
 {
   // Make sure the output of the sense amplifiers is clamped to 3.3V clear any faults
   // before being enabled

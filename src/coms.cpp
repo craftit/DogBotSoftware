@@ -204,6 +204,7 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_MotorResistance:
     case CPI_MotorInductance:
     case CPI_PhaseVelocity:
+    case CPI_HallSensors:
       break;
 
     case CPI_AuxPower:
@@ -335,7 +336,11 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
         return false;
       g_homeIndexPosition = dataBuff->float32[0];
       break;
-
+    case CPI_MinSupplyVoltage:
+      if(len != 4)
+        return false;
+      g_minSupplyVoltage = dataBuff->float32[0];
+      break;
     //case CPI_ANGLE_CAL: // 12 Values
     case CPI_ANGLE_CAL_0:
     case CPI_ANGLE_CAL_1:
@@ -348,7 +353,14 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_ANGLE_CAL_8:
     case CPI_ANGLE_CAL_9:
     case CPI_ANGLE_CAL_10:
-    case CPI_ANGLE_CAL_11: {
+    case CPI_ANGLE_CAL_11:
+    case CPI_ANGLE_CAL_12:
+    case CPI_ANGLE_CAL_13:
+    case CPI_ANGLE_CAL_14:
+    case CPI_ANGLE_CAL_15:
+    case CPI_ANGLE_CAL_16:
+    case CPI_ANGLE_CAL_17:
+    {
       int reg = ((int) index - CPI_ANGLE_CAL);
       if(len != 6) return false;
       for(int i = 0;i < 3;i++)
@@ -491,7 +503,14 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
     case CPI_ANGLE_CAL_8:
     case CPI_ANGLE_CAL_9:
     case CPI_ANGLE_CAL_10:
-    case CPI_ANGLE_CAL_11: {
+    case CPI_ANGLE_CAL_11:
+    case CPI_ANGLE_CAL_12:
+    case CPI_ANGLE_CAL_13:
+    case CPI_ANGLE_CAL_14:
+    case CPI_ANGLE_CAL_15:
+    case CPI_ANGLE_CAL_16:
+    case CPI_ANGLE_CAL_17:
+    {
       int reg = ((int) index - CPI_ANGLE_CAL);
       *len = 6;
       for(int i = 0;i < 3;i++)
@@ -541,6 +560,17 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       *len = 4;
       data->float32[0] = g_homeIndexPosition;
       break;
+    case CPI_HallSensors:
+      *len = 6;
+      data->uint16[0] = g_hall[0];
+      data->uint16[1] = g_hall[1];
+      data->uint16[2] = g_hall[2];
+      break;
+    case CPI_MinSupplyVoltage:
+      *len = 4;
+      data->float32[0] = g_minSupplyVoltage;
+      break;
+
     default:
       return false;
   }

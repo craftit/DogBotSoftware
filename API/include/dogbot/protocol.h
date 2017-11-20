@@ -111,6 +111,8 @@ extern "C" {
     CPI_AuxPower        = 38,
     CPI_MaxCurrent      = 39,
     CPI_homeIndexPosition = 40,
+    CPI_HallSensors      = 41,
+    CPI_MinSupplyVoltage = 42,
 
     CPI_ANGLE_CAL       = 48,  // 12 Values
     CPI_ANGLE_CAL_0     = 0x30,
@@ -131,7 +133,6 @@ extern "C" {
     CPI_ANGLE_CAL_15    = 0x3F,
     CPI_ANGLE_CAL_16    = 0x40,
     CPI_ANGLE_CAL_17    = 0x41,
-    CPI_ANGLE_CAL_18    = 0x42,
     CPI_FINAL           = 0xff
   };
 
@@ -149,7 +150,8 @@ extern "C" {
     CS_FactoryCalibrate = 6,
     CS_Home          = 7,
     CS_Fault         = 8,
-    CS_Teach         = 9
+    CS_Teach         = 9,
+    CS_Diagnostic    = 10
   };
 
 

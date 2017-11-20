@@ -491,7 +491,7 @@ static THD_FUNCTION(ThreadPWM, arg) {
   g_lastLimitState = palReadPad(GPIOC, GPIOC_PIN8); // Index
 
   //! Make sure controller is setup.
-  Drv8503Init();
+  InitDrv8503();
 
   //! Wait a bit more
   chThdSleepMilliseconds(100);

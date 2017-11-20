@@ -66,6 +66,8 @@ extern int g_phaseAngles[g_calibrationPointCount][3];
 extern int g_adcTickCount;
 
 extern float g_vbus_voltage;
+extern float g_minSupplyVoltage;
+
 extern float g_current[3];
 extern float g_phaseAngle;
 extern float g_current_Ibus;

@@ -84,6 +84,7 @@ bool StoredConf_Load(struct StoredConfigT *conf)
     conf->m_velocityLimit = 1000.0;
     conf->m_absoluteMaxCurrent = 20.0;
     conf->m_homeIndexPosition = 0.0;
+    conf->m_minSupplyVoltage = 6.0;
   }
 
   return is_ok;
