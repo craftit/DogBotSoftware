@@ -40,7 +40,8 @@ namespace DogBotN {
 
   bool MotorCalibrationC::LoadJSON(const Json::Value &conf)
   {
-    GetJSONValue(conf,"velocityLimit",m_velocityLimit);
+    m_velocityLimit = conf.get("velocityLimit",1000.0f).asFloat();
+
     GetJSONValue(conf,"currentLimit",m_currentLimit);
     GetJSONValue(conf,"positionPGain",m_positionPGain);
     GetJSONValue(conf,"velocityPGain",m_velocityPGain);
@@ -50,7 +51,7 @@ namespace DogBotN {
 
     Json::Value calArr = conf["encoder_cal"];
     if(!calArr.isNull()) {
-      for(int i = 0;i < 12;i++) {
+      for(int i = 0;i < m_hallCalPoints;i++) {
         Json::Value entry = calArr[i];
         if(entry.isNull())
           return false;
@@ -70,7 +71,7 @@ namespace DogBotN {
   Json::Value MotorCalibrationC::AsJSON() const
   {
     Json::Value calArr;
-    for(int i = 0;i < 12;i++) {
+    for(int i = 0;i < m_hallCalPoints;i++) {
       Json::Value entry;
       for(int j = 0;j < 3;j++)
         entry[j] = (int) m_hall[i][j];
@@ -113,11 +114,23 @@ namespace DogBotN {
 
   //! --------------------------
 
-  ServoC::ServoC(const std::shared_ptr<SerialComsC> &coms,int deviceId)
+  ServoC::ServoC(const std::shared_ptr<SerialComsC> &coms, int deviceId, const PacketDeviceIdC &pktAnnounce)
+   : m_uid1(pktAnnounce.m_uid[0]),
+     m_uid2(pktAnnounce.m_uid[1]),
+     m_id(deviceId),
+     m_coms(coms)
+  {
+    m_name = std::to_string(pktAnnounce.m_uid[0]) + "-" + std::to_string(pktAnnounce.m_uid[1]);
+    m_timeOfLastReport = std::chrono::steady_clock::now();
+    m_timeEpoch = m_timeOfLastReport;
+  }
+
+  ServoC::ServoC(const std::shared_ptr<SerialComsC> &coms, int deviceId)
    : m_id(deviceId),
      m_coms(coms)
   {
-    m_name = std::to_string(deviceId);
+    if(deviceId != 0)
+      m_name = std::to_string(deviceId);
     m_timeOfLastReport = std::chrono::steady_clock::now();
     m_timeEpoch = m_timeOfLastReport;
   }
@@ -135,6 +148,12 @@ namespace DogBotN {
     std::lock_guard<std::mutex> lock(m_mutexAdmin);
     m_name = name;
 
+  }
+
+  void ServoC::SetUID(uint32_t uid1, uint32_t uid2)
+  {
+    m_uid1 = uid1;
+    m_uid2 = uid2;
   }
 
   //! Configure from JSON
@@ -198,15 +217,13 @@ namespace DogBotN {
   bool ServoC::HandlePacketAnnounce(const PacketDeviceIdC &pkt)
   {
     bool ret = false;
-    {
-      std::lock_guard<std::mutex> lock(m_mutexState);
-      ret = (m_uid1 != pkt.m_uid[0] ||m_uid2 != pkt.m_uid[1]);
-      m_uid1 = pkt.m_uid[0];
-      m_uid2 = pkt.m_uid[1];
+    if(pkt.m_deviceId != m_id) {
+      m_coms->SendSetDeviceId(m_id,m_uid1,m_uid2);
+      ret = true;
     }
-
     return ret;
   }
+
   //! Handle parameter update.
   bool ServoC::HandlePacketReportParam(const PacketParam8ByteC &pkt)
   {

@@ -1,9 +1,11 @@
 
-#include "../include/dogbot/DogBotAPI.hh"
+#include "dogbot/DogBotAPI.hh"
+#include "dogbot/protocol.h"
 #include <fstream>
 #include <chrono>
 #include <mutex>
-#include <assert.h>
+#include <cassert>
+#include <memory>
 
 namespace DogBotN {
 
@@ -234,6 +236,7 @@ namespace DogBotN {
 
   bool DogBotAPIC::Init()
   {
+    m_log->info("Starting API. ");
     if(m_started) {
       m_log->error("Init already called. ");
       return false;
@@ -325,31 +328,79 @@ namespace DogBotN {
     std::lock_guard<std::mutex> lock(m_mutexDevices);
 
     // The device clearly exists, so make sure there is an entry.
-    if(deviceId >= m_devices.size() ||
-        !m_devices[deviceId]) {
-      m_log->info("Adding new device '{}' ",deviceId);
-
-      assert(deviceId <= 255 && deviceId >= 0);
-
-      while(m_devices.size() <= deviceId)
-        m_devices.push_back(nullptr);
-
-      std::shared_ptr<ServoC> &ptr = m_devices[deviceId];
-      if(!ptr) {
-        ptr = std::make_shared<ServoC>(m_coms,deviceId);
-      }
-
-      ServoStatusUpdate(deviceId,SUT_Add);
-    }
-
-    return  m_devices[deviceId];
-
+    if(deviceId >= m_devices.size() || deviceId < 0)
+      return std::shared_ptr<ServoC>();
+    return m_devices[deviceId];
   }
+
+  void DogBotAPIC::HandlePacketAnnounce(const PacketDeviceIdC &pkt)
+  {
+    std::shared_ptr<ServoC> device;
+    int deviceId = pkt.m_deviceId;
+    m_log->info("Handling device announcement {} {}   Id:{}",pkt.m_uid[0],pkt.m_uid[1],(int) pkt.m_deviceId);
+    ServoUpdateTypeT updateType = SUT_Updated;
+    // Check device id is
+    if(deviceId != 0) {
+      // Check device ids match
+      device = DeviceEntry(deviceId);
+      // If no entry found.
+      if(!device) {
+        assert(deviceId <= 255 && deviceId >= 0);
+
+        // Add entry to table with existing id.
+        std::lock_guard<std::mutex> lock(m_mutexDevices);
+        while(m_devices.size() <= deviceId)
+          m_devices.push_back(nullptr);
+        device = std::make_shared<ServoC>(m_coms,deviceId,pkt);
+        m_devices[deviceId] = device;
+        updateType = SUT_Add;
+      } else {
+        // Check existing device id matches
+        if(!device->HasUID(pkt.m_uid[0],pkt.m_uid[1])) {
+          // Conflicting id's detected.
+          deviceId = 0; // Treat device as if it is unassigned.
+          m_coms->SendSetDeviceId(0,pkt.m_uid[0],pkt.m_uid[1]); // Stop it using the conflicting address.
+          m_log->error(
+             "Conflicting ids detected for device {}, with uid {}-{} and existing device {}-{} '{}' ",
+             (int) pkt.m_deviceId,pkt.m_uid[0],pkt.m_uid[1],
+             device->UId1(),device->UId2(),device->Name()
+             );
+        }
+      }
+    }
+    if(deviceId == 0) {
+      // Look through devices for a matching id.
+      std::lock_guard<std::mutex> lock(m_mutexDevices);
+      for(int i = 0;i < m_devices.size();i++) {
+        if(m_devices[i] && m_devices[i]->HasUID(pkt.m_uid[0],pkt.m_uid[1])) {
+          deviceId = i;
+          device = m_devices[i];
+        }
+      }
+      // No matching id found ?
+      if(!device) {
+        device = std::make_shared<ServoC>(m_coms,0,pkt);
+        m_timeLastUnassignedUpdate = std::chrono::steady_clock::now();
+        for(auto &a : m_unassignedDevices) {
+          if(a->HasUID(pkt.m_uid[0],pkt.m_uid[1])) {
+            return ; // Already in list.
+          }
+        }
+        m_unassignedDevices.push_back(device);
+        return ;
+      }
+    }
+    assert(device);
+    device->HandlePacketAnnounce(pkt);
+    ServoStatusUpdate(deviceId,updateType);
+  }
+
 
   //! Monitor thread
   void DogBotAPIC::RunMonitor()
   {
-    m_log->debug("Running monitor. ");
+    m_log->info("Running monitor. ");
+    //logger->info("Starting bark");
 
     m_coms->SetHandler(CPT_Pong, [this](uint8_t *data,int size) mutable
     {
@@ -365,32 +416,26 @@ namespace DogBotN {
           }
           const PacketServoReportC *pkt = (const PacketServoReportC *) data;
           std::shared_ptr<ServoC> device = DeviceEntry(pkt->m_deviceId);
+          if(!device)
+            return ;
           if(device->HandlePacketServoReport(*pkt)) {
             ServoStatusUpdate(pkt->m_deviceId,SUT_Updated);
           }
         }
     );
 
-    m_coms->SetHandler(CPT_AnnounceId,
-                       [this](uint8_t *data,int size) mutable
-                        {
-                          if(size != sizeof(struct PacketDeviceIdC)) {
-                            m_log->error("Unexpected 'AnnounceId' packet length {} ",size);
-                            return;
-                          }
-                          const PacketDeviceIdC *pkt = (const PacketDeviceIdC *) data;
-                          // We can only deal with devices after they've been allocated an id.
-                          if(pkt->m_deviceId == 0) {
-                            // Need to do something?
-                            return ;
-                          }
-                          std::shared_ptr<ServoC> device = DeviceEntry(pkt->m_deviceId);
-                          assert(device);
-                          if(device->HandlePacketAnnounce(*pkt)) {
-                            ServoStatusUpdate(pkt->m_deviceId,SUT_Updated);
-                          }
-                        }
-                       );
+    m_coms->SetHandler(
+          CPT_AnnounceId,
+           [this](uint8_t *data,int size) mutable
+            {
+              if(size != sizeof(struct PacketDeviceIdC)) {
+                m_log->error("Unexpected 'AnnounceId' packet length {} ",size);
+                return;
+              }
+              const PacketDeviceIdC *pkt = (const PacketDeviceIdC *) data;
+              HandlePacketAnnounce(*pkt);
+            }
+           );
 
     m_coms->SetHandler(CPT_ReportParam,
                        [this](uint8_t *data,int size) mutable
@@ -401,11 +446,9 @@ namespace DogBotN {
                           }
                           const PacketParam8ByteC *pkt = (const PacketParam8ByteC *) data;
                           // We can only deal with devices after they've been allocated an id.
-                          if(pkt->m_header.m_deviceId == 0) {
-                            return ;
-                          }
                           std::shared_ptr<ServoC> device = DeviceEntry(pkt->m_header.m_deviceId);
-                          assert(device);
+                          if(!device)
+                            return ;
                           if(device->HandlePacketReportParam(*pkt)) {
                             ServoStatusUpdate(pkt->m_header.m_deviceId,SUT_Updated);
                           }
@@ -413,12 +456,15 @@ namespace DogBotN {
                         }
                        );
 
+
     while(!m_terminate)
     {
+      //m_log->info("State. {} ",(int) m_driverState);
       switch(m_driverState)
       {
         case DS_Init: {
           std::this_thread::sleep_for(std::chrono::seconds(1));
+          m_driverState = DS_NoConnection;
         } break;
         case DS_NoConnection: {
           if(m_manageComs) {
@@ -426,21 +472,46 @@ namespace DogBotN {
               m_log->warn("Failed to open coms channel. ");
               std::this_thread::sleep_for(std::chrono::seconds(5));
               break;
-            } else {
-              m_driverState = DS_Connected;
-            }
-          } else {
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-            if(m_coms->IsReady()) {
-              m_driverState = DS_Connected;
             }
           }
+          if(!m_coms->IsReady()) {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            break;
+          }
+          m_driverState = DS_Connected;
+          // Send out a device query.
+          m_coms->SendQueryDevices();
         }
         // no break
         case DS_Connected: {
-          std::this_thread::sleep_for(std::chrono::seconds(1));
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
           if(!m_coms->IsReady()) {
             m_driverState = DS_NoConnection;
+          }
+          //std::chrono::time_point<std::chrono::steady_clock>
+          {
+            std::vector<int> updated;
+            {
+              std::lock_guard<std::mutex> lock(m_mutexDevices);
+              if(m_unassignedDevices.size() > 0) {
+                auto now = std::chrono::steady_clock::now();
+                std::chrono::duration<double> elapsed_seconds = now-m_timeLastUnassignedUpdate;
+                if(elapsed_seconds.count() > 0.2) {
+                  while(m_unassignedDevices.size() > 0) {
+                    auto device = m_unassignedDevices.back();
+                    m_unassignedDevices.pop_back();
+                    int deviceId = m_devices.size();
+                    m_log->info("Adding new device '{}' ",deviceId);
+                    m_devices.push_back(device);
+                    device->SetId(deviceId);
+                    updated.push_back(deviceId);
+                    m_coms->SendSetDeviceId(deviceId,device->UId1(),device->UId2());
+                  }
+                }
+              }
+            }
+            for(auto a : updated)
+              ServoStatusUpdate(a,SUT_Add);
           }
         } break;
         case DS_Calibrated:
@@ -517,8 +588,5 @@ namespace DogBotN {
     std::vector<std::shared_ptr<ServoC> > ret = m_devices;
     return ret;
   }
-
-
-
 
 }

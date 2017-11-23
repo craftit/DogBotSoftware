@@ -47,8 +47,6 @@ private slots:
 
   void on_pushButtonPing1_clicked();
 
-  void on_pushButtonSetDeviceId_clicked();
-
   void on_pushButtonOpenLog_clicked();
 
   void on_pushButtonQueryState_clicked();
@@ -56,7 +54,6 @@ private slots:
   void on_pushButtonDrv8305_2_clicked();
 
   void on_pushButtonDrv8305_3_clicked();
-
 
   void on_pushButtonDrv8305_5_clicked();
 
@@ -66,15 +63,11 @@ private slots:
 
   void on_spinDeviceId_valueChanged(int arg1);
 
-  void on_pushButton_clicked();
-
   void on_comboBoxCalibration_activated(const QString &arg1);
 
   void on_comboBoxControlState_activated(const QString &arg1);
 
   void on_checkBoxIndicator_toggled(bool checked);
-
-  void on_pushButtonDriveTemp_clicked();
 
   void on_spinOtherJointId_valueChanged(int arg1);
 
@@ -137,8 +130,6 @@ private slots:
 
   void on_pushButtonEmergencyStop_clicked();
 
-  void on_pushButtonLoadConfig_clicked();
-
   void on_doubleSpinBoxHomeIndexOffset_valueChanged(double arg1);
 
   void on_pushButtonQueryHomed_clicked();
@@ -150,6 +141,12 @@ private slots:
   void on_pushButtonBrake_clicked();
 
   void on_comboBoxServoName_activated(const QString &arg1);
+
+  void on_actionSaveConfig_triggered();
+
+  void on_actionLoadConfig_triggered();
+
+  void on_actionSave_Config_As_triggered();
 
 signals:
   void setLogText(const QString &str);
@@ -188,7 +185,7 @@ private:
 
   Ui::MainWindow *ui;
   std::shared_ptr<DogBotN::SerialComsC> m_coms;
-  std::shared_ptr<DogBotN::DogBotAPIC> m_dogbotAPI;
+  std::shared_ptr<DogBotN::DogBotAPIC> m_dogBotAPI;
   bool m_PWMReportRequested = false;
 
   std::vector<PacketDeviceIdC> m_devices;
@@ -214,6 +211,7 @@ private:
   enum PositionReferenceT m_servoRef = PR_Relative;
   enum PWMControlDynamicT m_controlMode = CM_Off;
   ServoTable *m_servoTable = 0;
+  std::string m_configFilename;
 };
 
 #endif // MAINWINDOW_H

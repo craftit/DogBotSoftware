@@ -4,6 +4,7 @@
 #include "dogbot/Servo.hh"
 #include <json/json.h>
 #include "dogbot/SerialComs.hh"
+#
 
 namespace DogBotN {
 
@@ -91,6 +92,9 @@ namespace DogBotN {
     //! Issue an update notification
     void ServoStatusUpdate(int id,ServoUpdateTypeT op);
 
+    //! Handle an incoming announce message.
+    void HandlePacketAnnounce(const PacketDeviceIdC &pkt);
+
     //! Access device id, create entry if needed
     std::shared_ptr<ServoC> DeviceEntry(int deviceId);
 
@@ -117,6 +121,9 @@ namespace DogBotN {
     Json::Value m_configRoot;
     std::shared_ptr<SerialComsC> m_coms;
     std::mutex m_mutexDevices;
+
+    std::chrono::time_point<std::chrono::steady_clock> m_timeLastUnassignedUpdate;
+    std::vector<std::shared_ptr<ServoC> > m_unassignedDevices; // Unassigned devices.
     std::vector<std::shared_ptr<ServoC> > m_devices; // Indexed by device id.
 
     std::thread m_threadMonitor;

@@ -60,8 +60,9 @@ namespace DogBotN {
     //! Get json value if set.
     bool GetJSONValue(const Json::Value &conf,const char *name,float &value);
 
+    static const int m_hallCalPoints = 18;
     //std::vector<>
-    uint16_t m_hall[18][3];
+    uint16_t m_hall[m_hallCalPoints][3];
 
     // Servo parameters
     float m_velocityLimit = 0;
@@ -82,6 +83,8 @@ namespace DogBotN {
 
     ServoC(const std::shared_ptr<SerialComsC> &coms,int deviceId);
 
+    ServoC(const std::shared_ptr<SerialComsC> &coms,int deviceId,const PacketDeviceIdC &pktAnnounce);
+
     //! Access name of device
     std::string Name() const;
 
@@ -91,6 +94,25 @@ namespace DogBotN {
     //! Access the device id.
     int Id() const
     { return m_id; }
+
+    //! Set device id.
+    void SetId(int id)
+    { m_id = id; }
+
+    //! Access part 1 of unique id
+    int UId1() const
+    { return m_uid1; }
+
+    //! Access part 2 of unique id
+    int UId2() const
+    { return m_uid2; }
+
+    //! Set device unique id
+    void SetUID(uint32_t uid1,uint32_t uid2);
+
+    //! Does this servo have a matching id ?
+    bool HasUID(uint32_t uid1,uint32_t uid2) const
+    { return m_uid1 == uid1 && m_uid2 == uid2; }
 
     //! Configure from JSON
     bool ConfigureFromJSON(const Json::Value &value);

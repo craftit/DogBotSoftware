@@ -1,0 +1,17 @@
+include/dogbot/DogBotAPI.hh
+include/dogbot/DogBotKinematics.hh
+include/dogbot/LegKinematics.hh
+include/dogbot/NetServer.hh
+include/dogbot/SerialComs.hh
+include/dogbot/Servo.hh
+include/dogbot/protocol.h
+src/DogBotAPI.cc
+src/DogBotKinematics.cc
+src/LegKinematics.cc
+src/NetServer.cc
+src/SerialComs.cc
+src/Servo.cc
+src/dogbot.json
+src/dogtalk.cc
+src/dtservo.cc
+src/testKinematics.cc

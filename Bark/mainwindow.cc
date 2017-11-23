@@ -3,6 +3,7 @@
 #include "dogbot/DogBotAPI.hh"
 #include <iostream>
 #include <QFileDialog>
+#include <QMessageBox>
 #include <fstream>
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -15,7 +16,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
   SetupComs();
 
-  m_servoTable = new ServoTable(m_dogbotAPI);
+  m_servoTable = new ServoTable(m_dogBotAPI);
   ui->tableViewServoList->setModel(m_servoTable);
 
   connect(this,SIGNAL(setLogText(const QString &)),ui->textEditLog,SLOT(setText(const QString &)));
@@ -342,11 +343,16 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
 
 void MainWindow::SetupComs()
 {
+  auto logger = spdlog::stdout_logger_mt("console");
+
+  logger->info("Starting bark");
+
   m_coms = std::make_shared<DogBotN::SerialComsC>();
+  m_coms->SetLogger(logger);
 
-  m_dogbotAPI = std::make_shared<DogBotN::DogBotAPIC>(m_coms);
-
-  m_dogbotAPI->Init();
+  m_dogBotAPI = std::make_shared<DogBotN::DogBotAPIC>(m_coms);
+  m_dogBotAPI->SetLogger(logger);
+  m_dogBotAPI->Init();
 
   m_coms->SetHandler(CPT_PWMState,[this](uint8_t *data,int size) mutable
   {
@@ -496,7 +502,7 @@ void MainWindow::QueryAll()
   m_toQuery = 0;
 
   // Update name
-  std::shared_ptr<DogBotN::ServoC> servo = m_dogbotAPI->GetServoById(m_targetDeviceId);
+  std::shared_ptr<DogBotN::ServoC> servo = m_dogBotAPI->GetServoById(m_targetDeviceId);
   if(servo)
     ui->comboBoxServoName->setCurrentText(servo->Name().c_str());
 }
@@ -623,13 +629,6 @@ void MainWindow::on_pushButtonPing1_clicked()
   m_coms->SendPing(m_targetDeviceId);
 }
 
-void MainWindow::on_pushButtonSetDeviceId_clicked()
-{
-  for(int i = 0;i < m_devices.size();i++) {
-    m_coms->SendSetDeviceId(i+1,m_devices[i].m_uid[0],m_devices[i].m_uid[1]);
-  }
-}
-
 void MainWindow::on_pushButtonOpenLog_clicked()
 {
   QString fileName = QFileDialog::getSaveFileName(this, tr("Save Log File"),
@@ -673,11 +672,6 @@ void MainWindow::on_spinDeviceId_valueChanged(int arg1)
 {
   m_targetDeviceId = arg1;
   QueryAll();
-}
-
-void MainWindow::on_pushButton_clicked()
-{
-  m_coms->SendQueryParam(m_targetDeviceId,CPI_VSUPPLY);
 }
 
 void MainWindow::on_comboBoxCalibration_activated(const QString &arg1)
@@ -727,11 +721,6 @@ void MainWindow::on_comboBoxControlState_activated(const QString &arg1)
 void MainWindow::on_checkBoxIndicator_toggled(bool checked)
 {
   m_coms->SendSetParam(m_targetDeviceId,CPI_Indicator,checked);
-}
-
-void MainWindow::on_pushButtonDriveTemp_clicked()
-{
-  m_coms->SendQueryParam(m_targetDeviceId,CPI_DriveTemp);
 }
 
 void MainWindow::on_spinOtherJointId_valueChanged(int arg1)
@@ -904,11 +893,6 @@ void MainWindow::on_pushButtonEmergencyStop_clicked()
   m_coms->SendEmergencyStop();
 }
 
-void MainWindow::on_pushButtonLoadConfig_clicked()
-{
-
-}
-
 void MainWindow::on_doubleSpinBoxHomeIndexOffset_valueChanged(double arg1)
 {
   float homeAngleRad = (arg1 * (M_PI * 2.0) / 360.0f);
@@ -933,12 +917,57 @@ void MainWindow::on_pushButtonOff_clicked()
 void MainWindow::on_pushButtonHold_clicked()
 {
   // Go through and set demand to current position.
-  m_dogbotAPI->DemandHoldPosition();
+  m_dogBotAPI->DemandHoldPosition();
 }
 
 void MainWindow::on_comboBoxServoName_activated(const QString &arg1)
 {
-  std::shared_ptr<DogBotN::ServoC> servo = m_dogbotAPI->GetServoById(m_targetDeviceId);
+  std::shared_ptr<DogBotN::ServoC> servo = m_dogBotAPI->GetServoById(m_targetDeviceId);
   if(servo)
     servo->SetName(arg1.toLatin1().data());
+}
+
+void MainWindow::on_actionSaveConfig_triggered()
+{
+  if(m_configFilename.empty()) {
+    QString fileName = QFileDialog::getSaveFileName(this,
+            tr("Save Config File"), "",
+            tr("Setup (*.json);;All Files (*)"));
+    if(fileName.isEmpty())
+      return ;
+    m_configFilename = fileName.toStdString();
+  }
+
+  if(!m_dogBotAPI->SaveConfig(m_configFilename)) {
+    QMessageBox::information(this, "Save Config", "Failed to save file " + QString(m_configFilename.c_str()));
+  }
+}
+
+void MainWindow::on_actionLoadConfig_triggered()
+{
+  QString fileName = QFileDialog::getOpenFileName(this,
+          tr("Load Config File"), "",
+          tr("Setup (*.json);;All Files (*)"));
+
+  if(fileName.isEmpty())
+    return ;
+  m_configFilename = fileName.toStdString();
+  if(!m_dogBotAPI->LoadConfig(m_configFilename)) {
+    QMessageBox::information(this, "Load Config", "Failed to load file " + fileName);
+    return ;
+  }
+}
+
+void MainWindow::on_actionSave_Config_As_triggered()
+{
+  QString fileName = QFileDialog::getSaveFileName(this,
+          tr("Save Config File"), "",
+          tr("Setup (*.json);;All Files (*)"));
+  if(fileName.isEmpty())
+    return;
+  m_configFilename = fileName.toStdString();
+  if(!m_dogBotAPI->SaveConfig(m_configFilename)) {
+    QMessageBox::information(this, "Save Config", "Failed to save file " + QString(m_configFilename.c_str()));
+  }
+
 }
