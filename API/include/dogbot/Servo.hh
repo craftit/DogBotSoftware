@@ -204,9 +204,9 @@ namespace DogBotN {
 
     bool m_online = false;
 
-    FaultCodeT m_faultCode = FC_Ok;
+    FaultCodeT m_faultCode = FC_Unknown;
     MotionHomedStateT m_homedState = MHS_Lost;
-    ControlStateT m_controlState = CS_Fault;
+    ControlStateT m_controlState = CS_StartUp;
     PWMControlDynamicT m_controlDynamic = CM_Off;
     mutable std::mutex m_mutexState;
 

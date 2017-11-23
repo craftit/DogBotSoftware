@@ -41,6 +41,7 @@ extern "C" {
 
   enum FaultCodeT {
     FC_Ok = 0,
+    FC_Unknown = 1,
     FC_UnderVoltage = 2,
     FC_NoSensor = 3,
     FC_NoMotor = 4,

@@ -14,6 +14,7 @@ namespace DogBotN {
   {
     switch(faultCode) {
     case FC_Ok: return "Ok";
+    case FC_Unknown: return "Unknown";
     case FC_CalibrationFailed: return "Calibration Failed";
     case FC_DriverFault: return "Driver Fault";
     case FC_Internal: return "Internal error";

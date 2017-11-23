@@ -1,0 +1,96 @@
+{
+	"devices" : 
+	[
+		{
+			"deviceId" : 1,
+			"name" : "Front-Left-Knee",
+			"notes" : "Not homing",
+			"uid1" : 2883616,
+			"uid2" : 1650753082
+		},
+		{
+			"deviceId" : 2,
+			"name" : "Front-Left-Pitch",
+			"notes" : "Not homing",
+			"uid1" : 2818072,
+			"uid2" : 1650753082
+		},
+		{
+			"deviceId" : 3,
+			"name" : "Back-Left-Pitch",
+			"notes" : "Not homing",
+			"uid1" : 2752540,
+			"uid2" : 1768652619
+		},
+		{
+			"deviceId" : 4,
+			"name" : "Front-Right-Roll",
+			"notes" : "Not homing",
+			"uid1" : 2490394,
+			"uid2" : 1650753082
+		},
+		{
+			"deviceId" : 5,
+			"name" : "Back-Right-Pitch",
+			"notes" : "",
+			"uid1" : 2883611,
+			"uid2" : 1650753082
+		},
+		{
+			"deviceId" : 6,
+			"name" : "Front-Left-Knee",
+			"notes" : "Dodgy",
+			"uid1" : 2883613,
+			"uid2" : 1650753082
+		},
+		{
+			"deviceId" : 7,
+			"name" : "Front-Right-Knee",
+			"notes" : "",
+			"uid1" : 2752576,
+			"uid2" : 1768652619
+		},
+		{
+			"deviceId" : 8,
+			"name" : "Back-Right-Roll",
+			"notes" : "",
+			"uid1" : 2621483,
+			"uid2" : 1650753082
+		},
+		{
+			"deviceId" : 9,
+			"name" : "Front-Right-Pitch",
+			"notes" : "",
+			"uid1" : 2883619,
+			"uid2" : 1650753082
+		},
+		{
+			"deviceId" : 10,
+			"name" : "Back-Left-Roll",
+			"notes" : "Not well behaved",
+			"uid1" : 2621487,
+			"uid2" : 1650753082
+		},
+		{
+			"deviceId" : 11,
+			"name" : "Back-Right-Knee",
+			"notes" : "",
+			"uid1" : 2621484,
+			"uid2" : 1650753082
+		},
+		{
+			"deviceId" : 12,
+			"name" : "Front-Left-Roll",
+			"notes" : "",
+			"uid1" : 2883617,
+			"uid2" : 1650753082
+		},
+		{
+			"deviceId" : 13,
+			"name" : "Coms",
+			"notes" : "",
+			"uid1" : 2621480,
+			"uid2" : 1650753082
+		}
+	]
+}
