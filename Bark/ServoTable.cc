@@ -82,8 +82,20 @@ void ServoTable::updateRows()
 
 Qt::ItemFlags ServoTable::flags(const QModelIndex &index) const
 {
-  if (!index.isValid())
-      return 0;
+  if(!index.isValid())
+      return QAbstractItemModel::flags(index);
+  if(index.row() >= m_rowCount)
+    return QAbstractItemModel::flags(index);
+  switch (index.column()) {
+  case ColumnName:
+    return Qt::ItemIsEditable |  QAbstractItemModel::flags(index);
+  case ColumnNotes:
+    return Qt::ItemIsEditable |  QAbstractItemModel::flags(index);
+  default:
+    break;
+  }
+  return QAbstractItemModel::flags(index);
+
   //if(index.row() >= m_layers.size())
  //   return QAbstractItemModel::flags(index);
   return QAbstractItemModel::flags(index);
@@ -128,6 +140,8 @@ QVariant ServoTable::headerData(int section, Qt::Orientation orientation, int ro
       return tr("Temperature");
     case ColumnSupplyVoltage:
       return tr("Supply Voltage");
+    case ColumnNotes:
+      return tr("Notes");
     default:
         break;
     }
@@ -142,8 +156,16 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
   int deviceId = index.row()+1;
   if(deviceId < 0 || deviceId >= (int) servoList.size() )
     return QVariant();
-  if(!servoList[deviceId])
+  if(!servoList[deviceId]) {
+    switch(index.column())
+    {
+    case ColumnDeviceId:
+      return deviceId;
+    default:
+      break;
+    }
     return QVariant(); // Doesn't seem to exist.
+  }
   const DogBotN::ServoC &servo = *servoList[deviceId];
   if (role == Qt::DisplayRole) {
     switch(index.column())
@@ -170,6 +192,8 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
       return servo.Temperature();
     case ColumnSupplyVoltage:
       return servo.SupplyVoltage();
+    case ColumnNotes:
+      return servo.Notes().c_str();
     default:
       break;
     }
@@ -215,4 +239,54 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
   }
 
   return QVariant();
+}
+
+bool ServoTable::setData(const QModelIndex &index, const QVariant &value, int role)
+{
+
+  std::vector<std::shared_ptr<DogBotN::ServoC> > servoList = m_api->ListServos();
+  int deviceId = index.row()+1;
+  if(deviceId < 0 || deviceId >= (int) servoList.size() )
+    return false;
+  if(!servoList[deviceId])
+    return false;
+  DogBotN::ServoC &servo = *servoList[deviceId];
+
+  if (role == Qt::EditRole) {
+    switch (index.column()) {
+    case ColumnName: {
+      std::string newName = value.toString().toStdString();
+      if(servo.Name() != newName) {
+        servo.SetName(newName);
+        emit dataChanged(index,index);
+      }
+      return true;
+    } break;
+    case ColumnNotes: {
+      std::string newNotes = value.toString().toStdString();
+      if(servo.Notes() != newNotes) {
+        servo.SetNotes(newNotes);
+        emit dataChanged(index,index);
+      }
+      return true;
+    } break;
+    default:
+      break;
+    }
+  }
+
+  if (role == Qt::CheckStateRole)
+  {
+    switch (index.column()) {
+#if 0
+    case ColumnEnable: {
+      bool newValue = value.toBool();
+      return true;
+    } break;
+#endif
+    default:
+      return false;
+    }
+  }
+
 }

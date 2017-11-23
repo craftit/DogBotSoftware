@@ -91,6 +91,14 @@ namespace DogBotN {
     //! Set name of servo
     void SetName(const std::string &name);
 
+    //! Access notes.
+    const std::string &Notes() const
+    { return m_notes; }
+
+    //! Set notes.
+    void SetNotes(const std::string &notes)
+    { m_notes = notes; }
+
     //! Access the device id.
     int Id() const
     { return m_id; }
@@ -187,6 +195,7 @@ namespace DogBotN {
     int m_id = -1; // Device id.
 
     std::string m_name;
+    std::string m_notes;
 
     std::shared_ptr<MotorCalibrationC> m_motorCal;
 

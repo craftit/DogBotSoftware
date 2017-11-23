@@ -18,6 +18,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
   m_servoTable = new ServoTable(m_dogBotAPI);
   ui->tableViewServoList->setModel(m_servoTable);
+  ui->tableViewServoList->horizontalHeader()->setStretchLastSection(true);
 
   connect(this,SIGNAL(setLogText(const QString &)),ui->textEditLog,SLOT(setText(const QString &)));
   connect(this,SIGNAL(setCalibrationState(int)),ui->comboBoxCalibration,SLOT(setCurrentIndex(int)));

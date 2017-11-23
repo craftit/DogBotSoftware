@@ -185,7 +185,7 @@
        <widget class="QSpinBox" name="spinDeviceId">
         <property name="geometry">
          <rect>
-          <x>80</x>
+          <x>70</x>
           <y>40</y>
           <width>46</width>
           <height>28</height>
@@ -218,7 +218,7 @@
        <widget class="QPushButton" name="pushButtonPing">
         <property name="geometry">
          <rect>
-          <x>290</x>
+          <x>320</x>
           <y>60</y>
           <width>80</width>
           <height>21</height>
@@ -393,7 +393,7 @@
        <widget class="QPushButton" name="pushButtonPWMReport">
         <property name="geometry">
          <rect>
-          <x>290</x>
+          <x>320</x>
           <y>30</y>
           <width>81</width>
           <height>21</height>
@@ -604,7 +604,7 @@
        <widget class="QPushButton" name="pushButtonPing1">
         <property name="geometry">
          <rect>
-          <x>290</x>
+          <x>320</x>
           <y>90</y>
           <width>80</width>
           <height>21</height>
@@ -1175,9 +1175,9 @@
        <widget class="QComboBox" name="comboBoxServoName">
         <property name="geometry">
          <rect>
-          <x>150</x>
+          <x>130</x>
           <y>40</y>
-          <width>121</width>
+          <width>181</width>
           <height>22</height>
          </rect>
         </property>

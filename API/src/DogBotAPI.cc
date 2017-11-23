@@ -100,6 +100,12 @@ namespace DogBotN {
     m_manageComs = false;
   }
 
+  DogBotAPIC::~DogBotAPIC()
+  {
+    m_terminate = true;
+    m_threadMonitor.join();
+  }
+
   //! Set the logger to use
   void DogBotAPIC::SetLogger(std::shared_ptr<spdlog::logger> &log)
   {
@@ -255,6 +261,8 @@ namespace DogBotN {
   //! Load a configuration file
   bool DogBotAPIC::LoadConfig(const std::string &configFile)
   {
+    if(configFile.empty())
+      return false;
 
     std::ifstream confStrm(configFile,std::ifstream::binary);
 
@@ -263,7 +271,69 @@ namespace DogBotN {
       return false;
     }
 
-    confStrm >> m_configRoot;
+    Json::Value rootConfig;
+    confStrm >> rootConfig;
+    Json::Value deviceList = rootConfig["devices"];
+    if(!deviceList.isNull()) {
+      ServoUpdateTypeT op = SUT_Updated;
+      for(int i = 0;i < deviceList.size();i++) {
+        Json::Value deviceConf = deviceList[i];
+        std::shared_ptr<ServoC> device;
+        int deviceId = 0;
+        uint32_t uid1 = deviceConf.get("uid1",0u).asInt();
+        uint32_t uid2 = deviceConf.get("uid2",0u).asInt();
+        int reqId = deviceConf.get("deviceId",0u).asInt();
+        // Ignore silly ids
+        if(reqId > 255 || reqId < 0)
+          reqId = 0;
+        {
+          std::lock_guard<std::mutex> lock(m_mutexDevices);
+          // Is the device present ?
+          for(int i = 0;i < m_devices.size();i++) {
+            if(!m_devices[i])
+              continue;
+            if(m_devices[i]->HasUID(uid1,uid2)) {
+              deviceId = i;
+              device = m_devices[i];
+              break;
+            }
+          }
+          // Go with the requested configuration id if we can.
+          if(deviceId == 0 && reqId != 0) {
+            if(m_devices.size() > reqId) {
+              if(!m_devices[reqId]) {
+                deviceId = reqId;
+              }
+            } else {
+              while(m_devices.size() < reqId)
+                m_devices.push_back(std::shared_ptr<ServoC>());
+              deviceId = reqId;
+              device = std::make_shared<ServoC>(m_coms,deviceId);
+              m_devices.push_back(device);
+              op = SUT_Add;
+            }
+            if(deviceId > 0) {
+              device = std::make_shared<ServoC>(m_coms,deviceId);
+              m_devices[deviceId] = device;
+            }
+          }
+          // Still no luck... just append it.
+          if(deviceId == 0) {
+            deviceId = (int) m_devices.size();
+            device = std::make_shared<ServoC>(m_coms,deviceId);
+            m_devices.push_back(device);
+            op = SUT_Add;
+          }
+        }
+        assert(device);
+        if(device) {
+          device->ConfigureFromJSON(deviceConf);
+          ServoStatusUpdate(deviceId,op);
+        }
+      }
+    }
+
+
 
     return true;
   }
@@ -274,13 +344,23 @@ namespace DogBotN {
   {
     std::ofstream confStrm(configFile,std::ifstream::binary);
 
-#if 0
     if(!confStrm) {
       m_log->error("Failed to open configuration file '{}' ",configFile);
       return false;
     }
-    confStrm >> m_configRoot;
-#endif
+    Json::Value rootConfig;
+
+    std::lock_guard<std::mutex> lock(m_mutexDevices);
+    Json::Value deviceList;
+    int index =0;
+    for(auto &a : m_devices) {
+      if(!a)
+        continue;
+      deviceList[index++] = a->ServoConfigAsJSON();
+    }
+    rootConfig["devices"] = deviceList;
+
+    confStrm << rootConfig;
 
     return true;
   }
@@ -371,7 +451,8 @@ namespace DogBotN {
     if(deviceId == 0) {
       // Look through devices for a matching id.
       std::lock_guard<std::mutex> lock(m_mutexDevices);
-      for(int i = 0;i < m_devices.size();i++) {
+      // 0 is a reserved id, so start from 1
+      for(int i = 1;i < m_devices.size();i++) {
         if(m_devices[i] && m_devices[i]->HasUID(pkt.m_uid[0],pkt.m_uid[1])) {
           deviceId = i;
           device = m_devices[i];
@@ -489,30 +570,17 @@ namespace DogBotN {
             m_driverState = DS_NoConnection;
           }
           //std::chrono::time_point<std::chrono::steady_clock>
+          bool workToDo = false;
           {
-            std::vector<int> updated;
-            {
-              std::lock_guard<std::mutex> lock(m_mutexDevices);
-              if(m_unassignedDevices.size() > 0) {
-                auto now = std::chrono::steady_clock::now();
-                std::chrono::duration<double> elapsed_seconds = now-m_timeLastUnassignedUpdate;
-                if(elapsed_seconds.count() > 0.2) {
-                  while(m_unassignedDevices.size() > 0) {
-                    auto device = m_unassignedDevices.back();
-                    m_unassignedDevices.pop_back();
-                    int deviceId = m_devices.size();
-                    m_log->info("Adding new device '{}' ",deviceId);
-                    m_devices.push_back(device);
-                    device->SetId(deviceId);
-                    updated.push_back(deviceId);
-                    m_coms->SendSetDeviceId(deviceId,device->UId1(),device->UId2());
-                  }
-                }
-              }
+            std::lock_guard<std::mutex> lock(m_mutexDevices);
+            if(m_unassignedDevices.size() > 0) {
+              auto now = std::chrono::steady_clock::now();
+              std::chrono::duration<double> elapsed_seconds = now-m_timeLastUnassignedUpdate;
+              workToDo = (elapsed_seconds.count() > 0.2);
             }
-            for(auto a : updated)
-              ServoStatusUpdate(a,SUT_Add);
           }
+          if(workToDo)
+            ProcessUnassignedDevices();
         } break;
         case DS_Calibrated:
         case DS_Error:
@@ -523,6 +591,41 @@ namespace DogBotN {
 
     m_log->debug("Exiting monitor. ");
   }
+
+  void DogBotAPIC::ProcessUnassignedDevices()
+  {
+    ServoUpdateTypeT op = SUT_Add;
+    std::vector<int> updated;
+    {
+      std::lock_guard<std::mutex> lock(m_mutexDevices);
+      while(m_unassignedDevices.size() > 0) {
+        auto device = m_unassignedDevices.back();
+        m_unassignedDevices.pop_back();
+        int deviceId = 0;
+        // 0 is a reserved id, so start from 1
+        for(int i = 1;i < m_devices.size();i++) {
+          if(!m_devices[i]) {
+            deviceId = i;
+            op = SUT_Updated;
+            break;
+          }
+        }
+        if(deviceId == 0) {
+           deviceId = m_devices.size();
+           m_devices.push_back(device);
+        } else {
+          m_devices[deviceId] = device;
+        }
+        m_log->info("Adding new device '{}' ",deviceId);
+        device->SetId(deviceId);
+        updated.push_back(deviceId);
+        m_coms->SendSetDeviceId(deviceId,device->UId1(),device->UId2());
+      }
+    }
+    for(auto a : updated)
+      ServoStatusUpdate(a,op);
+  }
+
 
   //! Tell all servos to hold the current position
   void DogBotAPIC::DemandHoldPosition()

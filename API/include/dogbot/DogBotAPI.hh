@@ -39,6 +39,9 @@ namespace DogBotN {
     //! Construct with coms object
     DogBotAPIC(const std::shared_ptr<SerialComsC> &coms);
 
+    //! Destructor to wait for shutdown
+    ~DogBotAPIC();
+
     //! Connect to coms object.
     bool Connect(const std::shared_ptr<SerialComsC> &coms);
 
@@ -94,6 +97,9 @@ namespace DogBotN {
 
     //! Handle an incoming announce message.
     void HandlePacketAnnounce(const PacketDeviceIdC &pkt);
+
+    //! Give unassigned devices an id.
+    void ProcessUnassignedDevices();
 
     //! Access device id, create entry if needed
     std::shared_ptr<ServoC> DeviceEntry(int deviceId);

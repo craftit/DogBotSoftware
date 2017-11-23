@@ -41,13 +41,12 @@ namespace DogBotN {
   bool MotorCalibrationC::LoadJSON(const Json::Value &conf)
   {
     m_velocityLimit = conf.get("velocityLimit",1000.0f).asFloat();
-
-    GetJSONValue(conf,"currentLimit",m_currentLimit);
-    GetJSONValue(conf,"positionPGain",m_positionPGain);
-    GetJSONValue(conf,"velocityPGain",m_velocityPGain);
-    GetJSONValue(conf,"velocityIGain",m_velocityIGain);
-    GetJSONValue(conf,"motorInductance",m_motorInductance);
-    GetJSONValue(conf,"motorResistance",m_motorResistance);
+    m_currentLimit = conf.get("currentLimit",10).asFloat();
+    m_positionPGain = conf.get("positionPGain",1).asFloat();
+    m_velocityPGain = conf.get("velocityPGain",0.1).asFloat();
+    m_velocityIGain = conf.get("velocityIGain",0).asFloat();
+    m_motorInductance = conf.get("motorInductance",1.0e-6).asFloat();
+    m_motorResistance= conf.get("motorResistance",0).asFloat();
 
     Json::Value calArr = conf["encoder_cal"];
     if(!calArr.isNull()) {
@@ -157,13 +156,22 @@ namespace DogBotN {
   }
 
   //! Configure from JSON
-  bool ServoC::ConfigureFromJSON(const Json::Value &value)
+  bool ServoC::ConfigureFromJSON(const Json::Value &conf)
   {
     {
       std::lock_guard<std::mutex> lock(m_mutexAdmin);
-      m_name = value["name"].asString();
+      m_name = conf.get("name","?").asString();
+      m_uid1 = conf.get("uid1",-1).asInt();
+      m_uid2 = conf.get("uid2",-1).asInt();
+      m_notes = conf.get("notes","").asString();
     }
 
+    Json::Value motorCal = conf["setup"];
+    if(!motorCal.isNull()) {
+      std::shared_ptr<MotorCalibrationC> cal = std::make_shared<MotorCalibrationC>();
+      cal->LoadJSON(motorCal);
+      m_motorCal = cal;
+    }
     return true;
   }
 
@@ -175,7 +183,10 @@ namespace DogBotN {
     {
       std::lock_guard<std::mutex> lock(m_mutexAdmin);
       ret["name"] = m_name;
-      ret["controllerId"] = std::to_string(m_uid1) + "-" + std::to_string(m_uid2);
+      ret["uid1"] = m_uid1;
+      ret["uid2"] = m_uid2;
+      ret["deviceId"] = m_id;
+      ret["notes"] = m_notes;
     }
 
     if(m_motorCal) {
