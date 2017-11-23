@@ -39,7 +39,7 @@
 		{
 			"deviceId" : 6,
 			"name" : "Front-Left-Knee",
-			"notes" : "Dodgy",
+			"notes" : "#2  Dodgy",
 			"uid1" : 2883613,
 			"uid2" : 1650753082
 		},
@@ -67,7 +67,7 @@
 		{
 			"deviceId" : 10,
 			"name" : "Back-Left-Roll",
-			"notes" : "Not well behaved",
+			"notes" : "#8 Dodgy",
 			"uid1" : 2621487,
 			"uid2" : 1650753082
 		},
