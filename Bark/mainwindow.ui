@@ -340,7 +340,7 @@
         </property>
         <item>
          <property name="text">
-          <string>Idle</string>
+          <string>Off</string>
          </property>
         </item>
         <item>

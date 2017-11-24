@@ -120,8 +120,7 @@ namespace DogBotN {
      m_coms(coms)
   {
     m_name = std::to_string(pktAnnounce.m_uid[0]) + "-" + std::to_string(pktAnnounce.m_uid[1]);
-    m_timeOfLastReport = std::chrono::steady_clock::now();
-    m_timeEpoch = m_timeOfLastReport;
+    Init();
   }
 
   ServoC::ServoC(const std::shared_ptr<SerialComsC> &coms, int deviceId)
@@ -130,9 +129,37 @@ namespace DogBotN {
   {
     if(deviceId != 0)
       m_name = std::to_string(deviceId);
-    m_timeOfLastReport = std::chrono::steady_clock::now();
-    m_timeEpoch = m_timeOfLastReport;
+    Init();
   }
+
+  void ServoC::Init()
+  {
+    m_comsTimeout = std::chrono::milliseconds(500);
+    m_timeOfLastReport = std::chrono::steady_clock::now();
+    m_timeOfLastComs = m_timeOfLastReport;
+    m_timeEpoch = m_timeOfLastReport;
+
+
+    // Things to query
+    m_updateQuery.push_back(CPI_ControlState);
+    m_updateQuery.push_back(CPI_FaultCode);
+    m_updateQuery.push_back(CPI_HomedState);
+    m_updateQuery.push_back(CPI_PositionRef);
+    m_updateQuery.push_back(CPI_PWMMode);
+    m_updateQuery.push_back(CPI_CalibrationOffset);
+    m_updateQuery.push_back(CPI_OtherJoint);
+    m_updateQuery.push_back(CPI_Indicator);
+    m_updateQuery.push_back(CPI_OtherJointOffset);
+    m_updateQuery.push_back(CPI_OtherJointGain);
+    m_updateQuery.push_back(CPI_MotorIGain);
+    m_updateQuery.push_back(CPI_VelocityPGain);
+    m_updateQuery.push_back(CPI_VelocityIGain);
+    m_updateQuery.push_back(CPI_VelocityLimit);
+    m_updateQuery.push_back(CPI_PositionGain);
+    m_updateQuery.push_back(CPI_homeIndexPosition);
+    m_updateQuery.push_back(CPI_MaxCurrent);
+  }
+
 
   //! Access name of device
   std::string ServoC::Name() const
@@ -195,6 +222,12 @@ namespace DogBotN {
     return ret;
   }
 
+  bool ServoC::HandlePacketPong(const PacketPingPongC &)
+  {
+    std::lock_guard<std::mutex> lock(m_mutexState);
+    m_timeOfLastComs = std::chrono::steady_clock::now();
+    return true;
+  }
 
   //! Process update
   bool ServoC::HandlePacketServoReport(const PacketServoReportC &report)
@@ -208,7 +241,7 @@ namespace DogBotN {
       m_log->warn("Lost sync on servo {} ",m_id);
     }
     m_timeOfLastReport = timeNow;
-
+    m_timeOfLastComs = timeNow;
     int tickDiff = (int) report.m_timestamp - (int) m_lastTimestamp;
     while(tickDiff < 0)
       tickDiff += 256;
@@ -232,6 +265,9 @@ namespace DogBotN {
       m_coms->SendSetDeviceId(m_id,m_uid1,m_uid2);
       ret = true;
     }
+    std::lock_guard<std::mutex> lock(m_mutexState);
+    auto timeNow = std::chrono::steady_clock::now();
+    m_timeOfLastComs = timeNow;
     return ret;
   }
 
@@ -240,6 +276,10 @@ namespace DogBotN {
   {
     char buff[64];
     bool ret = false;
+
+    std::lock_guard<std::mutex> lock(m_mutexState);
+    auto timeNow = std::chrono::steady_clock::now();
+    m_timeOfLastComs = timeNow;
 
     switch ((enum ComsParameterIndexT) pkt.m_header.m_index) {
     case CPI_DriveTemp: {
@@ -408,6 +448,34 @@ namespace DogBotN {
     return true;
   }
 
+  bool ServoC::UpdateTick(TimePointT timeNow)
+  {
+    bool ret = false;
+    std::chrono::duration<double> timeSinceLastReport;
+    FaultCodeT faultCode = FC_Unknown;
+    {
+      std::lock_guard<std::mutex> lock(m_mutexState);
+      timeSinceLastReport = timeNow - m_timeOfLastComs;
+      faultCode = m_faultCode;
+    }
+    if(faultCode != FC_Unknown) {
+      if(timeSinceLastReport > m_comsTimeout) {
+        m_faultCode = FC_Unknown;
+        ret = true;
+        m_log->warn("Lost contact with servo {}  for {} seconds",m_id,timeSinceLastReport.count());
+      }
+    }
+
+    // Go through updating things, and avoiding flooding the bus.
+    if(m_toQuery < (int) m_updateQuery.size() && m_coms->IsReady()) {
+      m_coms->SendQueryParam(m_id,m_updateQuery[m_toQuery]);
+      m_toQuery++;
+    }
+
+    return ret;
+  }
+
+
   //! Update torque for the servo.
   bool ServoC::DemandTorque(float torque)
   {
@@ -421,5 +489,6 @@ namespace DogBotN {
     m_coms->SendMoveWithEffort(m_id,position,torqueLimit,m_positionRef);
     return true;
   }
+
 
 }

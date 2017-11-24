@@ -13,7 +13,7 @@ ServoTable::ServoTable(const std::shared_ptr<DogBotN::DogBotAPIC> &api)
             int rowId = deviceId -1;
             std::lock_guard<std::mutex> lock(m_mutexUpdateRows);
 
-            while(m_updateRows.size() <= rowId)
+            while((int) m_updateRows.size() <= rowId)
               m_updateRows.push_back(false);
             m_updateRows[rowId] = true;
             if(!m_updateQueued) {
@@ -139,7 +139,7 @@ QVariant ServoTable::headerData(int section, Qt::Orientation orientation, int ro
     case ColumnTemperature:
       return tr("Temperature");
     case ColumnSupplyVoltage:
-      return tr("Supply Voltage");
+      return tr("Supply");
     case ColumnNotes:
       return tr("Notes");
     default:
@@ -157,12 +157,14 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
   if(deviceId < 0 || deviceId >= (int) servoList.size() )
     return QVariant();
   if(!servoList[deviceId]) {
-    switch(index.column())
-    {
-    case ColumnDeviceId:
-      return deviceId;
-    default:
-      break;
+    if (role == Qt::DisplayRole) {
+      switch(index.column())
+      {
+      case ColumnDeviceId:
+        return deviceId;
+      default:
+        break;
+      }
     }
     return QVariant(); // Doesn't seem to exist.
   }
@@ -251,7 +253,6 @@ bool ServoTable::setData(const QModelIndex &index, const QVariant &value, int ro
   if(!servoList[deviceId])
     return false;
   DogBotN::ServoC &servo = *servoList[deviceId];
-
   if (role == Qt::EditRole) {
     switch (index.column()) {
     case ColumnName: {

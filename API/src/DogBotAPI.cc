@@ -552,7 +552,7 @@ namespace DogBotN {
           if(m_manageComs) {
             if(!m_coms->Open(m_deviceName.c_str())) {
               m_log->warn("Failed to open coms channel. ");
-              std::this_thread::sleep_for(std::chrono::seconds(5));
+              std::this_thread::sleep_for(std::chrono::seconds(2));
               break;
             }
           }
@@ -566,28 +566,36 @@ namespace DogBotN {
         }
         // no break
         case DS_Connected: {
-          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+          std::this_thread::sleep_for(std::chrono::milliseconds(50));
           if(!m_coms->IsReady()) {
             m_driverState = DS_NoConnection;
           }
-          //std::chrono::time_point<std::chrono::steady_clock>
-          bool workToDo = false;
+          auto now = std::chrono::steady_clock::now();
+          bool unassignedDevicesFound = false;
+          std::vector<std::shared_ptr<ServoC> > devicesList;
           {
             std::lock_guard<std::mutex> lock(m_mutexDevices);
+            devicesList = m_devices;
             if(m_unassignedDevices.size() > 0) {
-              auto now = std::chrono::steady_clock::now();
               std::chrono::duration<double> elapsed_seconds = now-m_timeLastUnassignedUpdate;
-              workToDo = (elapsed_seconds.count() > 0.2);
+              unassignedDevicesFound = (elapsed_seconds.count() > 0.2);
             }
           }
-          if(workToDo)
+          for(auto &a : devicesList) {
+            if(!a)
+              continue;
+            if(a->UpdateTick(now)) {
+              ServoStatusUpdate(a->Id(),SUT_Updated);
+            }
+          }
+          if(unassignedDevicesFound)
             ProcessUnassignedDevices();
         } break;
         case DS_Calibrated:
         case DS_Error:
+          std::this_thread::sleep_for(std::chrono::seconds(1));
           break;
       }
-      std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
     m_log->debug("Exiting monitor. ");

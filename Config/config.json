@@ -3,9 +3,9 @@
 	[
 		{
 			"deviceId" : 1,
-			"name" : "Front-Left-Knee",
-			"notes" : "Not homing",
-			"uid1" : 2883616,
+			"name" : "2621481-1650753082",
+			"notes" : "",
+			"uid1" : 2621481,
 			"uid2" : 1650753082
 		},
 		{
@@ -90,6 +90,13 @@
 			"name" : "Coms",
 			"notes" : "",
 			"uid1" : 2621480,
+			"uid2" : 1650753082
+		},
+		{
+			"deviceId" : 14,
+			"name" : "Front-Left-Knee",
+			"notes" : "Not homing",
+			"uid1" : 2883616,
 			"uid2" : 1650753082
 		}
 	]

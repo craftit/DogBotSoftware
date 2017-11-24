@@ -19,6 +19,13 @@ MainWindow::MainWindow(QWidget *parent) :
   m_servoTable = new ServoTable(m_dogBotAPI);
   ui->tableViewServoList->setModel(m_servoTable);
   ui->tableViewServoList->horizontalHeader()->setStretchLastSection(true);
+  ui->tableViewServoList->setColumnWidth(ServoTable::ColumnDeviceId,25);
+  ui->tableViewServoList->setColumnWidth(ServoTable::ColumnName,200);
+  ui->tableViewServoList->setColumnWidth(ServoTable::ColumnDynamic,70);
+  ui->tableViewServoList->setColumnWidth(ServoTable::ColumnAngle,70);
+  ui->tableViewServoList->setColumnWidth(ServoTable::ColumnSpeed,70);
+  ui->tableViewServoList->setColumnWidth(ServoTable::ColumnTorque,70);
+  ui->tableViewServoList->setColumnWidth(ServoTable::ColumnSupplyVoltage,70);
 
   connect(this,SIGNAL(setLogText(const QString &)),ui->textEditLog,SLOT(setText(const QString &)));
   connect(this,SIGNAL(setCalibrationState(int)),ui->comboBoxCalibration,SLOT(setCurrentIndex(int)));
@@ -80,7 +87,7 @@ void MainWindow::EnableBounce(bool state)
 
 void MainWindow::timerEvent(QTimerEvent *)
 {
-  if(m_toQuery < m_displayQuery.size() && m_coms->IsReady()) {
+  if(m_toQuery < (int) m_displayQuery.size() && m_coms->IsReady()) {
     m_coms->SendQueryParam(m_targetDeviceId,m_displayQuery[m_toQuery]);
     m_toQuery++;
   }
@@ -376,8 +383,12 @@ void MainWindow::SetupComs()
   m_coms->SetHandler(CPT_Pong,[this](uint8_t *data,int size) mutable
   {
     struct PacketPingPongC *psp = (struct PacketPingPongC *) data;
+    if(size != sizeof(struct PacketPingPongC)) {
+      std::cerr << "Packet PingPong length was " << size << " expected " << sizeof(struct PacketPingPongC) << std::endl;
+      emit setLogText("Unexpected pong packet size.");
+      return ;
+    }
     std::string displayStr = "Got pong ";
-
     displayStr += std::to_string((int) psp->m_deviceId);
     std::cout << displayStr << std::endl;
     emit setLogText(displayStr.c_str());
@@ -386,6 +397,11 @@ void MainWindow::SetupComs()
   m_coms->SetHandler(CPT_SetParam,[this](uint8_t *data,int size) mutable
   {
     printf("Got SetParam.  Size:%d \n",size);
+    if(size < sizeof(struct PacketParamHeaderC)) {
+      std::cerr << "Packet ReportParam length too small " << size << " expected at least" << sizeof(struct PacketParamHeaderC) << std::endl;
+      emit setLogText("Unexpected ReportParam packet size.");
+      return ;
+    }
     std::string displayStr;
     struct PacketParam8ByteC *psp = (struct PacketParam8ByteC *) data;
     displayStr += "Index:";
@@ -406,6 +422,11 @@ void MainWindow::SetupComs()
   m_coms->SetHandler(CPT_ReportParam,[this](uint8_t *data,int size) mutable
   {
 //    printf("Got ReportParam.  Size:%d \n",size);
+    if(size < sizeof(struct PacketParamHeaderC)) {
+      std::cerr << "Packet ReportParam length too small " << size << " expected at least" << sizeof(struct PacketParamHeaderC) << std::endl;
+      emit setLogText("Unexpected ReportParam packet size.");
+      return ;
+    }
     std::string displayStr;
     struct PacketParam8ByteC *psp = (struct PacketParam8ByteC *) data;
     displayStr += "Index:";
@@ -546,7 +567,7 @@ void MainWindow::on_pushButtonPing_clicked()
 void MainWindow::on_comboBoxMotorControlMode_activated(const QString &arg1)
 {
   enum PWMControlDynamicT controlMode = CM_Final;
-  if(arg1 == "Idle") {
+  if(arg1 == "Off") {
     controlMode = CM_Off;
   }
   if(arg1 == "Brake") {

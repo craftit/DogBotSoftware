@@ -81,8 +81,10 @@ namespace DogBotN {
   public:
     typedef std::chrono::time_point<std::chrono::steady_clock,std::chrono::duration< double > > TimePointT;
 
+    // Construct from coms link and deviceId
     ServoC(const std::shared_ptr<SerialComsC> &coms,int deviceId);
 
+    // Construct with announce packet.
     ServoC(const std::shared_ptr<SerialComsC> &coms,int deviceId,const PacketDeviceIdC &pktAnnounce);
 
     //! Access name of device
@@ -176,7 +178,16 @@ namespace DogBotN {
     //! Access control dynamic
     PWMControlDynamicT ControlDynamic() const
     { return m_controlDynamic; }
+
+
   protected:
+    //! Initialise timeouts and setup
+    void Init();
+
+    //! Process update
+    //! Returns true if state changed
+    bool HandlePacketPong(const PacketPingPongC &);
+
     //! Process update
     //! Returns true if state changed
     bool HandlePacketServoReport(const PacketServoReportC &);
@@ -187,6 +198,11 @@ namespace DogBotN {
 
     //! Handle parameter update.
     bool HandlePacketReportParam(const PacketParam8ByteC &pkt);
+
+    //! Tick from main loop
+    //! Used to check for communication timeouts.
+    //! Returns true if state changed.
+    bool UpdateTick(TimePointT timeNow);
 
     mutable std::mutex m_mutexAdmin;
 
@@ -204,6 +220,8 @@ namespace DogBotN {
 
     bool m_online = false;
 
+    int m_queryCycle = 0;
+
     FaultCodeT m_faultCode = FC_Unknown;
     MotionHomedStateT m_homedState = MHS_Lost;
     ControlStateT m_controlState = CS_StartUp;
@@ -212,10 +230,12 @@ namespace DogBotN {
 
     TimePointT m_timeEpoch;
     TimePointT m_timeOfLastReport;
+    TimePointT m_timeOfLastComs;
 
     uint8_t m_lastTimestamp = 0;
 
     std::chrono::duration<double> m_tickRate; // Default is 100Hz
+    std::chrono::duration<double> m_comsTimeout; // Default is 200ms
     unsigned m_tick = 0;
 
     float m_defaultPositionTorque = 4.0;
@@ -225,6 +245,9 @@ namespace DogBotN {
     float m_speed = 0;
     float m_torque = 0;
     float m_temperature = 0;
+
+    int m_toQuery = 0;
+    std::vector<ComsParameterIndexT> m_updateQuery;
 
     // Current parameters
     float m_velocityLimit = 0;
