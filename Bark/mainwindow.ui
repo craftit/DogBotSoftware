@@ -47,24 +47,14 @@
        <widget class="QLabel" name="label_3">
         <property name="geometry">
          <rect>
-          <x>0</x>
-          <y>140</y>
+          <x>10</x>
+          <y>70</y>
           <width>59</width>
           <height>16</height>
          </rect>
         </property>
         <property name="text">
          <string>Control:</string>
-        </property>
-       </widget>
-       <widget class="QLineEdit" name="lineEditContrlolState">
-        <property name="geometry">
-         <rect>
-          <x>60</x>
-          <y>140</y>
-          <width>113</width>
-          <height>22</height>
-         </rect>
         </property>
        </widget>
        <widget class="QLabel" name="label_5">
@@ -106,8 +96,8 @@
        <widget class="QComboBox" name="comboBoxControlState">
         <property name="geometry">
          <rect>
-          <x>190</x>
-          <y>140</y>
+          <x>70</x>
+          <y>70</y>
           <width>131</width>
           <height>22</height>
          </rect>
@@ -134,6 +124,11 @@
         </item>
         <item>
          <property name="text">
+          <string>Diagnostic</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
           <string>Emergency Stop</string>
          </property>
         </item>
@@ -146,10 +141,10 @@
        <widget class="QLabel" name="label">
         <property name="geometry">
          <rect>
-          <x>0</x>
+          <x>20</x>
           <y>100</y>
-          <width>59</width>
-          <height>14</height>
+          <width>41</width>
+          <height>16</height>
          </rect>
         </property>
         <property name="text">
@@ -208,9 +203,9 @@
        <widget class="QLineEdit" name="lineEditFault">
         <property name="geometry">
          <rect>
-          <x>350</x>
-          <y>120</y>
-          <width>113</width>
+          <x>70</x>
+          <y>130</y>
+          <width>131</width>
           <height>22</height>
          </rect>
         </property>
@@ -231,8 +226,8 @@
        <widget class="QCheckBox" name="checkBoxIndicator">
         <property name="geometry">
          <rect>
-          <x>180</x>
-          <y>80</y>
+          <x>210</x>
+          <y>70</y>
           <width>83</width>
           <height>20</height>
          </rect>
@@ -257,8 +252,8 @@
        <widget class="QLabel" name="label_7">
         <property name="geometry">
          <rect>
-          <x>310</x>
-          <y>120</y>
+          <x>20</x>
+          <y>130</y>
           <width>41</width>
           <height>16</height>
          </rect>
@@ -319,8 +314,8 @@
        <widget class="QPushButton" name="pushButtonTim1">
         <property name="geometry">
          <rect>
-          <x>660</x>
-          <y>40</y>
+          <x>650</x>
+          <y>50</y>
           <width>85</width>
           <height>27</height>
          </rect>
@@ -333,7 +328,7 @@
         <property name="geometry">
          <rect>
           <x>70</x>
-          <y>90</y>
+          <y>100</y>
           <width>78</width>
           <height>22</height>
          </rect>
@@ -791,8 +786,8 @@
        <widget class="QLabel" name="label_SupplyVoltage">
         <property name="geometry">
          <rect>
-          <x>660</x>
-          <y>340</y>
+          <x>340</x>
+          <y>130</y>
           <width>59</width>
           <height>14</height>
          </rect>
@@ -804,8 +799,8 @@
        <widget class="QLabel" name="label_DriverTemperature">
         <property name="geometry">
          <rect>
-          <x>640</x>
-          <y>360</y>
+          <x>340</x>
+          <y>150</y>
           <width>59</width>
           <height>14</height>
          </rect>
@@ -817,8 +812,8 @@
        <widget class="QLabel" name="label_18">
         <property name="geometry">
          <rect>
-          <x>560</x>
-          <y>340</y>
+          <x>240</x>
+          <y>130</y>
           <width>101</width>
           <height>16</height>
          </rect>
@@ -830,8 +825,8 @@
        <widget class="QLabel" name="label_19">
         <property name="geometry">
          <rect>
-          <x>560</x>
-          <y>360</y>
+          <x>260</x>
+          <y>150</y>
           <width>81</width>
           <height>16</height>
          </rect>
@@ -872,7 +867,7 @@
        <widget class="QDoubleSpinBox" name="doubleSpinBoxCalibrationOffset">
         <property name="geometry">
          <rect>
-          <x>710</x>
+          <x>700</x>
           <y>230</y>
           <width>81</width>
           <height>22</height>
@@ -914,8 +909,8 @@
        <widget class="QLabel" name="label_22">
         <property name="geometry">
          <rect>
-          <x>570</x>
-          <y>320</y>
+          <x>560</x>
+          <y>350</y>
           <width>41</width>
           <height>16</height>
          </rect>
@@ -927,8 +922,8 @@
        <widget class="QDoubleSpinBox" name="doubleSpinBoxIGain">
         <property name="geometry">
          <rect>
-          <x>620</x>
-          <y>320</y>
+          <x>610</x>
+          <y>350</y>
           <width>121</width>
           <height>22</height>
          </rect>
@@ -1104,8 +1099,8 @@
        <widget class="QCheckBox" name="checkBoxFan">
         <property name="geometry">
          <rect>
-          <x>180</x>
-          <y>100</y>
+          <x>210</x>
+          <y>90</y>
           <width>83</width>
           <height>20</height>
          </rect>
@@ -1130,7 +1125,7 @@
        <widget class="QDoubleSpinBox" name="doubleSpinBoxHomeIndexOffset">
         <property name="geometry">
          <rect>
-          <x>710</x>
+          <x>700</x>
           <y>260</y>
           <width>81</width>
           <height>22</height>
@@ -1244,6 +1239,29 @@
           <string>Back-Right-Knee</string>
          </property>
         </item>
+       </widget>
+       <widget class="QLineEdit" name="lineEditHallReadings">
+        <property name="geometry">
+         <rect>
+          <x>670</x>
+          <y>290</y>
+          <width>141</width>
+          <height>21</height>
+         </rect>
+        </property>
+       </widget>
+       <widget class="QLabel" name="label_29">
+        <property name="geometry">
+         <rect>
+          <x>640</x>
+          <y>290</y>
+          <width>31</width>
+          <height>16</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Hall:</string>
+        </property>
        </widget>
       </widget>
       <widget class="QWidget" name="tab_2">
@@ -1480,7 +1498,7 @@
      <x>0</x>
      <y>0</y>
      <width>869</width>
-     <height>19</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

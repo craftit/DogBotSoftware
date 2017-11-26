@@ -55,7 +55,7 @@ void ServoTable::updateRows()
   {
     std::lock_guard<std::mutex> lock(m_mutexUpdateRows);
     m_updateQueued = false;
-    for(int i = 0;i < m_updateRows.size();i++) {
+    for(int i = 0;i < (int) m_updateRows.size();i++) {
       if(m_updateRows[i]) {
         m_updateRows[i] = false;
         rowChanged.push_back(i);
@@ -290,4 +290,5 @@ bool ServoTable::setData(const QModelIndex &index, const QVariant &value, int ro
     }
   }
 
+  return false;
 }

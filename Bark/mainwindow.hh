@@ -170,6 +170,7 @@ signals:
   void setVelocityLimit(double offset);
   void setPositionGain(double offset);
   void setHomeIndexOffset(double offset);
+  void setHallSensors(const QString &str);
 
 private:
   void SetupComs();

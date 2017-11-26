@@ -11,8 +11,8 @@ MainWindow::MainWindow(QWidget *parent) :
   ui(new Ui::MainWindow)
 {
   ui->setupUi(this);
-  ui->lineEditDevice->setText("/dev/ttyACM1");
-//  ui->lineEditDevice->setText("/dev/tty.usbmodem401");
+  //  ui->lineEditDevice->setText("/dev/ttyACM1");
+  ui->lineEditDevice->setText("/dev/tty.usbmodem401");
 
   SetupComs();
 
@@ -29,7 +29,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
   connect(this,SIGNAL(setLogText(const QString &)),ui->textEditLog,SLOT(setText(const QString &)));
   connect(this,SIGNAL(setCalibrationState(int)),ui->comboBoxCalibration,SLOT(setCurrentIndex(int)));
-  connect(this,SIGNAL(setControlState(const QString &)),ui->lineEditContrlolState,SLOT(setText(const QString &)));
+  connect(this,SIGNAL(setControlState(const QString &)),ui->comboBoxControlState,SLOT(setCurrentText(QString)));
   connect(this,SIGNAL(setControlMode(const QString &)),ui->comboBoxMotorControlMode,SLOT(setCurrentText(const QString &)));
   connect(this,SIGNAL(setFault(const QString &)),ui->lineEditFault,SLOT(setText(const QString &)));
   connect(this,SIGNAL(setCalibrationAngle(double)),ui->doubleSpinBoxCalibrationOffset,SLOT(setValue(double)));
@@ -51,6 +51,7 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(this,SIGNAL(setVelocityLimit(double)),ui->doubleSpinBoxVelocityLimit,SLOT(setValue(double)));
   connect(this,SIGNAL(setPositionGain(double)),ui->doubleSpinBoxPositionGain,SLOT(setValue(double)));
   connect(this,SIGNAL(setHomeIndexOffset(double)),ui->doubleSpinBoxHomeIndexOffset,SLOT(setValue(double)));
+  connect(this,SIGNAL(setHallSensors(QString)),ui->lineEditHallReadings,SLOT(setText(QString)));
 
   startTimer(10);
 
@@ -342,6 +343,18 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     sprintf(buff,"\n %d Home: %f ",psp->m_header.m_deviceId,homePos);
     displayStr += buff;
   } break;
+  case CPI_HallSensors: {
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      sprintf(buff,"%5d %5d %5d ",
+              (int) psp->m_data.uint16[0],(int) psp->m_data.uint16[1],(int) psp->m_data.uint16[2]);
+      setHallSensors(buff);
+    }
+
+    sprintf(buff,"\n %d Hall: %d %d %d ",
+            psp->m_header.m_deviceId,(int) psp->m_data.uint16[0],(int) psp->m_data.uint16[1],(int) psp->m_data.uint16[2]);
+    displayStr += buff;
+    ret = false;
+  } break;
   default:
     break;
   }
@@ -397,7 +410,7 @@ void MainWindow::SetupComs()
   m_coms->SetHandler(CPT_SetParam,[this](uint8_t *data,int size) mutable
   {
     printf("Got SetParam.  Size:%d \n",size);
-    if(size < sizeof(struct PacketParamHeaderC)) {
+    if(size < (int) sizeof(struct PacketParamHeaderC)) {
       std::cerr << "Packet ReportParam length too small " << size << " expected at least" << sizeof(struct PacketParamHeaderC) << std::endl;
       emit setLogText("Unexpected ReportParam packet size.");
       return ;
@@ -422,7 +435,7 @@ void MainWindow::SetupComs()
   m_coms->SetHandler(CPT_ReportParam,[this](uint8_t *data,int size) mutable
   {
 //    printf("Got ReportParam.  Size:%d \n",size);
-    if(size < sizeof(struct PacketParamHeaderC)) {
+    if(size < (int) sizeof(struct PacketParamHeaderC)) {
       std::cerr << "Packet ReportParam length too small " << size << " expected at least" << sizeof(struct PacketParamHeaderC) << std::endl;
       emit setLogText("Unexpected ReportParam packet size.");
       return ;
@@ -734,6 +747,9 @@ void MainWindow::on_comboBoxControlState_activated(const QString &arg1)
   }
   if(arg1 == "Reset") {
     controlState = CS_StartUp;
+  }
+  if(arg1 == "Diagnostic") {
+    controlState = CS_Diagnostic;
   }
   if(controlState != CS_Fault)  {
     m_coms->SendSetParam(m_targetDeviceId,CPI_ControlState,controlState);
