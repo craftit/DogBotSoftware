@@ -148,6 +148,10 @@ private slots:
 
   void on_actionSave_Config_As_triggered();
 
+  void on_pushButtonResetAll_clicked();
+
+  void on_pushButtonRefresh_clicked();
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);

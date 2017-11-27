@@ -137,6 +137,11 @@
           <string>Reset</string>
          </property>
         </item>
+        <item>
+         <property name="text">
+          <string>Standby</string>
+         </property>
+        </item>
        </widget>
        <widget class="QLabel" name="label">
         <property name="geometry">
@@ -1462,7 +1467,31 @@
         <string>Overview</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout">
+        <item row="3" column="3">
+         <widget class="QPushButton" name="pushButtonOff">
+          <property name="text">
+           <string>Motors Off</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="4">
+         <widget class="QPushButton" name="pushButtonHold">
+          <property name="text">
+           <string>Hold Position</string>
+          </property>
+         </widget>
+        </item>
         <item row="3" column="0">
+         <widget class="QPushButton" name="pushButtonResetAll">
+          <property name="text">
+           <string>Reset All</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0" colspan="5">
+         <widget class="QTableView" name="tableViewServoList"/>
+        </item>
+        <item row="3" column="2">
          <widget class="QPushButton" name="pushButtonBrake">
           <property name="text">
            <string>Brake</string>
@@ -1470,21 +1499,11 @@
          </widget>
         </item>
         <item row="3" column="1">
-         <widget class="QPushButton" name="pushButtonOff">
+         <widget class="QPushButton" name="pushButtonRefresh">
           <property name="text">
-           <string>Motors Off</string>
+           <string>Refresh</string>
           </property>
          </widget>
-        </item>
-        <item row="3" column="2">
-         <widget class="QPushButton" name="pushButtonHold">
-          <property name="text">
-           <string>Hold Position</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="0" colspan="3">
-         <widget class="QTableView" name="tableViewServoList"/>
         </item>
        </layout>
       </widget>
@@ -1498,7 +1517,7 @@
      <x>0</x>
      <y>0</y>
      <width>869</width>
-     <height>22</height>
+     <height>19</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

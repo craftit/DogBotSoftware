@@ -11,8 +11,9 @@ MainWindow::MainWindow(QWidget *parent) :
   ui(new Ui::MainWindow)
 {
   ui->setupUi(this);
-  //  ui->lineEditDevice->setText("/dev/ttyACM1");
-  ui->lineEditDevice->setText("/dev/tty.usbmodem401");
+
+  ui->lineEditDevice->setText("/dev/ttyACM1");
+  //ui->lineEditDevice->setText("/dev/tty.usbmodem401");
 
   SetupComs();
 
@@ -1008,4 +1009,14 @@ void MainWindow::on_actionSave_Config_As_triggered()
     QMessageBox::information(this, "Save Config", "Failed to save file " + QString(m_configFilename.c_str()));
   }
 
+}
+
+void MainWindow::on_pushButtonResetAll_clicked()
+{
+  m_dogBotAPI->ResetAll();
+}
+
+void MainWindow::on_pushButtonRefresh_clicked()
+{
+  m_dogBotAPI->RefreshAll();
 }

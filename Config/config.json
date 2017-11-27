@@ -3,34 +3,39 @@
 	[
 		{
 			"deviceId" : 1,
-			"name" : "2621481-1650753082",
+			"enabled" : false,
+			"name" : "Front-Left-Knee",
 			"notes" : "",
 			"uid1" : 2621481,
 			"uid2" : 1650753082
 		},
 		{
 			"deviceId" : 2,
+			"enabled" : false,
 			"name" : "Front-Left-Pitch",
-			"notes" : "Not homing",
+			"notes" : "",
 			"uid1" : 2818072,
 			"uid2" : 1650753082
 		},
 		{
 			"deviceId" : 3,
+			"enabled" : false,
 			"name" : "Back-Left-Pitch",
-			"notes" : "Not homing",
+			"notes" : "",
 			"uid1" : 2752540,
 			"uid2" : 1768652619
 		},
 		{
 			"deviceId" : 4,
+			"enabled" : false,
 			"name" : "Front-Right-Roll",
-			"notes" : "Not homing",
+			"notes" : "",
 			"uid1" : 2490394,
 			"uid2" : 1650753082
 		},
 		{
 			"deviceId" : 5,
+			"enabled" : false,
 			"name" : "Back-Right-Pitch",
 			"notes" : "",
 			"uid1" : 2883611,
@@ -38,13 +43,15 @@
 		},
 		{
 			"deviceId" : 6,
-			"name" : "Front-Left-Knee",
-			"notes" : "#2  Dodgy",
-			"uid1" : 2883613,
+			"enabled" : false,
+			"name" : "Coms",
+			"notes" : "",
+			"uid1" : 2621480,
 			"uid2" : 1650753082
 		},
 		{
 			"deviceId" : 7,
+			"enabled" : false,
 			"name" : "Front-Right-Knee",
 			"notes" : "",
 			"uid1" : 2752576,
@@ -52,6 +59,7 @@
 		},
 		{
 			"deviceId" : 8,
+			"enabled" : false,
 			"name" : "Back-Right-Roll",
 			"notes" : "",
 			"uid1" : 2621483,
@@ -59,6 +67,7 @@
 		},
 		{
 			"deviceId" : 9,
+			"enabled" : false,
 			"name" : "Front-Right-Pitch",
 			"notes" : "",
 			"uid1" : 2883619,
@@ -66,13 +75,15 @@
 		},
 		{
 			"deviceId" : 10,
+			"enabled" : false,
 			"name" : "Back-Left-Roll",
-			"notes" : "#8 Dodgy",
+			"notes" : "#8",
 			"uid1" : 2621487,
 			"uid2" : 1650753082
 		},
 		{
 			"deviceId" : 11,
+			"enabled" : false,
 			"name" : "Back-Right-Knee",
 			"notes" : "",
 			"uid1" : 2621484,
@@ -80,23 +91,26 @@
 		},
 		{
 			"deviceId" : 12,
+			"enabled" : false,
 			"name" : "Front-Left-Roll",
 			"notes" : "",
 			"uid1" : 2883617,
 			"uid2" : 1650753082
 		},
 		{
-			"deviceId" : 13,
-			"name" : "Coms",
+			"deviceId" : 14,
+			"enabled" : false,
+			"name" : "Back-Left-Knee",
 			"notes" : "",
-			"uid1" : 2621480,
+			"uid1" : 2883616,
 			"uid2" : 1650753082
 		},
 		{
-			"deviceId" : 14,
+			"deviceId" : 15,
+			"enabled" : false,
 			"name" : "Front-Left-Knee",
-			"notes" : "Not homing",
-			"uid1" : 2883616,
+			"notes" : "#2",
+			"uid1" : 2883613,
 			"uid2" : 1650753082
 		}
 	]

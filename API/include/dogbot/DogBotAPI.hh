@@ -79,6 +79,12 @@ namespace DogBotN {
     //! Tell all servos to hold the current position
     void DemandHoldPosition();
 
+    //! Reset all controllers.
+    void ResetAll();
+
+    //! Refresh all controllers.
+    void RefreshAll();
+
     //! Get servo entry by id
     std::shared_ptr<ServoC> GetServoById(int id);
 

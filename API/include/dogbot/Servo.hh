@@ -101,6 +101,14 @@ namespace DogBotN {
     void SetNotes(const std::string &notes)
     { m_notes = notes; }
 
+    //! Set servo enabled flag.
+    void SetEnabled(bool enabled)
+    { m_enabled = enabled; }
+
+    //! Is servo enabled ?
+    bool IsEnabled() const
+    { return m_enabled; }
+
     //! Access the device id.
     int Id() const
     { return m_id; }
@@ -179,6 +187,8 @@ namespace DogBotN {
     PWMControlDynamicT ControlDynamic() const
     { return m_controlDynamic; }
 
+    //! Query setup information from the controller again.
+    void QueryRefresh();
 
   protected:
     //! Initialise timeouts and setup
@@ -211,6 +221,7 @@ namespace DogBotN {
     int m_id = -1; // Device id.
 
     std::string m_name;
+    bool m_enabled = true;
     std::string m_notes;
 
     std::shared_ptr<MotorCalibrationC> m_motorCal;

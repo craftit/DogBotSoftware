@@ -652,14 +652,40 @@ namespace DogBotN {
         if(i < deviceCount)
           servo = m_devices[i];
       }
-      if(!servo)
-        continue;
-      if(servo->Id() == 0)
+      if(!servo || servo->Id() == 0)
         continue;
       m_coms->SendSetParam(servo->Id(),CPI_PWMMode,CM_Position);
       servo->DemandPosition(servo->Position(),servo->DefaultPositionTorque());
     }
     // Make sure
+  }
+
+  void DogBotAPIC::ResetAll()
+  {
+    m_coms->SendSetParam(0,CPI_ControlState,CS_StartUp);
+
+  }
+
+  void DogBotAPIC::RefreshAll()
+  {
+    size_t deviceCount = 0;
+    {
+      std::lock_guard<std::mutex> lock(m_mutexDevices);
+      deviceCount = m_devices.size();
+    }
+    for(int i = 0;i < deviceCount;i++) {
+      std::shared_ptr<ServoC> servo;
+      {
+        std::lock_guard<std::mutex> lock(m_mutexDevices);
+        deviceCount = m_devices.size();
+        if(i < deviceCount)
+          servo = m_devices[i];
+      }
+      if(!servo || servo->Id() == 0)
+        continue;
+      servo->QueryRefresh();
+    }
+
   }
 
   //! Get servo entry by id
