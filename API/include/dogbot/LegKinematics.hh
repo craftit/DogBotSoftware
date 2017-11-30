@@ -15,8 +15,8 @@ namespace DogBotN {
   //  z = Height above ground
   //
   // Angles:
-  //  0 - Pelvis
-  //  1 - Hip
+  //  0 - Roll
+  //  1 - Pitch
   //  2 - Knee
 
   class LegKinematicsC

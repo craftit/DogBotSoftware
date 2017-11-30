@@ -2,7 +2,7 @@
 #define DOGBOG_SERVO_HEADER 1
 
 #include "dogbot/SerialComs.hh"
-#include <json/json.h>
+#include "dogbot/Joint.hh"
 #include <chrono>
 
 namespace DogBotN {
@@ -77,9 +77,9 @@ namespace DogBotN {
   //! Information about a single servo.
 
   class ServoC
+   : public JointC
   {
   public:
-    typedef std::chrono::time_point<std::chrono::steady_clock,std::chrono::duration< double > > TimePointT;
 
     // Construct from coms link and deviceId
     ServoC(const std::shared_ptr<SerialComsC> &coms,int deviceId);
@@ -87,19 +87,6 @@ namespace DogBotN {
     // Construct with announce packet.
     ServoC(const std::shared_ptr<SerialComsC> &coms,int deviceId,const PacketDeviceIdC &pktAnnounce);
 
-    //! Access name of device
-    std::string Name() const;
-
-    //! Set name of servo
-    void SetName(const std::string &name);
-
-    //! Access notes.
-    const std::string &Notes() const
-    { return m_notes; }
-
-    //! Set notes.
-    void SetNotes(const std::string &notes)
-    { m_notes = notes; }
 
     //! Set servo enabled flag.
     void SetEnabled(bool enabled)
@@ -133,31 +120,25 @@ namespace DogBotN {
     { return m_uid1 == uid1 && m_uid2 == uid2; }
 
     //! Configure from JSON
-    bool ConfigureFromJSON(const Json::Value &value);
+    bool ConfigureFromJSON(DogBotAPIC &api,const Json::Value &value) override;
 
     //! Get the servo configuration as JSON
-    Json::Value ServoConfigAsJSON() const;
+    Json::Value ServoConfigAsJSON() const override;
 
-    //! Get last reported state of the servo.
-    bool GetState(TimePointT &tick,float &position,float &velocity,float &torque) const;
+    //! Get last reported state of the servo and the time it was taken.
+    bool GetState(TimePointT &tick,float &position,float &velocity,float &torque) const override;
+
+    //! Estimate state at the given time.
+    //! This will linearly extrapolate position, and assume velocity and torque are
+    //! the same as the last reading.
+    //! If the data is more than 5 ticks away from the
+    bool GetStateAt(TimePointT theTime,float &position,float &velocity,float &torque) const override;
 
     //! Update torque for the servo.
-    bool DemandTorque(float torque);
+    bool DemandTorque(float torque) override;
 
     //! Demand a position for the servo
-    bool DemandPosition(float position,float torqueLimit);
-
-    //! Last reported position
-    float Position() const
-    { return m_position; }
-
-    //! Last reported torque
-    float Torque() const
-    { return m_torque; }
-
-    //! Last reported velocity
-    float Speed() const
-    { return m_speed; }
+    bool DemandPosition(float position,float torqueLimit) override;
 
     //! Last fault code received
     FaultCodeT FaultCode() const
@@ -220,9 +201,7 @@ namespace DogBotN {
     uint32_t m_uid2 = 0;
     int m_id = -1; // Device id.
 
-    std::string m_name;
     bool m_enabled = true;
-    std::string m_notes;
 
     std::shared_ptr<MotorCalibrationC> m_motorCal;
 
@@ -245,16 +224,13 @@ namespace DogBotN {
 
     uint8_t m_lastTimestamp = 0;
 
-    std::chrono::duration<double> m_tickRate; // Default is 100Hz
+    std::chrono::duration<double> m_tickDuration; // Default is 10ms
     std::chrono::duration<double> m_comsTimeout; // Default is 200ms
     unsigned m_tick = 0;
 
     float m_defaultPositionTorque = 4.0;
     float m_supplyVoltage = 0;
-    float m_position = 0;
     enum PositionReferenceT m_positionRef = PR_Relative;
-    float m_speed = 0;
-    float m_torque = 0;
     float m_temperature = 0;
 
     int m_toQuery = 0;

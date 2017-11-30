@@ -187,7 +187,7 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
     case ColumnAngle:
       return servo.Position() * 360.0 / (M_PI * 2.0);
     case ColumnSpeed:
-      return servo.Speed();
+      return servo.Velocity();
     case ColumnTorque:
       return servo.Torque();
     case ColumnTemperature:

@@ -138,7 +138,7 @@ namespace DogBotN {
     m_timeOfLastReport = std::chrono::steady_clock::now();
     m_timeOfLastComs = m_timeOfLastReport;
     m_timeEpoch = m_timeOfLastReport;
-
+    m_tickDuration = std::chrono::milliseconds(10);
 
     // Things to query
     m_updateQuery.push_back(CPI_ControlState);
@@ -161,20 +161,6 @@ namespace DogBotN {
   }
 
 
-  //! Access name of device
-  std::string ServoC::Name() const
-  {
-    std::lock_guard<std::mutex> lock(m_mutexAdmin);
-    return m_name;
-  }
-
-  //! Set name of servo
-  void ServoC::SetName(const std::string &name)
-  {
-    std::lock_guard<std::mutex> lock(m_mutexAdmin);
-    m_name = name;
-
-  }
 
   void ServoC::SetUID(uint32_t uid1, uint32_t uid2)
   {
@@ -183,14 +169,15 @@ namespace DogBotN {
   }
 
   //! Configure from JSON
-  bool ServoC::ConfigureFromJSON(const Json::Value &conf)
+  bool ServoC::ConfigureFromJSON(DogBotAPIC &api,const Json::Value &conf)
   {
+    if(!(JointC::ConfigureFromJSON(api,conf)))
+      return false;
+
     {
       std::lock_guard<std::mutex> lock(m_mutexAdmin);
-      m_name = conf.get("name","?").asString();
       m_uid1 = conf.get("uid1",-1).asInt();
       m_uid2 = conf.get("uid2",-1).asInt();
-      m_notes = conf.get("notes","").asString();
       m_enabled = conf.get("enabled",false).asBool();
     }
 
@@ -206,15 +193,13 @@ namespace DogBotN {
   //! Get the servo configuration as JSON
   Json::Value ServoC::ServoConfigAsJSON() const
   {
-    Json::Value ret;
+    Json::Value ret = JointC::ServoConfigAsJSON();
 
     {
       std::lock_guard<std::mutex> lock(m_mutexAdmin);
-      ret["name"] = m_name;
       ret["uid1"] = m_uid1;
       ret["uid2"] = m_uid2;
       ret["deviceId"] = m_id;
-      ret["notes"] = m_notes;
       ret["enabled"] = m_enabled;
     }
 
@@ -239,19 +224,28 @@ namespace DogBotN {
     std::lock_guard<std::mutex> lock(m_mutexState);
 
     std::chrono::duration<double> timeSinceLastReport = timeNow - m_timeOfLastReport;
-    if(timeSinceLastReport < m_tickRate * 200) {
+    if(timeSinceLastReport > m_tickDuration * 128) {
       m_log->warn("Lost sync on servo {} ",m_id);
     }
     m_timeOfLastReport = timeNow;
     m_timeOfLastComs = timeNow;
     int tickDiff = (int) report.m_timestamp - (int) m_lastTimestamp;
+    m_lastTimestamp = report.m_timestamp;
     while(tickDiff < 0)
       tickDiff += 256;
+    if(tickDiff == 0)
+      tickDiff = 1;
 
     m_tick += tickDiff;
 
+    float newPosition = SerialComsC::PositionReport2Angle(report.m_position);
+
+    // FIXME:- Check the position reference frame.
+
+    // Generate an estimate of the speed.
+    m_velocity = (newPosition - m_position) /  (m_tickDuration.count() * (float) tickDiff);
     m_positionRef = (enum PositionReferenceT) (report.m_mode & 0x3);
-    m_position = SerialComsC::PositionReport2Angle(report.m_position);
+    m_position = newPosition;
     m_torque =  SerialComsC::TorqueReport2Value(report.m_torque);
 
     //m_servoRef = 0;// (enum PositionReferenceT) (pkt->m_mode & 0x3);
@@ -444,10 +438,24 @@ namespace DogBotN {
   bool ServoC::GetState(TimePointT &tick,float &position,float &velocity,float &torque) const
   {
     std::lock_guard<std::mutex> lock(m_mutexState);
-    tick = m_timeEpoch + m_tick * m_tickRate;
+    tick = m_timeEpoch + m_tick * m_tickDuration;
     position = m_position;
     torque = m_torque;
+    velocity = m_velocity;
     return true;
+  }
+
+  //! Estimate state at the given time.
+  bool ServoC::GetStateAt(TimePointT theTime,float &position,float &velocity,float &torque) const
+  {
+    std::lock_guard<std::mutex> lock(m_mutexState);
+    TimePointT lastTick = m_timeEpoch + m_tick * m_tickDuration;
+    auto timeDiff = theTime - lastTick;
+    // Correct position for current speed.
+    position = m_position + m_velocity * timeDiff.count();
+    // Assume torque and velocity are approximately constant.
+    torque = m_torque;
+    velocity = m_velocity;
   }
 
   bool ServoC::UpdateTick(TimePointT timeNow)

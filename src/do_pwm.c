@@ -74,7 +74,7 @@ static float sqrf(float v)
 int CheckHallInRange(void) {
   // Are sensor readings outside the expected range ?
   for(int i = 0;i < 3;i++) {
-    if(g_hall[i] < 1500 || g_hall[i] > 2800)
+    if(g_hall[i] < 1000 || g_hall[i] > 3000)
       return FC_NoSensor;
   }
   return FC_Ok;

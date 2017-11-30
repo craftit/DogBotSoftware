@@ -2,9 +2,8 @@
 #define DOGBOG_DOGBOTAPI_HEADER 1
 
 #include "dogbot/Servo.hh"
-#include <json/json.h>
+#include <jsoncpp/json/json.h>
 #include "dogbot/SerialComs.hh"
-#
 
 namespace DogBotN {
 

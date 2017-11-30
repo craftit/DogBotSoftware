@@ -91,7 +91,6 @@ namespace DogBotN {
     m_manageComs = true;
     if(!configFile.empty())
       LoadConfig(configFile);
-    Init();
   }
 
   //! Construct with coms object
@@ -328,7 +327,7 @@ namespace DogBotN {
         }
         assert(device);
         if(device) {
-          device->ConfigureFromJSON(deviceConf);
+          device->ConfigureFromJSON(*this,deviceConf);
           ServoStatusUpdate(deviceId,op);
         }
       }
