@@ -50,9 +50,9 @@ namespace DogBotN {
   }
 
   //! Get the servo configuration as JSON
-  Json::Value Joint4BarLinkageC::ServoConfigAsJSON() const
+  Json::Value Joint4BarLinkageC::ConfigAsJSON() const
   {
-    Json::Value ret = JointRelativeC::ServoConfigAsJSON();
+    Json::Value ret = JointRelativeC::ConfigAsJSON();
 
     return ret;
   }

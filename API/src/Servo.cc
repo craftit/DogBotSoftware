@@ -11,14 +11,14 @@ namespace DogBotN {
   }
 
   //! Send calibration to motor
-  bool MotorCalibrationC::SendCal(SerialComsC &coms,int deviceId)
+  bool MotorCalibrationC::SendCal(ComsC &coms,int deviceId)
   {
 
     return true;
   }
 
   //! Read calibration from motor
-  bool MotorCalibrationC::ReadCal(SerialComsC &coms,int deviceId)
+  bool MotorCalibrationC::ReadCal(ComsC &coms,int deviceId)
   {
 
     return true;
@@ -113,7 +113,7 @@ namespace DogBotN {
 
   //! --------------------------
 
-  ServoC::ServoC(const std::shared_ptr<SerialComsC> &coms, int deviceId, const PacketDeviceIdC &pktAnnounce)
+  ServoC::ServoC(const std::shared_ptr<ComsC> &coms, int deviceId, const PacketDeviceIdC &pktAnnounce)
    : m_uid1(pktAnnounce.m_uid[0]),
      m_uid2(pktAnnounce.m_uid[1]),
      m_id(deviceId),
@@ -123,7 +123,7 @@ namespace DogBotN {
     Init();
   }
 
-  ServoC::ServoC(const std::shared_ptr<SerialComsC> &coms, int deviceId)
+  ServoC::ServoC(const std::shared_ptr<ComsC> &coms, int deviceId)
    : m_id(deviceId),
      m_coms(coms)
   {
@@ -191,9 +191,9 @@ namespace DogBotN {
   }
 
   //! Get the servo configuration as JSON
-  Json::Value ServoC::ServoConfigAsJSON() const
+  Json::Value ServoC::ConfigAsJSON() const
   {
-    Json::Value ret = JointC::ServoConfigAsJSON();
+    Json::Value ret = JointC::ConfigAsJSON();
 
     {
       std::lock_guard<std::mutex> lock(m_mutexAdmin);
@@ -238,7 +238,7 @@ namespace DogBotN {
 
     m_tick += tickDiff;
 
-    float newPosition = SerialComsC::PositionReport2Angle(report.m_position);
+    float newPosition = ComsC::PositionReport2Angle(report.m_position);
 
     // FIXME:- Check the position reference frame.
 
@@ -246,7 +246,7 @@ namespace DogBotN {
     m_velocity = (newPosition - m_position) /  (m_tickDuration.count() * (float) tickDiff);
     m_positionRef = (enum PositionReferenceT) (report.m_mode & 0x3);
     m_position = newPosition;
-    m_torque =  SerialComsC::TorqueReport2Value(report.m_torque);
+    m_torque =  ComsC::TorqueReport2Value(report.m_torque);
 
     //m_servoRef = 0;// (enum PositionReferenceT) (pkt->m_mode & 0x3);
 
@@ -254,10 +254,10 @@ namespace DogBotN {
   }
 
   //! Handle an incoming announce message.
-  bool ServoC::HandlePacketAnnounce(const PacketDeviceIdC &pkt)
+  bool ServoC::HandlePacketAnnounce(const PacketDeviceIdC &pkt,bool isMaster)
   {
     bool ret = false;
-    if(pkt.m_deviceId != m_id) {
+    if(pkt.m_deviceId != m_id && isMaster) {
       m_coms->SendSetDeviceId(m_id,m_uid1,m_uid2);
       ret = true;
     }

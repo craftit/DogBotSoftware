@@ -4,7 +4,7 @@
 #include <QMainWindow>
 #include <chrono>
 
-#include "../API/include/dogbot/SerialComs.hh"
+#include "../API/include/dogbot/Coms.hh"
 #include "../API/include/dogbot/DogBotAPI.hh"
 #include "../API/include/dogbot/LegKinematics.hh"
 #include "ServoTable.hh"
@@ -189,7 +189,7 @@ private:
   std::vector<ComsParameterIndexT> m_displayQuery;
 
   Ui::MainWindow *ui;
-  std::shared_ptr<DogBotN::SerialComsC> m_coms;
+  std::shared_ptr<DogBotN::ComsC> m_coms;
   std::shared_ptr<DogBotN::DogBotAPIC> m_dogBotAPI;
   bool m_PWMReportRequested = false;
 

@@ -94,10 +94,16 @@ namespace DogBotN {
   }
 
   //! Construct with coms object
-  DogBotAPIC::DogBotAPIC(const std::shared_ptr<SerialComsC> &coms)
+  DogBotAPIC::DogBotAPIC(
+      const std::shared_ptr<ComsC> &coms,
+      std::shared_ptr<spdlog::logger> &log,
+      bool manageComs
+      )
    : m_coms(coms)
   {
-    m_manageComs = false;
+    m_manageComs = manageComs;
+    m_log = log;
+    m_coms->SetLogger(log);
   }
 
   DogBotAPIC::~DogBotAPIC()
@@ -122,7 +128,7 @@ namespace DogBotN {
   }
 
   //! Connect to coms object.
-  bool DogBotAPIC::Connect(const std::shared_ptr<SerialComsC> &coms)
+  bool DogBotAPIC::Connect(const std::shared_ptr<ComsC> &coms)
   {
     assert(!m_coms);
     m_coms = coms;
@@ -228,6 +234,13 @@ namespace DogBotN {
     }
 
     return true;
+  }
+
+  //! Is this the master server, responsible for managing device ids ?
+  //! Default is false.
+  void DogBotAPIC::SetMaster(bool val)
+  {
+    m_isMaster = val;
   }
 
   //! Start API with given config
@@ -356,7 +369,7 @@ namespace DogBotN {
     for(auto &a : m_devices) {
       if(!a)
         continue;
-      deviceList[index++] = a->ServoConfigAsJSON();
+      deviceList[index++] = a->ConfigAsJSON();
     }
     rootConfig["devices"] = deviceList;
 
@@ -439,7 +452,8 @@ namespace DogBotN {
         if(!device->HasUID(pkt.m_uid[0],pkt.m_uid[1])) {
           // Conflicting id's detected.
           deviceId = 0; // Treat device as if it is unassigned.
-          m_coms->SendSetDeviceId(0,pkt.m_uid[0],pkt.m_uid[1]); // Stop it using the conflicting address.
+          if(m_isMaster)
+            m_coms->SendSetDeviceId(0,pkt.m_uid[0],pkt.m_uid[1]); // Stop it using the conflicting address.
           m_log->error(
              "Conflicting ids detected for device {}, with uid {}-{} and existing device {}-{} '{}' ",
              (int) pkt.m_deviceId,pkt.m_uid[0],pkt.m_uid[1],
@@ -459,7 +473,7 @@ namespace DogBotN {
         }
       }
       // No matching id found ?
-      if(!device) {
+      if(!device && m_isMaster) {
         device = std::make_shared<ServoC>(m_coms,0,pkt);
         m_timeLastUnassignedUpdate = std::chrono::steady_clock::now();
         for(auto &a : m_unassignedDevices) {
@@ -472,7 +486,7 @@ namespace DogBotN {
       }
     }
     assert(device);
-    device->HandlePacketAnnounce(pkt);
+    device->HandlePacketAnnounce(pkt,m_isMaster);
     ServoStatusUpdate(deviceId,updateType);
   }
 

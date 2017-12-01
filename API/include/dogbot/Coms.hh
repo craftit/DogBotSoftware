@@ -16,40 +16,37 @@
 
 namespace DogBotN {
 
-  //! Low level serial communication over usb with the driver board
+  //! Low level communication interface
 
-  class SerialComsC
+  class ComsC
   {
   public:
-    SerialComsC(const char *portAddr);
+    ComsC(const char *portAddr);
 
     //! default
-    SerialComsC();
+    ComsC();
 
     //! Destructor
     // Disconnects and closes file descriptors
-    ~SerialComsC();
+    virtual ~ComsC();
 
     //! Set the logger to use
     void SetLogger(std::shared_ptr<spdlog::logger> &log);
 
     //! Open a port.
-    bool Open(const char *portAddr);
+    virtual bool Open(const char *portAddr);
 
     //! Close connection
-    void Close();
+    virtual void Close();
 
     //! Is connection ready ?
-    bool IsReady() const;
-
-    //! Accept a byte
-    void AcceptByte(uint8_t sendByte);
+    virtual bool IsReady() const;
 
     //! Process received packet.
-    void ProcessPacket();
+    void ProcessPacket(uint8_t *data,int len);
 
     //! Send packet
-    void SendPacket(const uint8_t *data,int len);
+    virtual void SendPacket(const uint8_t *data,int len);
 
     //! Send an emergency stop
     void SendEmergencyStop();
@@ -120,8 +117,6 @@ namespace DogBotN {
       return ret;
     }
 
-
-
     //! Set a parameter
     void SendSetParam(int deviceId,ComsParameterIndexT param,uint8_t value);
 
@@ -152,12 +147,17 @@ namespace DogBotN {
     //! Send a calibration zero
     void SendCalZero(int deviceId);
 
+    //! Set handler for all packets, this is called as well as any specific handlers that have been installed.
+    //! Only one can be set at any time.
+    void SetGenericHandler(const std::function<void (uint8_t *data,int len)> &handler);
+
     //! Set the handler for a particular type of packet.
     //! Returns the id of the handler or -1 if failed.
-    int SetHandler(ComsPacketTypeT packetType,const std::function<void (uint8_t *data,int )> &handler);
+    int SetHandler(ComsPacketTypeT packetType,const std::function<void (uint8_t *data,int len)> &handler);
 
     //! Delete given handler
     void DeleteHandler(ComsPacketTypeT packetType,int id);
+
 
     //! Convert a report value to an angle in radians
     static float PositionReport2Angle(int16_t val)
@@ -167,38 +167,16 @@ namespace DogBotN {
     static float TorqueReport2Value(int16_t val)
     { return val * 10.0/ 65535.0; }
 
+  protected:
 
     volatile bool m_terminate = false;
-    int m_state = 0;
-    int m_checkSum = 0;
-    int m_packetLen = 0;
-    uint8_t m_data[64];
-    int m_at = 0;
-    const uint8_t m_charSTX = 0x02;
-    const uint8_t m_charETX = 0x03;
-
-    int m_fd = -1;
-
-    // Packet structure.
-    // x    STX
-    // x    Len - Of data excluding STX,ETX and Checksum.
-    // 0    Address
-    // 1    Type
-    // 2..n data.
-    // n    2-CRC
-    // n    ETX.
-
-    bool RunRecieve();
 
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("console");
 
-    std::thread m_threadRecieve;
-
     std::mutex m_accessPacketHandler;
-    std::mutex m_accessTx;
-    std::timed_mutex m_mutexExitOk;
 
-    std::vector<std::vector<std::function<void (uint8_t *data,int )> > > m_packetHandler;
+    std::vector<std::vector<std::function<void (uint8_t *data,int len)> > > m_packetHandler;
+    std::function<void (uint8_t *data,int len)> m_genericHandler;
   };
 }
 #endif

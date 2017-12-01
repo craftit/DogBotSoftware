@@ -3,7 +3,8 @@
 
 #include "dogbot/Servo.hh"
 #include <jsoncpp/json/json.h>
-#include "dogbot/SerialComs.hh"
+
+#include "dogbot/Coms.hh"
 
 namespace DogBotN {
 
@@ -36,16 +37,20 @@ namespace DogBotN {
     DogBotAPIC(const std::string &configFile = "");
 
     //! Construct with coms object
-    DogBotAPIC(const std::shared_ptr<SerialComsC> &coms);
+    DogBotAPIC(const std::shared_ptr<ComsC> &coms,std::shared_ptr<spdlog::logger> &log,bool manageComs = false);
 
     //! Destructor to wait for shutdown
     ~DogBotAPIC();
 
     //! Connect to coms object.
-    bool Connect(const std::shared_ptr<SerialComsC> &coms);
+    bool Connect(const std::shared_ptr<ComsC> &coms);
 
     //! Set the logger to use
     void SetLogger(std::shared_ptr<spdlog::logger> &log);
+
+    //! Is this the master server, responsible for managing device ids ?
+    //! Default is false.
+    void SetMaster(bool val);
 
     //! Start API with given config
     bool Init(const std::string &configFile);
@@ -130,7 +135,7 @@ namespace DogBotN {
     std::string m_deviceName;
     bool m_manageComs = false;
     Json::Value m_configRoot;
-    std::shared_ptr<SerialComsC> m_coms;
+    std::shared_ptr<ComsC> m_coms;
     std::mutex m_mutexDevices;
 
     std::chrono::time_point<std::chrono::steady_clock> m_timeLastUnassignedUpdate;
@@ -139,6 +144,7 @@ namespace DogBotN {
 
     std::thread m_threadMonitor;
 
+    bool m_isMaster = false; //!< Is Master API responsible for assigning device ids
     bool m_started = false;
     bool m_terminate = false;
   };

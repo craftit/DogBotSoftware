@@ -1,9 +1,9 @@
 #ifndef DOGBOG_SERVO_HEADER
 #define DOGBOG_SERVO_HEADER 1
 
-#include "dogbot/SerialComs.hh"
 #include "dogbot/Joint.hh"
 #include <chrono>
+#include "dogbot/Coms.hh"
 
 namespace DogBotN {
 
@@ -29,10 +29,10 @@ namespace DogBotN {
     void GetCal(int place,uint16_t &p1,uint16_t &p2,uint16_t &p3) const;
 
     //! Send calibration to motor
-    bool SendCal(SerialComsC &coms,int deviceId);
+    bool SendCal(ComsC &coms,int deviceId);
 
     //! Read calibration from motor
-    bool ReadCal(SerialComsC &coms,int deviceId);
+    bool ReadCal(ComsC &coms,int deviceId);
 
     //! Access velocity limit
     float VelocityLimit() const
@@ -82,10 +82,10 @@ namespace DogBotN {
   public:
 
     // Construct from coms link and deviceId
-    ServoC(const std::shared_ptr<SerialComsC> &coms,int deviceId);
+    ServoC(const std::shared_ptr<ComsC> &coms,int deviceId);
 
     // Construct with announce packet.
-    ServoC(const std::shared_ptr<SerialComsC> &coms,int deviceId,const PacketDeviceIdC &pktAnnounce);
+    ServoC(const std::shared_ptr<ComsC> &coms,int deviceId,const PacketDeviceIdC &pktAnnounce);
 
 
     //! Set servo enabled flag.
@@ -123,7 +123,7 @@ namespace DogBotN {
     bool ConfigureFromJSON(DogBotAPIC &api,const Json::Value &value) override;
 
     //! Get the servo configuration as JSON
-    Json::Value ServoConfigAsJSON() const override;
+    Json::Value ConfigAsJSON() const override;
 
     //! Get last reported state of the servo and the time it was taken.
     bool GetState(TimePointT &tick,float &position,float &velocity,float &torque) const override;
@@ -185,7 +185,7 @@ namespace DogBotN {
 
     //! Handle an incoming announce message.
     //! Returns true if state changed.
-    bool HandlePacketAnnounce(const PacketDeviceIdC &pkt);
+    bool HandlePacketAnnounce(const PacketDeviceIdC &pkt,bool isMaster);
 
     //! Handle parameter update.
     bool HandlePacketReportParam(const PacketParam8ByteC &pkt);
@@ -206,7 +206,7 @@ namespace DogBotN {
     std::shared_ptr<MotorCalibrationC> m_motorCal;
 
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("console");
-    std::shared_ptr<SerialComsC> m_coms;
+    std::shared_ptr<ComsC> m_coms;
 
     bool m_online = false;
 

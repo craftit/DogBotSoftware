@@ -23,7 +23,7 @@ namespace DogBotN {
   }
 
   //! Get the servo configuration as JSON
-  Json::Value JointC::ServoConfigAsJSON() const
+  Json::Value JointC::ConfigAsJSON() const
   {
     Json::Value  ret;
 

@@ -1,6 +1,7 @@
 #include "mainwindow.hh"
 #include "ui_mainwindow.h"
 #include "dogbot/DogBotAPI.hh"
+#include "dogbot/ComsSerial.hh"
 #include <iostream>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -369,11 +370,10 @@ void MainWindow::SetupComs()
 
   logger->info("Starting bark");
 
-  m_coms = std::make_shared<DogBotN::SerialComsC>();
+  m_coms = std::make_shared<DogBotN::ComsSerialC>();
   m_coms->SetLogger(logger);
 
-  m_dogBotAPI = std::make_shared<DogBotN::DogBotAPIC>(m_coms);
-  m_dogBotAPI->SetLogger(logger);
+  m_dogBotAPI = std::make_shared<DogBotN::DogBotAPIC>(m_coms,logger);
   m_dogBotAPI->Init();
 
   m_coms->SetHandler(CPT_PWMState,[this](uint8_t *data,int size) mutable

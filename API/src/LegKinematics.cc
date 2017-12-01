@@ -17,6 +17,36 @@ namespace DogBotN {
      m_l2(l2)
   {}
 
+  //! Configure from JSON
+  bool LegKinematicsC::ConfigureFromJSON(const Json::Value &value)
+  {
+
+    m_l1 = value.get("l1",m_l1).asFloat();
+    m_l2 = value.get("l2",m_l2).asFloat();
+    m_zoff = value.get("ZOffset",m_zoff).asFloat();
+    m_linkA = value.get("LinkA",m_linkA).asFloat();
+    m_linkB = value.get("LinkB",m_linkB).asFloat();
+    m_linkH = value.get("LinkH",m_linkH).asFloat();
+
+    return true;
+  }
+
+  //! Get the servo configuration as JSON
+  Json::Value LegKinematicsC::ConfigAsJSON() const
+  {
+    Json::Value ret;
+
+    ret["l1"] = m_l1;
+    ret["l2"] = m_l2;
+    ret["ZOffset"] = m_zoff;
+    ret["LinkA"] = m_linkA;
+    ret["LinkB"] = m_linkB;
+    ret["LinkH"] = m_linkH;
+
+    return ret;
+  }
+
+
   //! Compute the joint angles given a location.
   bool LegKinematicsC::Inverse(const float (&at)[3],float (&angles)[3]) const
   {

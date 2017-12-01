@@ -1,6 +1,8 @@
 #ifndef DOGBOT_LEGKINEMATICS_HEADER
 #define DOGBOT_LEGKINEMATICS_HEADER 1
 
+#include <jsoncpp/json/json.h>
+
 namespace DogBotN {
 
 
@@ -27,6 +29,12 @@ namespace DogBotN {
     //! Create
     LegKinematicsC(float l1,float l2);
 
+    //! Configure from JSON
+    bool ConfigureFromJSON(const Json::Value &value);
+
+    //! Get the servo configuration as JSON
+    Json::Value ConfigAsJSON() const;
+
     //! Compute the joint angles given a location.
     bool Inverse(const float (&position)[3],float (&angles)[3]) const;
 
@@ -49,8 +57,8 @@ namespace DogBotN {
   protected:
 
     float m_l1 = 0.361; // Upper leg length
-    float m_l2 = 0.31;
-    float m_zoff = 0.08;
+    float m_l2 = 0.31;  // Lower leg length
+    float m_zoff = 0.08;// Vertical offset from central axis
 
     float m_linkA = 0.032; // Hip CAD: 0.032
     float m_linkB = 0.04;  // Knee CAD: 0.04

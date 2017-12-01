@@ -3,7 +3,8 @@
 
 #include "dogbot/Servo.hh"
 #include <json/json.h>
-#include "SerialComs.hh"
+
+#include "ComsSerial.hh"
 
 namespace DogBotN {
 

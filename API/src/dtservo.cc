@@ -1,7 +1,8 @@
 
 #include <iostream>
 #include <unistd.h>
-#include "dogbot/SerialComs.hh"
+
+#include "../include/dogbot/ComsSerial.hh"
 #include "dogbot/DogBotAPI.hh"
 
 int main(int nargs,char **argv)
@@ -16,7 +17,7 @@ int main(int nargs,char **argv)
   if(nargs > 1)
     devFilename = argv[1];
 
-  std::shared_ptr<DogBotN::SerialComsC> coms = std::make_shared<DogBotN::SerialComsC>();
+  std::shared_ptr<DogBotN::ComsSerialC> coms = std::make_shared<DogBotN::ComsSerialC>();
 
   coms->SetLogger(logger);
 
@@ -26,7 +27,7 @@ int main(int nargs,char **argv)
     return 1;
   }
 
-  DogBotN::DogBotAPIC dogBotAPI(coms);
+  DogBotN::DogBotAPIC dogBotAPI(coms,logger);
   DogBotN::MotorCalibrationC motorCal;
   if(!dogBotAPI.ReadCalibration(0,motorCal)) {
     logger->error("Failed to read calibration.");

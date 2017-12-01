@@ -7,15 +7,22 @@ FIND_PACKAGE ( Threads REQUIRED )
 include (FindPkgConfig)
 if (PKG_CONFIG_FOUND)
   pkg_check_modules(JSONCPP jsoncpp)
+  pkg_check_modules(ZMQ libzmq)
 endif()
 
 include_directories(${JSONCPP_INCLUDE_DIRS})
 link_directories(${JSONCPP_LIBRARY_DIRS})
 
+include_directories(${ZMQ_INCLUDE_DIRS})
+link_directories(${ZMQ_LIBRARY_DIRS})
+
 add_definitions(-std=c++11)
 
-ADD_LIBRARY (DogBotAPI 
-        SerialComs.cc 
+ADD_LIBRARY (DogBotAPI
+        Coms.cc 
+        ComsZMQServer.cc 
+        ComsZMQClient.cc
+        ComsSerial.cc 
         DogBotAPI.cc 
         Servo.cc 
         LegKinematics.cc 
@@ -23,9 +30,10 @@ ADD_LIBRARY (DogBotAPI
         Joint.cc 
         JointRelative.cc 
         Joint4BarLinkage.cc 
+        ZMQContext.cc
 )
 
-target_link_libraries (DogBotAPI LINK_PUBLIC ${JSONCPP_LIBRARIES} )
+target_link_libraries (DogBotAPI LINK_PUBLIC ${JSONCPP_LIBRARIES} ${ZMQ_LIBRARIES})
 
 # Define headers for this library. PUBLIC headers are used for
 # compiling the library, and will be added to consumers' build
@@ -47,6 +55,10 @@ target_link_libraries (dtservo LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT})
 add_executable (testKin testKinematics.cc)
 
 target_link_libraries (testKin LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT})
+
+add_executable (dogBotServer DogBotServer.cc)
+
+target_link_libraries (dogBotServer LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT})
 
 
 # 'make install' to the correct locations (provided by GNUInstallDirs).
