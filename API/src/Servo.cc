@@ -456,6 +456,7 @@ namespace DogBotN {
     // Assume torque and velocity are approximately constant.
     torque = m_torque;
     velocity = m_velocity;
+    return true;
   }
 
   bool ServoC::UpdateTick(TimePointT timeNow)
