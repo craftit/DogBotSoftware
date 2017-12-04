@@ -144,6 +144,9 @@ namespace DogBotN {
     //! Send a ping
     void SendPing(int deviceId);
 
+    //! Send an enable bridge mode
+    void SendEnableBridge(bool enable);
+
     //! Send a calibration zero
     void SendCalZero(int deviceId);
 

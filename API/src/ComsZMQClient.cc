@@ -54,7 +54,7 @@ namespace DogBotN
     }
 
     m_client = std::make_shared<zmq::socket_t>(g_zmqContext,ZMQ_PUSH);
-    m_client->connect ("tcp://127.0.0.1:5555");
+    m_client->connect ("tcp://127.0.0.1:7200");
 
     m_threadRecieve = std::move(std::thread { [this]{ RunRecieve(); } });
     return true;
@@ -68,13 +68,15 @@ namespace DogBotN
     m_log->debug("Running receiver. ");
 
     m_sub = std::make_shared<zmq::socket_t>(g_zmqContext,ZMQ_SUB);
-    m_sub->connect ("tcp://127.0.0.1:5556");
+    m_sub->connect ("tcp://127.0.0.1:7201");
+    m_sub->setsockopt(ZMQ_SUBSCRIBE,0,0);
 
     while(!m_terminate) {
       //bool socket_t::recv(message_t *msg, int flags = 0);
       zmq::message_t msg;
       if(!m_sub->recv(&msg,0))
         continue;
+      m_log->info("Client got msg.");
       ProcessPacket((uint8_t*)msg.data(),msg.size());
     }
 

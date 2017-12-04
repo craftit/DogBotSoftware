@@ -117,6 +117,8 @@ namespace DogBotN
     // Send some messages to make sure receiver is in sync
     for(int i =0;i < 3;i++)
       SendSync();
+    // If we're connecting over the serial port we want to be in bridge mode.
+    SendEnableBridge(true);
     return true;
   }
 

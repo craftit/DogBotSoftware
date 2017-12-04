@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <sys/termios.h>
 #include "dogbot/Coms.hh"
+#include "dogbot/DogBotAPI.hh"
 
 namespace DogBotN
 {
@@ -161,9 +162,11 @@ namespace DogBotN
             }
             const PacketErrorC *pkt = (const PacketErrorC *) packetData;
 
-            m_log->error("Received error code from device {} : {}  Arg:{} ",
+            m_log->error("Received packet error code from device {} : {} ({}) Packet:{} ({}) Arg:{} ",
                          (int) pkt->m_deviceId,
+                         DogBotN::ComsErrorTypeToString((enum ComsErrorTypeT)pkt->m_errorCode),
                          (int) pkt->m_errorCode,
+                         DogBotN::ComsPacketTypeToString((enum ComsPacketTypeT) pkt->m_causeType),(int) pkt->m_causeType,
                          (int) pkt->m_errorData);
           } break;
           default:
@@ -328,7 +331,17 @@ namespace DogBotN
     PacketPingPongC pkt;
     pkt.m_packetType = CPT_Ping;
     pkt.m_deviceId = deviceId;
-    SendPacket((uint8_t *)&pkt,sizeof(struct PacketPingPongC));
+    SendPacket((uint8_t *)&pkt,sizeof(pkt));
+  }
+
+
+  //! Send an enable bridge mode
+  void ComsC::SendEnableBridge(bool enable)
+  {
+    PacketBridgeModeC pkt;
+    pkt.m_packetType = CPT_BridgeMode;
+    pkt.m_enable = enable;
+    SendPacket((uint8_t *)&pkt,sizeof(pkt));
   }
 
   //! Send an emergency stop

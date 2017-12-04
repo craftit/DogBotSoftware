@@ -20,6 +20,12 @@ namespace DogBotN {
   //! Convert the control dynamic to a string
   const char *ControlDynamicToString(PWMControlDynamicT dynamic);
 
+  //! Convert coms error to a string
+  const char *ComsErrorTypeToString(ComsErrorTypeT errorCode);
+
+  //! Convert coms packet type to a string
+  const char *ComsPacketTypeToString(ComsPacketTypeT packetType);
+
   //! Dogbot device control
 
   //! This does low level management of the robot, configuration of the drivers and status monitoring.
@@ -33,8 +39,16 @@ namespace DogBotN {
       SUT_Updated
     };
 
+    enum DeviceMasterModeT {
+      DMM_DeviceManager,
+      DMM_ClientOnly
+    };
+
     //! Constructor
     DogBotAPIC(const std::string &configFile = "");
+
+    //! Construct with a string
+    DogBotAPIC(const std::string &conName,std::shared_ptr<spdlog::logger> &log,DeviceMasterModeT devMaster);
 
     //! Construct with coms object
     DogBotAPIC(const std::shared_ptr<ComsC> &coms,std::shared_ptr<spdlog::logger> &log,bool manageComs = false);
@@ -42,15 +56,17 @@ namespace DogBotN {
     //! Destructor to wait for shutdown
     ~DogBotAPIC();
 
+    //! Connect to a named device
+    bool Connect(const std::string &name);
+
     //! Connect to coms object.
     bool Connect(const std::shared_ptr<ComsC> &coms);
 
+    //! Access connection
+    std::shared_ptr<ComsC> Connection();
+
     //! Set the logger to use
     void SetLogger(std::shared_ptr<spdlog::logger> &log);
-
-    //! Is this the master server, responsible for managing device ids ?
-    //! Default is false.
-    void SetMaster(bool val);
 
     //! Start API with given config
     bool Init(const std::string &configFile);
@@ -144,7 +160,7 @@ namespace DogBotN {
 
     std::thread m_threadMonitor;
 
-    bool m_isMaster = false; //!< Is Master API responsible for assigning device ids
+    DeviceMasterModeT m_deviceMasterMode = DMM_ClientOnly;
     bool m_started = false;
     bool m_terminate = false;
   };

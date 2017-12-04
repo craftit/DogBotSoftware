@@ -642,7 +642,14 @@ void SerialDecodeC::ProcessPacket()
       }
     }
   } break;
-
+  case CPT_BridgeMode: {
+    if(m_packetLen != sizeof(struct PacketBridgeModeC)) {
+      USBSendError(g_deviceId,CET_UnexpectedPacketSize,CPT_BridgeMode,m_packetLen);
+      break;
+    }
+    struct PacketBridgeModeC *psp = (struct PacketBridgeModeC *) m_data;
+    g_canBridgeMode = psp->m_enable;
+  } break;
   case CPT_Pong: break; // Ping reply.
   case CPT_Sync: break; // Sync.
   case CPT_Error: break; // Error.

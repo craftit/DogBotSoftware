@@ -26,7 +26,8 @@ extern "C" {
     CPT_LoadSetup     = 15, // Load setup from eeprom
     CPT_CalZero       = 16, // Set current position as calibrated zero.
     CPT_Sync          = 17, // Sync data stream
-    CPT_PWMState      = 18  // PWM State. Packet holding internal controller data.
+    CPT_PWMState      = 18, // PWM State. Packet holding internal controller data.
+    CPT_BridgeMode    = 19 // Enable bridge mode
   };
 
 
@@ -203,10 +204,16 @@ extern "C" {
     uint8_t m_errorData;
   } __attribute__((packed));
 
+  struct PacketBridgeModeC {
+    uint8_t m_packetType;
+    uint8_t m_enable;
+  };
+
   struct PacketPingPongC {
     uint8_t m_packetType;
     uint8_t m_deviceId;
   } __attribute__((packed));
+
 
   struct PacketReadParamC {
     uint8_t m_packetType;

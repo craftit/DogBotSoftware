@@ -1,6 +1,8 @@
 
 #include "dogbot/DogBotAPI.hh"
 #include "dogbot/protocol.h"
+#include "dogbot/ComsSerial.hh"
+#include "dogbot/ComsZMQClient.hh"
 #include <fstream>
 #include <chrono>
 #include <mutex>
@@ -43,6 +45,7 @@ namespace DogBotN {
       case MHS_Measuring: return "Measuring";
       case MHS_Homed: return "Homed";
     }
+    printf("Unexpected homed state %d",(int)calibrationState);
     return "Invalid";
   }
 
@@ -61,11 +64,9 @@ namespace DogBotN {
     case CS_Fault: return "Fault";
     case CS_StartUp: return "Startup";
     case CS_Diagnostic: return "Diagnostic";
-    default: {
-      printf("Unexpected state %d",(int)controlState);
-      return "Invalid";
     }
-    }
+    printf("Unexpected state %d",(int)controlState);
+    return "Invalid";
   }
 
   //! Convert the control dynamic to a string
@@ -78,10 +79,54 @@ namespace DogBotN {
       case CM_Velocity: return "Velocity";
       case CM_Position: return "Position";
       case CM_Fault: return "Fault";
-      default:
       case CM_Final: return "Final";
     }
+    printf("Unexpected dynamic value %d",(int)dynamic);
+    return "Invalid";
   }
+
+  //! Convert coms error to a string
+  const char *ComsErrorTypeToString(ComsErrorTypeT errorCode)
+  {
+    switch(errorCode) {
+      case CET_UnknownPacketType: return "Unknown packet type";
+      case CET_UnexpectedPacketSize: return "Unexpected packet size";
+      case CET_ParameterOutOfRange: return "Parameter out of range ";
+      case CET_CANTransmitFailed: return "CAN transmit failed";
+      case CET_InternalError: return "Internal error";
+      case CET_MotorNotRunning: return "Motor not running";
+    }
+    printf("Unexpected error code %d",(int)errorCode);
+    return "Invalid";
+  }
+
+  //! Convert coms packet type to a string
+  const char *ComsPacketTypeToString(ComsPacketTypeT packetType)
+  {
+    switch(packetType) {
+      case CPT_EmergencyStop: return "Emergency Stop";
+      case CPT_SyncTime: return "SyncTime";
+      case CPT_Error: return "Error";
+      case CPT_SetParam: return "SetParam";
+      case CPT_Servo: return "Servo";
+      case CPT_ServoReport: return "ServoReport";
+      case CPT_ReportParam: return "ReportParam";
+      case CPT_ReadParam: return "ReadParam";
+      case CPT_Pong: return "Pong";
+      case CPT_Ping: return "Ping";
+      case CPT_AnnounceId: return "AnnounceId";
+      case CPT_QueryDevices: return "QueryDevices";
+      case CPT_SetDeviceId: return "SetDeviceId";
+      case CPT_SaveSetup: return "SaveSetup";
+      case CPT_LoadSetup: return "LoadSetup";
+      case CPT_CalZero: return "CalZero";
+      case CPT_Sync: return "Sync";
+      case CPT_PWMState: return "PWMState";
+    }
+    printf("Unexpected packet type %d",(int)packetType);
+    return "Invalid";
+  }
+
 
   // ---------------------------------------------------------
 
@@ -106,10 +151,26 @@ namespace DogBotN {
     m_coms->SetLogger(log);
   }
 
+  //! Construct with a string
+  DogBotAPIC::DogBotAPIC(
+      const std::string &conName,
+      std::shared_ptr<spdlog::logger> &log,
+      DeviceMasterModeT devMasterMode
+      )
+    : m_deviceMasterMode(devMasterMode)
+  {
+    if(!conName.empty())
+      Connect(conName);
+    m_log = log;
+    m_coms->SetLogger(log);
+  }
+
+
   DogBotAPIC::~DogBotAPIC()
   {
     m_terminate = true;
-    m_threadMonitor.join();
+    if(m_threadMonitor.joinable())
+      m_threadMonitor.join();
   }
 
   //! Set the logger to use
@@ -127,12 +188,29 @@ namespace DogBotN {
     return false;
   }
 
+  //! Connect to a named device
+  bool DogBotAPIC::Connect(const std::string &name)
+  {
+    if(name == "local") {
+      m_coms = std::make_shared<ComsZMQClientC>("tcp://127.0.0.1");
+      return true;
+    }
+    m_coms = std::make_shared<ComsSerialC>();
+    return m_coms->Open(name.c_str());
+  }
+
   //! Connect to coms object.
   bool DogBotAPIC::Connect(const std::shared_ptr<ComsC> &coms)
   {
     assert(!m_coms);
     m_coms = coms;
     return true;
+  }
+
+  //! Access connection
+  std::shared_ptr<ComsC> DogBotAPIC::Connection()
+  {
+    return m_coms;
   }
 
   //! Read calibration from a device.
@@ -236,17 +314,11 @@ namespace DogBotN {
     return true;
   }
 
-  //! Is this the master server, responsible for managing device ids ?
-  //! Default is false.
-  void DogBotAPIC::SetMaster(bool val)
-  {
-    m_isMaster = val;
-  }
 
   //! Start API with given config
   bool DogBotAPIC::Init(const std::string &configFile)
   {
-    if(!LoadConfig(configFile))
+    if(!configFile.empty() && !LoadConfig(configFile))
       return false;
     return Init();
   }
@@ -452,7 +524,7 @@ namespace DogBotN {
         if(!device->HasUID(pkt.m_uid[0],pkt.m_uid[1])) {
           // Conflicting id's detected.
           deviceId = 0; // Treat device as if it is unassigned.
-          if(m_isMaster)
+          if(m_deviceMasterMode == DMM_DeviceManager)
             m_coms->SendSetDeviceId(0,pkt.m_uid[0],pkt.m_uid[1]); // Stop it using the conflicting address.
           m_log->error(
              "Conflicting ids detected for device {}, with uid {}-{} and existing device {}-{} '{}' ",
@@ -473,7 +545,7 @@ namespace DogBotN {
         }
       }
       // No matching id found ?
-      if(!device && m_isMaster) {
+      if(!device && m_deviceMasterMode == DMM_DeviceManager) {
         device = std::make_shared<ServoC>(m_coms,0,pkt);
         m_timeLastUnassignedUpdate = std::chrono::steady_clock::now();
         for(auto &a : m_unassignedDevices) {
@@ -485,21 +557,24 @@ namespace DogBotN {
         return ;
       }
     }
-    assert(device);
-    device->HandlePacketAnnounce(pkt,m_isMaster);
-    ServoStatusUpdate(deviceId,updateType);
+    assert(device || m_deviceMasterMode != DMM_DeviceManager);
+    if(device) {
+      device->HandlePacketAnnounce(pkt,m_deviceMasterMode);
+      ServoStatusUpdate(deviceId,updateType);
+    }
   }
 
 
   //! Monitor thread
   void DogBotAPIC::RunMonitor()
   {
-    m_log->info("Running monitor. ");
+    m_log->info("Running monitor. Master:{} ",(int) m_deviceMasterMode);
     //logger->info("Starting bark");
 
     m_coms->SetHandler(CPT_Pong, [this](uint8_t *data,int size) mutable
     {
-
+      struct PacketPingPongC *pkt = (struct PacketPingPongC *) data;
+      m_log->info("Got pong from {} ",pkt->m_deviceId);
     });
 
     m_coms->SetHandler(CPT_ServoReport,
@@ -576,12 +651,14 @@ namespace DogBotN {
           m_driverState = DS_Connected;
           // Send out a device query.
           m_coms->SendQueryDevices();
+          m_coms->SendPing(0); // Find out what we're connected to.
         }
         // no break
         case DS_Connected: {
           std::this_thread::sleep_for(std::chrono::milliseconds(50));
           if(!m_coms->IsReady()) {
             m_driverState = DS_NoConnection;
+            break;
           }
           auto now = std::chrono::steady_clock::now();
           bool unassignedDevicesFound = false;

@@ -369,12 +369,16 @@ void MainWindow::SetupComs()
   auto logger = spdlog::stdout_logger_mt("console");
 
   logger->info("Starting bark");
-
-  m_coms = std::make_shared<DogBotN::ComsSerialC>();
-  m_coms->SetLogger(logger);
-
-  m_dogBotAPI = std::make_shared<DogBotN::DogBotAPIC>(m_coms,logger);
+#if 0
+  m_dogBotAPI = std::make_shared<DogBotN::DogBotAPIC>("/dev/ttyACM0",logger,DogBotN::DogBotAPIC::DMM_DeviceManager);
+#else
+  m_dogBotAPI = std::make_shared<DogBotN::DogBotAPIC>("local",logger,DogBotN::DogBotAPIC::DMM_ClientOnly);
+#endif
   m_dogBotAPI->Init();
+  m_coms = m_dogBotAPI->Connection();
+  // m_coms = std::make_shared<DogBotN::ComsSerialC>();
+  //m_coms->SetLogger(logger);
+
 
   m_coms->SetHandler(CPT_PWMState,[this](uint8_t *data,int size) mutable
   {
@@ -548,10 +552,6 @@ void MainWindow::on_pushButtonConnect_clicked()
   if(m_coms->Open(ui->lineEditDevice->text().toStdString().c_str())) {
     ui->labelConnectionState->setText("Ok");
     emit setLogText("Connect ok");
-
-    // Put connected device into bridge mode.
-    m_coms->SendSetParam(0,CPI_CANBridgeMode,1);
-
     QueryAll();
   } else {
     ui->labelConnectionState->setText("Failed");
@@ -806,6 +806,8 @@ void MainWindow::on_comboBoxPositionRef_activated(const QString &arg1)
 void MainWindow::on_pushButton_2_clicked()
 {
   m_coms->SendSetParam(m_targetDeviceId,CPI_DebugIndex,(uint8_t) 7);
+  //m_coms->SendSetParam(m_targetDeviceId,CPI_CANBridgeMode,1);
+  //m_coms->SendQueryParam(m_targetDeviceId,CPI_CANBridgeMode);
 }
 
 void MainWindow::on_pushButtonCalZero_clicked()
