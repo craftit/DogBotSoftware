@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 #include "dogbot/DogBotAPI.hh"
 #include "dogbot/ComsSerial.hh"
+#include "dogbot/ComsProxy.hh"
 #include <iostream>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -54,6 +55,9 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(this,SIGNAL(setPositionGain(double)),ui->doubleSpinBoxPositionGain,SLOT(setValue(double)));
   connect(this,SIGNAL(setHomeIndexOffset(double)),ui->doubleSpinBoxHomeIndexOffset,SLOT(setValue(double)));
   connect(this,SIGNAL(setHallSensors(QString)),ui->lineEditHallReadings,SLOT(setText(QString)));
+  connect(this,SIGNAL(setUSBDrops(QString)),ui->lineEditUSBDrop,SLOT(setText(QString)));
+  connect(this,SIGNAL(setUSBErrors(QString)),ui->lineEditUSBError,SLOT(setText(QString)));
+  connect(this,SIGNAL(setFaultMap(QString)),ui->lineEditFaultMap,SLOT(setText(QString)));
 
   startTimer(10);
 
@@ -74,6 +78,9 @@ MainWindow::MainWindow(QWidget *parent) :
   m_displayQuery.push_back(CPI_PositionGain);
   m_displayQuery.push_back(CPI_homeIndexPosition);
   m_displayQuery.push_back(CPI_MaxCurrent);
+  m_displayQuery.push_back(CPI_USBPacketDrops);
+  m_displayQuery.push_back(CPI_USBPacketErrors);
+  m_displayQuery.push_back(CPI_FaultState);
 
 }
 
@@ -349,13 +356,37 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     if(psp->m_header.m_deviceId == m_targetDeviceId) {
       sprintf(buff,"%5d %5d %5d ",
               (int) psp->m_data.uint16[0],(int) psp->m_data.uint16[1],(int) psp->m_data.uint16[2]);
-      setHallSensors(buff);
+      emit setHallSensors(buff);
     }
 
     sprintf(buff,"\n %d Hall: %d %d %d ",
             psp->m_header.m_deviceId,(int) psp->m_data.uint16[0],(int) psp->m_data.uint16[1],(int) psp->m_data.uint16[2]);
     displayStr += buff;
     ret = false;
+  } break;
+  case CPI_USBPacketDrops: {
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      sprintf(buff,"%d ", (int) psp->m_data.uint32[0]);
+      emit setUSBDrops(buff);
+    }
+    sprintf(buff,"\n %d USB Packet drop: %d ",psp->m_header.m_deviceId,psp->m_data.uint32[0]);
+    displayStr += buff;
+  } break;
+  case CPI_USBPacketErrors: {
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      sprintf(buff,"%d ", (int) psp->m_data.uint32[0]);
+      emit setUSBErrors(buff);
+    }
+    sprintf(buff,"\n %d USB Packet error: %d ",psp->m_header.m_deviceId,psp->m_data.uint32[0]);
+    displayStr += buff;
+  } break;
+  case CPI_FaultState: {
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      sprintf(buff,"%X ", (int) psp->m_data.uint32[0]);
+      emit setFaultMap(buff);
+    }
+    sprintf(buff,"\n %d Fault state: %X ",psp->m_header.m_deviceId,psp->m_data.uint32[0]);
+    displayStr += buff;
   } break;
   default:
     break;
@@ -369,16 +400,11 @@ void MainWindow::SetupComs()
   auto logger = spdlog::stdout_logger_mt("console");
 
   logger->info("Starting bark");
-#if 0
-  m_dogBotAPI = std::make_shared<DogBotN::DogBotAPIC>("/dev/ttyACM0",logger,DogBotN::DogBotAPIC::DMM_DeviceManager);
-#else
-  m_dogBotAPI = std::make_shared<DogBotN::DogBotAPIC>("local",logger,DogBotN::DogBotAPIC::DMM_ClientOnly);
-#endif
+  m_coms = std::make_shared<DogBotN::ComsProxyC>();
+  m_coms->SetLogger(logger);
+  m_dogBotAPI = std::make_shared<DogBotN::DogBotAPIC>(m_coms,logger,DogBotN::DogBotAPIC::DMM_ClientOnly);
   m_dogBotAPI->Init();
-  m_coms = m_dogBotAPI->Connection();
   // m_coms = std::make_shared<DogBotN::ComsSerialC>();
-  //m_coms->SetLogger(logger);
-
 
   m_coms->SetHandler(CPT_PWMState,[this](uint8_t *data,int size) mutable
   {

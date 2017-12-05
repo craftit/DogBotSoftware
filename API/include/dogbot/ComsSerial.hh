@@ -21,7 +21,7 @@ namespace DogBotN {
     virtual ~ComsSerialC();
 
     //! Open a port.
-    virtual bool Open(const char *portAddr) override;
+    virtual bool Open(const std::string &portAddr) override;
 
     //! Close connection
     virtual void Close() override;

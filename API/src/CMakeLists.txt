@@ -23,6 +23,7 @@ ADD_LIBRARY (DogBotAPI
         ComsZMQServer.cc 
         ComsZMQClient.cc
         ComsSerial.cc 
+        ComsProxy.cc 
         DogBotAPI.cc 
         Servo.cc 
         LegKinematics.cc 

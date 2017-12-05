@@ -18,6 +18,9 @@ const uint8_t g_charETX = 0x03;
 bool g_canBridgeMode = false;
 bool g_comsInitDone = false;
 
+int g_usbDropCount = 0;
+int g_usbErrorCount = 0;
+
 bool USBSendSync(void)
 {
   uint8_t buff[2];
@@ -267,6 +270,10 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_FaultCode:
       // Just clear it.
       g_lastFaultCode = FC_Ok;
+      break;
+    case CPI_FaultState:
+      // Just clear it.
+      g_faultState = 0;
       break;
     case CPI_Indicator:
       if(len != 1)
@@ -570,7 +577,18 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       *len = 4;
       data->float32[0] = g_minSupplyVoltage;
       break;
-
+    case CPI_USBPacketDrops:
+      *len = 4;
+      data->uint32[0] = g_usbDropCount;
+      break;
+    case CPI_USBPacketErrors:
+      *len = 4;
+      data->uint32[0] = g_usbErrorCount;
+      break;
+    case CPI_FaultState:
+      *len = 4;
+      data->uint32[0] = g_faultState;
+      break;
     default:
       return false;
   }
@@ -831,8 +849,9 @@ bool PostPacket(struct PacketT *pkt)
   if(chMBPost(&g_fullPackets,(msg_t) pkt,TIME_IMMEDIATE) == MSG_OK)
     return true;
 
+  g_usbErrorCount++;
   // This shouldn't happen, as if we can't acquire an empty buffer
-  // unless there is space, but we don't want to loose the buffer
+  // unless there is space available, but we don't want to loose the buffer
   // so attempt to add it back to the free list
   if(chMBPost(&g_emptyPackets,(msg_t) pkt,TIME_IMMEDIATE) != MSG_OK) {
     // Things are screwy. Panic ?
@@ -848,21 +867,25 @@ static THD_FUNCTION(ThreadRxComs, arg) {
   (void)arg;
   chRegSetThreadName("rxcoms");
   while(true) {
-    int ret = streamGet(g_comsDecode.m_SDU);
-    if(ret == STM_RESET) {
-      chThdSleepMilliseconds(500);
-      continue;
+    if(SDU1.config->usbp->state == USB_ACTIVE) {
+      int ret = streamGet(g_comsDecode.m_SDU);
+      if(ret == STM_RESET) {
+        chThdSleepMilliseconds(100);
+        continue;
+      }
+      g_comsDecode.AcceptByte(ret);
+    } else {
+      chThdSleepMilliseconds(100);
     }
-    g_comsDecode.AcceptByte(ret);
   }
 }
 
-static THD_WORKING_AREA(waThreadTxComs, 512);
+static THD_WORKING_AREA(waThreadTxComs, 256);
 static THD_FUNCTION(ThreadTxComs, arg) {
 
   (void)arg;
   chRegSetThreadName("txcoms");
-  static uint8_t txbuff[261];
+  static uint8_t txbuff[70];
   while(true) {
     struct PacketT *packet = 0;
     if(chMBFetch(&g_fullPackets,(msg_t*) &packet,TIME_INFINITE) != MSG_OK)
@@ -871,6 +894,7 @@ static THD_FUNCTION(ThreadTxComs, arg) {
     if(SDU1.config->usbp->state == USB_ACTIVE) {
 
       uint8_t len = packet->m_len;
+
       uint8_t *buff = packet->m_data;
 
       uint8_t *at = txbuff;
@@ -903,12 +927,17 @@ bool USBSendPacket(
     int len
     )
 {
-  // Just truncate for the moment, it is better than overwriting memory.
   struct PacketT *pkt;
-  //if(len > sizeof pkt->m_data) len = sizeof pkt->m_data;
+  // Just truncate for the moment, it is better than overwriting memory.
+  if(len >= (int)sizeof(pkt->m_data)) {
+    g_usbErrorCount++;
+    len = sizeof(pkt->m_data);
+  }
 
-  if((pkt = GetEmptyPacket(TIME_IMMEDIATE)) == 0)
+  if((pkt = GetEmptyPacket(TIME_IMMEDIATE)) == 0) {
+    g_usbDropCount++;
     return false;
+  }
 
   pkt->m_len = len;
   memcpy(&pkt->m_data,buff,len);

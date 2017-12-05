@@ -338,6 +338,18 @@ namespace DogBotN {
       ret = controlDynamic != m_controlDynamic;
       m_controlDynamic = controlDynamic;
     } break;
+    case CPI_USBPacketDrops: {
+      m_log->error("Device {} {} USB Packet drops {} ",m_id,m_name,pkt.m_data.uint32[0]);
+      ret = false;
+    } break;
+    case CPI_USBPacketErrors: {
+      m_log->error("Device {} {} USB Packet errors {} ",m_id,m_name,pkt.m_data.uint32[0]);
+      ret = false;
+    } break;
+    case CPI_FaultState: {
+      m_log->error("Device {} {} Fault state {} ",m_id,m_name,pkt.m_data.uint32[0]);
+      ret = false;
+    } break;
 #if 0
     case CPI_CalibrationOffset: {
       float calAngleDeg =  (pkt.m_data.float32[0] * 360.0f / (M_PI * 2.0));

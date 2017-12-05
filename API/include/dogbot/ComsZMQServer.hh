@@ -13,6 +13,9 @@ namespace DogBotN {
   public:
     ComsZMQServerC(const std::shared_ptr<ComsC> &coms,std::shared_ptr<spdlog::logger> &log);
 
+    //! Make sure everything is disconnected.
+    ~ComsZMQServerC();
+
     //! Run server
     void Run(const std::string &addr);
 
@@ -25,7 +28,7 @@ namespace DogBotN {
     std::shared_ptr<zmq::socket_t> m_pub;   // Publish state messages
 
     bool m_terminate = false;
-
+    int m_genericHandlerId = -1;
   };
 
 }

@@ -55,18 +55,41 @@ namespace DogBotN
     m_log = log;
   }
 
-  bool ComsC::Open(const char *portAddr)
+  bool ComsC::Open(const std::string &portAddr)
   {
     return false;
   }
 
   //! Set handler for all packets, this is called as well as any specific handlers that have been installed.
   //! Only one can be set at any time.
-  void ComsC::SetGenericHandler(const std::function<void (uint8_t *data,int len)> &handler)
+  int ComsC::SetGenericHandler(const std::function<void (uint8_t *data,int len)> &handler)
   {
     std::lock_guard<std::mutex> lock(m_accessPacketHandler);
-    m_genericHandler = handler;
+    for(int i = 0;i < m_genericHandler.size();i++) {
+      if(!m_genericHandler[i]) {
+        m_genericHandler[i] = handler;
+        return i;
+      }
+    }
+    int ret = m_genericHandler.size();
+    m_genericHandler.push_back(handler);
+    return ret;
   }
+
+
+  //! Remove generic handler
+  void ComsC::RemoveGenericHandler(int id)
+  {
+    if(id < 0)
+      return ;
+    std::lock_guard<std::mutex> lock(m_accessPacketHandler);
+    assert(id < m_genericHandler.size());
+    if(id >= m_genericHandler.size())
+      return ;
+    m_genericHandler[id] = std::function<void (uint8_t *data,int len)>();
+  }
+
+
 
   int ComsC::SetHandler(ComsPacketTypeT packetId,const std::function<void (uint8_t *data,int )> &handler)
   {
@@ -110,12 +133,17 @@ namespace DogBotN
     m_log->debug("Got packet [%d] %s ",packetLen,dataStr.c_str());
 #endif
 
-    if(m_genericHandler)
-      m_genericHandler(packetData,packetLen);
+    // Do some handling
+    {
+      std::lock_guard<std::mutex> lock(m_accessPacketHandler);
+      for(auto &func : m_genericHandler) {
+        if(func) func(packetData,packetLen);
+      }
+    }
 
     // data[0] //
-    int packetId = packetData[0];
-    switch(packetId)
+    unsigned packetId = packetData[0];
+    switch((ComsPacketTypeT) packetId)
     {
       case CPT_Ping: {
         // Who should be responsible to replying to this ?
@@ -130,18 +158,19 @@ namespace DogBotN
         m_log->debug("Got sync. ");
         break;
       default: {
-        std::lock_guard<std::mutex> lock(m_accessPacketHandler);
-        if(packetId < m_packetHandler.size()) {
-          bool hasHandler = false;
-          //const std::function<void (uint8_t *data,int )> &handler;
-          for(auto a : m_packetHandler[packetId]) {
-            if(a) {
-              hasHandler =  true;
-              a(packetData,packetLen);
+        {
+          std::lock_guard<std::mutex> lock(m_accessPacketHandler);
+          if(packetId < m_packetHandler.size()) {
+            bool hasHandler = false;
+            for(auto a : m_packetHandler[packetId]) {
+              if(a) {
+                hasHandler =  true;
+                a(packetData,packetLen);
+              }
             }
+            if(hasHandler)
+              return ;
           }
-          if(hasHandler)
-            return ;
         }
         // Fall back to the default handlers.
         switch(packetId) {

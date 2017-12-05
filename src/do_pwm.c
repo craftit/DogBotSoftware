@@ -864,8 +864,6 @@ enum FaultCodeT PWMMotorCalResistance()
   g_phaseOffsetVoltage = 0;
 
 #if 1
-  int cyclesSample = 32;
-
   for(int i = 0;i < cyclesPerSecond * 3;i++) {
     g_vbus_voltage = ReadSupplyVoltage();
     if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
