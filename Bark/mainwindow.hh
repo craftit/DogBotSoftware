@@ -175,6 +175,9 @@ signals:
   void setPositionGain(double offset);
   void setHomeIndexOffset(double offset);
   void setHallSensors(const QString &str);
+  void setUSBErrors(const QString &str);
+  void setUSBDrops(const QString &str);
+  void setFaultMap(const QString &str);
 
 private:
   void SetupComs();

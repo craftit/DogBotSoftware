@@ -115,6 +115,9 @@ extern "C" {
     CPI_homeIndexPosition = 40,
     CPI_HallSensors      = 41,
     CPI_MinSupplyVoltage = 42,
+    CPI_USBPacketDrops   = 43,
+    CPI_USBPacketErrors  = 44,
+    CPI_FaultState       = 45,
 
     CPI_ANGLE_CAL       = 48,  // 12 Values
     CPI_ANGLE_CAL_0     = 0x30,

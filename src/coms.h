@@ -50,6 +50,10 @@ extern "C" {
 
   extern uint8_t g_deviceId;
 
+  extern int g_usbDropCount;
+  extern int g_usbErrorCount;
+
+
 #ifdef __cplusplus
 }
 #endif

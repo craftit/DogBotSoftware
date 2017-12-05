@@ -157,14 +157,18 @@ void EnableAuxPower(bool enable)
     palClearPad(GPIOA, GPIOA_PIN7); // Turn off aux power
 }
 
+uint32_t g_faultState = 0;
 
 void FaultDetected(enum FaultCodeT faultCode)
 {
   g_currentLimit = 0;
-  if(g_lastFaultCode == faultCode) {
+  int faultBit = 1<<((int) faultCode);
+  // Have we already flagged this error?
+  if((g_faultState & faultBit) != 0) {
     ChangeControlState(CS_Fault);
     return ;
   }
+  g_faultState |= faultBit;
   g_lastFaultCode = faultCode;
   SendParamUpdate(CPI_FaultCode);
   ChangeControlState(CS_Fault);
@@ -242,6 +246,9 @@ void SendBackgroundStateReport(void)
 {
   static int stateCount = 0;
 
+  static int lastUsbError = 0;
+  static int lastUsbDrop = 0;
+  static int lastFaultState = 0;
 
   // Distribute these over time.
   switch(stateCount)
@@ -257,17 +264,32 @@ void SendBackgroundStateReport(void)
       break;
     case 2:
       SendParamUpdate(CPI_PhaseVelocity);
-
+      break;
+    case 3:
+      if(lastUsbError != g_usbErrorCount) {
+        lastUsbError = g_usbErrorCount;
+        SendParamUpdate(CPI_USBPacketErrors);
+      }
+      if(lastUsbDrop != g_usbDropCount) {
+        lastUsbDrop = g_usbDropCount;
+        SendParamUpdate(CPI_USBPacketDrops);
+      }
+      if(lastFaultState != g_faultState) {
+        lastFaultState = g_faultState;
+        SendParamUpdate(CPI_FaultState);
+      }
+      break;
+    case 4:
       // Finish here unless we're in diagnostic mode.
       if(g_controlState != CS_Diagnostic) {
         stateCount = -1;
         return ;
       }
       break;
-    case 3:
+    case 5:
       SendParamUpdate(CPI_DemandPhaseVelocity);
       break;
-    case 4:
+    case 6:
       SendParamUpdate(CPI_HallSensors);
       break;
   }
@@ -280,9 +302,10 @@ void DoStartup(void)
 {
   PWMStop();
   MotionResetCalibration(MHS_Measuring);
-
   g_lastFaultCode = FC_Ok; // Clear any errors
+  g_faultState = 0;
   SendParamUpdate(CPI_FaultCode);
+  SendParamUpdate(CPI_FaultState);
 
   {
     float sum = 0;

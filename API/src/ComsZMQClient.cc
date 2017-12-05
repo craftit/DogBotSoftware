@@ -5,7 +5,7 @@
 namespace DogBotN
 {
 
-  ComsZMQClientC::ComsZMQClientC(const char *portAddr)
+  ComsZMQClientC::ComsZMQClientC(const std::string &portAddr)
   {
     Open(portAddr);
   }
@@ -40,7 +40,7 @@ namespace DogBotN
   }
 
 
-  bool ComsZMQClientC::Open(const char *portAddr)
+  bool ComsZMQClientC::Open(const std::string &portAddr)
   {
     m_terminate = false;
 

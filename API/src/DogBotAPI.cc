@@ -159,10 +159,9 @@ namespace DogBotN {
       )
     : m_deviceMasterMode(devMasterMode)
   {
+    m_log = log;
     if(!conName.empty())
       Connect(conName);
-    m_log = log;
-    m_coms->SetLogger(log);
   }
 
 
@@ -196,6 +195,7 @@ namespace DogBotN {
       return true;
     }
     m_coms = std::make_shared<ComsSerialC>();
+    m_coms->SetLogger(m_log);
     return m_coms->Open(name.c_str());
   }
 
@@ -333,8 +333,9 @@ namespace DogBotN {
       return false;
     }
 
-    //! Initalise which serial device to use.
-    m_deviceName = m_configRoot.get("device", "/dev/ttyACM0" ).asString();
+    //! Initialise which serial device to use.
+    if(!m_deviceName.empty())
+      m_deviceName = m_configRoot.get("device","local").asString();
 
     m_started = true;
 
@@ -571,6 +572,10 @@ namespace DogBotN {
     m_log->info("Running monitor. Master:{} ",(int) m_deviceMasterMode);
     //logger->info("Starting bark");
 
+    if(!m_coms) {
+      m_log->error("No coms object. ");
+      return ;
+    }
     m_coms->SetHandler(CPT_Pong, [this](uint8_t *data,int size) mutable
     {
       struct PacketPingPongC *pkt = (struct PacketPingPongC *) data;
@@ -794,7 +799,7 @@ namespace DogBotN {
   {
     std::lock_guard<std::mutex> lock(m_mutexDevices);
     for(auto &a : m_devices) {
-      if(a->Name() == name)
+      if(a && a->Name() == name)
         return a;
     }
     return std::shared_ptr<ServoC>();

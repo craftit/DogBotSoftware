@@ -59,7 +59,7 @@ namespace DogBotN
   }
 
 
-  bool ComsSerialC::Open(const char *portAddr)
+  bool ComsSerialC::Open(const std::string &portAddr)
   {
     m_terminate = false;
     if(m_fd >= 0) {
@@ -69,7 +69,7 @@ namespace DogBotN
 
     m_log->info("Opening: '{}'",portAddr);
 
-    m_fd = open(portAddr,O_RDWR | O_NONBLOCK);
+    m_fd = open(portAddr.c_str(),O_RDWR | O_NONBLOCK);
     if(m_fd < 0) {
       m_log->error("Failed to open file {} Error:{}, {} ",portAddr,errno,strerror(errno));
       return false;

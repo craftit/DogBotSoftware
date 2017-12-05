@@ -1,26 +1,29 @@
-#ifndef DOGBOG_ZMQCLIENTCOMS_HEADER
-#define DOGBOG_ZMQCLIENTCOMS_HEADER 1
+#ifndef DOGBOG_COMSPROXY_HEADER
+#define DOGBOG_COMSPROXY_HEADER 1
 
 #include "dogbot/Coms.hh"
-#include <zmq.hpp>
 
 namespace DogBotN {
 
 
-  //! Low level network communications
+  //! Communication proxy that allows switching between sources
+  //! after setup
 
-  class ComsZMQClientC
+  class ComsProxyC
    : public ComsC
   {
   public:
-    ComsZMQClientC(const std::string &portAddr);
+    ComsProxyC(const std::shared_ptr<ComsC> &coms);
 
     //! default
-    ComsZMQClientC();
+    ComsProxyC();
 
     //! Destructor
     // Disconnects and closes file descriptors
-    virtual ~ComsZMQClientC();
+    virtual ~ComsProxyC();
+
+    //! Set coms object to use
+    void SetComs(const std::shared_ptr<ComsC> &coms);
 
     //! Open a port.
     virtual bool Open(const std::string &portAddr) override;
@@ -36,16 +39,9 @@ namespace DogBotN {
 
 
   protected:
-
-    bool RunRecieve();
-
-    std::shared_ptr<zmq::socket_t> m_client;
-    std::shared_ptr<zmq::socket_t> m_sub;
-
-    std::thread m_threadRecieve;
-
+    int m_genericHandlerId = -1;
+    std::shared_ptr<ComsC> m_coms;
     std::mutex m_accessTx;
-    std::timed_mutex m_mutexExitOk;
 
   };
 }

@@ -547,6 +547,10 @@ static THD_FUNCTION(can_rx, p) {
 
           }
         } break;
+        case CPT_BridgeMode:
+          // Should never see this on the can bus.
+          // FIXME:- Report an error ?
+          break;
       }
 
     }

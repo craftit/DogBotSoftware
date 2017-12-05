@@ -43,6 +43,7 @@ extern binary_semaphore_t g_reportSampleReady;  //! ~100Hz report loop
 
 extern int g_motorReportSampleRate;
 
+extern uint32_t g_faultState;
 extern int16_t g_currentADCValue[3];
 extern float g_currentZeroOffset[3];
 extern uint16_t g_hall[3];

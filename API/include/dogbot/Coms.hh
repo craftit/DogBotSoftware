@@ -34,7 +34,7 @@ namespace DogBotN {
     void SetLogger(std::shared_ptr<spdlog::logger> &log);
 
     //! Open a port.
-    virtual bool Open(const char *portAddr);
+    virtual bool Open(const std::string &portAddr);
 
     //! Close connection
     virtual void Close();
@@ -152,13 +152,16 @@ namespace DogBotN {
 
     //! Set handler for all packets, this is called as well as any specific handlers that have been installed.
     //! Only one can be set at any time.
-    void SetGenericHandler(const std::function<void (uint8_t *data,int len)> &handler);
+    int SetGenericHandler(const std::function<void (uint8_t *data,int len)> &handler);
+
+    //! Remove generic handler
+    void RemoveGenericHandler(int id);
 
     //! Set the handler for a particular type of packet.
     //! Returns the id of the handler or -1 if failed.
     int SetHandler(ComsPacketTypeT packetType,const std::function<void (uint8_t *data,int len)> &handler);
 
-    //! Delete given handler
+    //! Remove given handler
     void DeleteHandler(ComsPacketTypeT packetType,int id);
 
 
@@ -179,7 +182,7 @@ namespace DogBotN {
     std::mutex m_accessPacketHandler;
 
     std::vector<std::vector<std::function<void (uint8_t *data,int len)> > > m_packetHandler;
-    std::function<void (uint8_t *data,int len)> m_genericHandler;
+    std::vector<std::function<void (uint8_t *data,int len)> > m_genericHandler;
   };
 }
 #endif

@@ -86,8 +86,7 @@ endif
 PROJECT = BMCV2
 
 # Imported source files and paths
-#CHIBIOS = /Users/charles/src/arm/ChibiOS_16.1.7
-CHIBIOS = ../../ChibiOS_17.6.0
+CHIBIOS = ../../ChibiOS_17.6.3
 STDPERIPH = ../ext/STM32F4xx_DSP_StdPeriph_Lib/Libraries/STM32F4xx_StdPeriph_Driver
 
 # Startup files.
