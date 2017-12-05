@@ -547,6 +547,10 @@ static THD_FUNCTION(can_rx, p) {
 
           }
         } break;
+        case CPT_BridgeMode: {
+          // Shouldn't see this on the CAN bus, so report an error and drop it.
+          CANSendError(CET_InternalError,CPT_BridgeMode,0);
+        } break;
       }
 
     }
