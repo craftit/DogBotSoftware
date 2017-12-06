@@ -65,7 +65,7 @@ namespace DogBotN {
 
 
   //! Get last reported state of the servo and the time it was taken.
-  bool JointC::GetState(TimePointT &tick,float &position,float &velocity,float &torque) const
+  bool JointC::GetState(TimePointT &tick,double &position,double &velocity,double &torque) const
   {
     return false;
   }
@@ -74,7 +74,7 @@ namespace DogBotN {
   //! This will linearly extrapolate position, and assume velocity and torque are
   //! the same as the last reading.
   //! If the data is more than 5 ticks away from the
-  bool JointC::GetStateAt(TimePointT theTime,float &position,float &velocity,float &torque) const
+  bool JointC::GetStateAt(TimePointT theTime,double &position,double &velocity,double &torque) const
   {
     return false;
   }

@@ -27,13 +27,13 @@ namespace DogBotN {
     virtual Json::Value ConfigAsJSON() const override;
 
     //! Get last reported state of the servo and the time it was taken.
-    virtual bool GetState(TimePointT &tick,float &position,float &velocity,float &torque) const override;
+    virtual bool GetState(TimePointT &tick,double &position,double &velocity,double &torque) const override;
 
     //! Estimate state at the given time.
     //! This will linearly extrapolate position, and assume velocity and torque are
     //! the same as the last reading.
     //! If the data is more than 5 ticks away from the
-    virtual bool GetStateAt(TimePointT theTime,float &position,float &velocity,float &torque) const override;
+    virtual bool GetStateAt(TimePointT theTime,double &position,double &velocity,double &torque) const override;
 
     //! Update torque for the servo.
     virtual bool DemandTorque(float torque) override;
@@ -45,13 +45,13 @@ namespace DogBotN {
     virtual bool Raw2Simple(
         float refPosition,float refVelocity,float refTorque,
         float drivePosition,float driveVelocity,float driveTorque,
-        float &position,float &velocity,float &torque
+        double &position,double &velocity,double &torque
     ) const;
 
     virtual bool Simple2Raw(
          float refPosition,float refTorque,
          float position,float torque,
-         float &drivePosition,float &driveTorque
+         double &drivePosition,double &driveTorque
     ) const;
 
 

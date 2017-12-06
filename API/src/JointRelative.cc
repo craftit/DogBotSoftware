@@ -17,7 +17,7 @@ namespace DogBotN {
   bool JointRelativeC::Raw2Simple(
       float refPosition,float refVelocity,float refTorque,
       float drivePosition,float driveVelocity,float driveTorque,
-      float &position,float &velocity,float &torque
+      double &position,double &velocity,double &torque
   ) const
   {
     position = drivePosition - (refPosition * m_refGain + m_refOffset);
@@ -29,7 +29,7 @@ namespace DogBotN {
   bool JointRelativeC::Simple2Raw(
        float refPosition,float refTorque,
        float position,float torque,
-       float &drivePosition,float &driveTorque
+       double &drivePosition,double &driveTorque
   ) const
   {
     drivePosition = position + (refPosition * m_refGain + m_refOffset);
@@ -58,18 +58,18 @@ namespace DogBotN {
   }
 
   //! Get last reported state of the servo and the time it was taken.
-  bool JointRelativeC::GetState(TimePointT &tick,float &position,float &velocity,float &torque) const
+  bool JointRelativeC::GetState(TimePointT &tick,double &position,double &velocity,double &torque) const
   {
-    float drivePosition = 0;
-    float driveVelocity = 0;
-    float driveTorque = 0;
+    double drivePosition = 0;
+    double driveVelocity = 0;
+    double driveTorque = 0;
 
     if(!m_jointDrive->GetState(tick,drivePosition,driveVelocity,driveTorque))
       return false;
 
-    float refPosition = 0;
-    float refVelocity = 0;
-    float refTorque = 0;
+    double refPosition = 0;
+    double refVelocity = 0;
+    double refTorque = 0;
 
     if(!m_jointRef->GetStateAt(tick,refPosition,refVelocity,refTorque))
       return false;
@@ -86,19 +86,19 @@ namespace DogBotN {
   //! This will linearly extrapolate position, and assume velocity and torque are
   //! the same as the last reading.
   //! If the data is more than 5 ticks away from the
-  bool JointRelativeC::GetStateAt(TimePointT tick,float &position,float &velocity,float &torque) const
+  bool JointRelativeC::GetStateAt(TimePointT tick,double &position,double &velocity,double &torque) const
   {
-    float drivePosition = 0;
-    float driveVelocity = 0;
-    float driveTorque = 0;
+    double drivePosition = 0;
+    double driveVelocity = 0;
+    double driveTorque = 0;
 
     if(!m_jointDrive->GetState(tick,drivePosition,driveVelocity,driveTorque)) {
       return false;
     }
 
-    float refPosition = 0;
-    float refVelocity = 0;
-    float refTorque = 0;
+    double refPosition = 0;
+    double refVelocity = 0;
+    double refTorque = 0;
 
     if(!m_jointRef->GetStateAt(tick,refPosition,refVelocity,refTorque)) {
       return false;
@@ -122,17 +122,17 @@ namespace DogBotN {
     m_demandPosition = position;
     m_demandTorqueLimit = torqueLimit;
 
-    float refPosition = 0;
-    float refVelocity = 0;
-    float refTorque = 0;
+    double refPosition = 0;
+    double refVelocity = 0;
+    double refTorque = 0;
 
     TimePointT tick = TimePointT::clock::now();
     if(!m_jointRef->GetStateAt(tick,refPosition,refVelocity,refTorque)) {
       return false;
     }
 
-    float drivePosition = 0;
-    float driveTorqueLimit = 0;
+    double drivePosition = 0;
+    double driveTorqueLimit = 0;
     if(!Simple2Raw(
         refPosition,refTorque,
         position,torqueLimit,

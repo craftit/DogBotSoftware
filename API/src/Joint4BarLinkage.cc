@@ -16,7 +16,7 @@ namespace DogBotN {
   bool Joint4BarLinkageC::Raw2Simple(
       float refPosition,float refVelocity,float refTorque,
       float drivePosition,float driveVelocity,float driveTorque,
-      float &position,float &velocity,float &torque
+      double &position,double &velocity,double &torque
   ) const
   {
 
@@ -29,7 +29,7 @@ namespace DogBotN {
   bool Joint4BarLinkageC::Simple2Raw(
        float refPosition,float refTorque,
        float position,float torque,
-       float &drivePosition,float &driveTorque
+       double &drivePosition,double &driveTorque
   ) const
   {
     drivePosition = position + (refPosition * m_refGain + m_refOffset);

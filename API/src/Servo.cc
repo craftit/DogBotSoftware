@@ -447,7 +447,7 @@ namespace DogBotN {
 
 
   //! Get last reported state of the servo.
-  bool ServoC::GetState(TimePointT &tick,float &position,float &velocity,float &torque) const
+  bool ServoC::GetState(TimePointT &tick,double &position,double &velocity,double &torque) const
   {
     std::lock_guard<std::mutex> lock(m_mutexState);
     tick = m_timeEpoch + m_tick * m_tickDuration;
@@ -458,7 +458,7 @@ namespace DogBotN {
   }
 
   //! Estimate state at the given time.
-  bool ServoC::GetStateAt(TimePointT theTime,float &position,float &velocity,float &torque) const
+  bool ServoC::GetStateAt(TimePointT theTime,double &position,double &velocity,double &torque) const
   {
     std::lock_guard<std::mutex> lock(m_mutexState);
     TimePointT lastTick = m_timeEpoch + m_tick * m_tickDuration;

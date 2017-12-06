@@ -31,13 +31,13 @@ namespace DogBotN {
     virtual bool Raw2Simple(
         float refPosition,float refVelocity,float refTorque,
         float drivePosition,float driveVelocity,float driveTorque,
-        float &position,float &velocity,float &torque
+        double &position,double &velocity,double &torque
     ) const override;
 
     virtual bool Simple2Raw(
          float refPosition,float refTorque,
          float position,float torque,
-         float &drivePosition,float &driveTorque
+         double &drivePosition,double &driveTorque
          ) const override;
 
 
