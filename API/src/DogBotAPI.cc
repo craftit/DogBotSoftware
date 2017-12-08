@@ -122,6 +122,7 @@ namespace DogBotN {
       case CPT_CalZero: return "CalZero";
       case CPT_Sync: return "Sync";
       case CPT_PWMState: return "PWMState";
+      case CPT_BridgeMode: return "BridgeMode";
     }
     printf("Unexpected packet type %d",(int)packetType);
     return "Invalid";
