@@ -193,6 +193,7 @@ namespace DogBotN {
   //! Connect to a named device
   bool DogBotAPIC::Connect(const std::string &name)
   {
+    m_deviceName = name;
     if(name == "local") {
       m_coms = std::make_shared<ComsZMQClientC>("tcp://127.0.0.1");
       return true;
@@ -337,7 +338,7 @@ namespace DogBotN {
     }
 
     //! Initialise which serial device to use.
-    if(!m_deviceName.empty())
+    if(m_deviceName.empty())
       m_deviceName = m_configRoot.get("device","local").asString();
 
     m_started = true;
@@ -703,7 +704,7 @@ namespace DogBotN {
             devicesList = m_devices;
             if(m_unassignedDevices.size() > 0) {
               std::chrono::duration<double> elapsed_seconds = now-m_timeLastUnassignedUpdate;
-              unassignedDevicesFound = (elapsed_seconds.count() > 0.2);
+              unassignedDevicesFound = (elapsed_seconds.count() > 0.5);
             }
           }
           for(auto &a : devicesList) {
