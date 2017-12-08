@@ -247,6 +247,7 @@ namespace DogBotN {
     m_positionRef = (enum PositionReferenceT) (report.m_mode & 0x3);
     m_position = newPosition;
     m_torque =  ComsC::TorqueReport2Value(report.m_torque);
+    m_reportedMode = report.m_mode;
 
     //m_servoRef = 0;// (enum PositionReferenceT) (pkt->m_mode & 0x3);
 

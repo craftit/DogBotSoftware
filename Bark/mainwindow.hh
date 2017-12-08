@@ -178,6 +178,7 @@ signals:
   void setUSBErrors(const QString &str);
   void setUSBDrops(const QString &str);
   void setFaultMap(const QString &str);
+  void setIndexSensor(bool state);
 
 private:
   void SetupComs();
