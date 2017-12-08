@@ -224,8 +224,10 @@ namespace DogBotN {
     std::lock_guard<std::mutex> lock(m_mutexState);
 
     std::chrono::duration<double> timeSinceLastReport = timeNow - m_timeOfLastReport;
+    bool inSync = true;
     if(timeSinceLastReport > m_tickDuration * 128) {
       m_log->warn("Lost sync on servo {} ",m_id);
+      inSync = false;
     }
     m_timeOfLastReport = timeNow;
     m_timeOfLastComs = timeNow;
@@ -243,10 +245,15 @@ namespace DogBotN {
     // FIXME:- Check the position reference frame.
 
     // Generate an estimate of the speed.
-    m_velocity = (newPosition - m_position) /  (m_tickDuration.count() * (float) tickDiff);
+    if(inSync) {
+      m_velocity = (newPosition - m_position) /  (m_tickDuration.count() * (float) tickDiff);
+    } else {
+      m_velocity = 0; // Set it to zero until we have up to date information.
+    }
     m_positionRef = (enum PositionReferenceT) (report.m_mode & 0x3);
     m_position = newPosition;
     m_torque =  ComsC::TorqueReport2Value(report.m_torque);
+    m_reportedMode = report.m_mode;
 
     //m_servoRef = 0;// (enum PositionReferenceT) (pkt->m_mode & 0x3);
 
@@ -463,8 +470,14 @@ namespace DogBotN {
     std::lock_guard<std::mutex> lock(m_mutexState);
     TimePointT lastTick = m_timeEpoch + m_tick * m_tickDuration;
     auto timeDiff = theTime - lastTick;
-    // Correct position for current speed.
-    position = m_position + m_velocity * timeDiff.count();
+    if(fabs(timeDiff.count()) < m_tickDuration.count() * 5) {
+      // Correct position for current speed.
+      position = m_position + m_velocity * timeDiff.count();
+    } else {
+      // Out of date, just use last reported position.
+      // This will 'pop' back to the last reported position, not ideal.
+      position = m_position;
+    }
     // Assume torque and velocity are approximately constant.
     torque = m_torque;
     velocity = m_velocity;
@@ -500,6 +513,9 @@ namespace DogBotN {
         m_faultCode = FC_Unknown;
         ret = true;
         m_log->warn("Lost contact with servo {}  for {} seconds",m_id,timeSinceLastReport.count());
+
+        // Set velocity estimate to zero.
+        m_velocity = 0;
       }
     }
 

@@ -1186,62 +1186,62 @@
         </property>
         <item>
          <property name="text">
-          <string>Front-Left-Pitch</string>
+          <string>front_left_pitch</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Front-Left-Roll</string>
+          <string>front_left_roll</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Front-Left-Knee</string>
+          <string>front_left_knee</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Front-Right-Pitch</string>
+          <string>front_right_pitch</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Front-Right-Roll</string>
+          <string>front_right_roll</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Front-Right-Knee</string>
+          <string>front_right_knee</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Back-Left-Pitch</string>
+          <string>back_left_pitch</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Back-Left-Roll</string>
+          <string>back_left_roll</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Back-Left-Knee</string>
+          <string>back_left_knee</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Back-Right-Pitch</string>
+          <string>back_right_pitch</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Back-Right-Roll</string>
+          <string>back_right_roll</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Back-Right-Knee</string>
+          <string>back_right_knee</string>
          </property>
         </item>
        </widget>
@@ -1335,6 +1335,19 @@
           <width>113</width>
           <height>22</height>
          </rect>
+        </property>
+       </widget>
+       <widget class="QCheckBox" name="checkBoxIndexSensor">
+        <property name="geometry">
+         <rect>
+          <x>680</x>
+          <y>320</y>
+          <width>111</width>
+          <height>20</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Index Sensor</string>
         </property>
        </widget>
       </widget>

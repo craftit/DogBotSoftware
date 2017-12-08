@@ -58,6 +58,7 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(this,SIGNAL(setUSBDrops(QString)),ui->lineEditUSBDrop,SLOT(setText(QString)));
   connect(this,SIGNAL(setUSBErrors(QString)),ui->lineEditUSBError,SLOT(setText(QString)));
   connect(this,SIGNAL(setFaultMap(QString)),ui->lineEditFaultMap,SLOT(setText(QString)));
+  connect(this,SIGNAL(setIndexSensor(bool)),ui->checkBoxIndexSensor,SLOT(setChecked(bool)));
 
   startTimer(10);
 
@@ -388,6 +389,13 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     sprintf(buff,"\n %d Fault state: %X ",psp->m_header.m_deviceId,psp->m_data.uint32[0]);
     displayStr += buff;
   } break;
+  case CPI_IndexSensor: {
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      emit setIndexSensor(psp->m_data.uint8[0] != 0);
+    }
+    sprintf(buff,"\n %d Index sensor: %X ",psp->m_header.m_deviceId,(int) psp->m_data.uint8[0]);
+    displayStr += buff;
+  } break;
   default:
     break;
   }
@@ -402,9 +410,8 @@ void MainWindow::SetupComs()
   logger->info("Starting bark");
   m_coms = std::make_shared<DogBotN::ComsProxyC>();
   m_coms->SetLogger(logger);
-  m_dogBotAPI = std::make_shared<DogBotN::DogBotAPIC>(m_coms,logger,DogBotN::DogBotAPIC::DMM_ClientOnly);
+  m_dogBotAPI = std::make_shared<DogBotN::DogBotAPIC>(m_coms,logger,false,DogBotN::DogBotAPIC::DMM_ClientOnly);
   m_dogBotAPI->Init();
-  // m_coms = std::make_shared<DogBotN::ComsSerialC>();
 
   m_coms->SetHandler(CPT_PWMState,[this](uint8_t *data,int size) mutable
   {

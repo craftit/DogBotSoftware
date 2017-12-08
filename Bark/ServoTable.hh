@@ -31,8 +31,9 @@ public:
     ColumnTorque = 8,
     ColumnTemperature = 9,
     ColumnSupplyVoltage = 10,
-    ColumnNotes = 11,
-    ColumnCount = 12
+    ColumnIndex = 11,
+    ColumnNotes = 12,
+    ColumnCount = 13
   };
 
   Qt::ItemFlags flags(const QModelIndex &index) const override;

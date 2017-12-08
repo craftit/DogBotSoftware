@@ -171,6 +171,10 @@ namespace DogBotN {
     //! Query setup information from the controller again.
     void QueryRefresh();
 
+    //! Access index state
+    int IndexState() const
+    { return m_reportedMode; }
+
   protected:
     //! Initialise timeouts and setup
     void Init();
@@ -194,6 +198,7 @@ namespace DogBotN {
     //! Used to check for communication timeouts.
     //! Returns true if state changed.
     bool UpdateTick(TimePointT timeNow);
+
 
     mutable std::mutex m_mutexAdmin;
 
@@ -235,6 +240,8 @@ namespace DogBotN {
 
     int m_toQuery = 0;
     std::vector<ComsParameterIndexT> m_updateQuery;
+
+    unsigned m_reportedMode = 0;
 
     // Current parameters
     float m_velocityLimit = 0;

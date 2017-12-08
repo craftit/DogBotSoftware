@@ -143,9 +143,11 @@ namespace DogBotN {
   DogBotAPIC::DogBotAPIC(
       const std::shared_ptr<ComsC> &coms,
       std::shared_ptr<spdlog::logger> &log,
-      bool manageComs
+      bool manageComs,
+      DeviceMasterModeT devMasterMode
       )
-   : m_coms(coms)
+   : m_coms(coms),
+     m_deviceMasterMode(devMasterMode)
   {
     m_manageComs = manageComs;
     m_log = log;
@@ -161,6 +163,7 @@ namespace DogBotN {
     : m_deviceMasterMode(devMasterMode)
   {
     m_log = log;
+    m_manageComs = true;
     if(!conName.empty())
       Connect(conName);
   }
@@ -191,6 +194,7 @@ namespace DogBotN {
   //! Connect to a named device
   bool DogBotAPIC::Connect(const std::string &name)
   {
+    m_deviceName = name;
     if(name == "local") {
       m_coms = std::make_shared<ComsZMQClientC>("tcp://127.0.0.1");
       return true;
@@ -335,7 +339,7 @@ namespace DogBotN {
     }
 
     //! Initialise which serial device to use.
-    if(!m_deviceName.empty())
+    if(m_deviceName.empty())
       m_deviceName = m_configRoot.get("device","local").asString();
 
     m_started = true;
@@ -570,17 +574,17 @@ namespace DogBotN {
   //! Monitor thread
   void DogBotAPIC::RunMonitor()
   {
-    m_log->info("Running monitor. Master:{} ",(int) m_deviceMasterMode);
+    m_log->info("Running monitor. Manager mode: {} ",((m_deviceMasterMode == DMM_DeviceManager) ? "master" : "client"));
     //logger->info("Starting bark");
 
     if(!m_coms) {
-      m_log->error("No coms object. ");
+      m_log->error("No coms object, aborting monitor. ");
       return ;
     }
     m_coms->SetHandler(CPT_Pong, [this](uint8_t *data,int size) mutable
     {
       struct PacketPingPongC *pkt = (struct PacketPingPongC *) data;
-      m_log->info("Got pong from {} ",pkt->m_deviceId);
+      m_log->info("Got pong from {} ",(int) pkt->m_deviceId);
     });
 
     m_coms->SetHandler(CPT_ServoReport,
@@ -632,6 +636,33 @@ namespace DogBotN {
                         }
                        );
 
+    m_coms->SetHandler(CPT_Error,
+                       [this](uint8_t *data,int size) mutable
+                        {
+                          if(size < sizeof(struct PacketErrorC)) {
+                            m_log->error("'Error' packet to short {} ",size);
+                            return;
+                          }
+                          const PacketErrorC *pkt = (const PacketErrorC *) data;
+
+                          m_log->error("Received packet error code from device {} : {} ({}) Packet:{} ({}) Arg:{} ",
+                                       (int) pkt->m_deviceId,
+                                       DogBotN::ComsErrorTypeToString((enum ComsErrorTypeT)pkt->m_errorCode),
+                                       (int) pkt->m_errorCode,
+                                       DogBotN::ComsPacketTypeToString((enum ComsPacketTypeT) pkt->m_causeType),(int) pkt->m_causeType,
+                                       (int) pkt->m_errorData);
+
+                          std::shared_ptr<ServoC> device = DeviceEntry(pkt->m_deviceId);
+                          if(!device)
+                            return ;
+#if 0
+                          if(device->HandlePacketReportParam(*pkt)) {
+                            ServoStatusUpdate(pkt->m_header.m_deviceId,SUT_Updated);
+                          }
+#endif
+
+                        }
+                       );
 
     while(!m_terminate)
     {
@@ -643,16 +674,16 @@ namespace DogBotN {
           m_driverState = DS_NoConnection;
         } break;
         case DS_NoConnection: {
-          if(m_manageComs) {
-            if(!m_coms->Open(m_deviceName.c_str())) {
+          if(!m_coms->IsReady()) {
+            if(m_manageComs && !m_coms->Open(m_deviceName.c_str())) {
               m_log->warn("Failed to open coms channel. ");
               std::this_thread::sleep_for(std::chrono::seconds(2));
               break;
             }
-          }
-          if(!m_coms->IsReady()) {
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-            break;
+            if(!m_coms->IsReady()) {
+              std::this_thread::sleep_for(std::chrono::seconds(1));
+              break;
+            }
           }
           m_driverState = DS_Connected;
           // Send out a device query.
@@ -674,7 +705,7 @@ namespace DogBotN {
             devicesList = m_devices;
             if(m_unassignedDevices.size() > 0) {
               std::chrono::duration<double> elapsed_seconds = now-m_timeLastUnassignedUpdate;
-              unassignedDevicesFound = (elapsed_seconds.count() > 0.2);
+              unassignedDevicesFound = (elapsed_seconds.count() > 0.5);
             }
           }
           for(auto &a : devicesList) {

@@ -63,6 +63,13 @@ class SerialDecodeC
 {
 public:
 
+  //! Reset state machine
+  void ResetStateMachine()
+  {
+    m_state = 0;
+    m_at = 0;
+  }
+
   //! Accept a byte
   void AcceptByte(uint8_t sendByte);
 
@@ -72,7 +79,8 @@ public:
   int m_state = 0;
   int m_checkSum = 0;
   int m_packetLen = 0;
-  uint8_t m_data[255];
+  static const int m_maxPacketSize = 64;
+  uint8_t m_data[m_maxPacketSize];
   int m_at = 0;
 
   BaseSequentialStream  *m_SDU = 0;
@@ -91,6 +99,10 @@ void SerialDecodeC::AcceptByte(uint8_t sendByte)
 {
   switch(m_state)
   {
+  default: // This can only be caused by a bug.
+    g_usbErrorCount++;
+    m_state = 0;
+    /* no break */
   case 0: // Wait for STX.
     if(sendByte == g_charSTX)
       m_state = 1;
@@ -98,7 +110,7 @@ void SerialDecodeC::AcceptByte(uint8_t sendByte)
     break;
   case 1: // Packet length.
     m_packetLen = sendByte;
-    if(m_packetLen > 64) {
+    if(m_packetLen >= m_maxPacketSize) {
       if(sendByte != g_charSTX) // This will always be false, but for good form.
         m_state = 0;
       break;
@@ -194,6 +206,7 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
         return false;
       g_canBridgeMode = dataBuff->uint8[0] > 0;
       break;
+    case CPI_IndexSensor:
     case CPI_BoardUID:
     case CPI_DRV8305_01:
     case CPI_DRV8305_02:
@@ -589,6 +602,10 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       *len = 4;
       data->uint32[0] = g_faultState;
       break;
+    case CPI_IndexSensor:
+      *len = 1;
+      data->uint8[0] = palReadPad(GPIOC, GPIOC_PIN8);
+      break;
     default:
       return false;
   }
@@ -671,6 +688,8 @@ void SerialDecodeC::ProcessPacket()
   case CPT_Pong: break; // Ping reply.
   case CPT_Sync: break; // Sync.
   case CPT_Error: break; // Error.
+  case CPT_ReportParam: break;
+  case CPT_PWMState: break; // Error.
   case CPT_ReadParam: {
     if(m_packetLen != sizeof(struct PacketReadParamC)) {
       USBSendError(g_deviceId,CET_UnexpectedPacketSize,CPT_ReadParam,m_packetLen);
@@ -809,6 +828,10 @@ void SerialDecodeC::ProcessPacket()
     }
 
   } break;
+  case CPT_SyncTime:
+    // Unsupported yet.
+    USBSendError(g_deviceId,CET_UnknownPacketType,m_data[0],m_packetLen);
+    break;
 #if 1
   default: {
     USBSendError(g_deviceId,CET_UnknownPacketType,m_data[0],m_packetLen);
@@ -828,38 +851,6 @@ static mailbox_t g_fullPackets;
 static PacketT g_packetArray[PACKET_QUEUE_SIZE];
 
 
-/* Get a free packet structure. */
-struct PacketT *GetEmptyPacket(systime_t timeout)
-{
-  if(!g_comsInitDone)
-    return 0;
-
-  msg_t msg;
-  if(chMBFetch(&g_emptyPackets,&msg,timeout) != MSG_OK)
-    return 0;
-  return (PacketT *)msg;
-}
-
-/* Post packet. */
-bool PostPacket(struct PacketT *pkt)
-{
-  if(!g_comsInitDone)
-    return false;
-
-  if(chMBPost(&g_fullPackets,(msg_t) pkt,TIME_IMMEDIATE) == MSG_OK)
-    return true;
-
-  g_usbErrorCount++;
-  // This shouldn't happen, as if we can't acquire an empty buffer
-  // unless there is space available, but we don't want to loose the buffer
-  // so attempt to add it back to the free list
-  if(chMBPost(&g_emptyPackets,(msg_t) pkt,TIME_IMMEDIATE) != MSG_OK) {
-    // Things are screwy. Panic ?
-  }
-  return false;
-}
-
-
 
 static THD_WORKING_AREA(waThreadRxComs, 512);
 static THD_FUNCTION(ThreadRxComs, arg) {
@@ -871,11 +862,13 @@ static THD_FUNCTION(ThreadRxComs, arg) {
       int ret = streamGet(g_comsDecode.m_SDU);
       if(ret == STM_RESET) {
         chThdSleepMilliseconds(100);
+        g_comsDecode.ResetStateMachine();
         continue;
       }
       g_comsDecode.AcceptByte(ret);
     } else {
       chThdSleepMilliseconds(100);
+      g_comsDecode.ResetStateMachine();
     }
   }
 }
@@ -888,8 +881,11 @@ static THD_FUNCTION(ThreadTxComs, arg) {
   static uint8_t txbuff[70];
   while(true) {
     struct PacketT *packet = 0;
-    if(chMBFetch(&g_fullPackets,(msg_t*) &packet,TIME_INFINITE) != MSG_OK)
+    if(chMBFetch(&g_fullPackets,(msg_t*) &packet,TIME_INFINITE) != MSG_OK) {
+      // Prevent a possible tight loop
+      chThdSleepMilliseconds(10);
       continue;
+    }
 
     if(SDU1.config->usbp->state == USB_ACTIVE) {
 
@@ -922,16 +918,47 @@ static THD_FUNCTION(ThreadTxComs, arg) {
 }
 
 
+/* Get a free packet structure. */
+struct PacketT *GetEmptyPacket(systime_t timeout)
+{
+  if(!g_comsInitDone)
+    return 0;
+
+  msg_t msg;
+  if(chMBFetch(&g_emptyPackets,&msg,timeout) != MSG_OK)
+    return 0;
+  return (PacketT *)msg;
+}
+
+
+
+/* Post full packet. */
+bool PostPacket(struct PacketT *pkt)
+{
+  if(chMBPost(&g_fullPackets,(msg_t) pkt,TIME_IMMEDIATE) == MSG_OK)
+    return true;
+
+  g_usbErrorCount++;
+  FaultDetected(FC_InternalUSB);
+  // This shouldn't happen, as if we can't acquire an empty buffer
+  // unless there is space available, but we don't want to loose the buffer
+  // so attempt to add it back to the free list
+  if(chMBPost(&g_emptyPackets,(msg_t) pkt,TIME_IMMEDIATE) != MSG_OK) {
+    // Things are really screwy. Panic ?
+  }
+  return false;
+}
+
 bool USBSendPacket(
     uint8_t *buff,
     int len
     )
 {
   struct PacketT *pkt;
-  // Just truncate for the moment, it is better than overwriting memory.
-  if(len >= (int)sizeof(pkt->m_data)) {
+  // If packet is too large, drop it log and flag an error occurred.
+  if(len >= (int)sizeof(pkt->m_data) || len < 0) {
     g_usbErrorCount++;
-    len = sizeof(pkt->m_data);
+    return false;
   }
 
   if((pkt = GetEmptyPacket(TIME_IMMEDIATE)) == 0) {
@@ -941,10 +968,9 @@ bool USBSendPacket(
 
   pkt->m_len = len;
   memcpy(&pkt->m_data,buff,len);
-  PostPacket(pkt);
-
-  return true;
+  return PostPacket(pkt);
 }
+
 
 BaseSequentialStream *g_packetStream = 0;
 
@@ -965,7 +991,7 @@ void InitComs()
   g_comsInitDone = true;
 
   chThdCreateStatic(waThreadTxComs, sizeof(waThreadTxComs), NORMALPRIO, ThreadTxComs, NULL);
-  chThdCreateStatic(waThreadRxComs, sizeof(waThreadRxComs), NORMALPRIO, ThreadRxComs, NULL);
+  chThdCreateStatic(waThreadRxComs, sizeof(waThreadRxComs), NORMALPRIO+1, ThreadRxComs, NULL); // Prefer dealing with incoming messages.
 
 }
 

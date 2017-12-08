@@ -51,7 +51,7 @@ namespace DogBotN {
     DogBotAPIC(const std::string &conName,std::shared_ptr<spdlog::logger> &log,DeviceMasterModeT devMaster);
 
     //! Construct with coms object
-    DogBotAPIC(const std::shared_ptr<ComsC> &coms,std::shared_ptr<spdlog::logger> &log,bool manageComs = false);
+    DogBotAPIC(const std::shared_ptr<ComsC> &coms,std::shared_ptr<spdlog::logger> &log,bool manageComs = false,DeviceMasterModeT devMasterMode = DMM_ClientOnly);
 
     //! Destructor to wait for shutdown
     ~DogBotAPIC();

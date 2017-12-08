@@ -248,8 +248,17 @@ void SendBackgroundStateReport(void)
 
   static int lastUsbError = 0;
   static int lastUsbDrop = 0;
-  static int lastFaultState = 0;
+  static unsigned lastFaultState = 0;
 
+  static bool lastSensor = false;
+
+  {
+    bool isOn = palReadPad(GPIOC, GPIOC_PIN8);
+    if(lastSensor != isOn) {
+      lastSensor = isOn;
+      SendParamUpdate(CPI_IndexSensor);
+    }
+  }
   // Distribute these over time.
   switch(stateCount)
   {

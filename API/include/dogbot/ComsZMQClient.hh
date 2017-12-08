@@ -40,7 +40,6 @@ namespace DogBotN {
     bool RunRecieve();
 
     std::shared_ptr<zmq::socket_t> m_client;
-    std::shared_ptr<zmq::socket_t> m_sub;
 
     std::thread m_threadRecieve;
 

@@ -16,6 +16,10 @@ namespace DogBotN {
     //! Make sure everything is disconnected.
     ~ComsZMQServerC();
 
+    //! Set verbose mode for dumping messages
+    void SetVerbose(bool verbose)
+    { m_verbose = verbose; }
+
     //! Run server
     void Run(const std::string &addr);
 
@@ -24,9 +28,8 @@ namespace DogBotN {
 
     std::shared_ptr<ComsC> m_coms;
 
-    std::shared_ptr<zmq::socket_t> m_server; // Receives commands from clients for forwarding on
-    std::shared_ptr<zmq::socket_t> m_pub;   // Publish state messages
 
+    bool m_verbose = false;
     bool m_terminate = false;
     int m_genericHandlerId = -1;
   };

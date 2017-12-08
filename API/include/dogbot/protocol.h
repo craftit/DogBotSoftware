@@ -56,7 +56,8 @@ extern "C" {
     FC_Internal5VRailOutOfRange = 12,
     FC_Internal = 13,
     FC_MotorResistanceOutOfRange = 14,
-    FC_MotorInducetanceOutOfRange = 15
+    FC_MotorInducetanceOutOfRange = 15,
+    FC_InternalUSB = 14
   };
 
 
@@ -118,6 +119,7 @@ extern "C" {
     CPI_USBPacketDrops   = 43,
     CPI_USBPacketErrors  = 44,
     CPI_FaultState       = 45,
+    CPI_IndexSensor      = 46,
 
     CPI_ANGLE_CAL       = 48,  // 12 Values
     CPI_ANGLE_CAL_0     = 0x30,
