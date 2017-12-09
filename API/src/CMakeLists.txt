@@ -8,6 +8,7 @@ include (FindPkgConfig)
 if (PKG_CONFIG_FOUND)
   pkg_check_modules(JSONCPP jsoncpp)
   pkg_check_modules(ZMQ libzmq)
+  pkg_check_modules(LIBUSB libusb-1.0)
 endif()
 
 include_directories(${JSONCPP_INCLUDE_DIRS})
@@ -15,6 +16,9 @@ link_directories(${JSONCPP_LIBRARY_DIRS})
 
 include_directories(${ZMQ_INCLUDE_DIRS})
 link_directories(${ZMQ_LIBRARY_DIRS})
+
+include_directories(${LIBUSB_INCLUDE_DIRS})
+link_directories(${LIBUSB_LIBRARY_DIRS})
 
 add_definitions(-std=c++11)
 
@@ -24,6 +28,7 @@ ADD_LIBRARY (DogBotAPI
         ComsZMQClient.cc
         ComsSerial.cc 
         ComsProxy.cc 
+        ComsUSB.cc 
         DogBotAPI.cc 
         Servo.cc 
         LegKinematics.cc 
@@ -34,7 +39,7 @@ ADD_LIBRARY (DogBotAPI
         ZMQContext.cc
 )
 
-target_link_libraries (DogBotAPI LINK_PUBLIC ${JSONCPP_LIBRARIES} ${ZMQ_LIBRARIES})
+target_link_libraries (DogBotAPI LINK_PUBLIC ${JSONCPP_LIBRARIES} ${ZMQ_LIBRARIES} ${LIBUSB_LIBRARIES})
 
 # Define headers for this library. PUBLIC headers are used for
 # compiling the library, and will be added to consumers' build
@@ -47,7 +52,7 @@ target_include_directories(DogBotAPI PUBLIC
 
 add_executable (dtalk dogtalk.cc)
 
-target_link_libraries (dtalk LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries (dtalk LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT} ${LIBUSB_LIBRARIES})
 
 add_executable (dtservo dtservo.cc)
 
@@ -60,6 +65,9 @@ target_link_libraries (testKin LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT})
 add_executable (dogBotServer DogBotServer.cc)
 
 target_link_libraries (dogBotServer LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT})
+
+#add_executable (xusb xusb.cc)
+#target_link_libraries (xusb LINK_PUBLIC ${LIBUSB_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 
 # 'make install' to the correct locations (provided by GNUInstallDirs).

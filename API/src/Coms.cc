@@ -12,19 +12,18 @@
 
 #include <fstream>
 #include <iostream>
-#include <fcntl.h>
-
-#include <unistd.h>
-#include <sys/termios.h>
+//#include <fcntl.h>
+//#include <unistd.h>
+//#include <sys/termios.h>
 #include "dogbot/Coms.hh"
 #include "dogbot/DogBotAPI.hh"
 
 namespace DogBotN
 {
 
-  ComsC::ComsC(const char *portAddr)
+  ComsC::ComsC(std::shared_ptr<spdlog::logger> &log)
+   : m_log(log)
   {
-    Open(portAddr);
   }
 
   //! default

@@ -2,6 +2,7 @@
 #include <iostream>
 #include <unistd.h>
 #include "dogbot/DogBotAPI.hh"
+#include "dogbot/ComsUSB.hh"
 
 int main(int nargs,char **argv)
 {
@@ -9,7 +10,8 @@ int main(int nargs,char **argv)
 
   logger->info("Starting dtalk");
 
-
+  std::shared_ptr<DogBotN::ComsC> comsPtr = std::make_shared<DogBotN::ComsUSBC>(logger);
+#if 0
   //std::string devFilename = "/dev/tty.usbmodem401";
   std::string configFile = "dogbot.conf";
   if(nargs > 1)
@@ -22,6 +24,7 @@ int main(int nargs,char **argv)
   if(!dogbot.Init(configFile)) {
     return 1;
   }
+#endif
 
   logger->info("Setup and ready. ");
   while(1) {

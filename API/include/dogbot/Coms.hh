@@ -21,7 +21,7 @@ namespace DogBotN {
   class ComsC
   {
   public:
-    ComsC(const char *portAddr);
+    ComsC(std::shared_ptr<spdlog::logger> &log);
 
     //! default
     ComsC();
