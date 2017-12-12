@@ -12,7 +12,7 @@ extern "C" {
 
   void InitComs(void);
 
-  extern BaseSequentialStream *g_packetStream;
+  extern BaseAsynchronousChannel *g_packetStream;
 
   struct PacketT {
     uint8_t m_len;
