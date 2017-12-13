@@ -27,6 +27,9 @@ extern "C" {
 
   bool USBSendPacket(uint8_t *buff,int len);
 
+  /* Process in an incoming packet. */
+  void ProcessPacket(const uint8_t *m_data,int m_packetLen);
+
   bool USBSendSync(void);
   bool USBSendPing(uint8_t targetDevice);
 
