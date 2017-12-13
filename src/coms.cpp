@@ -860,7 +860,6 @@ static THD_FUNCTION(ThreadRxComs, arg) {
   chRegSetThreadName("rxcoms");
   const static int buffSize = 256;
   static uint8_t buff[buffSize];
-#if 1
   /* Registering on the serial driver as event 1, interested in
        error flags and data-available only, other flags will not wakeup
        the thread.*/
@@ -868,56 +867,35 @@ static THD_FUNCTION(ThreadRxComs, arg) {
   chEvtRegisterMaskWithFlags(chnGetEventSource(g_comsDecode.m_SDU),
                              &serial_listener,
                              EVENT_MASK(0),
-                             CHN_INPUT_AVAILABLE | CHN_CONNECTED
+                             CHN_INPUT_AVAILABLE | CHN_CONNECTED | CHN_DISCONNECTED
                              );
-#endif
   while(true) {
-#if 0
-    if(SDU1.config->usbp->state == USB_ACTIVE) {
-      // Read 1 byte, blocking.
-      int ret = streamGet(g_comsDecode.m_SDU);
-      if(ret == STM_RESET) {
-        chThdSleepMilliseconds(100);
-        g_comsDecode.ResetStateMachine();
-        continue;
-      }
-      g_comsDecode.AcceptByte(ret);
-      // Try and read a block of data, but with zero timeout.
-      ret = chnReadTimeout(g_comsDecode.m_SDU,buff,buffSize,TIME_IMMEDIATE);
-      if(ret > 0) {
-        for(int i = 0;i < ret;i++) {
-          g_comsDecode.AcceptByte(buff[i]);
-        }
-      }
-    } else {
-      chThdSleepMilliseconds(100);
-      g_comsDecode.ResetStateMachine();
-    }
-#else
-   /* Waiting for any of the events we're registered on.*/
-   eventmask_t evt = chEvtWaitAny(ALL_EVENTS);
-   if (evt & EVENT_MASK(0)) {
-    /* Event from the serial interface, getting serial
-       flags as first thing.*/
-    eventflags_t flags = chEvtGetAndClearFlags(&serial_listener);
+    /* Waiting for any of the events we're registered on.*/
+    eventmask_t evt = chEvtWaitAny(ALL_EVENTS);
+    if (evt & EVENT_MASK(0)) {
+      // Event from the serial interface, getting serial flags as first thing.
+      eventflags_t flags = chEvtGetAndClearFlags(&serial_listener);
 
-    /* New connection ?.*/
-    if (flags & (CHN_CONNECTED)) {
-      g_comsDecode.ResetStateMachine();
-    }
-    if (flags & CHN_INPUT_AVAILABLE) {
-      // Try and read a block of data, but with zero timeout.
-      while(true) {
-        int ret = chnReadTimeout(g_comsDecode.m_SDU,buff,buffSize,TIME_IMMEDIATE);
-        if(ret <= 0)
-          break;
-        for(int i = 0;i < ret;i++) {
-          g_comsDecode.AcceptByte(buff[i]);
+      // Got a new connection ?
+      if (flags & (CHN_CONNECTED)) {
+        g_comsDecode.ResetStateMachine();
+      }
+      // Disable bridge mode on disconnect.
+      if (flags & (CHN_DISCONNECTED)) {
+        g_canBridgeMode = false;
+      }
+      if (flags & CHN_INPUT_AVAILABLE) {
+        // Try and read a block of data, but with zero timeout.
+        while(true) {
+          int ret = chnReadTimeout(g_comsDecode.m_SDU,buff,buffSize,TIME_IMMEDIATE);
+          if(ret <= 0)
+            break;
+          for(int i = 0;i < ret;i++) {
+            g_comsDecode.AcceptByte(buff[i]);
+          }
         }
       }
     }
-  }
-#endif
   }
 }
 
