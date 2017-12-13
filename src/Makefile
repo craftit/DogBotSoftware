@@ -126,7 +126,7 @@ CSRC = $(STARTUPSRC) \
        $(CHIBIOS)/os/hal/lib/streams/memstreams.c \
        $(CHIBIOS)/os/hal/lib/streams/chprintf.c \
        main.c \
-       usbcfg.c \
+       serial_usbcfg.c \
        coms_serial.c \
        do_adc.c \
        drv8503.c \

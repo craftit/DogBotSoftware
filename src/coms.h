@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include "usbcfg.h"
+#include "serial_usbcfg.h"
 #include "dogbot/protocol.h"
 
   extern bool g_comsInitDone;

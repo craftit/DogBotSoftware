@@ -871,7 +871,7 @@ static THD_FUNCTION(ThreadRxComs, arg) {
                              );
   while(true) {
     /* Waiting for any of the events we're registered on.*/
-    eventmask_t evt = chEvtWaitAny(ALL_EVENTS);
+    eventmask_t evt = chEvtWaitAnyTimeout(ALL_EVENTS,100);
     if (evt & EVENT_MASK(0)) {
       // Event from the serial interface, getting serial flags as first thing.
       eventflags_t flags = chEvtGetAndClearFlags(&serial_listener);

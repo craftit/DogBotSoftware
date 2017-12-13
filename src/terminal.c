@@ -4,7 +4,6 @@
 
 #include "coms_serial.h"
 
-#include "usbcfg.h"
 #include "pwm.h"
 #include "drv8503.h"
 #include "eeprom.h"
@@ -24,7 +23,7 @@
 #include "chprintf.h"
 #include "coms.h"
 
-#include "usbcfg.h"
+#include "serial_usbcfg.h"
 
 /*===========================================================================*/
 /* Command line related.                                                     */

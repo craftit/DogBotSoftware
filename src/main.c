@@ -19,7 +19,7 @@
 
 #include "coms_serial.h"
 
-#include "usbcfg.h"
+#include "serial_usbcfg.h"
 #include "pwm.h"
 #include "drv8503.h"
 #include "eeprom.h"
@@ -37,7 +37,6 @@
 
 #include "chprintf.h"
 
-#include "usbcfg.h"
 #include "coms.h"
 #include "shell/shell.h"
 
