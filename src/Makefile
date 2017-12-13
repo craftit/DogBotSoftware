@@ -145,7 +145,12 @@ CSRC = $(STARTUPSRC) \
  			
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
-CPPSRC = coms.cpp motion.cpp
+CPPSRC = \
+  coms.cpp \
+  motion.cpp \
+  serial_usbcoms.cpp \
+  serial_packet.cpp
+
 
 # C sources to be compiled in ARM mode regardless of the global setting.
 # NOTE: Mixing ARM and THUMB mode enables the -mthumb-interwork compiler
@@ -228,7 +233,7 @@ CPPWARN = -Wall -Wextra -Wundef
 #
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS = -DCHPRINTF_USE_FLOAT=1 -DSHELL_CMD_TEST_ENABLED=FALSE
+UDEFS = -DCHPRINTF_USE_FLOAT=1 -DSHELL_CMD_TEST_ENABLED=FALSE -DUSE_CUSTOMUSB=1
 # -DSTM32F40_41xxx=1
 
 # Define ASM defines here
