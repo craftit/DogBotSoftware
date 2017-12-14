@@ -2,7 +2,8 @@
 #include <iostream>
 #include <unistd.h>
 
-#include "../include/dogbot/ComsSerial.hh"
+#include "dogbot/ComsSerial.hh"
+#include "dogbot/ComsUSB.hh"
 #include "dogbot/DogBotAPI.hh"
 
 int main(int nargs,char **argv)
@@ -12,7 +13,11 @@ int main(int nargs,char **argv)
   logger->info("Starting dtalk");
 
 
+  std::shared_ptr<DogBotN::ComsC> coms = std::make_shared<DogBotN::ComsUSBC>();
+
+
   //std::string devFilename = "/dev/tty.usbmodem401";
+#if 0
   std::string devFilename = "/dev/ttyACM1";
   if(nargs > 1)
     devFilename = argv[1];
@@ -35,6 +40,7 @@ int main(int nargs,char **argv)
   }
   Json::Value calInfo = motorCal.AsJSON();
   std::cout << calInfo << std::endl;
+#endif
 
 #if 0
   coms.SetHandler(CPT_PWMState,[logger](uint8_t *data,int size) mutable
@@ -73,11 +79,11 @@ int main(int nargs,char **argv)
 #endif
   });
 
+#endif
   logger->info("Setup and ready. ");
   while(1) {
     sleep(1);
   }
-#endif
 
   return 0;
 }

@@ -8,6 +8,7 @@
 #include "bmc.h"
 #include <string.h>
 
+bool g_packetUSBActive = false;
 
 #define PACKET_QUEUE_SIZE 8
 
@@ -174,9 +175,36 @@ void InitUSB(void)
    * */
 }
 
+static void QueueTransmit(USBDriver *usbp, usbep_t ep) {
+
+  static msg_t g_txMsg = 0;
+
+  // Free last packet
+  if(g_txMsg != 0) {
+    if(chMBPostI(&g_emptyPackets,g_txMsg) != MSG_OK)
+      g_usbErrorCount++;
+    g_txMsg = 0;
+  }
+
+  // May need to transmit more than one packet at a time to get the required bandwidth.
+  if(chMBFetchI(&g_fullPackets,&g_txMsg) == MSG_OK) {
+    struct PacketT *packet = reinterpret_cast<struct PacketT *>(g_txMsg);
+    usbStartTransmitI(usbp, ep, packet->m_data, packet->m_len);
+  }
+
+}
 
 void bmcDataTransmitCallback(USBDriver *usbp, usbep_t ep)
 {
+  // Are we active ?
+  if(!g_packetUSBActive)
+    return ;
+
+  osalSysLockFromISR();
+
+  QueueTransmit(usbp,ep);
+
+  osalSysUnlockFromISR();
 }
 
 void bmcDataReceivedCallback(USBDriver *usbp, usbep_t ep)
@@ -188,9 +216,44 @@ bool bmcRequestsHook(USBDriver *usbp)
   return false;
 }
 
-bool bmcSOFHookI(USBDriver *usbp)
+bool bmcSOFHookI(USBDriver *usbp, usbep_t epIn)
 {
-  return false;
+  /* If the USB driver is not in the appropriate state then transactions
+     must not be started.*/
+  if ((usbGetDriverStateI(usbp) != USB_ACTIVE) || ! g_packetUSBActive) {
+    return true;
+  }
+
+  /* If there is already a transaction ongoing then another one cannot be
+     started.*/
+  if (usbGetTransmitStatusI(usbp,epIn)) {
+    return true;
+  }
+
+  QueueTransmit(usbp,epIn);
+
+  return true;
+}
+
+/* Allow transfers to be queued. */
+
+void bmcWakeupHookI(USBDriver *usbp)
+{
+  g_packetUSBActive = true;
+}
+
+/* Make sure no transfers are queued. */
+
+void bmcSuspendHookI(USBDriver *usbp)
+{
+  g_packetUSBActive = false;
+}
+
+/* Resetting the state of the subsystem.*/
+
+void bmcConfigureHookI(USBDriver *usbp)
+{
+
 }
 
 #endif

@@ -1,0 +1,5 @@
+# Copy to /etc/udev/rules.d/
+# Then run: sudo udevadm control --reload-rules
+
+SUBSYSTEM=="usb", ATTRS{idVendor}=="27d8", MODE="0666"
+SUBSYSTEM=="usb_device", ATTRS{idVendor}=="27d8", MODE="0666"

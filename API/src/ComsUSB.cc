@@ -36,13 +36,71 @@ namespace DogBotN
   // Disconnects and closes file descriptors
   ComsUSBC::~ComsUSBC()
   {
+    if(libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
+      libusb_hotplug_deregister_callback(m_usbContext,m_hotplugCallbackHandle);
+    }
+
     libusb_exit(m_usbContext);
     m_usbContext = 0;
   }
 
+
+  static int coms_usb_hotplug_callback(libusb_context *ctx, libusb_device *device, libusb_hotplug_event event, void *user_data)
+  {
+    ((ComsUSBC *) user_data)->HotPlugCallback(device,event);
+    return 0;
+  }
+
+  void ComsUSBC::HotPlugCallback(libusb_device *device, libusb_hotplug_event event)
+  {
+    m_log->info("Got hotplug event {} ",(int) event);
+    if(event == LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED) {
+      m_log->info("Device arrived ");
+
+      struct libusb_device_descriptor desc;
+      int rc;
+
+      rc = libusb_get_device_descriptor(device, &desc);
+      if (LIBUSB_SUCCESS != rc) {
+        m_log->error("Error getting device descriptor");
+        return ;
+      }
+
+      if(m_handle != 0) {
+        m_log->info("Drive already open. Ignoring device. ");
+        return ;
+      }
+      if((rc = libusb_open(device,&m_handle)) != LIBUSB_SUCCESS) {
+        m_log->error("Error opening device. {} ",libusb_error_name(rc));
+        return ;
+      }
+
+      m_log->info("Device attached: {}:{} ", desc.idVendor, desc.idProduct);
+
+      unsigned char buff[128];
+      if((rc = libusb_get_string_descriptor_ascii(m_handle, desc.iSerialNumber, buff, 128)) < 0) {
+        m_log->error("Error getting serial number. {} ",libusb_error_name(rc));
+        libusb_close(m_handle);
+        m_handle = 0;
+        return ;
+      }
+
+      m_log->info("SerialNumber:{}  ",buff);
+      libusb_close(m_handle);
+      m_handle = 0;
+    }
+    if(event == LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT) {
+      m_log->info("Device left ");
+    }
+
+
+
+  }
+
+
   void ComsUSBC::Init()
   {
-    putenv("LIBUSB_DEBUG=4");
+    //putenv("LIBUSB_DEBUG=4");
     int r = libusb_init(&m_usbContext);
     if(r != 0) {
       m_log->error("Failed to create libusb context {} : {} ",r,libusb_error_name(r));
@@ -51,9 +109,26 @@ namespace DogBotN
     libusb_set_debug(m_usbContext,LIBUSB_LOG_LEVEL_DEBUG);
     if(libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
       m_log->info("usb hotplug notifcations are available");
+
+      int ret = libusb_hotplug_register_callback(
+          m_usbContext,
+          (libusb_hotplug_event) (LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED | LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT),
+          LIBUSB_HOTPLUG_ENUMERATE,
+          0x27d8,
+          0x16c0,
+          LIBUSB_HOTPLUG_MATCH_ANY,
+          &coms_usb_hotplug_callback,
+          this,
+          &m_hotplugCallbackHandle
+      );
+      if(ret != LIBUSB_SUCCESS) {
+        m_log->error("Failed to registed hotplug callback.{}",libusb_error_name(ret));
+      }
+
     } else {
       m_log->info("usb hotplug notifcations are not available");
     }
+
   }
 
   //! Close connection
@@ -96,11 +171,15 @@ namespace DogBotN
   bool ComsUSBC::RunRecieve()
   {
     m_log->debug("Running receiver.");
+    int rc = 0;
     while(!m_terminate) {
-      sleep(10);
+      if((rc = libusb_handle_events(m_usbContext)) < 0) {
+        m_log->error("libusb_handle_events() failed: {}",libusb_error_name(rc));
+      }
+
     }
     m_mutexExitOk.unlock();
-    m_log->debug("Exiting receiver fd. ");
+    m_log->debug("Exiting receiver. ");
 
     return true;
   }

@@ -12,9 +12,13 @@ extern "C" {
 
   bool bmcRequestsHook(USBDriver *usbp);
 
-  bool bmcSOFHookI(USBDriver *usbp);
+  bool bmcSOFHookI(USBDriver *usbp, usbep_t epIn);
 
+  void bmcWakeupHookI(USBDriver *usbp);
 
+  void bmcSuspendHookI(USBDriver *usbp);
+
+  void bmcConfigureHookI(USBDriver *usbp);
 
 #ifdef __cplusplus
 }

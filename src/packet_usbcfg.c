@@ -269,8 +269,8 @@ static void usb_event(USBDriver *usbp, usbevent_t event) {
        must be used.*/
     usbInitEndpointI(usbp, USBD1_DATA_EP, &ep1config);
 
-    /* Resetting the state of the CDC subsystem.*/
-    //sduConfigureHookI(&SDU1);
+    /* Resetting the state of the subsystem.*/
+    bmcConfigureHookI(usbp);
 
     chSysUnlockFromISR();
     return;
@@ -283,16 +283,16 @@ static void usb_event(USBDriver *usbp, usbevent_t event) {
 
     /* Disconnection event on suspend.*/
     /* Make sure no transfers are queued. */
-    //sduSuspendHookI(&SDU1);
+    bmcSuspendHookI(usbp);
 
     chSysUnlockFromISR();
     return;
   case USB_EVENT_WAKEUP:
     chSysLockFromISR();
 
-    /* Cconnection event .*/
+    /* Connection event .*/
     /* Allow transfers to be queued. */
-    //sduWakeupHookI(&SDU1);
+    bmcWakeupHookI(usbp);
 
     chSysUnlockFromISR();
     return;
@@ -312,8 +312,7 @@ static void sof_handler(USBDriver *usbp) {
 
   osalSysLockFromISR();
 
-  bmcSOFHookI(usbp);
-  //sduSOFHookI(&SDU1);
+  bmcSOFHookI(usbp,USBD1_DATA_EP|0x80);
 
   osalSysUnlockFromISR();
 }
