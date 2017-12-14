@@ -136,6 +136,7 @@ CSRC = $(STARTUPSRC) \
        storedconf.c \
        canbus.c \
        terminal.c \
+       packet_usbcfg.c \
        $(STDPERIPH)/src/stm32f4xx_tim.c \
        $(STDPERIPH)/src/stm32f4xx_rcc.c \
        $(STDPERIPH)/src/stm32f4xx_adc.c \
@@ -149,7 +150,8 @@ CPPSRC = \
   coms.cpp \
   motion.cpp \
   serial_usbcoms.cpp \
-  serial_packet.cpp
+  serial_packet.cpp \
+  packet_usbcoms.cpp 
 
 
 # C sources to be compiled in ARM mode regardless of the global setting.
@@ -233,7 +235,7 @@ CPPWARN = -Wall -Wextra -Wundef
 #
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS = -DCHPRINTF_USE_FLOAT=1 -DSHELL_CMD_TEST_ENABLED=FALSE -DUSE_CUSTOMUSB=1
+UDEFS = -DCHPRINTF_USE_FLOAT=1 -DSHELL_CMD_TEST_ENABLED=FALSE -DUSE_PACKETUSB=1
 # -DSTM32F40_41xxx=1
 
 # Define ASM defines here

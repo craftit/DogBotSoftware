@@ -38,7 +38,7 @@ public:
   int m_state = 0;
   int m_checkSum = 0;
   int m_packetLen = 0;
-  static const int m_maxPacketSize = 64;
+  static const int m_maxPacketSize = BMC_MAXPACKETSIZE;
   uint8_t m_data[m_maxPacketSize];
   int m_at = 0;
 

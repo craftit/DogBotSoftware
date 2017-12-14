@@ -17,11 +17,13 @@
 #ifndef USBCFG_H
 #define USBCFG_H
 
+#ifndef USE_PACKETCOMS
 #include "hal.h"
 
 extern const USBConfig usbcfg;
 extern SerialUSBConfig serusbcfg;
 extern SerialUSBDriver SDU1;
+#endif
 
 #endif  /* USBCFG_H */
 

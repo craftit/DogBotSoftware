@@ -1,76 +1,51 @@
 
-#include "serial_packet.hh"
-#include "coms.h"
-#include "canbus.h"
-#include "dogbot/protocol.h"
-#include "chmboxes.h"
-#include "pwm.h"
-#include "mathfunc.h"
-#include "motion.h"
-#include "drv8503.h"
-#include "hal_channels.h"
 
+#ifdef USE_PACKETUSB
+
+#include "packet_usb.h"
+#include "coms.h"
+#include "hal.h"
+#include "bmc.h"
 #include <string.h>
 
-#if !USE_PACKETUSB
-
-BaseAsynchronousChannel *g_packetStream = 0;
 
 #define PACKET_QUEUE_SIZE 8
 
+/* TX Data buffer management. */
+
 static msg_t g_emptyPacketData[PACKET_QUEUE_SIZE];
 static mailbox_t g_emptyPackets;
+
 static msg_t g_fullPacketData[PACKET_QUEUE_SIZE];
 static mailbox_t g_fullPackets;
 
 static PacketT g_packetArray[PACKET_QUEUE_SIZE];
 
 
+
 static THD_WORKING_AREA(waThreadRxComs, 512);
 static THD_FUNCTION(ThreadRxComs, arg) {
 
   (void)arg;
-  chRegSetThreadName("rxcoms");
-  const static int buffSize = 256;
-  static uint8_t buff[buffSize];
-  /* Registering on the serial driver as event 1, interested in
-       error flags and data-available only, other flags will not wakeup
-       the thread.*/
-  event_listener_t serial_listener;
-  chEvtRegisterMaskWithFlags(chnGetEventSource(g_comsDecode.m_SDU),
-                             &serial_listener,
-                             EVENT_MASK(0),
-                             CHN_INPUT_AVAILABLE | CHN_CONNECTED | CHN_DISCONNECTED
-                             );
-  while(true) {
-    /* Waiting for any of the events we're registered on.*/
-    eventmask_t evt = chEvtWaitAnyTimeout(ALL_EVENTS,100);
-    if (evt & EVENT_MASK(0)) {
-      // Event from the serial interface, getting serial flags as first thing.
-      eventflags_t flags = chEvtGetAndClearFlags(&serial_listener);
+  chRegSetThreadName("rxPacketComs");
 
-      // Got a new connection ?
-      if (flags & (CHN_CONNECTED)) {
-        g_comsDecode.ResetStateMachine();
-      }
-      // Disable bridge mode on disconnect.
-      if (flags & (CHN_DISCONNECTED)) {
-        g_canBridgeMode = false;
-      }
-      if (flags & CHN_INPUT_AVAILABLE) {
-        // Try and read a block of data, but with zero timeout.
-        while(true) {
-          int ret = chnReadTimeout(g_comsDecode.m_SDU,buff,buffSize,TIME_IMMEDIATE);
-          if(ret <= 0)
-            break;
-          for(int i = 0;i < ret;i++) {
-            g_comsDecode.AcceptByte(buff[i]);
-          }
-        }
-      }
-    }
+  /*
+   * Activates the USB driver and then the USB bus pull-up on D+.
+   * Note, a delay is inserted in order to not have to disconnect the cable
+   * after a reset.
+   */
+  usbDisconnectBus(&USBD1);
+  chThdSleepMilliseconds(1500);
+  usbStart(&USBD1,&usbcfg);
+  usbConnectBus(&USBD1);
+
+  while(true) {
+    chThdSleepMilliseconds(1000);
   }
+
 }
+
+#if 0
 
 static THD_WORKING_AREA(waThreadTxComs, 256);
 static THD_FUNCTION(ThreadTxComs, arg) {
@@ -115,7 +90,7 @@ static THD_FUNCTION(ThreadTxComs, arg) {
     chMBPost(&g_emptyPackets,reinterpret_cast<msg_t>(packet),TIME_INFINITE);
   }
 }
-
+#endif
 
 /* Get a free packet structure. */
 struct PacketT *USBGetEmptyPacket(systime_t timeout)
@@ -177,9 +152,6 @@ void InitComs()
   if(g_comsInitDone)
     return ;
 
-  g_comsDecode.m_SDU = (BaseAsynchronousChannel *)&SDU1;
-  g_packetStream = (BaseAsynchronousChannel *)&SDU1;
-
   chMBObjectInit(&g_emptyPackets,g_emptyPacketData,PACKET_QUEUE_SIZE);
   for(int i = 0;i < PACKET_QUEUE_SIZE;i++) {
     chMBPost(&g_emptyPackets,reinterpret_cast<msg_t>(&g_packetArray[i]),TIME_IMMEDIATE);
@@ -188,9 +160,37 @@ void InitComs()
 
   g_comsInitDone = true;
 
-  chThdCreateStatic(waThreadTxComs, sizeof(waThreadTxComs), NORMALPRIO, ThreadTxComs, NULL);
   chThdCreateStatic(waThreadRxComs, sizeof(waThreadRxComs), NORMALPRIO+1, ThreadRxComs, NULL); // Prefer dealing with incoming messages.
+#if 0
+  chThdCreateStatic(waThreadTxComs, sizeof(waThreadTxComs), NORMALPRIO, ThreadTxComs, NULL);
+#endif
 
+}
+
+void InitUSB(void)
+{
+  /*
+   * Initialisation of USB is doen on the InitComs() rx thread to avoid a delay in starting up.
+   * */
+}
+
+
+void bmcDataTransmitCallback(USBDriver *usbp, usbep_t ep)
+{
+}
+
+void bmcDataReceivedCallback(USBDriver *usbp, usbep_t ep)
+{
+}
+
+bool bmcRequestsHook(USBDriver *usbp)
+{
+  return false;
+}
+
+bool bmcSOFHookI(USBDriver *usbp)
+{
+  return false;
 }
 
 #endif

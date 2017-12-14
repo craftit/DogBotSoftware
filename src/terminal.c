@@ -1,7 +1,8 @@
 
+#ifndef USE_PACKETUSB
+
 #include "ch.h"
 #include "hal.h"
-
 #include "coms_serial.h"
 
 #include "pwm.h"
@@ -573,3 +574,4 @@ void InitUSB(void)
 
 }
 
+#endif

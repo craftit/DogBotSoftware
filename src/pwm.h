@@ -6,8 +6,8 @@ extern "C" {
 #endif
 
 #include "ch.h"
-#include "dogbot/protocol.h"
 #include "hal_streams.h"
+#include "bmc.h"
 
 int InitPWM(void);
 
@@ -28,8 +28,6 @@ int PWMSVMScan(BaseSequentialStream *chp);
 void PWMUpdateDrive(int phase,int power);
 
 void MotionStep(void);
-bool ChangeControlState(enum ControlStateT newState);
-extern void FaultDetected(enum FaultCodeT faultCode);
 
 extern uint16_t *ReadADCs(void);
 extern float ReadSupplyVoltage(void); // Read supply voltage from ADC.

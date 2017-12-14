@@ -455,7 +455,7 @@ static void MotorControlLoop(void)
     // Last send report if needed.
     if(g_pwmFullReport) {
       struct PacketT *pkt;
-      if((pkt = GetEmptyPacket(TIME_IMMEDIATE)) != 0) {
+      if((pkt = USBGetEmptyPacket(TIME_IMMEDIATE)) != 0) {
         struct PacketPWMStateC *ps = (struct PacketPWMStateC *)&(pkt->m_data);
         pkt->m_len = sizeof(struct PacketPWMStateC);
         ps->m_packetType = CPT_PWMState;
@@ -465,7 +465,7 @@ static void MotorControlLoop(void)
         for(int i = 0;i < 3;i++)
           ps->m_hall[i] = g_hall[i];
         ps->m_angle = g_phaseAngle * 65535.0 / (2.0 * M_PI);
-        PostPacket(pkt);
+        USBPostPacket(pkt);
       }
     }
 
