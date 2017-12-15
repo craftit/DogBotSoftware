@@ -98,6 +98,9 @@ namespace DogBotN
       libusb_hotplug_deregister_callback(m_usbContext,m_hotplugCallbackHandle);
     }
     if(m_handle != 0) {
+      if(m_claimedInferface)
+        libusb_release_interface(m_handle, 0);
+
       libusb_close(m_handle);
       m_handle = 0;
     }
@@ -167,6 +170,13 @@ namespace DogBotN
   void ComsUSBC::Open(struct libusb_device_handle *handle)
   {
     m_log->info("BMCV2 device open ");
+
+    int rc = libusb_claim_interface(handle, 0);
+    if (rc != LIBUSB_SUCCESS) {
+      m_log->error("Failed to claim interface. {} ",libusb_error_name(rc));
+      return ;
+    }
+    m_claimedInferface = true;
 
     m_inTransfers = std::vector<USBTransferDataC>(2);
     m_outTransfers = std::vector<USBTransferDataC>(16);

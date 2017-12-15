@@ -100,7 +100,7 @@ namespace DogBotN {
     void Open(struct libusb_device_handle *handle);
 
     struct libusb_device_handle *m_handle = 0;
-
+    bool m_claimedInferface = false;
     int m_state = 0;
 
     struct libusb_context *m_usbContext = 0;
