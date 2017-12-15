@@ -3,6 +3,7 @@
 #include "dogbot/protocol.h"
 #include "dogbot/ComsSerial.hh"
 #include "dogbot/ComsZMQClient.hh"
+#include "dogbot/ComsUSB.hh"
 #include <fstream>
 #include <chrono>
 #include <mutex>
@@ -104,6 +105,7 @@ namespace DogBotN {
   const char *ComsPacketTypeToString(ComsPacketTypeT packetType)
   {
     switch(packetType) {
+      case CPT_NoOp: return "No-op";
       case CPT_EmergencyStop: return "Emergency Stop";
       case CPT_SyncTime: return "SyncTime";
       case CPT_Error: return "Error";
@@ -197,6 +199,10 @@ namespace DogBotN {
     m_deviceName = name;
     if(name == "local") {
       m_coms = std::make_shared<ComsZMQClientC>("tcp://127.0.0.1");
+      return true;
+    }
+    if(name == "usb") {
+      m_coms = std::make_shared<ComsUSBC>();
       return true;
     }
     m_coms = std::make_shared<ComsSerialC>();

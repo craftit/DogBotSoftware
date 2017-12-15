@@ -1,28 +1,19 @@
 
+#include "bmc.h"
 
-#ifdef USE_PACKETUSB
+#if USE_PACKETUSB
 
+#include "packet_queue.hh"
 #include "packet_usb.h"
 #include "coms.h"
 #include "hal.h"
 #include "bmc.h"
 #include <string.h>
 
-bool g_packetUSBActive = false;
+bool g_packetTxUSBActive = false;
+bool g_packetRxUSBActive = false;
 
-#define PACKET_QUEUE_SIZE 8
-
-/* TX Data buffer management. */
-
-static msg_t g_emptyPacketData[PACKET_QUEUE_SIZE];
-static mailbox_t g_emptyPackets;
-
-static msg_t g_fullPacketData[PACKET_QUEUE_SIZE];
-static mailbox_t g_fullPackets;
-
-static PacketT g_packetArray[PACKET_QUEUE_SIZE];
-
-
+PacketQueueC g_rxPacketQueue;
 
 static THD_WORKING_AREA(waThreadRxComs, 512);
 static THD_FUNCTION(ThreadRxComs, arg) {
@@ -41,131 +32,30 @@ static THD_FUNCTION(ThreadRxComs, arg) {
   usbConnectBus(&USBD1);
 
   while(true) {
-    chThdSleepMilliseconds(1000);
-  }
-
-}
-
-#if 0
-
-static THD_WORKING_AREA(waThreadTxComs, 256);
-static THD_FUNCTION(ThreadTxComs, arg) {
-
-  (void)arg;
-  chRegSetThreadName("txcoms");
-  static uint8_t txbuff[70];
-  while(true) {
-    struct PacketT *packet = 0;
-    if(chMBFetch(&g_fullPackets,(msg_t*) &packet,TIME_INFINITE) != MSG_OK) {
-      // Prevent a possible tight loop
+    struct PacketT *pkt = g_rxPacketQueue.FetchFull(TIME_INFINITE);
+    if(pkt == 0) {
+      // Failed, avoid a tight loop in case it repeats.
       chThdSleepMilliseconds(10);
       continue;
     }
 
-    if(SDU1.config->usbp->state == USB_ACTIVE) {
+    // Process the packet.
+    ProcessPacket(pkt->m_data,pkt->m_len);
 
-      uint8_t len = packet->m_len;
-
-      uint8_t *buff = packet->m_data;
-
-      uint8_t *at = txbuff;
-      *(at++) = g_charSTX;
-      *(at++) = len;
-      int crc = len + 0x55;
-      for(int i = 0;i < len;i++) {
-        uint8_t data = buff[i];
-        *(at++) = data;
-        crc += data;
-      }
-      *(at++) = crc;
-      *(at++) = crc>>8;
-      *(at++) = g_charETX;
-      int size = at - txbuff;
-
-      chnWrite(g_packetStream, txbuff, size);
-    } else {
-      // If we've lost our connection turn bridge mode off.
-      g_canBridgeMode = false;
-    }
-
-    chMBPost(&g_emptyPackets,reinterpret_cast<msg_t>(packet),TIME_INFINITE);
-  }
-}
-#endif
-
-/* Get a free packet structure. */
-struct PacketT *USBGetEmptyPacket(systime_t timeout)
-{
-  if(!g_comsInitDone)
-    return 0;
-
-  msg_t msg;
-  if(chMBFetch(&g_emptyPackets,&msg,timeout) != MSG_OK)
-    return 0;
-  return (PacketT *)msg;
-}
-
-
-
-/* Post full packet. */
-bool USBPostPacket(struct PacketT *pkt)
-{
-  if(chMBPost(&g_fullPackets,(msg_t) pkt,TIME_IMMEDIATE) == MSG_OK)
-    return true;
-
-  g_usbErrorCount++;
-  FaultDetected(FC_InternalUSB);
-  // This shouldn't happen, as if we can't acquire an empty buffer
-  // unless there is space available, but we don't want to loose the buffer
-  // so attempt to add it back to the free list
-  if(chMBPost(&g_emptyPackets,(msg_t) pkt,TIME_IMMEDIATE) != MSG_OK) {
-    // Things are really screwy. Panic ?
-  }
-  return false;
-}
-
-bool USBSendPacket(
-    uint8_t *buff,
-    int len
-    )
-{
-  struct PacketT *pkt;
-  // If packet is too large, drop it log and flag an error occurred.
-  if(len >= (int)sizeof(pkt->m_data) || len < 0) {
-    g_usbErrorCount++;
-    return false;
+    // Return it to the list of empty packets.
+    g_rxPacketQueue.ReturnEmptyPacketI(pkt);
   }
 
-  if((pkt = USBGetEmptyPacket(TIME_IMMEDIATE)) == 0) {
-    g_usbDropCount++;
-    return false;
-  }
-
-  pkt->m_len = len;
-  memcpy(&pkt->m_data,buff,len);
-  return USBPostPacket(pkt);
 }
-
-
 
 void InitComs()
 {
   if(g_comsInitDone)
     return ;
 
-  chMBObjectInit(&g_emptyPackets,g_emptyPacketData,PACKET_QUEUE_SIZE);
-  for(int i = 0;i < PACKET_QUEUE_SIZE;i++) {
-    chMBPost(&g_emptyPackets,reinterpret_cast<msg_t>(&g_packetArray[i]),TIME_IMMEDIATE);
-  }
-  chMBObjectInit(&g_fullPackets,g_fullPacketData,PACKET_QUEUE_SIZE);
-
   g_comsInitDone = true;
 
   chThdCreateStatic(waThreadRxComs, sizeof(waThreadRxComs), NORMALPRIO+1, ThreadRxComs, NULL); // Prefer dealing with incoming messages.
-#if 0
-  chThdCreateStatic(waThreadTxComs, sizeof(waThreadTxComs), NORMALPRIO, ThreadTxComs, NULL);
-#endif
-
 }
 
 void InitUSB(void)
@@ -175,40 +65,82 @@ void InitUSB(void)
    * */
 }
 
-static void QueueTransmit(USBDriver *usbp, usbep_t ep) {
+static void QueueTransmitI(USBDriver *usbp, usbep_t ep) {
 
-  static msg_t g_txMsg = 0;
-
+  static struct PacketT *g_txPkt = 0;
+#if 1
   // Free last packet
-  if(g_txMsg != 0) {
-    if(chMBPostI(&g_emptyPackets,g_txMsg) != MSG_OK)
-      g_usbErrorCount++;
-    g_txMsg = 0;
+  if(g_txPkt != 0) {
+    g_txPacketQueue.ReturnEmptyPacketI(g_txPkt);
+    g_txPkt = 0;
   }
 
-  // May need to transmit more than one packet at a time to get the required bandwidth.
-  if(chMBFetchI(&g_fullPackets,&g_txMsg) == MSG_OK) {
-    struct PacketT *packet = reinterpret_cast<struct PacketT *>(g_txMsg);
-    usbStartTransmitI(usbp, ep, packet->m_data, packet->m_len);
+  if((g_txPkt = g_txPacketQueue.FetchFullI()) != 0) {
+    // May need to transmit more than one packet at a time to get the required bandwidth.
+    usbStartTransmitI(usbp, ep, g_txPkt->m_data, g_txPkt->m_len);
   }
-
+#endif
 }
 
 void bmcDataTransmitCallback(USBDriver *usbp, usbep_t ep)
 {
   // Are we active ?
-  if(!g_packetUSBActive)
+  if(!g_packetTxUSBActive)
     return ;
 
   osalSysLockFromISR();
 
-  QueueTransmit(usbp,ep);
+  QueueTransmitI(usbp,ep);
 
   osalSysUnlockFromISR();
 }
 
+
+static struct PacketT *g_usbCurrentRxBuffer = 0;
+
+static void startRecieveI(USBDriver *usbp, usbep_t ep)
+{
+
+  /* If the USB driver is not in the appropriate state then transactions
+     must not be started.*/
+  if ((usbGetDriverStateI(usbp) != USB_ACTIVE) || !g_packetRxUSBActive) {
+    return ;
+  }
+
+  // Checking if there is already a transaction ongoing on the endpoint.
+  if (usbGetReceiveStatusI(usbp, USBD1_DATA_OUT_EP)) {
+    return ;
+  }
+
+  if(g_usbCurrentRxBuffer != 0) // Recieve in progress ??
+    return ;
+
+  /* Checking if there is a buffer ready for incoming data.*/
+
+  struct PacketT *pkt = g_rxPacketQueue.GetEmptyPacketI();
+  if(pkt == 0)
+    return ; // No empty packets ready...
+
+  g_usbCurrentRxBuffer = pkt;
+
+  // Buffer found, starting a new transaction.
+  usbStartReceiveI(usbp, ep,pkt->m_data, pkt->m_len);
+}
+
+
 void bmcDataReceivedCallback(USBDriver *usbp, usbep_t ep)
 {
+  osalSysLockFromISR();
+
+  if(g_usbCurrentRxBuffer != 0) {
+    g_rxPacketQueue.PostFullPacketI(g_usbCurrentRxBuffer);
+    g_usbCurrentRxBuffer = 0;
+  }
+
+  startRecieveI(usbp,ep);
+
+  osalSysUnlockFromISR();
+
 }
 
 bool bmcRequestsHook(USBDriver *usbp)
@@ -216,21 +148,23 @@ bool bmcRequestsHook(USBDriver *usbp)
   return false;
 }
 
-bool bmcSOFHookI(USBDriver *usbp, usbep_t epIn)
+bool bmcSOFHookI(USBDriver *usbp)
 {
   /* If the USB driver is not in the appropriate state then transactions
      must not be started.*/
-  if ((usbGetDriverStateI(usbp) != USB_ACTIVE) || ! g_packetUSBActive) {
+  if ((usbGetDriverStateI(usbp) != USB_ACTIVE) || ! g_packetTxUSBActive) {
     return true;
   }
+  osalSysLockFromISR();
 
   /* If there is already a transaction ongoing then another one cannot be
      started.*/
-  if (usbGetTransmitStatusI(usbp,epIn)) {
-    return true;
+
+  if (!usbGetTransmitStatusI(usbp,USBD1_DATA_IN_EP)) {
+    QueueTransmitI(usbp,USBD1_DATA_IN_EP);
   }
 
-  QueueTransmit(usbp,epIn);
+  osalSysUnlockFromISR();
 
   return true;
 }
@@ -239,21 +173,25 @@ bool bmcSOFHookI(USBDriver *usbp, usbep_t epIn)
 
 void bmcWakeupHookI(USBDriver *usbp)
 {
-  g_packetUSBActive = true;
+  g_packetTxUSBActive = true;
+  g_packetRxUSBActive = true;
 }
 
 /* Make sure no transfers are queued. */
 
 void bmcSuspendHookI(USBDriver *usbp)
 {
-  g_packetUSBActive = false;
+  g_packetTxUSBActive = false;
+  g_packetRxUSBActive = false;
 }
 
 /* Resetting the state of the subsystem.*/
 
 void bmcConfigureHookI(USBDriver *usbp)
 {
-
+  startRecieveI(usbp,USBD1_DATA_OUT_EP);
+  g_packetTxUSBActive = true;
+  g_packetRxUSBActive = true;
 }
 
 #endif

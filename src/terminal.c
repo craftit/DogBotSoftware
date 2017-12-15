@@ -1,5 +1,7 @@
 
-#ifndef USE_PACKETUSB
+#include "bmc.h"
+
+#if !USE_PACKETUSB
 
 #include "ch.h"
 #include "hal.h"

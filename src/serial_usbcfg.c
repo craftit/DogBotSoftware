@@ -14,7 +14,9 @@
     limitations under the License.
 */
 
-#ifndef USE_PACKETUSB
+#include "bmc.h"
+
+#if !USE_PACKETUSB
 
 #include "hal.h"
 

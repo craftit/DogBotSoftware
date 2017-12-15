@@ -2,6 +2,7 @@
 #include "dogbot/ComsProxy.hh"
 #include "dogbot/ComsZMQClient.hh"
 #include "dogbot/ComsSerial.hh"
+#include "dogbot/ComsUSB.hh"
 
 namespace DogBotN
 {
@@ -61,7 +62,9 @@ namespace DogBotN
   bool ComsProxyC::Open(const std::string &portAddr)
   {
     std::shared_ptr<ComsC> coms;
-    if(std::string("local") == portAddr) {
+    if(std::string("usb") == portAddr) {
+      coms = std::make_shared<ComsUSBC>();
+    } else if(std::string("local") == portAddr) {
       coms = std::make_shared<ComsZMQClientC>();
     } else {
       coms = std::make_shared<ComsSerialC>();

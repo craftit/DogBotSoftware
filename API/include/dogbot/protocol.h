@@ -9,6 +9,7 @@ extern "C" {
 
   enum ComsPacketTypeT
   {
+    CPT_NoOp    =  0, // No op.
     CPT_EmergencyStop =  1, // Set parameter (Used to for emergency stop)
     CPT_SyncTime      =  2, // Sync time across controllers.
     CPT_Error         =  3, // Error report

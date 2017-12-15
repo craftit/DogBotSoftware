@@ -14,7 +14,9 @@
     limitations under the License.
 */
 
-#ifdef USE_PACKETUSB
+#include "bmc.h"
+
+#if USE_PACKETUSB
 
 #include "packet_usb.h"
 
@@ -23,14 +25,22 @@ struct USBDriver g_usbDriver;
 /*
  * Useful sites:
  *  http://www.usbmadesimple.co.uk
+ *  http://www.beyondlogic.org/usbnutshell/usb1.shtml
  *  https://github.com/obdev/v-usb/blob/master/usbdrv/USB-IDs-for-free.txt
  *  This may be worth looking into: https://github.com/pidcodes/pidcodes.github.com
  */
 
-/*
- * Endpoints to be used for USBD1.
+
+/**
+ * @brief   IN EP1 state.
  */
-#define USBD1_DATA_EP           1
+static USBInEndpointState ep1instate;
+
+/**
+ * @brief   OUT EP1 state.
+ */
+static USBOutEndpointState ep2outstate;
+
 
 /*
  * USB Device Descriptor.
@@ -72,21 +82,18 @@ static const uint8_t vcom_configuration_descriptor_data[32] = {
   USB_DESC_INTERFACE    (0x00,          /* bInterfaceNumber.                */
                          0x00,          /* bAlternateSetting.               */
                          0x02,          /* bNumEndpoints.                   */
-                         0xFF,          /* bInterfaceClass (Data Class
-                                           Interface, CDC section 4.5).     */
-                         0x00,          /* bInterfaceSubClass (CDC section
-                                           4.6).                            */
-                         0x00,          /* bInterfaceProtocol (CDC section
-                                           4.7).                            */
+                         0xFF,          /* bInterfaceClass                  */
+                         0x00,          /* bInterfaceSubClass               */
+                         0x00,          /* bInterfaceProtocol               */
                          0x00),         /* iInterface.                      */
   /* Endpoint 1 Descriptor. 7 bytes */
-  USB_DESC_ENDPOINT     (USBD1_DATA_EP, /* bEndpointAddress. OUT */
+  USB_DESC_ENDPOINT     (USBD1_DATA_OUT_EP, /* bEndpointAddress. OUT */
                          0x01,          /* bmAttributes (Isochronous).      */
                          0x0040,        /* wMaxPacketSize.                  */
                          0x01),         /* bInterval.                       */
 
   /* Endpoint 1 Descriptor. 7 bytes */
-  USB_DESC_ENDPOINT     (USBD1_DATA_EP|0x80,  /* bEndpointAddress. IN */
+  USB_DESC_ENDPOINT     (USBD1_DATA_IN_EP|0x80,  /* bEndpointAddress. IN */
                          0x01,          /* bmAttributes (Isochronous).      */
                          0x0040,        /* wMaxPacketSize.                  */
                          0x01)          /* bInterval.                       */
@@ -112,7 +119,7 @@ static const uint8_t vcom_string0[] = {
 /*
  * Vendor string.
  */
-static const uint8_t vcom_string1[] = {
+static const uint8_t vcom_string1[28] = {
   USB_DESC_BYTE(28),                    /* bLength.                         */
   USB_DESC_BYTE(USB_DESCRIPTOR_STRING), /* bDescriptorType.                 */
   'R', 0,
@@ -133,7 +140,7 @@ static const uint8_t vcom_string1[] = {
 /*
  * Device Description string.
  */
-static const uint8_t vcom_string2[] = {
+static const uint8_t vcom_string2[60] = {
   USB_DESC_BYTE(60),                    /* bLength.                         */
   USB_DESC_BYTE(USB_DESCRIPTOR_STRING), /* bDescriptorType.                 */
   'B', 0,
@@ -170,8 +177,8 @@ static const uint8_t vcom_string2[] = {
 /*
  * Serial Number string.
  */
-static const uint8_t vcom_string3[] = {
-  USB_DESC_BYTE(38),                     /* bLength.                         */
+static const uint8_t vcom_string3[36] = {
+  USB_DESC_BYTE(36),                     /* bLength.                         */
   USB_DESC_BYTE(USB_DESCRIPTOR_STRING), /* bDescriptorType.                 */
   'r', 0,
   'e', 0,
@@ -225,30 +232,37 @@ static const USBDescriptor *get_descriptor(USBDriver *usbp,
   return NULL;
 }
 
-/**
- * @brief   IN EP1 state.
- */
-static USBInEndpointState ep1instate;
-
-/**
- * @brief   OUT EP1 state.
- */
-static USBOutEndpointState ep1outstate;
 
 
 
 /**
- * @brief   EP1 initialisation structure (both IN and OUT).
+ * @brief   EP1 initialisation structure IN .
  */
 static const USBEndpointConfig ep1config = {
   USB_EP_MODE_TYPE_ISOC,
   NULL,
-  bmcDataTransmitCallback,
-  bmcDataReceivedCallback,
-  0x0040,
-  0x0040,
-  &ep1instate,
-  &ep1outstate,
+  bmcDataTransmitCallback,  // in CB
+  0,                        // out CB
+  0x0040,                   // Max in BW
+  0,                        // Max out BW
+  &ep1instate,              // In state
+  0,                        // Out state
+  2,
+  NULL
+};
+
+/**
+ * @brief   EP2 initialisation structure OUT.
+ */
+static const USBEndpointConfig ep2config = {
+  USB_EP_MODE_TYPE_ISOC,
+  NULL,
+  0,                         // In CB
+  bmcDataReceivedCallback,   // Out CB
+  0,                         // Max In
+  0x0040,                    // Max Out
+  0,                         // In state
+  &ep2outstate,              // Out state
   2,
   NULL
 };
@@ -267,7 +281,8 @@ static void usb_event(USBDriver *usbp, usbevent_t event) {
     /* Enables the endpoints specified in the configuration.
        Note, this callback is invoked from an ISR so I-Class functions
        must be used.*/
-    usbInitEndpointI(usbp, USBD1_DATA_EP, &ep1config);
+    usbInitEndpointI(usbp, USBD1_DATA_IN_EP, &ep1config);
+    usbInitEndpointI(usbp, USBD1_DATA_OUT_EP, &ep2config);
 
     /* Resetting the state of the subsystem.*/
     bmcConfigureHookI(usbp);
@@ -312,7 +327,7 @@ static void sof_handler(USBDriver *usbp) {
 
   osalSysLockFromISR();
 
-  bmcSOFHookI(usbp,USBD1_DATA_EP|0x80);
+  bmcSOFHookI(usbp);
 
   osalSysUnlockFromISR();
 }

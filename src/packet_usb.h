@@ -3,6 +3,18 @@
 
 #include "hal.h"
 
+/*
+ * Endpoints to be used for USBD1.
+ */
+#define USBD1_DATA_IN_EP           1
+#define USBD1_DATA_OUT_EP          2
+
+/*
+ * Endpoints to be used for USBD1.
+ *  IN to the host (tx)
+ *  OUT from the host (rx)
+ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -12,7 +24,7 @@ extern "C" {
 
   bool bmcRequestsHook(USBDriver *usbp);
 
-  bool bmcSOFHookI(USBDriver *usbp, usbep_t epIn);
+  bool bmcSOFHookI(USBDriver *usbp);
 
   void bmcWakeupHookI(USBDriver *usbp);
 

@@ -175,7 +175,7 @@ void FaultDetected(enum FaultCodeT faultCode)
 
 float g_minSupplyVoltage = 6.0;
 
-bool ChangeControlState(enum ControlStateT newState)
+int ChangeControlState(enum ControlStateT newState)
 {
   // No change?
   if(newState == g_controlState)

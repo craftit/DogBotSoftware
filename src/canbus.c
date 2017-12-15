@@ -343,6 +343,8 @@ static THD_FUNCTION(can_rx, p) {
 
       switch((enum ComsPacketTypeT) msgType)
       {
+        case CPT_NoOp:
+          break;
         case CPT_EmergencyStop: { // Ping request
           ChangeControlState(CS_EmergencyStop);
           if(g_canBridgeMode) {

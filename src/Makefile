@@ -151,7 +151,8 @@ CPPSRC = \
   motion.cpp \
   serial_usbcoms.cpp \
   serial_packet.cpp \
-  packet_usbcoms.cpp 
+  packet_usbcoms.cpp \
+  packet_queue.cpp 
 
 
 # C sources to be compiled in ARM mode regardless of the global setting.
@@ -235,7 +236,8 @@ CPPWARN = -Wall -Wextra -Wundef
 #
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS = -DCHPRINTF_USE_FLOAT=1 -DSHELL_CMD_TEST_ENABLED=FALSE -DUSE_PACKETUSB=1
+UDEFS = -DCHPRINTF_USE_FLOAT=1 -DSHELL_CMD_TEST_ENABLED=FALSE 
+#-DUSE_PACKETUSB=0
 # -DSTM32F40_41xxx=1
 
 # Define ASM defines here

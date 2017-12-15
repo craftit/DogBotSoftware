@@ -537,6 +537,8 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
   enum ComsPacketTypeT cpt = (enum ComsPacketTypeT) m_data[0];
   switch(cpt)
   {
+  case CPT_NoOp: // No-op
+    break;
   case CPT_EmergencyStop:
     ChangeControlState(CS_EmergencyStop);
     if(!CANEmergencyStop()) {
