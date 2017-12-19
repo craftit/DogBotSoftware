@@ -22,7 +22,11 @@ namespace DogBotN {
 
     ~USBTransferDataC();
 
-    void Setup(ComsUSBC *coms,struct libusb_device_handle *handle,USBTransferDirectionT direction);
+    //! Setup an ISO buffer
+    void SetupIso(ComsUSBC *coms,struct libusb_device_handle *handle,USBTransferDirectionT direction);
+
+    //! Setup an Ctrl buffer
+    void SetupIntr(ComsUSBC *coms,struct libusb_device_handle *handle,USBTransferDirectionT direction);
 
     //! Get size of buffer.
     unsigned BufferSize() const
@@ -82,17 +86,29 @@ namespace DogBotN {
     void HotPlugDepartedCallback(libusb_device *device, libusb_hotplug_event event);
 
     //! Process incoming data.
-    void ProcessInTransfer(USBTransferDataC *data);
+    void ProcessInTransferIso(USBTransferDataC *data);
 
     //! Process outgoing data complete
-    void ProcessOutTransfer(USBTransferDataC *data);
+    void ProcessOutTransferIso(USBTransferDataC *data);
+
+    //! Process incoming data.
+    void ProcessInTransferIntr(USBTransferDataC *data);
+
+    //! Process outgoing data complete
+    void ProcessOutTransferIntr(USBTransferDataC *data);
 
   protected:
 
+    void SendPacketIso(const uint8_t *data,int len);
+    void SendPacketIntr(const uint8_t *data,int len);
 
-    std::vector<USBTransferDataC> m_inTransfers;
-    std::vector<USBTransferDataC> m_outTransfers;
-    std::vector<USBTransferDataC *> m_outFree;
+    std::vector<USBTransferDataC> m_inIntrTransfers;
+    std::vector<USBTransferDataC> m_outIntrTransfers;
+    std::vector<USBTransferDataC *> m_outIntrFree;
+
+    std::vector<USBTransferDataC> m_inDataTransfers;
+    std::vector<USBTransferDataC> m_outDataTransfers;
+    std::vector<USBTransferDataC *> m_outDataFree;
 
     void Init();
 

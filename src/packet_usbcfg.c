@@ -20,8 +20,6 @@
 
 #include "packet_usb.h"
 
-struct USBDriver g_usbDriver;
-
 /*
  * Useful sites:
  *  http://www.usbmadesimple.co.uk
@@ -37,9 +35,19 @@ struct USBDriver g_usbDriver;
 static USBInEndpointState ep1instate;
 
 /**
- * @brief   OUT EP1 state.
+ * @brief   OUT EP2 state.
  */
 static USBOutEndpointState ep2outstate;
+
+/**
+ * @brief   IN EP3 state.
+ */
+static USBInEndpointState ep3instate;
+
+/**
+ * @brief   OUT EP4 state.
+ */
+static USBOutEndpointState ep4outstate;
 
 
 /*
@@ -70,9 +78,9 @@ static const USBDescriptor vcom_device_descriptor = {
 
 
 /* Configuration Descriptor tree for a CDC.*/
-static const uint8_t vcom_configuration_descriptor_data[32] = {
+static const uint8_t vcom_configuration_descriptor_data[46] = {
   /* Configuration Descriptor. 9 bytes */
-  USB_DESC_CONFIGURATION(32,            /* wTotalLength.                    */
+  USB_DESC_CONFIGURATION(46,            /* wTotalLength.                    */
                          0x01,          /* bNumInterfaces.                  */
                          0x01,          /* bConfigurationValue.             */
                          0,             /* iConfiguration.                  */
@@ -81,22 +89,32 @@ static const uint8_t vcom_configuration_descriptor_data[32] = {
   /* Interface Descriptor. 9 bytes*/
   USB_DESC_INTERFACE    (0x00,          /* bInterfaceNumber.                */
                          0x00,          /* bAlternateSetting.               */
-                         0x02,          /* bNumEndpoints.                   */
+                         0x04,          /* bNumEndpoints.                   */
                          0xFF,          /* bInterfaceClass                  */
                          0x00,          /* bInterfaceSubClass               */
                          0x00,          /* bInterfaceProtocol               */
                          0x00),         /* iInterface.                      */
   /* Endpoint 1 Descriptor. 7 bytes */
-  USB_DESC_ENDPOINT     (USBD1_DATA_OUT_EP, /* bEndpointAddress. OUT */
+  USB_DESC_ENDPOINT     (USB_ENDPOINT_OUT(USBD1_DATA_OUT_EP), /* bEndpointAddress. OUT */
                          0x01,          /* bmAttributes (Isochronous).      */
                          0x0040,        /* wMaxPacketSize.                  */
                          0x01),         /* bInterval.                       */
-
-  /* Endpoint 1 Descriptor. 7 bytes */
-  USB_DESC_ENDPOINT     (USBD1_DATA_IN_EP|0x80,  /* bEndpointAddress. IN */
+  /* Endpoint 2 Descriptor. 7 bytes */
+  USB_DESC_ENDPOINT     (USB_ENDPOINT_IN(USBD1_DATA_IN_EP),  /* bEndpointAddress. IN */
                          0x01,          /* bmAttributes (Isochronous).      */
                          0x0040,        /* wMaxPacketSize.                  */
-                         0x01)          /* bInterval.                       */
+                         0x01),         /* bInterval.                       */
+  /* Endpoint 3 Descriptor. 7 bytes */
+  USB_DESC_ENDPOINT     (USB_ENDPOINT_OUT(USBD1_INTR_OUT_EP), /* bEndpointAddress. OUT */
+                         0x03,          /* bmAttributes (Interrupt).      */
+                         0x0040,        /* wMaxPacketSize.                  */
+                         0x02),         /* bInterval.                       */
+  /* Endpoint 4 Descriptor. 7 bytes */
+  USB_DESC_ENDPOINT     (USB_ENDPOINT_IN(USBD1_INTR_IN_EP),  /* bEndpointAddress. IN */
+                         0x03,          /* bmAttributes (Interrupt).      */
+                         0x0040,        /* wMaxPacketSize.                  */
+                         0x02),          /* bInterval.                       */
+
 };
 
 /*
@@ -247,7 +265,7 @@ static const USBEndpointConfig ep1config = {
   0,                        // Max out BW
   &ep1instate,              // In state
   0,                        // Out state
-  2,
+  1,
   NULL
 };
 
@@ -263,7 +281,39 @@ static const USBEndpointConfig ep2config = {
   0x0040,                    // Max Out
   0,                         // In state
   &ep2outstate,              // Out state
-  2,
+  1,
+  NULL
+};
+
+/**
+ * @brief   EP3 initialisation structure IN .
+ */
+static const USBEndpointConfig ep3config = {
+  USB_EP_MODE_TYPE_INTR,
+  NULL,
+  bmcIntrTransmitCallback,  // in CB
+  0,                        // out CB
+  0x0040,                   // Max in BW
+  0,                        // Max out BW
+  &ep3instate,              // In state
+  0,                        // Out state
+  1,
+  NULL
+};
+
+/**
+ * @brief   EP4 initialisation structure OUT.
+ */
+static const USBEndpointConfig ep4config = {
+  USB_EP_MODE_TYPE_INTR,
+  NULL,
+  0,                         // In CB
+  bmcIntrReceivedCallback,   // Out CB
+  0,                         // Max In
+  0x0040,                    // Max Out
+  0,                         // In state
+  &ep4outstate,              // Out state
+  1,
   NULL
 };
 
@@ -283,6 +333,8 @@ static void usb_event(USBDriver *usbp, usbevent_t event) {
        must be used.*/
     usbInitEndpointI(usbp, USBD1_DATA_IN_EP, &ep1config);
     usbInitEndpointI(usbp, USBD1_DATA_OUT_EP, &ep2config);
+    usbInitEndpointI(usbp, USBD1_INTR_IN_EP, &ep3config);
+    usbInitEndpointI(usbp, USBD1_INTR_OUT_EP, &ep4config);
 
     /* Resetting the state of the subsystem.*/
     bmcConfigureHookI(usbp);

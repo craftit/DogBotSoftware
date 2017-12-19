@@ -7,6 +7,7 @@
 extern "C" {
 #endif
 
+#include "hal.h"
 #include "serial_usbcfg.h"
 #include "dogbot/protocol.h"
 

@@ -2,6 +2,7 @@
 #define PACKET_QUEUE_HEADER 1
 
 #include "hal.h"
+#include "bmc.h"
 #include "coms.h"
 
 #define PACKET_QUEUE_SIZE 8
@@ -27,6 +28,9 @@ public:
   // Return an empty packet to the queue.
   void ReturnEmptyPacketI(struct PacketT *pkt);
 
+  //! Send a packet
+  bool SendPacket(uint8_t *buff,int len);
+
   // Fetch a full packet.
   struct PacketT *FetchFullI();
 
@@ -43,5 +47,8 @@ public:
 };
 
 extern PacketQueueC g_txPacketQueue;
+#if USE_PACKETUSB
+extern PacketQueueC g_txIntrPacketQueue;
+#endif
 
 #endif
