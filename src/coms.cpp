@@ -534,6 +534,8 @@ void SendParamUpdate(enum ComsParameterIndexT paramIndex) {
 
 void ProcessPacket(const uint8_t *m_data,int m_packetLen)
 {
+  if(m_packetLen < 1)
+    return ;
   enum ComsPacketTypeT cpt = (enum ComsPacketTypeT) m_data[0];
   switch(cpt)
   {

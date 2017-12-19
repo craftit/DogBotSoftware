@@ -61,7 +61,7 @@ void InitComs()
 void InitUSB(void)
 {
   /*
-   * Initialisation of USB is doen on the InitComs() rx thread to avoid a delay in starting up.
+   * Initialisation of USB is done on the InitComs() rx thread to avoid a delay in starting up.
    * */
 }
 
@@ -112,19 +112,17 @@ static void startRecieveI(USBDriver *usbp, usbep_t ep)
     return ;
   }
 
-  if(g_usbCurrentRxBuffer != 0) // Recieve in progress ??
+  if(g_usbCurrentRxBuffer != 0) // Receive in progress ??
     return ;
 
   /* Checking if there is a buffer ready for incoming data.*/
 
-  struct PacketT *pkt = g_rxPacketQueue.GetEmptyPacketI();
-  if(pkt == 0)
+  g_usbCurrentRxBuffer = g_rxPacketQueue.GetEmptyPacketI();
+  if(g_usbCurrentRxBuffer == 0)
     return ; // No empty packets ready...
 
-  g_usbCurrentRxBuffer = pkt;
-
   // Buffer found, starting a new transaction.
-  usbStartReceiveI(usbp, ep,pkt->m_data, pkt->m_len);
+  usbStartReceiveI(usbp, ep,g_usbCurrentRxBuffer->m_data, 63);
 }
 
 
@@ -133,7 +131,12 @@ void bmcDataReceivedCallback(USBDriver *usbp, usbep_t ep)
   osalSysLockFromISR();
 
   if(g_usbCurrentRxBuffer != 0) {
-    g_rxPacketQueue.PostFullPacketI(g_usbCurrentRxBuffer);
+    g_usbCurrentRxBuffer->m_len = usbGetReceiveTransactionSizeX(usbp, ep);
+    if(g_usbCurrentRxBuffer->m_len > 0) {
+      g_rxPacketQueue.PostFullPacketI(g_usbCurrentRxBuffer);
+    } else {
+      g_rxPacketQueue.ReturnEmptyPacketI(g_usbCurrentRxBuffer);
+    }
     g_usbCurrentRxBuffer = 0;
   }
 

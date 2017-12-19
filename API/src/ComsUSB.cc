@@ -28,7 +28,8 @@ namespace DogBotN
   {
     USBTransferDataC *transferData = (USBTransferDataC *)transfer->user_data;
 
-    if(transfer->endpoint == DATA_IN_EP | 0x80 )
+    //std::cerr << "Got ep " << (int) transfer->endpoint << std::endl;
+    if(transfer->endpoint == (DATA_IN_EP | 0x80) )
       transferData->ComsUSB()->ProcessInTransfer(transferData);
 
     if(transfer->endpoint == DATA_OUT_EP)
