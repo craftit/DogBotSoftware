@@ -3,11 +3,16 @@
 
 #include "hal.h"
 
+#include "dogbot/protocol.h"
+
 /*
  * Endpoints to be used for USBD1.
  */
-#define USBD1_DATA_IN_EP           1
-#define USBD1_DATA_OUT_EP          2
+#define USBD1_DATA_IN_EP     BMCUSB_DATA_IN_EP
+#define USBD1_DATA_OUT_EP    BMCUSB_DATA_OUT_EP
+
+#define USBD1_INTR_IN_EP     BMCUSB_INTR_IN_EP
+#define USBD1_INTR_OUT_EP    BMCUSB_INTR_OUT_EP
 
 /*
  * Endpoints to be used for USBD1.
@@ -18,9 +23,15 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+  extern const USBConfig usbcfg;
+
   void bmcDataTransmitCallback(USBDriver *usbp, usbep_t ep);
 
   void bmcDataReceivedCallback(USBDriver *usbp, usbep_t ep);
+
+  void bmcIntrTransmitCallback(USBDriver *usbp, usbep_t ep);
+
+  void bmcIntrReceivedCallback(USBDriver *usbp, usbep_t ep);
 
   bool bmcRequestsHook(USBDriver *usbp);
 

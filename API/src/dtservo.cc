@@ -83,6 +83,11 @@ int main(int nargs,char **argv)
   logger->info("Setup and ready. ");
   while(1) {
     sleep(1);
+    logger->info("Sending ping. ");
+    coms->SendPing(0);
+    coms->SendSetParam(0,CPI_Indicator,1);
+    sleep(1);
+    coms->SendSetParam(0,CPI_Indicator,0);
   }
 
   return 0;

@@ -17,7 +17,9 @@
 #ifndef USBCFG_H
 #define USBCFG_H
 
-#ifndef USE_PACKETCOMS
+#include "bmc.h"
+
+#if !USE_PACKETUSB
 #include "hal.h"
 
 extern const USBConfig usbcfg;

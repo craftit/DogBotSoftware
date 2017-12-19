@@ -1,6 +1,7 @@
 
 #include <stdint.h>
 
+#include "hal.h"
 #include "coms.h"
 #include "canbus.h"
 #include "dogbot/protocol.h"
