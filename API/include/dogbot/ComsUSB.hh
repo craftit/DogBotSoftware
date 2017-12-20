@@ -49,7 +49,7 @@ namespace DogBotN {
     ComsUSBC *m_comsUSB = 0;
     USBTransferDirectionT m_direction = UTD_IN;
     struct libusb_transfer* m_transfer = 0;
-    unsigned char m_buffer[64];
+    unsigned char m_buffer[32];
   };
 
   //! Low level serial communication over usb with the driver board
@@ -100,11 +100,14 @@ namespace DogBotN {
   protected:
 
     void SendPacketIso(const uint8_t *data,int len);
+
+#if BMC_USE_USB_EXTRA_ENDPOINTS
     void SendPacketIntr(const uint8_t *data,int len);
 
     std::vector<USBTransferDataC> m_inIntrTransfers;
     std::vector<USBTransferDataC> m_outIntrTransfers;
     std::vector<USBTransferDataC *> m_outIntrFree;
+#endif
 
     std::vector<USBTransferDataC> m_inDataTransfers;
     std::vector<USBTransferDataC> m_outDataTransfers;

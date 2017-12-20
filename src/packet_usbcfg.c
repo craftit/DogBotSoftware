@@ -39,6 +39,7 @@ static USBInEndpointState ep1instate;
  */
 static USBOutEndpointState ep2outstate;
 
+#if BMC_USE_USB_EXTRA_ENDPOINTS
 /**
  * @brief   IN EP3 state.
  */
@@ -48,7 +49,7 @@ static USBInEndpointState ep3instate;
  * @brief   OUT EP4 state.
  */
 static USBOutEndpointState ep4outstate;
-
+#endif
 
 /*
  * USB Device Descriptor.
@@ -76,11 +77,16 @@ static const USBDescriptor vcom_device_descriptor = {
   vcom_device_descriptor_data
 };
 
+#if BMC_USE_USB_EXTRA_ENDPOINTS
+#define USBCONFIGSIZE 46
+#else
+#define USBCONFIGSIZE 32
+#endif
 
 /* Configuration Descriptor tree for a CDC.*/
-static const uint8_t vcom_configuration_descriptor_data[46] = {
+static const uint8_t vcom_configuration_descriptor_data[USBCONFIGSIZE] = {
   /* Configuration Descriptor. 9 bytes */
-  USB_DESC_CONFIGURATION(46,            /* wTotalLength.                    */
+  USB_DESC_CONFIGURATION(USBCONFIGSIZE,            /* wTotalLength.                    */
                          0x01,          /* bNumInterfaces.                  */
                          0x01,          /* bConfigurationValue.             */
                          0,             /* iConfiguration.                  */
@@ -104,6 +110,7 @@ static const uint8_t vcom_configuration_descriptor_data[46] = {
                          0x01,          /* bmAttributes (Isochronous).      */
                          0x0040,        /* wMaxPacketSize.                  */
                          0x01),         /* bInterval.                       */
+#if BMC_USE_USB_EXTRA_ENDPOINTS
   /* Endpoint 3 Descriptor. 7 bytes */
   USB_DESC_ENDPOINT     (USB_ENDPOINT_OUT(USBD1_INTR_OUT_EP), /* bEndpointAddress. OUT */
                          0x03,          /* bmAttributes (Interrupt).      */
@@ -114,6 +121,7 @@ static const uint8_t vcom_configuration_descriptor_data[46] = {
                          0x03,          /* bmAttributes (Interrupt).      */
                          0x0040,        /* wMaxPacketSize.                  */
                          0x02),          /* bInterval.                       */
+#endif
 
 };
 
@@ -261,7 +269,7 @@ static const USBEndpointConfig ep1config = {
   NULL,
   bmcDataTransmitCallback,  // in CB
   0,                        // out CB
-  0x0040,                   // Max in BW
+  0x0020,                   // Max in BW
   0,                        // Max out BW
   &ep1instate,              // In state
   0,                        // Out state
@@ -278,13 +286,14 @@ static const USBEndpointConfig ep2config = {
   0,                         // In CB
   bmcDataReceivedCallback,   // Out CB
   0,                         // Max In
-  0x0040,                    // Max Out
+  0x0020,                    // Max Out
   0,                         // In state
   &ep2outstate,              // Out state
   1,
   NULL
 };
 
+#if BMC_USE_USB_EXTRA_ENDPOINTS
 /**
  * @brief   EP3 initialisation structure IN .
  */
@@ -293,7 +302,7 @@ static const USBEndpointConfig ep3config = {
   NULL,
   bmcIntrTransmitCallback,  // in CB
   0,                        // out CB
-  0x0040,                   // Max in BW
+  0x0020,                   // Max in BW
   0,                        // Max out BW
   &ep3instate,              // In state
   0,                        // Out state
@@ -310,12 +319,13 @@ static const USBEndpointConfig ep4config = {
   0,                         // In CB
   bmcIntrReceivedCallback,   // Out CB
   0,                         // Max In
-  0x0040,                    // Max Out
+  0x0020,                    // Max Out
   0,                         // In state
   &ep4outstate,              // Out state
   1,
   NULL
 };
+#endif
 
 /*
  * Handles the USB driver global events.
@@ -333,9 +343,10 @@ static void usb_event(USBDriver *usbp, usbevent_t event) {
        must be used.*/
     usbInitEndpointI(usbp, USBD1_DATA_IN_EP, &ep1config);
     usbInitEndpointI(usbp, USBD1_DATA_OUT_EP, &ep2config);
+#if BMC_USE_USB_EXTRA_ENDPOINTS
     usbInitEndpointI(usbp, USBD1_INTR_IN_EP, &ep3config);
     usbInitEndpointI(usbp, USBD1_INTR_OUT_EP, &ep4config);
-
+#endif
     /* Resetting the state of the subsystem.*/
     bmcConfigureHookI(usbp);
 

@@ -32,11 +32,15 @@ namespace DogBotN
       transferData->ComsUSB()->ProcessInTransferIso(transferData);
     else if(endPoint == BMCUSB_DATA_OUT_EP)
       transferData->ComsUSB()->ProcessOutTransferIso(transferData);
-    else if(endPoint == BMCUSB_INTR_IN_EP )
+#if BMC_USE_USB_EXTRA_ENDPOINTS
+    else
+      if(endPoint == BMCUSB_INTR_IN_EP )
       transferData->ComsUSB()->ProcessInTransferIntr(transferData);
     else if(endPoint == BMCUSB_INTR_OUT_EP)
       transferData->ComsUSB()->ProcessOutTransferIntr(transferData);
-    else {
+#endif
+    else
+    {
       std::cerr << "Unexpected end point " << endPoint << std::endl;
     }
   }
@@ -93,11 +97,13 @@ namespace DogBotN
     m_transfer->actual_length = sizeof(m_buffer);
 #endif
     m_transfer->num_iso_packets = 1;
-    m_transfer->iso_packet_desc[0].actual_length = 64;
-    m_transfer->iso_packet_desc[0].length = 64;
+    m_transfer->iso_packet_desc[0].actual_length = sizeof(m_buffer);
+    m_transfer->iso_packet_desc[0].length = sizeof(m_buffer);
     m_transfer->iso_packet_desc[0].status = LIBUSB_TRANSFER_COMPLETED;
 
   }
+
+#if BMC_USE_USB_EXTRA_ENDPOINTS
 
   //! Setup an Ctrl buffer
   void USBTransferDataC::SetupIntr(ComsUSBC *coms,struct libusb_device_handle *handle,USBTransferDirectionT direction)
@@ -115,7 +121,7 @@ namespace DogBotN
 
     // Initialise an input transfer.
     m_transfer = libusb_alloc_transfer(0);
-#if 0
+#if 1
     libusb_fill_interrupt_transfer(
         m_transfer,
         handle,
@@ -144,7 +150,7 @@ namespace DogBotN
     m_transfer->num_iso_packets = 0;
 #endif
   }
-
+#endif
 
   // ====================================================================
 
@@ -264,7 +270,14 @@ namespace DogBotN
 #endif
     }
 
-#if 0
+    m_outDataTransfers = std::vector<USBTransferDataC>(16);
+    // Setup some OUT transfers.
+    for(auto &a : m_outDataTransfers) {
+      a.SetupIso(this,handle,UTD_OUT);
+      m_outDataFree.push_back(&a);
+    }
+
+#if BMC_USE_USB_EXTRA_ENDPOINTS
     // Setup a series of IN transfers.
     m_inIntrTransfers = std::vector<USBTransferDataC>(2);
 
@@ -279,14 +292,6 @@ namespace DogBotN
       }
 #endif
     }
-#endif
-
-    m_outDataTransfers = std::vector<USBTransferDataC>(16);
-    // Setup some OUT transfers.
-    for(auto &a : m_outDataTransfers) {
-      a.SetupIso(this,handle,UTD_OUT);
-      m_outDataFree.push_back(&a);
-    }
 
     m_outIntrTransfers = std::vector<USBTransferDataC>(16);
     // Setup some OUT transfers.
@@ -294,6 +299,8 @@ namespace DogBotN
       a.SetupIntr(this,handle,UTD_OUT);
       m_outIntrFree.push_back(&a);
     }
+#endif
+
 
   }
 
@@ -353,6 +360,7 @@ namespace DogBotN
     m_outDataFree.push_back(data);
   }
 
+#if BMC_USE_USB_EXTRA_ENDPOINTS
 
   //! Process incoming data.
   void ComsUSBC::ProcessInTransferIntr(USBTransferDataC *data)
@@ -379,7 +387,6 @@ namespace DogBotN
 
     // Resubmit transfer to get more lovely data.
     libusb_submit_transfer(data->Transfer());
-
   }
 
   //! Process outgoing data complete
@@ -391,6 +398,7 @@ namespace DogBotN
     m_outIntrFree.push_back(data);
 
   }
+#endif
 
   //! Handle hot plug callback.
   void ComsUSBC::HotPlugDepartedCallback(libusb_device *device, libusb_hotplug_event event)
@@ -509,6 +517,7 @@ namespace DogBotN
     }
   }
 
+#if BMC_USE_USB_EXTRA_ENDPOINTS
   void ComsUSBC::SendPacketIntr(const uint8_t *data,int len)
   {
     USBTransferDataC *txBuffer;
@@ -531,6 +540,7 @@ namespace DogBotN
       m_log->info("Output intr transfer setup ok. ");
     }
   }
+#endif
 
   //! Send packet
   void ComsUSBC::SendPacket(const uint8_t *buff,int len)
@@ -543,10 +553,7 @@ namespace DogBotN
       m_log->error("Dropping small packet.");
       return ;
     }
-#if 0
-    //return SendPacketIntr(buff,len);
-    return SendPacketIso(buff,len);
-#else
+#if BMC_USE_USB_EXTRA_ENDPOINTS
     // Peek at the packet type to decide how to handle it.
     switch((enum ComsPacketTypeT)buff[0]) {
       case CPT_PWMState:      // PWM State. Packet holding internal controller data.
@@ -557,6 +564,9 @@ namespace DogBotN
         break;
     }
     return SendPacketIntr(buff,len);
+#else
+    //return SendPacketIntr(buff,len);
+    return SendPacketIso(buff,len);
 #endif
   }
 

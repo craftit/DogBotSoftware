@@ -47,7 +47,7 @@ public:
 };
 
 extern PacketQueueC g_txPacketQueue;
-#if USE_PACKETUSB
+#if USE_PACKETUSB && BMC_USE_USB_EXTRA_ENDPOINTS
 extern PacketQueueC g_txIntrPacketQueue;
 #endif
 

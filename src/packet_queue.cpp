@@ -136,7 +136,7 @@ bool USBSendPacket(
 {
   if(len <= 0)
     return false;
-#if USE_PACKETUSB && 0
+#if USE_PACKETUSB && BMC_USE_USB_EXTRA_ENDPOINTS
   // Peek at the packet type to decide how to handle it.
   switch((enum ComsPacketTypeT)buff[0]) {
     case CPT_PWMState:      // PWM State. Packet holding internal controller data.
@@ -149,8 +149,6 @@ bool USBSendPacket(
   }
   return false;
 #else
-
-  //return g_txIntrPacketQueue.SendPacket(buff,len);
   return g_txPacketQueue.SendPacket(buff,len);
 #endif
 }

@@ -1,10 +1,15 @@
 #ifndef DOGBOG_PROTOCOL_HEADER
 #define DOGBOG_PROTOCOL_HEADER 1
 
+#define BMC_USE_USB_EXTRA_ENDPOINTS 0
+
 #define BMCUSB_DATA_OUT_EP          1
 #define BMCUSB_DATA_IN_EP           2
+
+#if BMC_USE_USB_EXTRA_ENDPOINTS
 #define BMCUSB_INTR_OUT_EP          3
 #define BMCUSB_INTR_IN_EP           4
+#endif
 
 #ifdef __cplusplus
 extern "C" {

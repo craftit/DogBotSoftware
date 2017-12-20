@@ -65,10 +65,12 @@ static void QueueTransmitIsoI(USBDriver *usbp) {
 #endif
 }
 
+#if BMC_USE_USB_EXTRA_ENDPOINTS
+
 static void QueueTransmitIntrI(USBDriver *usbp) {
 
   static struct PacketT *g_txPkt = 0;
-#if 1
+#if 0
   // Free last packet
   if(g_txPkt != 0) {
     g_txIntrPacketQueue.ReturnEmptyPacketI(g_txPkt);
@@ -76,11 +78,11 @@ static void QueueTransmitIntrI(USBDriver *usbp) {
   }
 
   if((g_txPkt = g_txIntrPacketQueue.FetchFullI()) != 0) {
-    // May need to transmit more than one packet at a time to get the required bandwidth.
     usbStartTransmitI(usbp, USBD1_INTR_IN_EP, g_txPkt->m_data, g_txPkt->m_len);
   }
 #endif
 }
+#endif
 
 void bmcDataTransmitCallback(USBDriver *usbp, usbep_t ep)
 {
@@ -139,9 +141,15 @@ void bmcDataReceivedCallback(USBDriver *usbp, usbep_t ep)
   osalSysLockFromISR();
 
   if(g_usbCurrentDataRxBuffer != 0) {
-    g_usbCurrentDataRxBuffer->m_len = usbGetReceiveTransactionSizeX(usbp, ep);
-    g_rxPacketQueue.PostFullPacketI(g_usbCurrentDataRxBuffer);
-    g_usbCurrentDataRxBuffer = 0;
+    int len = usbGetReceiveTransactionSizeX(usbp, ep);
+    if(len <= 0) {
+      g_rxPacketQueue.ReturnEmptyPacketI(g_usbCurrentDataRxBuffer);
+      g_usbCurrentDataRxBuffer = 0;
+    } else {
+      g_usbCurrentDataRxBuffer->m_len = len;
+      g_rxPacketQueue.PostFullPacketI(g_usbCurrentDataRxBuffer);
+      g_usbCurrentDataRxBuffer = 0;
+    }
   }
 
   startRecieveDataI(usbp);
@@ -149,6 +157,8 @@ void bmcDataReceivedCallback(USBDriver *usbp, usbep_t ep)
   osalSysUnlockFromISR();
 
 }
+
+#if BMC_USE_USB_EXTRA_ENDPOINTS
 
 void bmcIntrTransmitCallback(USBDriver *usbp, usbep_t ep)
 {
@@ -196,7 +206,6 @@ static void startRecieveIntrI(USBDriver *usbp)
   usbStartReceiveI(usbp, USBD1_INTR_OUT_EP,pkt->m_data, BMC_MAXPACKETSIZE);
 }
 
-
 void bmcIntrReceivedCallback(USBDriver *usbp, usbep_t ep)
 {
   (void) ep;
@@ -213,6 +222,7 @@ void bmcIntrReceivedCallback(USBDriver *usbp, usbep_t ep)
 
   osalSysUnlockFromISR();
 }
+#endif
 
 
 bool bmcRequestsHook(USBDriver *usbp)
@@ -237,9 +247,11 @@ bool bmcSOFHookI(USBDriver *usbp)
     QueueTransmitIsoI(usbp);
   }
 
+#if BMC_USE_USB_EXTRA_ENDPOINTS
   if (!usbGetTransmitStatusI(usbp,USBD1_INTR_IN_EP)) { // Returns true if transmitting.
     QueueTransmitIntrI(usbp);
   }
+#endif
 
   osalSysUnlockFromISR();
 
@@ -268,7 +280,9 @@ void bmcConfigureHookI(USBDriver *usbp)
 {
   g_packetUSBActive = true;
   startRecieveDataI(usbp);
+#if BMC_USE_USB_EXTRA_ENDPOINTS
   startRecieveIntrI(usbp);
+#endif
 }
 
 void InitComs()
