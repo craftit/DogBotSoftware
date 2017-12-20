@@ -23,6 +23,7 @@
 #include "dogbot/protocol.h"
 #include "motion.h"
 #include "pwm.h"
+#include "can_queue.hh"
 
 #define STM32_UID ((uint32_t *)0x1FFF7A10)
 
@@ -65,14 +66,11 @@ bool CANPing(
   if(pktType != CPT_Pong && pktType != CPT_Ping)
     return false;
 
-  CANTxFrame txmsg;
-  CANSetAddress(&txmsg,deviceId,pktType);
-  txmsg.RTR = CAN_RTR_DATA;
-  txmsg.DLC = 0;
-  if(canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, 100) != MSG_OK) {
-    //USBSendError(CET_CANTransmitFailed,m_data[0]);
-    return false;
-  }
+  CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
+  CANSetAddress(txmsg,deviceId,pktType);
+  txmsg->RTR = CAN_RTR_DATA;
+  txmsg->DLC = 0;
+  g_txCANQueue.PostFullPacket(txmsg);
 
   return true;
 }
@@ -339,7 +337,6 @@ static THD_FUNCTION(can_rx, p) {
 
       int rxDeviceId = rxmsg.SID  & MSG_NODE_MASK;
       int msgType =  (rxmsg.SID >> MSG_TYPE_BIT) & MSG_TYPE_MASK;
-
 
       switch((enum ComsPacketTypeT) msgType)
       {

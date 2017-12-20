@@ -12,11 +12,6 @@
 #define USBD1_DATA_IN_EP     BMCUSB_DATA_IN_EP
 #define USBD1_DATA_OUT_EP    BMCUSB_DATA_OUT_EP
 
-#if BMC_USE_USB_EXTRA_ENDPOINTS
-#define USBD1_INTR_IN_EP     BMCUSB_INTR_IN_EP
-#define USBD1_INTR_OUT_EP    BMCUSB_INTR_OUT_EP
-#endif
-
 /*
  * Endpoints to be used for USBD1.
  *  IN to the host (tx)

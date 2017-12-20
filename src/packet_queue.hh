@@ -5,10 +5,10 @@
 #include "bmc.h"
 #include "coms.h"
 
-#define PACKET_QUEUE_SIZE 8
+#define PACKET_QUEUE_SIZE 16
 
+/* TX/RX Data buffer management. */
 
-/* TX Data buffer management. */
 class PacketQueueC {
 
 public:
@@ -47,8 +47,5 @@ public:
 };
 
 extern PacketQueueC g_txPacketQueue;
-#if USE_PACKETUSB && BMC_USE_USB_EXTRA_ENDPOINTS
-extern PacketQueueC g_txIntrPacketQueue;
-#endif
 
 #endif

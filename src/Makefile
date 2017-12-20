@@ -134,7 +134,6 @@ CSRC = $(STARTUPSRC) \
        svm.c \
        eeprom.c \
        storedconf.c \
-       canbus.c \
        terminal.c \
        packet_usbcfg.c \
        $(STDPERIPH)/src/stm32f4xx_tim.c \
@@ -152,7 +151,9 @@ CPPSRC = \
   serial_usbcoms.cpp \
   serial_packet.cpp \
   packet_usbcoms.cpp \
-  packet_queue.cpp 
+  packet_queue.cpp \
+  can_queue.cpp \
+  canbus.cpp 
 
 
 # C sources to be compiled in ARM mode regardless of the global setting.

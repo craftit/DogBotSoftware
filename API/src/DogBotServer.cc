@@ -15,7 +15,8 @@ int main(int nargs,char **argv)
   bool devMaster = true;
 
 //  std::string devFilename = "/dev/tty.usbmodem401";
-  std::string devFilename = "/dev/ttyACM1";
+  //std::string devFilename = "/dev/ttyACM1";
+  std::string devFilename = "usb";
   std::string configFile = "";
   if(nargs > 1)
     configFile = argv[1];

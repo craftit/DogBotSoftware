@@ -113,7 +113,6 @@ bool PacketQueueC::SendPacket(uint8_t *buff,int len)
 // Common packet transmit code.
 
 PacketQueueC g_txPacketQueue;
-PacketQueueC g_txIntrPacketQueue;
 
 /* Get a free packet structure. */
 struct PacketT *USBGetEmptyPacket(systime_t timeout)
@@ -134,22 +133,7 @@ bool USBSendPacket(
     int len
     )
 {
-  if(len <= 0)
-    return false;
-#if USE_PACKETUSB && BMC_USE_USB_EXTRA_ENDPOINTS
-  // Peek at the packet type to decide how to handle it.
-  switch((enum ComsPacketTypeT)buff[0]) {
-    case CPT_PWMState:      // PWM State. Packet holding internal controller data.
-    case CPT_Servo:         // Servo control position
-    case CPT_ServoReport:   // Report servo position
-      return g_txPacketQueue.SendPacket(buff,len);
-
-    default:
-      return g_txIntrPacketQueue.SendPacket(buff,len);
-  }
-  return false;
-#else
+  if(len <= 0) return false;
   return g_txPacketQueue.SendPacket(buff,len);
-#endif
 }
 

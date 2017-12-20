@@ -18,6 +18,12 @@
 
 #include "dogbot/ComsUSB.hh"
 
+#define DODEBUG 0
+#if DODEBUG
+#define ONDEBUG(x) x
+#else
+#define ONDEBUG(x)
+#endif
 
 namespace DogBotN
 {
@@ -171,6 +177,7 @@ namespace DogBotN
   {
     m_terminate = true;
 
+
     if(libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
       libusb_hotplug_deregister_callback(m_usbContext,m_hotplugCallbackHandle);
     }
@@ -270,7 +277,7 @@ namespace DogBotN
 #endif
     }
 
-    m_outDataTransfers = std::vector<USBTransferDataC>(16);
+    m_outDataTransfers = std::vector<USBTransferDataC>(2);
     // Setup some OUT transfers.
     for(auto &a : m_outDataTransfers) {
       a.SetupIso(this,handle,UTD_OUT);
@@ -301,7 +308,8 @@ namespace DogBotN
     }
 #endif
 
-
+    for(int i = 0;i < 3;i++)
+      SendEnableBridge(true);
   }
 
 
@@ -316,17 +324,28 @@ namespace DogBotN
         //m_log->info("Transfer completed");
         int at = 0;
         for(int i = 0;i < data->Transfer()->num_iso_packets;i++) {
-          int len = data->Transfer()->iso_packet_desc[i].actual_length;
-          if(len == 0)
+          int usbLen = data->Transfer()->iso_packet_desc[i].actual_length;
+          if(usbLen <= 0)
             continue;
           unsigned char *pdata = &data->Transfer()->buffer[at];
-          if(pdata[0] != 0) {
-            m_log->info("Packet iso size {} Type:{} Status:{}",len,(int) pdata[0],(int) data->Transfer()->iso_packet_desc[i].status);
-            if(len > 0) {
-              ProcessPacket(pdata,len);
-              at += len;
+          int dat = 0;
+          //ONDEBUG(m_log->info("Packet iso size {} Type:{} Status:{}",usbLen,(int) pdata[dat],(int) data->Transfer()->iso_packet_desc[i].status));
+          while(dat < usbLen) {
+            int packetLen = pdata[dat++];
+            if(packetLen == 0)
+              break;
+            if(packetLen < 0 || packetLen > 15) {
+              m_log->error("Unexpected packet size at {} of {} ",dat,packetLen);
+              break;
             }
+            ONDEBUG(m_log->info("Packet iso at {} Len:{} Type:{} ",dat,packetLen,(int) pdata[dat+1]));
+            ProcessPacket(&pdata[dat],packetLen);
+            dat += packetLen;
           }
+          if(dat != usbLen) {
+            m_log->error("Packet boundary error. at {} of {} ",dat,usbLen);
+          }
+          at += usbLen;
         }
       } break;
       case LIBUSB_TRANSFER_NO_DEVICE:
@@ -354,10 +373,8 @@ namespace DogBotN
 
   void ComsUSBC::ProcessOutTransferIso(USBTransferDataC *data)
   {
-    m_log->info("ProcessOutTransferIso");
-
-    std::lock_guard<std::mutex> lock(m_accessTx);
-    m_outDataFree.push_back(data);
+    //m_log->info("ProcessOutTransferIso");
+    SendTxQueue(data);
   }
 
 #if BMC_USE_USB_EXTRA_ENDPOINTS
@@ -483,13 +500,71 @@ namespace DogBotN
       if((rc = libusb_handle_events(m_usbContext)) < 0) {
         m_log->error("libusb_handle_events() failed: {}",libusb_error_name(rc));
       }
-
     }
+
+    // Cancel all transfers.
+    for(auto &a : m_inDataTransfers) {
+      libusb_cancel_transfer(a.Transfer());
+    }
+    for(auto &a : m_outDataTransfers) {
+      libusb_cancel_transfer(a.Transfer());
+    }
+
     m_mutexExitOk.unlock();
     m_log->debug("Exiting receiver. ");
 
     return true;
   }
+
+  void ComsUSBC::SendTxQueue(USBTransferDataC *txBuffer)
+  {
+    int at = 0;
+
+    // Gather some data to send.
+    {
+      std::lock_guard<std::mutex> lock(m_accessTx);
+      if(txBuffer == 0) {
+        if(m_txQueue.size() == 0)
+          return ; // Nothing to do.
+        if(m_outDataFree.empty()) {
+          //m_log->error("No free iso transmit buffers.");
+          return ;
+        }
+        txBuffer = m_outDataFree.back();
+        m_outDataFree.pop_back();
+      } else {
+        if(m_txQueue.size() == 0) {
+          // Nothing to send, just return the buffer.
+          m_outDataFree.push_back(txBuffer);
+          return ;
+        }
+      }
+      uint8_t *txData = txBuffer->Buffer();
+      while(!m_txQueue.empty() && at < 50) {
+        DataPacketT &packet = m_txQueue.front();
+        txData[at++] = packet.m_len;
+        memcpy(&txData[at],packet.m_data,packet.m_len);
+        at += packet.m_len;
+        m_txQueue.pop_front();
+      }
+    }
+
+    // Put the packet together and transfer it.
+
+    txBuffer->Transfer()->num_iso_packets = 1;
+    txBuffer->Transfer()->iso_packet_desc[0].actual_length = at;
+    txBuffer->Transfer()->iso_packet_desc[0].length = at;
+    txBuffer->Transfer()->length = at;
+    int rc = libusb_submit_transfer(txBuffer->Transfer());
+    if(rc != LIBUSB_SUCCESS) {
+      m_log->error("Got error setting up output iso transfer. {} ",libusb_error_name(rc));
+    } else {
+      ONDEBUG(m_log->info("Output iso transfer setup ok. "));
+    }
+
+  }
+
+#if 0
 
   void ComsUSBC::SendPacketIso(const uint8_t *data,int len)
   {
@@ -502,6 +577,7 @@ namespace DogBotN
       }
       txBuffer = m_outDataFree.back();
       m_outDataFree.pop_back();
+
     }
 
     memcpy(txBuffer->Buffer(),data,len);
@@ -513,9 +589,10 @@ namespace DogBotN
     if(rc != LIBUSB_SUCCESS) {
       m_log->error("Got error setting up output iso transfer. {} ",libusb_error_name(rc));
     } else {
-      m_log->info("Output iso transfer setup ok. ");
+      ONDEBUG(m_log->info("Output iso transfer setup ok. "));
     }
   }
+#endif
 
 #if BMC_USE_USB_EXTRA_ENDPOINTS
   void ComsUSBC::SendPacketIntr(const uint8_t *data,int len)
@@ -553,21 +630,21 @@ namespace DogBotN
       m_log->error("Dropping small packet.");
       return ;
     }
-#if BMC_USE_USB_EXTRA_ENDPOINTS
-    // Peek at the packet type to decide how to handle it.
-    switch((enum ComsPacketTypeT)buff[0]) {
-      case CPT_PWMState:      // PWM State. Packet holding internal controller data.
-      case CPT_Servo:         // Servo control position
-      case CPT_ServoReport:   // Report servo position
-        return SendPacketIso(buff,len);
-      default:
-        break;
+    {
+      std::lock_guard<std::mutex> lock(m_accessTx);
+      if(m_txQueue.size() > 32) {
+        m_log->error("Transmit queue to long, dropping packet. {} ",m_txQueue.size());
+        return ;
+      }
+      if(m_txQueue.size() > 24) {
+        m_log->warn("Transmit queue getting very long. {} ",m_txQueue.size());
+      }
+      m_txQueue.emplace_back();
+      DataPacketT &packet = m_txQueue.back();
+      packet.m_len = len;
+      memcpy(packet.m_data,buff,len);
     }
-    return SendPacketIntr(buff,len);
-#else
-    //return SendPacketIntr(buff,len);
-    return SendPacketIso(buff,len);
-#endif
+    SendTxQueue(0);
   }
 
 }

@@ -1,7 +1,7 @@
 #ifndef COMS_HEADER
 #define COMS_HEADER 1
 
-#define BMC_MAXPACKETSIZE 32
+#define BMC_MAXPACKETSIZE 64
 
 #ifdef __cplusplus
 extern "C" {

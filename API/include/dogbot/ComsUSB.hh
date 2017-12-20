@@ -3,6 +3,7 @@
 
 #include "dogbot/Coms.hh"
 #include <libusb.h>
+#include <deque>
 
 namespace DogBotN {
 
@@ -12,6 +13,13 @@ namespace DogBotN {
     UTD_IN,
     UTD_OUT
   };
+
+  class DataPacketT {
+  public:
+    int m_len;
+    uint8_t m_data[64];
+  };
+
 
   //! Information about a transfer
 
@@ -49,7 +57,7 @@ namespace DogBotN {
     ComsUSBC *m_comsUSB = 0;
     USBTransferDirectionT m_direction = UTD_IN;
     struct libusb_transfer* m_transfer = 0;
-    unsigned char m_buffer[32];
+    unsigned char m_buffer[64];
   };
 
   //! Low level serial communication over usb with the driver board
@@ -91,17 +99,22 @@ namespace DogBotN {
     //! Process outgoing data complete
     void ProcessOutTransferIso(USBTransferDataC *data);
 
+#if BMC_USE_USB_EXTRA_ENDPOINTS
     //! Process incoming data.
     void ProcessInTransferIntr(USBTransferDataC *data);
 
     //! Process outgoing data complete
     void ProcessOutTransferIntr(USBTransferDataC *data);
+#endif
 
   protected:
 
-    void SendPacketIso(const uint8_t *data,int len);
+    // 'data' is a free buffer or null.
+    void SendTxQueue(USBTransferDataC *data);
 
 #if BMC_USE_USB_EXTRA_ENDPOINTS
+    void SendPacketIso(const uint8_t *data,int len);
+
     void SendPacketIntr(const uint8_t *data,int len);
 
     std::vector<USBTransferDataC> m_inIntrTransfers;
@@ -129,6 +142,8 @@ namespace DogBotN {
     bool RunUSB();
 
     std::thread m_threadUSB;
+
+    std::deque<DataPacketT> m_txQueue;
 
     std::mutex m_accessTx;
     std::timed_mutex m_mutexExitOk;

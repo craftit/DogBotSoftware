@@ -38,9 +38,23 @@ static THD_FUNCTION(ThreadRxComs, arg) {
       continue;
     }
 
-    // Process the packet.
-    ProcessPacket(pkt->m_data,pkt->m_len);
-
+    int at = 0;
+    while(at < pkt->m_len) {
+      int len = pkt->m_data[at++];
+      if((at+len) > pkt->m_len) {
+        USBSendError(g_deviceId,CET_InternalError,0,1);
+        g_usbErrorCount++;
+        at = pkt->m_len; // Suppress a double error being reported after we exit the loop.
+        break;
+      }
+      // Process the packet.
+      ProcessPacket(&(pkt->m_data[at]),len);
+      at += len;
+    }
+    if(at != pkt->m_len) {
+      USBSendError(g_deviceId,CET_InternalError,0,2);
+      g_usbErrorCount++;
+    }
     // Return it to the list of empty packets.
     g_rxPacketQueue.ReturnEmptyPacketI(pkt);
   }
@@ -50,39 +64,32 @@ static THD_FUNCTION(ThreadRxComs, arg) {
 
 static void QueueTransmitIsoI(USBDriver *usbp) {
 
-  static struct PacketT *g_txPkt = 0;
-#if 1
-  // Free last packet
-  if(g_txPkt != 0) {
-    g_txPacketQueue.ReturnEmptyPacketI(g_txPkt);
-    g_txPkt = 0;
-  }
 
-  if((g_txPkt = g_txPacketQueue.FetchFullI()) != 0) {
-    // May need to transmit more than one packet at a time to get the required bandwidth.
-    usbStartTransmitI(usbp, USBD1_DATA_IN_EP, g_txPkt->m_data, g_txPkt->m_len);
+  // Wrap up a set of packets to send.
+  static uint8_t txBuffer[64];
+  int at = 0;
+  while(true) {
+    struct PacketT *txPkt = g_txPacketQueue.FetchFullI();
+    if(txPkt == 0)
+      break;
+    if((at + txPkt->m_len) >= 64) {
+      // We shouldn't overflow the buffer as all the packets should be less than 14 bytes, but flag a problem and drop the packet.
+      g_usbErrorCount++;
+      g_txPacketQueue.ReturnEmptyPacketI(txPkt);
+      break;
+    }
+    txBuffer[at++] = txPkt->m_len;
+    memcpy(&txBuffer[at],txPkt->m_data,txPkt->m_len);
+    at += txPkt->m_len;
+    g_txPacketQueue.ReturnEmptyPacketI(txPkt);
+    if(at > 50) // Getting full ?
+      break;
   }
-#endif
+  // Anything to send ?
+  if(at == 0)
+    return ;
+  usbStartTransmitI(usbp, USBD1_DATA_IN_EP, txBuffer,at);
 }
-
-#if BMC_USE_USB_EXTRA_ENDPOINTS
-
-static void QueueTransmitIntrI(USBDriver *usbp) {
-
-  static struct PacketT *g_txPkt = 0;
-#if 0
-  // Free last packet
-  if(g_txPkt != 0) {
-    g_txIntrPacketQueue.ReturnEmptyPacketI(g_txPkt);
-    g_txPkt = 0;
-  }
-
-  if((g_txPkt = g_txIntrPacketQueue.FetchFullI()) != 0) {
-    usbStartTransmitI(usbp, USBD1_INTR_IN_EP, g_txPkt->m_data, g_txPkt->m_len);
-  }
-#endif
-}
-#endif
 
 void bmcDataTransmitCallback(USBDriver *usbp, usbep_t ep)
 {
@@ -156,71 +163,6 @@ void bmcDataReceivedCallback(USBDriver *usbp, usbep_t ep)
 
 }
 
-#if BMC_USE_USB_EXTRA_ENDPOINTS
-
-void bmcIntrTransmitCallback(USBDriver *usbp, usbep_t ep)
-{
-  (void)ep;
-
-  // Are we active ?
-  if(!g_packetUSBActive)
-    return ;
-
-  osalSysLockFromISR();
-
-  QueueTransmitIntrI(usbp);
-
-  osalSysUnlockFromISR();
-}
-
-static struct PacketT *g_usbCurrentIntrRxBuffer = 0;
-
-static void startRecieveIntrI(USBDriver *usbp)
-{
-
-  /* If the USB driver is not in the appropriate state then transactions
-     must not be started.*/
-  if ((usbGetDriverStateI(usbp) != USB_ACTIVE) || !g_packetUSBActive) {
-    return ;
-  }
-
-  // Checking if there is already a transaction ongoing on the endpoint.
-  if (usbGetReceiveStatusI(usbp, USBD1_INTR_OUT_EP)) {
-    return ;
-  }
-
-  if(g_usbCurrentIntrRxBuffer != 0) // Receive in progress ??
-    return ;
-
-  /* Checking if there is a buffer ready for incoming data.*/
-
-  struct PacketT *pkt = g_rxPacketQueue.GetEmptyPacketI();
-  if(pkt == 0)
-    return ; // No empty packets ready...
-
-  g_usbCurrentIntrRxBuffer = pkt;
-
-  // Buffer found, starting a new transaction.
-  usbStartReceiveI(usbp, USBD1_INTR_OUT_EP,pkt->m_data, BMC_MAXPACKETSIZE);
-}
-
-void bmcIntrReceivedCallback(USBDriver *usbp, usbep_t ep)
-{
-  (void) ep;
-
-  osalSysLockFromISR();
-
-  if(g_usbCurrentIntrRxBuffer != 0) {
-    g_usbCurrentIntrRxBuffer->m_len = usbGetReceiveTransactionSizeX(usbp, ep);
-    g_rxPacketQueue.PostFullPacketI(g_usbCurrentIntrRxBuffer);
-    g_usbCurrentIntrRxBuffer = 0;
-  }
-
-  startRecieveIntrI(usbp);
-
-  osalSysUnlockFromISR();
-}
-#endif
 
 
 bool bmcRequestsHook(USBDriver *usbp)
@@ -244,12 +186,6 @@ bool bmcSOFHookI(USBDriver *usbp)
   if (!usbGetTransmitStatusI(usbp,USBD1_DATA_IN_EP)) { // Returns true if transmitting.
     QueueTransmitIsoI(usbp);
   }
-
-#if BMC_USE_USB_EXTRA_ENDPOINTS
-  if (!usbGetTransmitStatusI(usbp,USBD1_INTR_IN_EP)) { // Returns true if transmitting.
-    QueueTransmitIntrI(usbp);
-  }
-#endif
 
   osalSysUnlockFromISR();
 
@@ -278,9 +214,6 @@ void bmcConfigureHookI(USBDriver *usbp)
 {
   g_packetUSBActive = true;
   startRecieveDataI(usbp);
-#if BMC_USE_USB_EXTRA_ENDPOINTS
-  startRecieveIntrI(usbp);
-#endif
 }
 
 void InitComs()
@@ -290,7 +223,7 @@ void InitComs()
 
   g_comsInitDone = true;
 
-  chThdCreateStatic(waThreadRxComs, sizeof(waThreadRxComs), NORMALPRIO+1, ThreadRxComs, NULL); // Prefer dealing with incoming messages.
+  chThdCreateStatic(waThreadRxComs, sizeof(waThreadRxComs), NORMALPRIO, ThreadRxComs, NULL);
 }
 
 void InitUSB(void)
