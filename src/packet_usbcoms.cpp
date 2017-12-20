@@ -122,14 +122,12 @@ static void startRecieveDataI(USBDriver *usbp)
 
   /* Checking if there is a buffer ready for incoming data.*/
 
-  struct PacketT *pkt = g_rxPacketQueue.GetEmptyPacketI();
-  if(pkt == 0)
+  g_usbCurrentDataRxBuffer = g_rxPacketQueue.GetEmptyPacketI();
+  if(g_usbCurrentDataRxBuffer == 0)
     return ; // No empty packets ready...
 
-  g_usbCurrentDataRxBuffer = pkt;
-
   // Buffer found, starting a new transaction.
-  usbStartReceiveI(usbp, USBD1_DATA_OUT_EP,pkt->m_data, BMC_MAXPACKETSIZE);
+  usbStartReceiveI(usbp, USBD1_DATA_OUT_EP,g_usbCurrentDataRxBuffer->m_data, BMC_MAXPACKETSIZE);
 }
 
 
