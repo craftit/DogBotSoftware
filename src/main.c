@@ -247,6 +247,8 @@ void SendBackgroundStateReport(void)
 
   static int lastUsbError = 0;
   static int lastUsbDrop = 0;
+  static int lastCANError = 0;
+  static int lastCANDrop = 0;
   static unsigned lastFaultState = 0;
 
   static bool lastSensor = false;
@@ -281,6 +283,14 @@ void SendBackgroundStateReport(void)
       if(lastUsbDrop != g_usbDropCount) {
         lastUsbDrop = g_usbDropCount;
         SendParamUpdate(CPI_USBPacketDrops);
+      }
+      if(lastCANError != g_canErrorCount) {
+        lastCANError = g_canErrorCount;
+        SendParamUpdate(CPI_CANPacketErrors);
+      }
+      if(lastCANDrop != g_canDropCount) {
+        lastCANDrop = g_canDropCount;
+        SendParamUpdate(CPI_CANPacketDrops);
       }
       if(lastFaultState != g_faultState) {
         lastFaultState = g_faultState;

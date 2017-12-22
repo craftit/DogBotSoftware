@@ -381,6 +381,22 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     sprintf(buff,"\n %d USB Packet error: %d ",psp->m_header.m_deviceId,psp->m_data.uint32[0]);
     displayStr += buff;
   } break;
+  case CPI_CANPacketDrops: {
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      sprintf(buff,"%d ", (int) psp->m_data.uint32[0]);
+      //emit setCANDrops(buff);
+    }
+    sprintf(buff,"\n %d CAN Packet drop: %d ",psp->m_header.m_deviceId,psp->m_data.uint32[0]);
+    displayStr += buff;
+  } break;
+  case CPI_CANPacketErrors: {
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      sprintf(buff,"%d ", (int) psp->m_data.uint32[0]);
+      //emit setCANErrors(buff);
+    }
+    sprintf(buff,"\n %d CAN Packet error: %d ",psp->m_header.m_deviceId,psp->m_data.uint32[0]);
+    displayStr += buff;
+  } break;
   case CPI_FaultState: {
     if(psp->m_header.m_deviceId == m_targetDeviceId) {
       sprintf(buff,"%X ", (int) psp->m_data.uint32[0]);

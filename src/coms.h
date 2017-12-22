@@ -75,6 +75,12 @@ extern "C" {
   /* Error encountered processing USB packets. */
   extern int g_usbErrorCount;
 
+  /* Count of CAN messages dropped due to full buffers */
+  extern int g_canDropCount;
+
+  /* Count of CAN errors encountered */
+  extern int g_canErrorCount;
+
 
 #ifdef __cplusplus
 }

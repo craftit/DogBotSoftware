@@ -109,6 +109,7 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_MotorInductance:
     case CPI_PhaseVelocity:
     case CPI_HallSensors:
+    case CPI_MotorOffsetVoltage:
       break;
 
     case CPI_AuxPower:
@@ -274,8 +275,22 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
       for(int i = 0;i < 3;i++)
         g_phaseAngles[reg][i] = dataBuff->uint16[i];
     } break;
-    default:
-      return false;
+
+    case CPI_USBPacketDrops:
+      g_usbDropCount = 0;
+      break;
+    case CPI_USBPacketErrors:
+      g_usbErrorCount = 0;
+      break;
+    case CPI_CANPacketDrops:
+      g_canDropCount = 0;
+      break;
+    case CPI_CANPacketErrors:
+      g_canErrorCount = 0;
+      break;
+
+//    default:
+//      return false;
   }
 
   SendParamUpdate(index);
@@ -485,6 +500,14 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
     case CPI_USBPacketErrors:
       *len = 4;
       data->uint32[0] = g_usbErrorCount;
+      break;
+    case CPI_CANPacketDrops:
+      *len = 4;
+      data->uint32[0] = g_canDropCount;
+      break;
+    case CPI_CANPacketErrors:
+      *len = 4;
+      data->uint32[0] = g_canErrorCount;
       break;
     case CPI_FaultState:
       *len = 4;

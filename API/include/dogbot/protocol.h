@@ -127,7 +127,7 @@ extern "C" {
     CPI_FaultState       = 45,
     CPI_IndexSensor      = 46,
 
-    CPI_ANGLE_CAL       = 48,  // 12 Values
+    CPI_ANGLE_CAL       = 48,  // 18 Values
     CPI_ANGLE_CAL_0     = 0x30,
     CPI_ANGLE_CAL_1     = 0x31,
     CPI_ANGLE_CAL_2     = 0x32,
@@ -146,6 +146,10 @@ extern "C" {
     CPI_ANGLE_CAL_15    = 0x3F,
     CPI_ANGLE_CAL_16    = 0x40,
     CPI_ANGLE_CAL_17    = 0x41,
+
+    CPI_CANPacketDrops   = 0x50,
+    CPI_CANPacketErrors  = 0x51,
+
     CPI_FINAL           = 0xff
   };
 
