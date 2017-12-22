@@ -711,6 +711,7 @@ namespace DogBotN {
             devicesList = m_devices;
             if(m_unassignedDevices.size() > 0) {
               std::chrono::duration<double> elapsed_seconds = now-m_timeLastUnassignedUpdate;
+              //std::cerr << "Time: " << elapsed_seconds.count() << std::endl;
               unassignedDevicesFound = (elapsed_seconds.count() > 0.5);
             }
           }

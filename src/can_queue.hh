@@ -43,6 +43,8 @@ public:
   CANTxFrame m_packetArray[CAN_QUEUE_SIZE];
 };
 
+extern int g_canErrorCount;
+extern int g_canDropCount;
 extern CANQueueC g_txCANQueue;
 
 #endif

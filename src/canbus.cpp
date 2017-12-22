@@ -46,16 +46,15 @@ bool CANSetAddress(CANTxFrame *txmsg,int nodeId,int packetType)
 // Send an emergency stop
 bool CANEmergencyStop()
 {
-  CANTxFrame txmsg;
-  enum ComsPacketTypeT pktType = CPT_EmergencyStop;
-  CANSetAddress(&txmsg,0,pktType);
-  txmsg.RTR = CAN_RTR_DATA;
-  txmsg.DLC = 0;
-  if(canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, 100) != MSG_OK) {
-    //USBSendError(CET_CANTransmitFailed,m_data[0]);
+  CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
+  if(txmsg == 0)
     return false;
-  }
-  return true;
+
+  enum ComsPacketTypeT pktType = CPT_EmergencyStop;
+  CANSetAddress(txmsg,0,pktType);
+  txmsg->RTR = CAN_RTR_DATA;
+  txmsg->DLC = 0;
+  return g_txCANQueue.PostFullPacket(txmsg);
 }
 
 bool CANPing(
@@ -67,12 +66,12 @@ bool CANPing(
     return false;
 
   CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
+  if(txmsg == 0)
+    return false;
   CANSetAddress(txmsg,deviceId,pktType);
   txmsg->RTR = CAN_RTR_DATA;
   txmsg->DLC = 0;
-  g_txCANQueue.PostFullPacket(txmsg);
-
-  return true;
+  return g_txCANQueue.PostFullPacket(txmsg);
 }
 
 bool CANSendStoredSetup(
@@ -88,16 +87,13 @@ bool CANSendStoredSetup(
     default:
       return false;
   }
-  CANTxFrame txmsg;
-  CANSetAddress(&txmsg,deviceId,pktType);
-  txmsg.RTR = CAN_RTR_DATA;
-  txmsg.DLC = 0;
-  if(canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, 100) != MSG_OK) {
-    //USBSendError(CET_CANTransmitFailed,m_data[0]);
+  CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
+  if(txmsg == 0)
     return false;
-  }
-
-  return true;
+  CANSetAddress(txmsg,deviceId,pktType);
+  txmsg->RTR = CAN_RTR_DATA;
+  txmsg->DLC = 0;
+  return g_txCANQueue.PostFullPacket(txmsg);
 }
 
 
@@ -107,16 +103,13 @@ bool CANSendCalZero(
 {
   enum ComsPacketTypeT pktType = CPT_CalZero;
 
-  CANTxFrame txmsg;
-  CANSetAddress(&txmsg,deviceId,pktType);
-  txmsg.RTR = CAN_RTR_DATA;
-  txmsg.DLC = 0;
-  if(canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, 100) != MSG_OK) {
-    //USBSendError(CET_CANTransmitFailed,m_data[0]);
+  CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
+  if(txmsg == 0)
     return false;
-  }
-
-  return true;
+  CANSetAddress(txmsg,deviceId,pktType);
+  txmsg->RTR = CAN_RTR_DATA;
+  txmsg->DLC = 0;
+  return g_txCANQueue.PostFullPacket(txmsg);
 }
 
 
@@ -127,18 +120,16 @@ bool CANSendServoReport(
     uint8_t state
     )
 {
-  CANTxFrame txmsg;
-  CANSetAddress(&txmsg,deviceId,CPT_ServoReport);
-  txmsg.RTR = CAN_RTR_DATA;
-  txmsg.DLC = 5;
-  txmsg.data16[0] = position;
-  txmsg.data16[1] = torque;
-  txmsg.data8[4] = state;
-  if(canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, 100) != MSG_OK) {
-    //SendError(CET_CANTransmitFailed,m_data[0]);
+  CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
+  if(txmsg == 0)
     return false;
-  }
-  return true;
+  CANSetAddress(txmsg,deviceId,CPT_ServoReport);
+  txmsg->RTR = CAN_RTR_DATA;
+  txmsg->DLC = 5;
+  txmsg->data16[0] = position;
+  txmsg->data16[1] = torque;
+  txmsg->data8[4] = state;
+  return g_txCANQueue.PostFullPacket(txmsg);
 }
 
 bool CANSendServo(
@@ -148,33 +139,28 @@ bool CANSendServo(
     uint8_t state
     )
 {
-  CANTxFrame txmsg;
-  CANSetAddress(&txmsg,deviceId,CPT_Servo);
-  txmsg.RTR = CAN_RTR_DATA;
-  txmsg.DLC = 5;
-  txmsg.data16[0] = position;
-  txmsg.data16[1] = torqueLimit;
-  txmsg.data8[4] = state;
-  if(canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, 100) != MSG_OK) {
-    //SendError(CET_CANTransmitFailed,m_data[0]);
+  CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
+  if(txmsg == 0)
     return false;
-  }
-  return true;
 
+  CANSetAddress(txmsg,deviceId,CPT_Servo);
+  txmsg->RTR = CAN_RTR_DATA;
+  txmsg->DLC = 5;
+  txmsg->data16[0] = position;
+  txmsg->data16[1] = torqueLimit;
+  txmsg->data8[4] = state;
+  return g_txCANQueue.PostFullPacket(txmsg);
 }
 
 bool CANSendQueryDevices(void)
 {
-  CANTxFrame txmsg;
-  CANSetAddress(&txmsg,0,CPT_QueryDevices);
-  txmsg.RTR = CAN_RTR_DATA;
-  txmsg.DLC = 0;
-
-  if(canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, MS2ST(100)) != MSG_OK) {
+  CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
+  if(txmsg == 0)
     return false;
-  }
-
-  return true;
+  CANSetAddress(txmsg,0,CPT_QueryDevices);
+  txmsg->RTR = CAN_RTR_DATA;
+  txmsg->DLC = 0;
+  return g_txCANQueue.PostFullPacket(txmsg);
 }
 
 bool CANSendSetDevice(
@@ -183,18 +169,15 @@ bool CANSendSetDevice(
     uint32_t uid1
     )
 {
-  CANTxFrame txmsg;
-  CANSetAddress(&txmsg,deviceId,CPT_SetDeviceId);
-  txmsg.RTR = CAN_RTR_DATA;
-  txmsg.DLC = 8;
-  txmsg.data32[0] = uid0;
-  txmsg.data32[1] = uid1;
-
-  if(canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, MS2ST(100)) != MSG_OK) {
+  CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
+  if(txmsg == 0)
     return false;
-  }
-
-  return true;
+  CANSetAddress(txmsg,deviceId,CPT_SetDeviceId);
+  txmsg->RTR = CAN_RTR_DATA;
+  txmsg->DLC = 8;
+  txmsg->data32[0] = uid0;
+  txmsg->data32[1] = uid1;
+  return g_txCANQueue.PostFullPacket(txmsg);
 }
 
 
@@ -209,17 +192,15 @@ bool CANSendSetParam(
     return false;
   }
 
-  CANTxFrame txmsg;
-  CANSetAddress(&txmsg,deviceId,CPT_SetParam);
-  txmsg.RTR = CAN_RTR_DATA;
-  txmsg.DLC = 1 + len;
-  txmsg.data8[0] = index;
-  memcpy(&txmsg.data8[1],data->uint8,len);
-  if(canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, MS2ST(100)) != MSG_OK) {
+  CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
+  if(txmsg == 0)
     return false;
-  }
-
-  return true;
+  CANSetAddress(txmsg,deviceId,CPT_SetParam);
+  txmsg->RTR = CAN_RTR_DATA;
+  txmsg->DLC = 1 + len;
+  txmsg->data8[0] = index;
+  memcpy(&txmsg->data8[1],data->uint8,len);
+  return g_txCANQueue.PostFullPacket(txmsg);
 }
 
 bool CANSendReadParam(
@@ -227,17 +208,14 @@ bool CANSendReadParam(
     uint16_t index
     )
 {
-  CANTxFrame txmsg;
-  CANSetAddress(&txmsg,deviceId,CPT_ReadParam);
-  txmsg.RTR = CAN_RTR_DATA;
-  txmsg.DLC = 1;
-  txmsg.data8[0] = index;
-
-  if(canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, MS2ST(100)) != MSG_OK) {
+  CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
+  if(txmsg == 0)
     return false;
-  }
-
-  return true;
+  CANSetAddress(txmsg,deviceId,CPT_ReadParam);
+  txmsg->RTR = CAN_RTR_DATA;
+  txmsg->DLC = 1;
+  txmsg->data8[0] = index;
+  return g_txCANQueue.PostFullPacket(txmsg);
 }
 
 bool CANSendError(
@@ -246,19 +224,16 @@ bool CANSendError(
     uint8_t data
     )
 {
-  CANTxFrame txmsg;
-  CANSetAddress(&txmsg,g_deviceId,CPT_Error);
-  txmsg.RTR = CAN_RTR_DATA;
-  txmsg.DLC = 3;
-  txmsg.data8[0] = errorCode;
-  txmsg.data8[1] = causeType;
-  txmsg.data8[2] = data;
-
-  if(canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, MS2ST(100)) != MSG_OK) {
+  CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
+  if(txmsg == 0)
     return false;
-  }
-
-  return true;
+  CANSetAddress(txmsg,g_deviceId,CPT_Error);
+  txmsg->RTR = CAN_RTR_DATA;
+  txmsg->DLC = 3;
+  txmsg->data8[0] = errorCode;
+  txmsg->data8[1] = causeType;
+  txmsg->data8[2] = data;
+  return g_txCANQueue.PostFullPacket(txmsg);
 }
 
 
@@ -278,24 +253,20 @@ bool CANSendParam(enum ComsParameterIndexT index)
     return false;
   }
 
-  CANTxFrame txmsg;
-  CANSetAddress(&txmsg,g_deviceId,CPT_ReportParam);
-  txmsg.RTR = CAN_RTR_DATA;
-  txmsg.data8[0] = (uint8_t) index;
+  CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
+  if(txmsg == 0)
+    return false;
+  CANSetAddress(txmsg,g_deviceId,CPT_ReportParam);
+  txmsg->RTR = CAN_RTR_DATA;
+  txmsg->data8[0] = (uint8_t) index;
 
   // Limit length to bytes we can send over can.
-  if(len > 7) len = 7;
-  txmsg.DLC = len+1;
-  memcpy(&txmsg.data8[1],buff.uint8,len);
-  if(canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, 100) != MSG_OK) {
-    //SendError(CET_CANTransmitFailed,m_data[0]);
+  if(len > 7)
     return false;
-  }
-  return true;
+  txmsg->DLC = len+1;
+  memcpy(&txmsg->data8[1],buff.uint8,len);
+  return g_txCANQueue.PostFullPacket(txmsg);
 }
-
-
-
 
 
 /*
@@ -478,16 +449,14 @@ static THD_FUNCTION(can_rx, p) {
             CANSendError(CET_UnexpectedPacketSize,CPT_QueryDevices,rxmsg.DLC);
             break;
           }
-          CANTxFrame txmsg;
-          CANSetAddress(&txmsg,g_deviceId,CPT_AnnounceId);
-          txmsg.RTR = CAN_RTR_DATA;
-          txmsg.DLC = 8;
-          txmsg.data32[0] = g_nodeUId[0];
-          txmsg.data32[1] = g_nodeUId[1];
-          if(canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, 100) != MSG_OK) {
-            if(g_canBridgeMode) {
-              USBSendError(rxDeviceId,CET_CANTransmitFailed,CPT_QueryDevices,0);
-            }
+          CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
+          if(txmsg != 0) {
+            CANSetAddress(txmsg,g_deviceId,CPT_AnnounceId);
+            txmsg->RTR = CAN_RTR_DATA;
+            txmsg->DLC = 8;
+            txmsg->data32[0] = g_nodeUId[0];
+            txmsg->data32[1] = g_nodeUId[1];
+            g_txCANQueue.PostFullPacket(txmsg);
           }
         } break;
         case CPT_ServoReport:
@@ -557,32 +526,28 @@ static THD_FUNCTION(can_rx, p) {
   chEvtUnregister(&CAND1.rxfull_event, &el);
 }
 
-#if 0
 /*
  * Transmitter thread.
  */
-static THD_WORKING_AREA(can_tx_wa, 256);
-static THD_FUNCTION(can_tx, p) {
-  CANTxFrame txmsg;
-
+static THD_WORKING_AREA(can_tx_wa, 128);
+static THD_FUNCTION(can_tx, p)
+{
   (void)p;
-  chRegSetThreadName("can transmitter");
-  txmsg.IDE = CAN_IDE_EXT;
-  txmsg.EID = 0x01234567;
-  txmsg.RTR = CAN_RTR_DATA;
-  txmsg.DLC = 8;
-  txmsg.data32[0] = 0x55AA55AA;
-  txmsg.data32[1] = 0x00FF00FF;
+  chRegSetThreadName("can tx");
 
   while (!chThdShouldTerminateX()) {
-    canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, MS2ST(100));
-    chThdSleepMilliseconds(500);
+    CANTxFrame *txPkt = g_txCANQueue.FetchFull(MS2ST(100));
+    if(txPkt == 0)
+      continue;
+    if(canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, txPkt, MS2ST(50)) != MSG_OK) {
+      g_canDropCount++;
+    }
+    g_txCANQueue.ReturnEmptyPacketI(txPkt);
   }
 }
-#endif
 
 /*
- * Application entry point.
+ * CAN startup code
  */
 int InitCAN(void)
 {
@@ -605,10 +570,8 @@ int InitCAN(void)
      */
     chThdCreateStatic(can_rx_wa, sizeof(can_rx_wa), NORMALPRIO + 1,
                       can_rx, NULL);
-  #if 0
     chThdCreateStatic(can_tx_wa, sizeof(can_tx_wa), NORMALPRIO + 7,
                       can_tx, NULL);
-  #endif
   }
   return 0;
 }

@@ -479,7 +479,7 @@ namespace DogBotN
   //! Is connection ready ?
   bool ComsUSBC::IsReady() const
   {
-    return false; //m_fd >= 0;
+    return m_handle != 0;
   }
 
 

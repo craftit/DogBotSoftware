@@ -62,7 +62,8 @@ extern "C" {
     FC_Internal = 13,
     FC_MotorResistanceOutOfRange = 14,
     FC_MotorInducetanceOutOfRange = 15,
-    FC_InternalUSB = 14
+    FC_InternalUSB = 14,
+    FC_InternalCAN = 15
   };
 
 
