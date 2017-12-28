@@ -132,6 +132,13 @@ namespace DogBotN {
     Init();
   }
 
+  //! Type of joint
+  std::string ServoC::JointType() const
+  {
+    return "servo";
+  }
+
+
   void ServoC::Init()
   {
     m_comsTimeout = std::chrono::milliseconds(500);

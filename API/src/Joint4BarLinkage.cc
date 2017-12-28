@@ -26,6 +26,11 @@ namespace DogBotN {
     return true;
   }
 
+  //! Type of joint
+  std::string Joint4BarLinkageC::JointType() const
+  { return "4bar"; }
+
+
   bool Joint4BarLinkageC::Simple2Raw(
        float refPosition,float refTorque,
        float position,float torque,
@@ -45,7 +50,11 @@ namespace DogBotN {
   {
     if(!JointRelativeC::ConfigureFromJSON(api,value))
       return false;
-
+    Json::Value val = value.get("linkage",Json::nullValue);
+    if(!val.isNull()) {
+      if(!m_legKinematics.ConfigureFromJSON(val))
+        return false;
+    }
     return true;
   }
 
@@ -53,7 +62,7 @@ namespace DogBotN {
   Json::Value Joint4BarLinkageC::ConfigAsJSON() const
   {
     Json::Value ret = JointRelativeC::ConfigAsJSON();
-
+    ret["linkage"] = m_legKinematics.ConfigAsJSON();
     return ret;
   }
 

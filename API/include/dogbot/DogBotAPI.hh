@@ -3,7 +3,6 @@
 
 #include "dogbot/Servo.hh"
 #include <jsoncpp/json/json.h>
-
 #include "dogbot/Coms.hh"
 
 namespace DogBotN {
@@ -109,13 +108,21 @@ namespace DogBotN {
     std::shared_ptr<ServoC> GetServoById(int id);
 
     //! Get servo entry by name
-    std::shared_ptr<ServoC> GetServoByName(const std::string &name);
+    std::shared_ptr<JointC> GetServoByName(const std::string &name);
 
     //! Get list of configured servos
+    //! These are actual devices on the robot, for a simplified view of the robot, use the 'joints' interface.
     std::vector<std::shared_ptr<ServoC> > ListServos();
+
+    //! Get list of joints
+    std::vector<std::shared_ptr<JointC> > ListJoints();
 
     //! Shutdown controller.
     bool Shutdown();
+
+    //!
+    spdlog::logger &Log()
+    { return *m_log; }
 
   protected:
     //! Issue an update notification
@@ -126,6 +133,9 @@ namespace DogBotN {
 
     //! Give unassigned devices an id.
     void ProcessUnassignedDevices();
+
+    //! Make an appropriate type of device.
+    std::shared_ptr<JointC> MakeJoint(const std::string &deviceType) const;
 
     //! Access device id, create entry if needed
     std::shared_ptr<ServoC> DeviceEntry(int deviceId);
@@ -157,6 +167,7 @@ namespace DogBotN {
     std::chrono::time_point<std::chrono::steady_clock> m_timeLastUnassignedUpdate;
     std::vector<std::shared_ptr<ServoC> > m_unassignedDevices; // Unassigned devices.
     std::vector<std::shared_ptr<ServoC> > m_devices; // Indexed by device id.
+    std::vector<std::shared_ptr<JointC> > m_joints; // List of available joints.
 
     std::thread m_threadMonitor;
 

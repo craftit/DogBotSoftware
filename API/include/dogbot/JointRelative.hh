@@ -6,7 +6,7 @@
 
 namespace DogBotN {
 
-  //! Abstract joint.
+  //! Relative position joint.
   //! These give a simplified view of the robot.
 
   class JointRelativeC
@@ -19,6 +19,9 @@ namespace DogBotN {
 
     //! Constructor
     JointRelativeC(std::shared_ptr<JointC> &jointDrive,std::shared_ptr<JointC> &jointRef);
+
+    //! Type of joint
+    virtual std::string JointType() const override;
 
     //! Configure from JSON
     virtual bool ConfigureFromJSON(DogBotAPIC &api,const Json::Value &value) override;

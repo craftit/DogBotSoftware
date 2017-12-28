@@ -1,6 +1,7 @@
 
 #include <string>
-#include "../include/dogbot/JointRelative.hh"
+#include "dogbot/JointRelative.hh"
+#include "dogbot/DogBotAPI.hh"
 
 namespace DogBotN {
 
@@ -13,6 +14,12 @@ namespace DogBotN {
     : m_jointDrive(jointDrive),
       m_jointRef(jointRef)
   {}
+
+  //! Type of joint
+  std::string JointRelativeC::JointType() const
+  {
+    return "relative";
+  }
 
   bool JointRelativeC::Raw2Simple(
       float refPosition,float refVelocity,float refTorque,
@@ -45,7 +52,24 @@ namespace DogBotN {
   {
     if(!JointC::ConfigureFromJSON(api,value))
       return false;
-
+    std::string jointRefName = value.get("jointRef","").asString();
+    if(!jointRefName.empty()) {
+      m_jointRef = api.GetServoByName(jointRefName);
+      if(!m_jointRef) {
+        api.Log().error("Failed to find servo '{}' ",jointRefName);
+        return false;
+      }
+    }
+    std::string jointDriveName = value.get("jointDrive","").asString();
+    if(!jointDriveName.empty()) {
+      m_jointDrive = api.GetServoByName(jointDriveName);
+      if(!m_jointDrive) {
+        api.Log().error("Failed to find servo '{}' ",jointDriveName);
+        return false;
+      }
+    }
+    m_refGain = value.get("refGain",1.0).asFloat();
+    m_refOffset = value.get("refOffset",0.0).asFloat();
     return true;
   }
 
@@ -54,6 +78,12 @@ namespace DogBotN {
   {
     Json::Value ret = JointC::ConfigAsJSON();
 
+    if(m_jointRef)
+      ret["jointRef"] = m_jointRef->Name();
+    if(m_jointDrive)
+      ret["jointDrive"] = m_jointDrive->Name();
+    ret["refGain"] = m_refGain;
+    ret["refOffset"] = m_refOffset;
     return ret;
   }
 

@@ -30,6 +30,9 @@ namespace DogBotN {
     //! Access notes.
     std::string Notes() const;
 
+    //! Type of joint
+    virtual std::string JointType() const;
+
     //! Set notes.
     void SetNotes(const std::string &notes);
 
@@ -69,12 +72,16 @@ namespace DogBotN {
     float Velocity() const
     { return m_velocity; }
 
+    //! Is this joint exported ?
+    bool IsExported() const
+    { return m_export; }
+
   protected:
     mutable std::mutex m_mutexJointAdmin;
 
     std::string m_name;
     std::string m_notes;
-
+    bool m_export = false;
     float m_position = 0;
     float m_velocity = 0;
     float m_torque = 0;

@@ -12,6 +12,13 @@ namespace DogBotN {
   JointC::~JointC()
   {}
 
+
+  //! Type of joint
+  std::string JointC::JointType() const
+  {
+    return "joint";
+  }
+
   //! Configure from JSON
   bool JointC::ConfigureFromJSON(DogBotAPIC &api,const Json::Value &conf)
   {
@@ -30,6 +37,7 @@ namespace DogBotN {
     std::lock_guard<std::mutex> lock(m_mutexJointAdmin);
     ret["name"] = m_name;
     ret["notes"] = m_notes;
+    ret["type"] = JointType();
 
     return ret;
   }

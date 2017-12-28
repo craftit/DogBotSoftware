@@ -4,11 +4,15 @@
 #include "dogbot/ComsSerial.hh"
 #include "dogbot/ComsZMQClient.hh"
 #include "dogbot/ComsUSB.hh"
+#include "dogbot/Joint4BarLinkage.hh"
+#include "dogbot/JointRelative.hh"
 #include <fstream>
 #include <chrono>
 #include <mutex>
 #include <cassert>
 #include <memory>
+#include <exception>
+#include <stdexcept>
 
 namespace DogBotN {
 
@@ -346,7 +350,7 @@ namespace DogBotN {
 
     //! Initialise which serial device to use.
     if(m_deviceName.empty())
-      m_deviceName = m_configRoot.get("device","local").asString();
+      m_deviceName = m_configRoot.get("device","usb").asString();
 
     m_started = true;
 
@@ -355,82 +359,108 @@ namespace DogBotN {
     return true;
   }
 
+  //! Make an appropriate type of device.
+  std::shared_ptr<JointC> DogBotAPIC::MakeJoint(const std::string &deviceType) const
+  {
+    if(deviceType == "relative") {
+      return std::make_shared<JointRelativeC>();
+    } else if(deviceType == "4bar") {
+      return std::make_shared<Joint4BarLinkageC>();
+    }
+    m_log->error("Unknown joint type '{}'",deviceType);
+    assert(0);
+    throw std::runtime_error("Unknown joint type.");
+  }
+
+
+
   //! Load a configuration file
   bool DogBotAPIC::LoadConfig(const std::string &configFile)
   {
     if(configFile.empty())
       return false;
+    try {
+      std::ifstream confStrm(configFile,std::ifstream::binary);
 
-    std::ifstream confStrm(configFile,std::ifstream::binary);
+      if(!confStrm) {
+        m_log->error("Failed to open configuration file '{}' ",configFile);
+        return false;
+      }
 
-    if(!confStrm) {
-      m_log->error("Failed to open configuration file '{}' ",configFile);
-      return false;
-    }
-
-    Json::Value rootConfig;
-    confStrm >> rootConfig;
-    Json::Value deviceList = rootConfig["devices"];
-    if(!deviceList.isNull()) {
-      ServoUpdateTypeT op = SUT_Updated;
-      for(int i = 0;i < deviceList.size();i++) {
-        Json::Value deviceConf = deviceList[i];
-        std::shared_ptr<ServoC> device;
-        int deviceId = 0;
-        uint32_t uid1 = deviceConf.get("uid1",0u).asInt();
-        uint32_t uid2 = deviceConf.get("uid2",0u).asInt();
-        int reqId = deviceConf.get("deviceId",0u).asInt();
-        // Ignore silly ids
-        if(reqId > 255 || reqId < 0)
-          reqId = 0;
-        {
-          std::lock_guard<std::mutex> lock(m_mutexDevices);
-          // Is the device present ?
-          for(int i = 0;i < m_devices.size();i++) {
-            if(!m_devices[i])
-              continue;
-            if(m_devices[i]->HasUID(uid1,uid2)) {
-              deviceId = i;
-              device = m_devices[i];
-              break;
-            }
+      Json::Value rootConfig;
+      confStrm >> rootConfig;
+      Json::Value deviceList = rootConfig["devices"];
+      if(!deviceList.isNull()) {
+        ServoUpdateTypeT op = SUT_Updated;
+        for(int i = 0;i < deviceList.size();i++) {
+          Json::Value deviceConf = deviceList[i];
+          std::string deviceType = deviceConf.get("type","").asString();
+          if(!deviceType.empty() && deviceType != "servo" ) {
+            std::shared_ptr<JointC> joint = MakeJoint(deviceType);
+            joint->ConfigureFromJSON(*this,deviceConf);
+            m_joints.push_back(joint);
+            continue;
           }
-          // Go with the requested configuration id if we can.
-          if(deviceId == 0 && reqId != 0) {
-            if(m_devices.size() > reqId) {
-              if(!m_devices[reqId]) {
-                deviceId = reqId;
+          std::shared_ptr<ServoC> device;
+          int deviceId = 0;
+          uint32_t uid1 = deviceConf.get("uid1",0u).asInt();
+          uint32_t uid2 = deviceConf.get("uid2",0u).asInt();
+          int reqId = deviceConf.get("deviceId",0u).asInt();
+          // Ignore silly ids
+          if(reqId > 255 || reqId < 0)
+            reqId = 0;
+          {
+            std::lock_guard<std::mutex> lock(m_mutexDevices);
+            // Is the device present ?
+            for(int i = 0;i < m_devices.size();i++) {
+              if(!m_devices[i])
+                continue;
+              if(m_devices[i]->HasUID(uid1,uid2)) {
+                deviceId = i;
+                device = m_devices[i];
+                break;
               }
-            } else {
-              while(m_devices.size() < reqId)
-                m_devices.push_back(std::shared_ptr<ServoC>());
-              deviceId = reqId;
+            }
+            // Go with the requested configuration id if we can.
+            if(deviceId == 0 && reqId != 0) {
+              if(m_devices.size() > reqId) {
+                if(!m_devices[reqId]) {
+                  deviceId = reqId;
+                }
+              } else {
+                while(m_devices.size() < reqId)
+                  m_devices.push_back(std::shared_ptr<ServoC>());
+                deviceId = reqId;
+                device = std::make_shared<ServoC>(m_coms,deviceId);
+                m_devices.push_back(device);
+                op = SUT_Add;
+              }
+              if(deviceId > 0) {
+                device = std::make_shared<ServoC>(m_coms,deviceId);
+                m_devices[deviceId] = device;
+              }
+            }
+            // Still no luck... just append it.
+            if(deviceId == 0) {
+              deviceId = (int) m_devices.size();
               device = std::make_shared<ServoC>(m_coms,deviceId);
               m_devices.push_back(device);
               op = SUT_Add;
             }
-            if(deviceId > 0) {
-              device = std::make_shared<ServoC>(m_coms,deviceId);
-              m_devices[deviceId] = device;
-            }
           }
-          // Still no luck... just append it.
-          if(deviceId == 0) {
-            deviceId = (int) m_devices.size();
-            device = std::make_shared<ServoC>(m_coms,deviceId);
-            m_devices.push_back(device);
-            op = SUT_Add;
+          assert(device);
+          if(device) {
+            device->ConfigureFromJSON(*this,deviceConf);
+            ServoStatusUpdate(deviceId,op);
+            if(device->IsExported())
+              m_joints.push_back(device);
           }
-        }
-        assert(device);
-        if(device) {
-          device->ConfigureFromJSON(*this,deviceConf);
-          ServoStatusUpdate(deviceId,op);
         }
       }
+    } catch(std::exception &ex) {
+      m_log->error("Failed load configuration file {}", ex.what());
+      return false;
     }
-
-
 
     return true;
   }
@@ -452,6 +482,13 @@ namespace DogBotN {
     int index =0;
     for(auto &a : m_devices) {
       if(!a)
+        continue;
+      deviceList[index++] = a->ConfigAsJSON();
+    }
+    for(auto &a : m_joints) {
+      if(!a)
+        continue;
+      if(a->JointType() == "servo")
         continue;
       deviceList[index++] = a->ConfigAsJSON();
     }
@@ -834,14 +871,18 @@ namespace DogBotN {
   }
 
   //! Get servo entry by name
-  std::shared_ptr<ServoC> DogBotAPIC::GetServoByName(const std::string &name)
+  std::shared_ptr<JointC> DogBotAPIC::GetServoByName(const std::string &name)
   {
     std::lock_guard<std::mutex> lock(m_mutexDevices);
     for(auto &a : m_devices) {
       if(a && a->Name() == name)
         return a;
     }
-    return std::shared_ptr<ServoC>();
+    for(auto &a : m_joints) {
+      if(a && a->Name() == name)
+        return a;
+    }
+    return std::shared_ptr<JointC>();
   }
 
 
@@ -857,8 +898,15 @@ namespace DogBotN {
   std::vector<std::shared_ptr<ServoC> > DogBotAPIC::ListServos()
   {
     std::lock_guard<std::mutex> lock(m_mutexDevices);
-    std::vector<std::shared_ptr<ServoC> > ret = m_devices;
-    return ret;
+    return m_devices;
+  }
+
+
+  //! Get list of joints
+  std::vector<std::shared_ptr<JointC> > DogBotAPIC::ListJoints()
+  {
+    std::lock_guard<std::mutex> lock(m_mutexDevices);
+    return m_joints;
   }
 
 }

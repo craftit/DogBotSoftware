@@ -7,7 +7,7 @@
 
 namespace DogBotN {
 
-  //! Abstract joint.
+  //! Virtual joint.
   //! These give a simplified view of the robot.
 
   class Joint4BarLinkageC
@@ -20,6 +20,9 @@ namespace DogBotN {
 
     //! Constructor
     Joint4BarLinkageC(std::shared_ptr<JointC> &jointDrive,std::shared_ptr<JointC> &jointRef);
+
+    //! Type of joint
+    virtual std::string JointType() const override;
 
     //! Configure from JSON
     virtual bool ConfigureFromJSON(DogBotAPIC &api,const Json::Value &value) override;

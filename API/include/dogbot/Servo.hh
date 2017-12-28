@@ -87,6 +87,8 @@ namespace DogBotN {
     // Construct with announce packet.
     ServoC(const std::shared_ptr<ComsC> &coms,int deviceId,const PacketDeviceIdC &pktAnnounce);
 
+    //! Type of joint
+    virtual std::string JointType() const override;
 
     //! Set servo enabled flag.
     void SetEnabled(bool enabled)
