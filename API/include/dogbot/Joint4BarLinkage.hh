@@ -44,7 +44,7 @@ namespace DogBotN {
          ) const override;
 
 
-    LegKinematicsC m_legKinematics; //!< Kinematics for linkage
+    std::shared_ptr<LegKinematicsC> m_legKinematics; //!< Kinematics for linkage
   };
 
 }

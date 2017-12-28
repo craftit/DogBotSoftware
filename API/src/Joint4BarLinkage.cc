@@ -1,6 +1,7 @@
 
 #include <string>
 #include "dogbot/Joint4BarLinkage.hh"
+#include "dogbot/DogBotAPI.hh"
 
 namespace DogBotN {
 
@@ -13,23 +14,29 @@ namespace DogBotN {
     : JointRelativeC(jointDrive,jointRef)
   {}
 
+  //! Type of joint
+  std::string Joint4BarLinkageC::JointType() const
+  { return "4bar"; }
+
   bool Joint4BarLinkageC::Raw2Simple(
       float refPosition,float refVelocity,float refTorque,
       float drivePosition,float driveVelocity,float driveTorque,
       double &position,double &velocity,double &torque
   ) const
   {
+    float theta = drivePosition - (refPosition * m_refGain + m_refOffset);
 
-    position = drivePosition - (refPosition * m_refGain + m_refOffset);
-    velocity = driveVelocity - refVelocity;
-    torque = driveTorque;
+    // Theta = Knee Servo
+    // Psi = Knee joint
+    float psi = m_legKinematics->Linkage4BarForward(theta);
+    float ratio = m_legKinematics->LinkageSpeedRatio(theta,psi);
+
+    position = psi;
+    velocity = (driveVelocity - refVelocity * m_refGain) / ratio;
+    // FIXME:- This and its inverse really needs checking!
+    torque = (driveTorque - refTorque / m_refGain) * ratio;
     return true;
   }
-
-  //! Type of joint
-  std::string Joint4BarLinkageC::JointType() const
-  { return "4bar"; }
-
 
   bool Joint4BarLinkageC::Simple2Raw(
        float refPosition,float refTorque,
@@ -37,8 +44,13 @@ namespace DogBotN {
        double &drivePosition,double &driveTorque
   ) const
   {
-    drivePosition = position + (refPosition * m_refGain + m_refOffset);
-    driveTorque = torque;
+    float theta;
+    if(!m_legKinematics->Linkage4BarBack(position,theta))
+      return false;
+    float ratio = m_legKinematics->LinkageSpeedRatio(theta,position);
+
+    drivePosition = theta + (refPosition * m_refGain + m_refOffset);
+    driveTorque = torque / ratio + refTorque/m_refGain;
     return true;
   }
 
@@ -50,10 +62,11 @@ namespace DogBotN {
   {
     if(!JointRelativeC::ConfigureFromJSON(api,value))
       return false;
-    Json::Value val = value.get("linkage",Json::nullValue);
-    if(!val.isNull()) {
-      if(!m_legKinematics.ConfigureFromJSON(val))
-        return false;
+    std::string legName = value.get("legKinematics","default").asString();
+    m_legKinematics = api.LegKinematicsByName(legName);
+    if(!m_legKinematics) {
+      api.Log().error("Failed to configure leg kinematics. '{}' ",legName);
+      return false;
     }
     return true;
   }
@@ -62,7 +75,8 @@ namespace DogBotN {
   Json::Value Joint4BarLinkageC::ConfigAsJSON() const
   {
     Json::Value ret = JointRelativeC::ConfigAsJSON();
-    ret["linkage"] = m_legKinematics.ConfigAsJSON();
+    if(m_legKinematics)
+      ret["legKinematics"] = m_legKinematics->Name();
     return ret;
   }
 

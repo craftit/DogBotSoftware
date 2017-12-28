@@ -11,6 +11,12 @@ namespace DogBotN {
   LegKinematicsC::LegKinematicsC()
   {}
 
+  //! Construct from a json object
+  LegKinematicsC::LegKinematicsC(const Json::Value &value)
+  {
+    ConfigureFromJSON(value);
+  }
+
   //! Create
   LegKinematicsC::LegKinematicsC(float l1,float l2)
    : m_l1(l1),
@@ -20,7 +26,7 @@ namespace DogBotN {
   //! Configure from JSON
   bool LegKinematicsC::ConfigureFromJSON(const Json::Value &value)
   {
-
+    m_name = value.get("name","").asString();
     m_l1 = value.get("l1",m_l1).asFloat();
     m_l2 = value.get("l2",m_l2).asFloat();
     m_zoff = value.get("ZOffset",m_zoff).asFloat();
@@ -36,6 +42,7 @@ namespace DogBotN {
   {
     Json::Value ret;
 
+    ret["name"] = m_name;
     ret["l1"] = m_l1;
     ret["l2"] = m_l2;
     ret["ZOffset"] = m_zoff;
@@ -109,45 +116,45 @@ namespace DogBotN {
 
   //! 4 bar linkage angle backward,
   // Returns true if angle exists.
-  bool LegKinematicsC::Linkage4BarBack(float angleIn,float &ret,bool solution2) const
+  bool LegKinematicsC::Linkage4BarBack(float psi,float &theta,bool solution2) const
   {
     float val = 0;
-    if(!Linkage4Bar(M_PI - angleIn,m_linkB,m_linkA,m_l1,m_linkH,val,solution2))
+    if(!Linkage4Bar(M_PI - psi,m_linkB,m_linkA,m_l1,m_linkH,val,solution2))
       return false;
-    ret = M_PI - val;
+    theta = M_PI - val;
     return true;
   }
 
-  float LegKinematicsC::Linkage4BarForward(float angleIn,bool solution2) const
+  float LegKinematicsC::Linkage4BarForward(float theta,bool solution2) const
   {
     float ret = 0;
-    bool ok = Linkage4Bar(angleIn,m_linkA,m_linkB,m_l1,m_linkH,ret,solution2);
+    bool ok = Linkage4Bar(theta,m_linkA,m_linkB,m_l1,m_linkH,ret,solution2);
     //assert(ok);
-    return ret;
+    return ret; // Psi
   }
 
   bool LegKinematicsC::Linkage4Bar(
-      float angleIn,
+      float theta,
       float a,float b,float g,float h,
-      float &result,
+      float &psi,
       bool solution2
       ) const
   {
-    float At = 2 * b * g - 2 * a * b * cos(angleIn);
-    float Bt = -2 * a * b * sin(angleIn);
-    float Ct = a*a + b * b + g * g -h * h - 2 * a * g * cos(angleIn);
+    float At = 2 * b * g - 2 * a * b * cos(theta);
+    float Bt = -2 * a * b * sin(theta);
+    float Ct = a*a + b * b + g * g -h * h - 2 * a * g * cos(theta);
 
     float delta = atan(Bt/At);
     float cosAngle = -Ct / sqrt(At * At + Bt * Bt);
     if(cosAngle > 1.0 || cosAngle < -1.0)
       return false;
-    result = delta + (solution2 ? -1 : 1) * acos(cosAngle);
+    psi = delta + (solution2 ? -1 : 1) * acos(cosAngle);
     return true;
   }
 
   // Compute the speed ratio at the given input angle.
 
-  float LegKinematicsC::LinkageSpeedRatio(float theta,float psi)
+  float LegKinematicsC::LinkageSpeedRatio(float theta,float psi) const
   {
     float a = m_linkA;
     float b = m_linkB;
@@ -155,7 +162,7 @@ namespace DogBotN {
     float h = m_linkH;
 
     float result =
-        (- a * g * cos(psi) * sin(theta) - b * g * sin(psi) + a * b * cos(theta) * sin(psi)) /
+        -(- a * b * cos(psi) * sin(theta) - b * g * sin(psi) + a * b * cos(theta) * sin(psi)) /
         (a * g * sin(theta) + a * b * cos(psi) * sin(theta) - a * b * cos(theta) * sin(psi) );
 
     return result;

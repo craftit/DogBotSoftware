@@ -389,6 +389,29 @@ namespace DogBotN {
 
       Json::Value rootConfig;
       confStrm >> rootConfig;
+      Json::Value kinematicsList = rootConfig["kinematics"];
+      if(!kinematicsList.isNull()) {
+        for(int i = 0;i < kinematicsList.size();i++) {
+          Json::Value kinConf = kinematicsList[i];
+          std::string name = kinConf.get("name","default").asString();
+          std::shared_ptr<LegKinematicsC> kin;
+
+          std::lock_guard<std::mutex> lock(m_mutexKinematics);
+          for(auto &a : m_legKinematics) {
+            if(a->Name() == name) {
+              kin = a;
+              break;
+            }
+          }
+          if(!kin) {
+            kin = std::make_shared<LegKinematicsC>(kinConf);
+            m_legKinematics.push_back(kin);
+          } else {
+            kin->ConfigureFromJSON(kinConf);
+          }
+        }
+      }
+
       Json::Value deviceList = rootConfig["devices"];
       if(!deviceList.isNull()) {
         ServoUpdateTypeT op = SUT_Updated;
@@ -873,7 +896,7 @@ namespace DogBotN {
   //! Get servo entry by name
   std::shared_ptr<JointC> DogBotAPIC::GetServoByName(const std::string &name)
   {
-    std::lock_guard<std::mutex> lock(m_mutexDevices);
+    std::lock_guard<std::mutex> lock(m_mutexKinematics);
     for(auto &a : m_devices) {
       if(a && a->Name() == name)
         return a;
@@ -885,6 +908,16 @@ namespace DogBotN {
     return std::shared_ptr<JointC>();
   }
 
+  //! Get kinematics for leg by name
+  std::shared_ptr<LegKinematicsC> DogBotAPIC::LegKinematicsByName(const std::string &name)
+  {
+    std::lock_guard<std::mutex> lock(m_mutexDevices);
+    for(auto &a : m_legKinematics) {
+      if(a && a->Name() == name)
+        return a;
+    }
+    return std::shared_ptr<LegKinematicsC>();
+  }
 
   //! Set the handler for servo reports for a device.
   int DogBotAPIC::SetServoUpdateHandler(int deviceId,const std::function<void (const PacketServoReportC &report)> &handler)

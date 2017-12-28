@@ -4,6 +4,7 @@
 #include "dogbot/Servo.hh"
 #include <jsoncpp/json/json.h>
 #include "dogbot/Coms.hh"
+#include "dogbot/LegKinematics.hh"
 
 namespace DogBotN {
 
@@ -110,6 +111,9 @@ namespace DogBotN {
     //! Get servo entry by name
     std::shared_ptr<JointC> GetServoByName(const std::string &name);
 
+    //! Get kinematics for leg by name
+    std::shared_ptr<LegKinematicsC> LegKinematicsByName(const std::string &name);
+
     //! Get list of configured servos
     //! These are actual devices on the robot, for a simplified view of the robot, use the 'joints' interface.
     std::vector<std::shared_ptr<ServoC> > ListServos();
@@ -174,6 +178,8 @@ namespace DogBotN {
     DeviceMasterModeT m_deviceMasterMode = DMM_ClientOnly;
     bool m_started = false;
     bool m_terminate = false;
+    std::mutex m_mutexKinematics;
+    std::vector<std::shared_ptr<LegKinematicsC> > m_legKinematics;
   };
 
 

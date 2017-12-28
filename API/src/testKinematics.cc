@@ -27,6 +27,14 @@ void DisplayBounceAngles()
 
 }
 
+float Diff(const DogBotN::LegKinematicsC &legKinamtics,float theta) {
+  float delta = 1e-4;
+  float psi = legKinamtics.Linkage4BarForward(theta);
+  float psiD = legKinamtics.Linkage4BarForward(theta+delta);
+  return delta/(psiD-psi);
+  //return (psiD-psi)/delta;
+}
+
 int main() {
   DogBotN::LegKinematicsC legKinamtics(0.36,0.31);
 
@@ -56,15 +64,17 @@ int main() {
 
   std::cout <<" 0,0,0 at: "<< pos[0] << " " << pos[1] << " " << pos[2] << " " << std::endl;
   for(int i = 0;i < 360;i+=10) {
-    float angle = deg2rad((float) i);
-    float out = legKinamtics.Linkage4BarForward(angle);
+    float theta = deg2rad((float) i);
+    float psi = legKinamtics.Linkage4BarForward(theta);
     float back = 0;
     float back2 = 0;
-    bool ok = legKinamtics.Linkage4BarBack(out,back);
-    legKinamtics.Linkage4BarBack(out,back2,true);
-    float ratio1 = legKinamtics.LinkageSpeedRatio(out,back);
-    float ratio2 = legKinamtics.LinkageSpeedRatio(out,back2);
-    std::cout << i << " Fwd:" << rad2deg(out) << " Inv:" << rad2deg(back) << " (" << ratio1 << ") " << rad2deg(back2) << " (" << ratio2 << ") " << "  [" << ok << "]" << std::endl;
+    bool ok = legKinamtics.Linkage4BarBack(psi,back);
+    legKinamtics.Linkage4BarBack(psi,back2,true);
+    float ratio1 = legKinamtics.LinkageSpeedRatio(back,psi);
+    float ratio2 = legKinamtics.LinkageSpeedRatio(back2,psi);
+    float diff1 = Diff(legKinamtics,back);
+    float diff2 = Diff(legKinamtics,back2);
+    std::cout << i << " Fwd:" << rad2deg(psi) << " Inv:" << rad2deg(back) << " (" << ratio1 << " " << diff1 << ") " << rad2deg(back2) << " (" << ratio2 << " " << diff2 << ") " << "  [" << ok << "]" << std::endl;
   }
 
   return 0;
