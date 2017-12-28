@@ -115,10 +115,11 @@ namespace DogBotN {
     std::shared_ptr<LegKinematicsC> LegKinematicsByName(const std::string &name);
 
     //! Get list of configured servos
-    //! These are actual devices on the robot, for a simplified view of the robot, use the 'joints' interface.
+    //! These are actual devices on the robot. These are 'actuators' in ROS speak.
     std::vector<std::shared_ptr<ServoC> > ListServos();
 
-    //! Get list of joints
+    //! Get a list of virtual joints giving a simplified picture of the robot.
+    //! The 4 bar linkage used for the knees is converted to look like a set of independent joints.
     std::vector<std::shared_ptr<JointC> > ListJoints();
 
     //! Shutdown controller.
