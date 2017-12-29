@@ -560,7 +560,7 @@ void MainWindow::SetupComs()
     const PacketServoReportC *pkt = (const PacketServoReportC *) data;
     if(pkt->m_deviceId == m_targetDeviceId) {
       m_servoAngle = m_coms->PositionReport2Angle(pkt->m_position);
-      m_servoTorque = m_coms->TorqueReport2Value(pkt->m_torque);
+      m_servoTorque = m_coms->TorqueReport2Current(pkt->m_torque);
       m_servoRef = (enum PositionReferenceT) (pkt->m_mode & 0x3);
     }
 
@@ -656,15 +656,15 @@ void MainWindow::on_comboBoxMotorControlMode_activated(const QString &arg1)
 void MainWindow::on_sliderPosition_sliderMoved(int position)
 {
   m_position = position * 2.0 * 3.14159265359/ 360.0;
-  std::cerr << "Mode: " << (int) m_controlMode << std::endl;
+  //std::cerr << "Mode: " << (int) m_controlMode << std::endl;
   // Convert position to radians
   switch(m_controlMode)
   {
   case CM_Position:
   {
-    std::cerr << "Sending pos: " << std::endl;
+    //std::cerr << "Sending pos: " << std::endl;
     m_position = position * 2.0 * 3.14159265359/ 360.0;
-    std::cout << "Sending move. Pos: " << m_position << " Torque:" << m_torque << " Ref:" << (int) g_positionReference << std::endl << std::flush;
+    //std::cout << "Sending move. Pos: " << m_position << " Torque:" << m_torque << " Ref:" << (int) g_positionReference << std::endl << std::flush;
     m_coms->SendMoveWithEffort(m_targetDeviceId,m_position,m_torque,g_positionReference);
     ui->doubleSpinBoxDemandPosition->setValue(position);
   } break;
@@ -896,7 +896,7 @@ void MainWindow::on_doubleSpinBoxTorqueLimit_editingFinished()
 
 void MainWindow::on_doubleSpinBoxDemandPosition_valueChanged(double arg1)
 {
-  std::cout << "DemandPosition: " << arg1 << std::endl;
+  //std::cout << "DemandPosition: " << arg1 << std::endl;
 }
 
 void MainWindow::on_doubleSpinBoxCalibrationOffset_editingFinished()

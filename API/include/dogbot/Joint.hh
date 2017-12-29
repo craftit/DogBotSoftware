@@ -82,9 +82,9 @@ namespace DogBotN {
     std::string m_name;
     std::string m_notes;
     bool m_export = false;
-    float m_position = 0;
-    float m_velocity = 0;
-    float m_torque = 0;
+    float m_position = 0; // Radians
+    float m_velocity = 0; // Radians per second
+    float m_torque = 0;   // Newton meters
   };
 
 }

@@ -34,6 +34,10 @@ namespace DogBotN {
     //! Read calibration from motor
     bool ReadCal(ComsC &coms,int deviceId);
 
+    //! Access motor Kv.
+    float MotorKv() const
+    { return m_motorKv; }
+
     //! Access velocity limit
     float VelocityLimit() const
     { return m_velocityLimit; }
@@ -65,6 +69,7 @@ namespace DogBotN {
     uint16_t m_hall[m_hallCalPoints][3];
 
     // Servo parameters
+    float m_motorKv = 260;
     float m_velocityLimit = 0;
     float m_currentLimit = 0;
     float m_positionPGain = 0;
@@ -128,18 +133,24 @@ namespace DogBotN {
     Json::Value ConfigAsJSON() const override;
 
     //! Get last reported state of the servo and the time it was taken.
+    //! Position in radians.
+    //! Velocity in radians/second
+    //! torque in N.m
     bool GetState(TimePointT &tick,double &position,double &velocity,double &torque) const override;
 
     //! Estimate state at the given time.
+    //! Position in radians.
+    //! Velocity in radians/second
+    //! torque in N.m
     //! This will linearly extrapolate position, and assume velocity and torque are
     //! the same as the last reading.
     //! If the data is more than 5 ticks away from the
     bool GetStateAt(TimePointT theTime,double &position,double &velocity,double &torque) const override;
 
-    //! Update torque for the servo.
+    //! Update torque for the servo. In Newton-meters.
     bool DemandTorque(float torque) override;
 
-    //! Demand a position for the servo
+    //! Demand a position for the servo, torque limit is in Newton-meters
     bool DemandPosition(float position,float torqueLimit) override;
 
     //! Last fault code received
@@ -180,6 +191,9 @@ namespace DogBotN {
   protected:
     //! Initialise timeouts and setup
     void Init();
+
+    //! Do constant setup
+    void SetupConstants();
 
     //! Process update
     //! Returns true if state changed
@@ -246,6 +260,9 @@ namespace DogBotN {
     unsigned m_reportedMode = 0;
 
     // Current parameters
+    float m_motorKv = 260; //! < Motor speed constant
+    float m_gearRatio = 21.0; //!< Gearbox ratio
+    float m_servoKt = 0;   //! < Servo torque constant
     float m_velocityLimit = 0;
     float m_currentLimit = 0;
     float m_positionPGain = 0;

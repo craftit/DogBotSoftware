@@ -40,6 +40,7 @@ namespace DogBotN {
 
   bool MotorCalibrationC::LoadJSON(const Json::Value &conf)
   {
+    m_motorKv = conf.get("motorKv",260.0f).asFloat();
     m_velocityLimit = conf.get("velocityLimit",1000.0f).asFloat();
     m_currentLimit = conf.get("currentLimit",10).asFloat();
     m_positionPGain = conf.get("positionPGain",1).asFloat();
@@ -79,6 +80,7 @@ namespace DogBotN {
     Json::Value ret;
     ret["encoder_cal"] = calArr;
 
+    ret["motorKv"] = m_motorKv;
     ret["velocityLimit"] = m_velocityLimit;
     ret["currentLimit"] = m_currentLimit;
     ret["positionPGain"] = m_positionPGain;
@@ -147,6 +149,8 @@ namespace DogBotN {
     m_timeEpoch = m_timeOfLastReport;
     m_tickDuration = std::chrono::milliseconds(10);
 
+    SetupConstants();
+
     // Things to query
     m_updateQuery.push_back(CPI_ControlState);
     m_updateQuery.push_back(CPI_FaultCode);
@@ -165,6 +169,15 @@ namespace DogBotN {
     m_updateQuery.push_back(CPI_PositionGain);
     m_updateQuery.push_back(CPI_homeIndexPosition);
     m_updateQuery.push_back(CPI_MaxCurrent);
+
+    // See https://en.wikipedia.org/wiki/Motor_constants#Motor_Torque_constant
+
+  }
+
+  //! Do constant setup
+  void ServoC::SetupConstants()
+  {
+    m_servoKt = (60.0f * m_gearRatio) / (2 * M_PI * m_motorKv);
   }
 
 
@@ -186,6 +199,8 @@ namespace DogBotN {
       m_uid1 = conf.get("uid1",-1).asInt();
       m_uid2 = conf.get("uid2",-1).asInt();
       m_enabled = conf.get("enabled",false).asBool();
+      m_motorKv = conf.get("motorKv",260.0).asFloat();
+      m_gearRatio = conf.get("gearRatio",21.0).asFloat();
     }
 
     Json::Value motorCal = conf["setup"];
@@ -193,7 +208,9 @@ namespace DogBotN {
       std::shared_ptr<MotorCalibrationC> cal = std::make_shared<MotorCalibrationC>();
       cal->LoadJSON(motorCal);
       m_motorCal = cal;
+      m_motorKv = cal->MotorKv();
     }
+    SetupConstants();
     return true;
   }
 
@@ -208,6 +225,8 @@ namespace DogBotN {
       ret["uid2"] = m_uid2;
       ret["deviceId"] = m_id;
       ret["enabled"] = m_enabled;
+      ret["motorKv"] = m_motorKv;
+      ret["gearRatio"] = m_gearRatio;
     }
 
     if(m_motorCal) {
@@ -259,7 +278,7 @@ namespace DogBotN {
     }
     m_positionRef = (enum PositionReferenceT) (report.m_mode & 0x3);
     m_position = newPosition;
-    m_torque =  ComsC::TorqueReport2Value(report.m_torque);
+    m_torque =  ComsC::TorqueReport2Current(report.m_torque) * m_servoKt;
     m_reportedMode = report.m_mode;
 
     //m_servoRef = 0;// (enum PositionReferenceT) (pkt->m_mode & 0x3);
@@ -539,14 +558,16 @@ namespace DogBotN {
   //! Update torque for the servo.
   bool ServoC::DemandTorque(float torque)
   {
-    m_coms->SendTorque(m_id,torque);
+    float current = torque / m_servoKt;
+    m_coms->SendTorque(m_id,current);
     return true;
   }
 
   //! Demand a position for the servo
   bool ServoC::DemandPosition(float position,float torqueLimit)
   {
-    m_coms->SendMoveWithEffort(m_id,position,torqueLimit,m_positionRef);
+    float currentLimit = torqueLimit / m_servoKt;
+    m_coms->SendMoveWithEffort(m_id,position,currentLimit,m_positionRef);
     return true;
   }
 

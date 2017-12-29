@@ -111,17 +111,17 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named dtalk
+# Target rules for targets named dogBotServer
 
 # Build rule for target.
-dtalk: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 dtalk
-.PHONY : dtalk
+dogBotServer: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 dogBotServer
+.PHONY : dogBotServer
 
 # fast build rule for target.
-dtalk/fast:
-	$(MAKE) -f src/CMakeFiles/dtalk.dir/build.make src/CMakeFiles/dtalk.dir/build
-.PHONY : dtalk/fast
+dogBotServer/fast:
+	$(MAKE) -f src/CMakeFiles/dogBotServer.dir/build.make src/CMakeFiles/dogBotServer.dir/build
+.PHONY : dogBotServer/fast
 
 #=============================================================================
 # Target rules for targets named DogBotAPI
@@ -149,6 +149,32 @@ dtservo/fast:
 	$(MAKE) -f src/CMakeFiles/dtservo.dir/build.make src/CMakeFiles/dtservo.dir/build
 .PHONY : dtservo/fast
 
+#=============================================================================
+# Target rules for targets named dtalk
+
+# Build rule for target.
+dtalk: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 dtalk
+.PHONY : dtalk
+
+# fast build rule for target.
+dtalk/fast:
+	$(MAKE) -f src/CMakeFiles/dtalk.dir/build.make src/CMakeFiles/dtalk.dir/build
+.PHONY : dtalk/fast
+
+#=============================================================================
+# Target rules for targets named testKin
+
+# Build rule for target.
+testKin: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 testKin
+.PHONY : testKin
+
+# fast build rule for target.
+testKin/fast:
+	$(MAKE) -f src/CMakeFiles/testKin.dir/build.make src/CMakeFiles/testKin.dir/build
+.PHONY : testKin/fast
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -157,9 +183,11 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
-	@echo "... dtalk"
+	@echo "... dogBotServer"
 	@echo "... DogBotAPI"
 	@echo "... dtservo"
+	@echo "... dtalk"
+	@echo "... testKin"
 .PHONY : help
 
 

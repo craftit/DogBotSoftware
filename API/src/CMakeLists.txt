@@ -32,7 +32,6 @@ ADD_LIBRARY (DogBotAPI
         DogBotAPI.cc 
         Servo.cc 
         LegKinematics.cc 
-        DogBotKinematics.cc 
         Joint.cc 
         JointRelative.cc 
         Joint4BarLinkage.cc 

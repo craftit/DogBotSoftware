@@ -51,14 +51,14 @@ namespace DogBotN {
     //! Send an emergency stop
     void SendEmergencyStop();
 
-    //! Send a move command with an effort limit.
-    void SendMoveWithEffort(int deviceId,float pos,float effort,enum PositionReferenceT posRef);
+    //! Send a move command with a current limit.
+    void SendMoveWithEffort(int deviceId,float pos,float currentLimit,enum PositionReferenceT posRef);
 
-    //! Send velocity command with an effort limit.
-    void SendVelocityWithEffort(int deviceId,float velocity,float effort);
+    //! Send velocity command with a current limit.
+    void SendVelocityWithEffort(int deviceId,float velocity,float currentLimit);
 
-    //! Send torque to apply
-    void SendTorque(int deviceId,float torque);
+    //! Send torque to apply as a motor current.
+    void SendTorque(int deviceId,float current);
 
     //! Set a parameter synchronous, method will not return until parameter
     //! has been confirmed set or an error occurred.
@@ -170,7 +170,7 @@ namespace DogBotN {
     { return val * M_PI * 4.0/ 65535.0; }
 
     //! Convert a report value to a torque
-    static float TorqueReport2Value(int16_t val)
+    static float TorqueReport2Current(int16_t val)
     { return val * 10.0/ 65535.0; }
 
   protected:
