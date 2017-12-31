@@ -22,9 +22,8 @@ namespace DogBotN {
     typedef std::chrono::time_point<std::chrono::steady_clock,std::chrono::duration< double > > TimePointT;
 
     typedef std::function<void (TimePointT theTime,double position,double velocity,double torque)> PositionUpdateFuncT;
-    typedef std::function<void (ComsParameterIndexT parameter)> ParameterUpdateFuncT;
 
-    typedef std::function<void ()> StatusUpdateFuncT;
+    typedef std::function<void (ComsParameterIndexT parameter)> ParameterUpdateFuncT;
 
     //! Default constructor
     JointC();

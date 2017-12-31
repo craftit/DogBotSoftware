@@ -201,7 +201,7 @@ extern "C" {
 
   /* Motion calibration state
    *
-   * Uncalibrated : Absolute position unknown
+   * Lost : Absolute position unknown
    *
    */
 
