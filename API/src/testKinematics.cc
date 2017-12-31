@@ -1,4 +1,6 @@
 
+// This program if for checking the kinematics class is producing sensible results.
+// It should be turned into a full unit test.
 
 #include "dogbot/LegKinematics.hh"
 #include <iostream>
@@ -12,19 +14,6 @@ static float deg2rad(float deg)
 static float rad2deg(float deg)
 {
   return ((float) deg * 360.0) / (2.0 * M_PI);
-}
-
-
-void DisplayBounceAngles()
-{
-  float m_omega = M_PI ;
-  float m_bounceOffset = 0.4;
-  float m_bounceRange = 0.3;
-  float m_bounceTorque = 2.0;
-  int m_hipJointId = 1;
-  int m_kneeJointId = 2;
-  DogBotN::LegKinematicsC m_legKinematics;
-
 }
 
 float Diff(const DogBotN::LegKinematicsC &legKinamtics,float theta) {

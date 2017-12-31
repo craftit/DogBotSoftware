@@ -138,17 +138,15 @@ namespace DogBotN {
   // ---------------------------------------------------------
 
   //! Constructor
-  DogBotAPIC::DogBotAPIC(const std::string &configFile)
+  DogBotAPIC::DogBotAPIC()
   {
     m_manageComs = true;
-    if(!configFile.empty())
-      LoadConfig(configFile);
   }
 
   //! Construct with coms object
   DogBotAPIC::DogBotAPIC(
       const std::shared_ptr<ComsC> &coms,
-      std::shared_ptr<spdlog::logger> &log,
+      const std::shared_ptr<spdlog::logger> &log,
       bool manageComs,
       DeviceMasterModeT devMasterMode
       )
@@ -158,20 +156,26 @@ namespace DogBotN {
     m_manageComs = manageComs;
     m_log = log;
     m_coms->SetLogger(log);
+    Init();
   }
 
   //! Construct with a string
   DogBotAPIC::DogBotAPIC(
-      const std::string &conName,
-      std::shared_ptr<spdlog::logger> &log,
+      const std::string &connectionName,
+      const std::string &configurationFile,
+      const std::shared_ptr<spdlog::logger> &log,
       DeviceMasterModeT devMasterMode
       )
     : m_deviceMasterMode(devMasterMode)
   {
     m_log = log;
     m_manageComs = true;
-    if(!conName.empty())
-      Connect(conName);
+    if(!configurationFile.empty()) {
+      LoadConfig(configurationFile);
+    }
+    if(!connectionName.empty())
+      Connect(connectionName);
+    Init();
   }
 
 
@@ -183,7 +187,7 @@ namespace DogBotN {
   }
 
   //! Set the logger to use
-  void DogBotAPIC::SetLogger(std::shared_ptr<spdlog::logger> &log)
+  void DogBotAPIC::SetLogger(const std::shared_ptr<spdlog::logger> &log)
   {
     m_log = log;
     m_coms->SetLogger(log);
@@ -238,7 +242,8 @@ namespace DogBotN {
     std::vector<bool> gotData(toGo,false);
     std::timed_mutex done;
     done.lock();
-    int packetProc = m_coms->SetHandler(CPT_ReportParam,[this,&gotData,&toGo,&cal,&done](uint8_t *data,int size) mutable
+    ComsRegisteredCallbackSetC callbacks(m_coms);
+    callbacks.SetHandler(CPT_ReportParam,[this,&gotData,&toGo,&cal,&done](uint8_t *data,int size) mutable
       {
         struct PacketParam8ByteC *psp = (struct PacketParam8ByteC *) data;
         int index = psp->m_header.m_index;
@@ -283,7 +288,8 @@ namespace DogBotN {
     std::vector<bool> gotData(toGo,false);
     std::timed_mutex done;
     done.lock();
-    int packetProc = m_coms->SetHandler(CPT_ReportParam,[this,&gotData,&toGo,&cal,&done](uint8_t *data,int size) mutable
+    ComsRegisteredCallbackSetC callbacks(m_coms);
+    callbacks.SetHandler(CPT_ReportParam,[this,&gotData,&toGo,&cal,&done](uint8_t *data,int size) mutable
       {
         struct PacketParam8ByteC *psp = (struct PacketParam8ByteC *) data;
         int index = psp->m_header.m_index;
@@ -330,14 +336,6 @@ namespace DogBotN {
   }
 
 
-  //! Start API with given config
-  bool DogBotAPIC::Init(const std::string &configFile)
-  {
-    if(!configFile.empty() && !LoadConfig(configFile))
-      return false;
-    return Init();
-  }
-
   //! Load configuration for the robot.
 
   bool DogBotAPIC::Init()
@@ -351,7 +349,13 @@ namespace DogBotN {
     //! Initialise which serial device to use.
     if(m_deviceName.empty())
       m_deviceName = m_configRoot.get("device","usb").asString();
-
+    if(m_deviceMasterMode == DMM_Auto && !m_deviceName.empty()) {
+      if(m_deviceName == "local") {
+        m_deviceMasterMode = DMM_ClientOnly;
+      } else {
+        m_deviceMasterMode = DMM_DeviceManager;
+      }
+    }
     m_started = true;
 
     m_threadMonitor = std::move(std::thread { [this]{ RunMonitor(); } });
@@ -647,13 +651,16 @@ namespace DogBotN {
       m_log->error("No coms object, aborting monitor. ");
       return ;
     }
-    m_coms->SetHandler(CPT_Pong, [this](uint8_t *data,int size) mutable
+
+    ComsRegisteredCallbackSetC callbacks(m_coms);
+
+    callbacks.SetHandler(CPT_Pong, [this](uint8_t *data,int size) mutable
     {
       struct PacketPingPongC *pkt = (struct PacketPingPongC *) data;
       m_log->info("Got pong from {} ",(int) pkt->m_deviceId);
     });
 
-    m_coms->SetHandler(CPT_ServoReport,
+    callbacks.SetHandler(CPT_ServoReport,
              [this](uint8_t *data,int size) mutable
         {
           if(size != sizeof(struct PacketServoReportC)) {
@@ -670,7 +677,7 @@ namespace DogBotN {
         }
     );
 
-    m_coms->SetHandler(
+    callbacks.SetHandler(
           CPT_AnnounceId,
            [this](uint8_t *data,int size) mutable
             {
@@ -683,7 +690,7 @@ namespace DogBotN {
             }
            );
 
-    m_coms->SetHandler(CPT_ReportParam,
+    callbacks.SetHandler(CPT_ReportParam,
                        [this](uint8_t *data,int size) mutable
                         {
                           if(size < sizeof(struct PacketParamHeaderC)) {
@@ -702,7 +709,7 @@ namespace DogBotN {
                         }
                        );
 
-    m_coms->SetHandler(CPT_Error,
+    callbacks.SetHandler(CPT_Error,
                        [this](uint8_t *data,int size) mutable
                         {
                           if(size < sizeof(struct PacketErrorC)) {
@@ -894,7 +901,7 @@ namespace DogBotN {
   }
 
   //! Get servo entry by name
-  std::shared_ptr<JointC> DogBotAPIC::GetServoByName(const std::string &name)
+  std::shared_ptr<JointC> DogBotAPIC::GetJointByName(const std::string &name)
   {
     std::lock_guard<std::mutex> lock(m_mutexKinematics);
     for(auto &a : m_devices) {

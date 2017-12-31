@@ -49,7 +49,7 @@ namespace DogBotN
   }
 
   //! Set the logger to use
-  void ComsC::SetLogger(std::shared_ptr<spdlog::logger> &log)
+  void ComsC::SetLogger(const std::shared_ptr<spdlog::logger> &log)
   {
     m_log = log;
   }
@@ -90,10 +90,10 @@ namespace DogBotN
 
 
 
-  int ComsC::SetHandler(ComsPacketTypeT packetId,const std::function<void (uint8_t *data,int )> &handler)
+  ComsCallbackHandleC ComsC::SetHandler(ComsPacketTypeT packetId,const std::function<void (uint8_t *data,int )> &handler)
   {
     std::lock_guard<std::mutex> lock(m_accessPacketHandler);
-    assert(packetId < 256);
+    assert((int) packetId < 256);
 
     while(m_packetHandler.size() <= (int) packetId) {
       m_packetHandler.push_back(std::vector<std::function<void (uint8_t *data,int )> >());
@@ -102,17 +102,19 @@ namespace DogBotN
     for(int i = 0;i < list.size();i++) {
       if(!list[i]) { // Found free slot.
         list[i] = handler;
-        return i;
+        return ComsCallbackHandleC(packetId,i);
       }
     }
     int id = list.size();
     list.push_back(handler);
-    return id;
+    return ComsCallbackHandleC(packetId,id);
   }
 
   //! Delete given handler
-  void ComsC::DeleteHandler(ComsPacketTypeT packetType,int id)
+  void ComsC::DeleteHandler(const ComsCallbackHandleC &handle)
   {
+    ComsPacketTypeT packetType = handle.PacketType();
+    int id = handle.Id();
     assert(id >= 0);
     assert((unsigned) packetType < m_packetHandler.size());
     assert(id < m_packetHandler[(int) packetType].size());
@@ -379,5 +381,39 @@ namespace DogBotN
     SendPacket((uint8_t *)&packetType,sizeof(packetType));
   }
 
+  // ------------------------------------------------------------------------------
+
+  //! Construct from 'coms' object we're registering callbacks from.
+  ComsRegisteredCallbackSetC::ComsRegisteredCallbackSetC(std::shared_ptr<ComsC> &coms)
+   : m_coms(coms)
+  {
+    assert(coms);
+  }
+
+  //! Destructor
+  ComsRegisteredCallbackSetC::~ComsRegisteredCallbackSetC()
+  {
+    PopAll();
+  }
+
+  //! /param cb A callback to be added to the list.
+  void ComsRegisteredCallbackSetC::Push(const ComsCallbackHandleC &cb)
+  {
+    m_callbacks.push_back(cb);
+  }
+
+  //! De-register all currently registered callbacks.
+  void ComsRegisteredCallbackSetC::PopAll()
+  {
+    while(!m_callbacks.empty()) {
+      m_coms->DeleteHandler(m_callbacks.back());
+      m_callbacks.pop_back();
+    }
+  }
+
+  void ComsRegisteredCallbackSetC::SetHandler(ComsPacketTypeT packetType,const std::function<void (uint8_t *data,int len)> &handler)
+  {
+    Push(m_coms->SetHandler(packetType,handler));
+  }
 
 }

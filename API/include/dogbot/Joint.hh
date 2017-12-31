@@ -11,12 +11,16 @@ namespace DogBotN {
   class DogBotAPIC;
 
   //! Abstract joint.
-  //! These give a simplified view of the robot.
+  //! These give access for the common functionality needed to control a single joint.
 
   class JointC
   {
   public:
     typedef std::chrono::time_point<std::chrono::steady_clock,std::chrono::duration< double > > TimePointT;
+
+    typedef std::function<void (TimePointT theTime,double position,double velocity,double torque)> PositionUpdateFuncT;
+
+    typedef std::function<void ()> StatusUpdateFuncT;
 
     //! Default constructor
     JointC();
@@ -60,6 +64,12 @@ namespace DogBotN {
     //! Demand a position for the servo
     virtual bool DemandPosition(float position,float torqueLimit);
 
+    //! Add a update callback
+    int AddPositionUpdateCallback(const PositionUpdateFuncT &callback);
+
+    //! Remove a position update callback.
+    void RemovePositionUpdateCallback(int id);
+
     //! Last reported position
     float Position() const
     { return m_position; }
@@ -77,6 +87,9 @@ namespace DogBotN {
     { return m_export; }
 
   protected:
+    std::mutex m_mutexPositionCallbacks;
+    std::vector<PositionUpdateFuncT> m_positionCallbacks;
+
     mutable std::mutex m_mutexJointAdmin;
 
     std::string m_name;

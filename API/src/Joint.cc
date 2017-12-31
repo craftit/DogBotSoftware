@@ -99,4 +99,17 @@ namespace DogBotN {
     return false;
   }
 
+  //! Add a update callback
+  int JointC::AddPositionUpdateCallback(const PositionUpdateFuncT &callback)
+  {
+
+  }
+
+  //! Remove a position update callback.
+  void JointC::RemovePositionUpdateCallback(int id)
+  {
+
+  }
+
+
 }

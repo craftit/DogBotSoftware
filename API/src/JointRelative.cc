@@ -54,7 +54,7 @@ namespace DogBotN {
       return false;
     std::string jointRefName = value.get("jointRef","").asString();
     if(!jointRefName.empty()) {
-      m_jointRef = api.GetServoByName(jointRefName);
+      m_jointRef = api.GetJointByName(jointRefName);
       if(!m_jointRef) {
         api.Log().error("Failed to find servo '{}' ",jointRefName);
         return false;
@@ -62,7 +62,7 @@ namespace DogBotN {
     }
     std::string jointDriveName = value.get("jointDrive","").asString();
     if(!jointDriveName.empty()) {
-      m_jointDrive = api.GetServoByName(jointDriveName);
+      m_jointDrive = api.GetJointByName(jointDriveName);
       if(!m_jointDrive) {
         api.Log().error("Failed to find servo '{}' ",jointDriveName);
         return false;

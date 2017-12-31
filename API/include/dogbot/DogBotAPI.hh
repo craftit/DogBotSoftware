@@ -41,60 +41,64 @@ namespace DogBotN {
 
     enum DeviceMasterModeT {
       DMM_DeviceManager,
-      DMM_ClientOnly
+      DMM_ClientOnly,
+      DMM_Auto
     };
 
-    //! Constructor
-    DogBotAPIC(const std::string &configFile = "");
+    //! Default constructor
+    //! This leaves it up to the caller to load any configuration with 'LoadConfig'
+    //! Connect to the required device with 'Connect' if not specified in the configuration file.
+    //! then call 'Init' to start processing. 'Init' must be called before the rest of the interface is used.
+    DogBotAPIC();
 
     //! Construct with a string
-    DogBotAPIC(const std::string &conName,std::shared_ptr<spdlog::logger> &log,DeviceMasterModeT devMaster);
+    //! \param connectionName Typically 'usb' to connect directly via usb or 'local' to connect via a server.
+    //! \param log Where to output log messages
+    //! \param devMaster If this instance of the class should manage device ids, management is enabled if connecting directly via usb, and not otherwise
+    DogBotAPIC(
+        const std::string &connectionName,
+        const std::string &configurationFile = "",
+        const std::shared_ptr<spdlog::logger> &log = spdlog::stdout_logger_mt("console"),
+        DeviceMasterModeT devManager = DMM_Auto
+        );
 
     //! Construct with coms object
-    DogBotAPIC(const std::shared_ptr<ComsC> &coms,std::shared_ptr<spdlog::logger> &log,bool manageComs = false,DeviceMasterModeT devMasterMode = DMM_ClientOnly);
+    //! \param coms Communication object to use.
+    //! \param log Where to send log messages
+    //! \param manageComs - Set to true if you want the API to manage reconnection, false otherwise
+    //! \param devMaster If this instance of the class should manage device ids, management is enabled if connecting directly via usb, and not otherwise
+    DogBotAPIC(
+        const std::shared_ptr<ComsC> &coms,
+        const std::shared_ptr<spdlog::logger> &log = spdlog::stdout_logger_mt("console"),
+        bool manageComs = false,
+        DeviceMasterModeT devMasterMode = DMM_Auto
+        );
 
     //! Destructor to wait for shutdown
     ~DogBotAPIC();
 
     //! Connect to a named device
+    //! Normally 'usb' or 'local'
     bool Connect(const std::string &name);
 
-    //! Connect to coms object.
+    //! Connect using an existing communication object.
     bool Connect(const std::shared_ptr<ComsC> &coms);
 
-    //! Access connection
+    //! Access current connection
     std::shared_ptr<ComsC> Connection();
 
     //! Set the logger to use
-    void SetLogger(std::shared_ptr<spdlog::logger> &log);
-
-    //! Start API with given config
-    bool Init(const std::string &configFile);
-
-    //! Start API
-    bool Init();
+    void SetLogger(const std::shared_ptr<spdlog::logger> &log);
 
     //! Load a configuration file
     bool LoadConfig(const std::string &configFile);
 
-    //! Save configuration of roboto
+    //! Save configuration of robot
     bool SaveConfig(const std::string &configFile);
 
-    //! Read calibration from a device.
-    bool ReadCalibration(int deviceId,MotorCalibrationC &cal);
-
-    //! Write calibration to a device.
-    bool WriteCalibration(int deviceId,const MotorCalibrationC &cal);
-
-    //! Set the handler for servo reports for a device.
-    int SetServoUpdateHandler(int deviceId,const std::function<void (const PacketServoReportC &report)> &handler);
-
-    //! Add callback for state changes.
-    // Called with device id and update type.
-    int AddServoStatusHandler(const std::function<void (int,ServoUpdateTypeT)> &callback);
-
-    //! Remove handler.
-    void RemoveServoStatusHandler(int id);
+    //! Start API
+    //! \return true if started ok. It will return false if API has already been initialised.
+    bool Init();
 
     //! Tell all servos to hold the current position
     void DemandHoldPosition();
@@ -102,14 +106,14 @@ namespace DogBotN {
     //! Reset all controllers.
     void ResetAll();
 
-    //! Refresh all controllers.
+    //! Refresh information on all controllers.
     void RefreshAll();
 
     //! Get servo entry by id
     std::shared_ptr<ServoC> GetServoById(int id);
 
     //! Get servo entry by name
-    std::shared_ptr<JointC> GetServoByName(const std::string &name);
+    std::shared_ptr<JointC> GetJointByName(const std::string &name);
 
     //! Get kinematics for leg by name
     std::shared_ptr<LegKinematicsC> LegKinematicsByName(const std::string &name);
@@ -125,11 +129,28 @@ namespace DogBotN {
     //! Shutdown controller.
     bool Shutdown();
 
-    //!
+    //! Logger currently in use
     spdlog::logger &Log()
     { return *m_log; }
 
+    //! Add callback for state changes.
+    // Called with device id and update type.
+    int AddServoStatusHandler(const std::function<void (int,ServoUpdateTypeT)> &callback);
+
+    //! Remove handler.
+    void RemoveServoStatusHandler(int id);
+
   protected:
+    //! Set the handler for servo reports for a device.
+    int SetServoUpdateHandler(int deviceId,const std::function<void (const PacketServoReportC &report)> &handler);
+
+    //! Read calibration from a device.
+    bool ReadCalibration(int deviceId,MotorCalibrationC &cal);
+
+    //! Write calibration to a device.
+    bool WriteCalibration(int deviceId,const MotorCalibrationC &cal);
+
+
     //! Issue an update notification
     void ServoStatusUpdate(int id,ServoUpdateTypeT op);
 

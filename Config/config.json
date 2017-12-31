@@ -8,7 +8,7 @@
 			"notes" : "",
 			"uid1" : 2621481,
 			"uid2" : 1650753082,
-                        "motorKv" : 335.0
+      "motorKv" : 335.0
 		},
 		{
 			"deviceId" : 2,
@@ -17,7 +17,7 @@
 			"notes" : "",
 			"uid1" : 2818072,
 			"uid2" : 1650753082,
-                        "motorKv" : 270.0
+      "motorKv" : 270.0
 		},
 		{
 			"deviceId" : 3,
@@ -26,7 +26,7 @@
 			"notes" : "",
 			"uid1" : 2752540,
 			"uid2" : 1768652619,
-                        "motorKv" : 270.0
+      "motorKv" : 270.0
 		},
 		{
 			"deviceId" : 4,
@@ -35,7 +35,7 @@
 			"notes" : "",
 			"uid1" : 2490394,
 			"uid2" : 1650753082,
-                        "motorKv" : 335.0
+      "motorKv" : 335.0
 		},
 		{
 			"deviceId" : 5,
@@ -44,7 +44,7 @@
 			"notes" : "",
 			"uid1" : 2883611,
 			"uid2" : 1650753082,
-                        "motorKv" : 270.0
+      "motorKv" : 270.0
 		},
 		{
 			"deviceId" : 6,
@@ -61,7 +61,7 @@
 			"notes" : "",
 			"uid1" : 2752576,
 			"uid2" : 1768652619,
-                        "motorKv" : 335.0
+      "motorKv" : 335.0
 		},
 		{
 			"deviceId" : 8,
@@ -70,7 +70,7 @@
 			"notes" : "",
 			"uid1" : 2621483,
 			"uid2" : 1650753082,
-                        "motorKv" : 335.0
+      "motorKv" : 335.0
 		},
 		{
 			"deviceId" : 9,
@@ -79,7 +79,7 @@
 			"notes" : "",
 			"uid1" : 2883619,
 			"uid2" : 1650753082,
-                        "motorKv" : 270.0
+      "motorKv" : 270.0
 		},
 		{
 			"deviceId" : 10,
@@ -88,7 +88,7 @@
 			"notes" : "#8",
 			"uid1" : 2621487,
 			"uid2" : 1650753082,
-                        "motorKv" : 335.0
+      "motorKv" : 335.0
 		},
 		{
 			"deviceId" : 11,
@@ -97,7 +97,7 @@
 			"notes" : "",
 			"uid1" : 2621484,
 			"uid2" : 1650753082,
-                        "motorKv" : 335.0
+      "motorKv" : 335.0
 		},
 		{
 			"deviceId" : 12,
@@ -106,7 +106,7 @@
 			"notes" : "",
 			"uid1" : 2883617,
 			"uid2" : 1650753082,
-                        "motorKv" : 335.0
+      "motorKv" : 335.0
 		},
 		{
 			"deviceId" : 14,
@@ -115,7 +115,7 @@
 			"notes" : "",
 			"uid1" : 2883616,
 			"uid2" : 1650753082,
-                        "motorKv" : 335.0
+      "motorKv" : 335.0
 		},
 		{
 			"deviceId" : 15,
@@ -124,7 +124,7 @@
 			"notes" : "#2",
 			"uid1" : 2883613,
 			"uid2" : 1650753082,
-                        "motorKv" : 335.0
+      "motorKv" : 335.0
 		}
 	]
 }

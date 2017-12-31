@@ -8,20 +8,19 @@
 #include "dogbot/ComsZMQServer.hh"
 #include "cxxopts.hpp"
 
+// This provides a network interface for controlling the servos via ZMQ.
 
 int main(int argc,char **argv)
 {
-  // std::string devFilename = "/dev/tty.usbmodem401";
-  // std::string devFilename = "/dev/ttyACM1";
   std::string devFilename = "usb";
-  std::string configFile = "";
+  std::string configFile;
 
   bool managerMode = true;
   auto logger = spdlog::stdout_logger_mt("console");
 
   try
   {
-    cxxopts::Options options(argv[0], "Dogbot hardware manager");
+    cxxopts::Options options(argv[0], "DogBot hardware manager");
     options
       .positional_help("[optional args]")
       .show_positional_help();
@@ -51,16 +50,15 @@ int main(int argc,char **argv)
   logger->info("Starting dogBotServer");
   logger->info("Manager mode: {}",managerMode);
   logger->info("Using config file: '{}'",configFile);
-  logger->info("Using device: '{}'",devFilename);
+  logger->info("Using communication type: '{}'",devFilename);
 
-  bool devMaster = true;
+  DogBotN::DogBotAPIC dogbot(
+      devFilename,
+      configFile,
+      logger,
+      managerMode ? DogBotN::DogBotAPIC::DMM_DeviceManager : DogBotN::DogBotAPIC::DMM_ClientOnly
+          );
 
-
-  DogBotN::DogBotAPIC dogbot(devFilename,logger,managerMode ? DogBotN::DogBotAPIC::DMM_DeviceManager : DogBotN::DogBotAPIC::DMM_ClientOnly);
-
-  if(!dogbot.Init(configFile)) {
-    return 1;
-  }
 
   DogBotN::ComsZMQServerC server(dogbot.Connection(),logger);
 

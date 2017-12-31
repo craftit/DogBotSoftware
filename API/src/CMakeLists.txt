@@ -49,19 +49,19 @@ target_include_directories(DogBotAPI PUBLIC
     /usr/local/include
     PRIVATE src)
 
-add_executable (dtalk dogtalk.cc)
+add_executable (exampleClient exampleClient.cc)
 
-target_link_libraries (dtalk LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT} ${LIBUSB_LIBRARIES})
+target_link_libraries (exampleClient LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT} ${LIBUSB_LIBRARIES})
 
-add_executable (dtservo dtservo.cc)
+add_executable (dumpServoState dumpServoState.cc)
 
-target_link_libraries (dtservo LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries (dumpServoState LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT})
 
-add_executable (testKin testKinematics.cc)
+add_executable (testKinematics testKinematics.cc)
 
-target_link_libraries (testKin LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries (testKinematics LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT})
 
-add_executable (dogBotServer DogBotServer.cc)
+add_executable (dogBotServer dogBotServer.cc)
 
 target_link_libraries (dogBotServer LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT})
 

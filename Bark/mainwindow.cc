@@ -14,7 +14,8 @@ MainWindow::MainWindow(QWidget *parent) :
 {
   ui->setupUi(this);
 
-  ui->lineEditDevice->setText("/dev/ttyACM1");
+  ui->lineEditDevice->setText("usb");
+  //ui->lineEditDevice->setText("/dev/ttyACM1");
   //ui->lineEditDevice->setText("/dev/tty.usbmodem401");
 
   SetupComs();
@@ -427,7 +428,6 @@ void MainWindow::SetupComs()
   m_coms = std::make_shared<DogBotN::ComsProxyC>();
   m_coms->SetLogger(logger);
   m_dogBotAPI = std::make_shared<DogBotN::DogBotAPIC>(m_coms,logger,false,DogBotN::DogBotAPIC::DMM_ClientOnly);
-  m_dogBotAPI->Init();
 
   m_coms->SetHandler(CPT_PWMState,[this](uint8_t *data,int size) mutable
   {
