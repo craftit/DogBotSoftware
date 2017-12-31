@@ -188,6 +188,9 @@ namespace DogBotN {
     int IndexState() const
     { return m_reportedMode; }
 
+    //! Update coms device
+    virtual void UpdateComs(const std::shared_ptr<ComsC> &coms);
+
   protected:
     //! Initialise timeouts and setup
     void Init();

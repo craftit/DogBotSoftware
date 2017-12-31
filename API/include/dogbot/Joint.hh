@@ -5,10 +5,13 @@
 #include <string>
 #include <chrono>
 #include <jsoncpp/json/json.h>
+#include "dogbot/CallbackArray.hh"
+#include "dogbot/protocol.h"
 
 namespace DogBotN {
 
   class DogBotAPIC;
+  class ComsC;
 
   //! Abstract joint.
   //! These give access for the common functionality needed to control a single joint.
@@ -19,6 +22,7 @@ namespace DogBotN {
     typedef std::chrono::time_point<std::chrono::steady_clock,std::chrono::duration< double > > TimePointT;
 
     typedef std::function<void (TimePointT theTime,double position,double velocity,double torque)> PositionUpdateFuncT;
+    typedef std::function<void (ComsParameterIndexT parameter)> ParameterUpdateFuncT;
 
     typedef std::function<void ()> StatusUpdateFuncT;
 
@@ -64,11 +68,13 @@ namespace DogBotN {
     //! Demand a position for the servo
     virtual bool DemandPosition(float position,float torqueLimit);
 
-    //! Add a update callback
-    int AddPositionUpdateCallback(const PositionUpdateFuncT &callback);
+    //! Add a update callback for motor position
+    CallbackHandleC AddPositionUpdateCallback(const PositionUpdateFuncT &callback)
+    { return m_positionCallbacks.Add(callback); }
 
-    //! Remove a position update callback.
-    void RemovePositionUpdateCallback(int id);
+    //! Add notification callback if a parameter changes.
+    CallbackHandleC AddParameterUpdateCallback(const ParameterUpdateFuncT &func)
+    { return m_parameterCallbacks.Add(func); }
 
     //! Last reported position
     float Position() const
@@ -86,9 +92,11 @@ namespace DogBotN {
     bool IsExported() const
     { return m_export; }
 
+    //! Update coms device
+    virtual void UpdateComs(const std::shared_ptr<ComsC> &coms);
   protected:
-    std::mutex m_mutexPositionCallbacks;
-    std::vector<PositionUpdateFuncT> m_positionCallbacks;
+    CallbackArrayC<PositionUpdateFuncT> m_positionCallbacks;
+    CallbackArrayC<ParameterUpdateFuncT> m_parameterCallbacks;
 
     mutable std::mutex m_mutexJointAdmin;
 

@@ -53,11 +53,15 @@ private slots:
   void queueDataUpdate();
 
 protected:
+  DogBotN::JointC *Row2Joint(int row);
+
   //! Do any pending updates.
   void updateRows();
 
   std::shared_ptr<DogBotN::DogBotAPIC> m_api;
-  int m_statusCallbackId = -1;
+  DogBotN::CallbackSetC m_callbacks;
+  std::map<DogBotN::JointC *,int> m_joint2row;
+  std::map<int,DogBotN::JointC *> m_row2joint;
 
   int m_rowCount = 0;
   std::mutex m_mutexUpdateRows;

@@ -5,6 +5,7 @@
 #include <jsoncpp/json/json.h>
 #include "dogbot/Coms.hh"
 #include "dogbot/LegKinematics.hh"
+#include "dogbot/CallbackArray.hh"
 
 namespace DogBotN {
 
@@ -39,7 +40,7 @@ namespace DogBotN {
       SUT_Updated
     };
 
-    enum DeviceMasterModeT {
+    enum DeviceManagerModeT {
       DMM_DeviceManager,
       DMM_ClientOnly,
       DMM_Auto
@@ -59,7 +60,7 @@ namespace DogBotN {
         const std::string &connectionName,
         const std::string &configurationFile = "",
         const std::shared_ptr<spdlog::logger> &log = spdlog::stdout_logger_mt("console"),
-        DeviceMasterModeT devManager = DMM_Auto
+        DeviceManagerModeT devManager = DMM_Auto
         );
 
     //! Construct with coms object
@@ -71,7 +72,7 @@ namespace DogBotN {
         const std::shared_ptr<ComsC> &coms,
         const std::shared_ptr<spdlog::logger> &log = spdlog::stdout_logger_mt("console"),
         bool manageComs = false,
-        DeviceMasterModeT devMasterMode = DMM_Auto
+        DeviceManagerModeT devMasterMode = DMM_Auto
         );
 
     //! Destructor to wait for shutdown
@@ -133,26 +134,20 @@ namespace DogBotN {
     spdlog::logger &Log()
     { return *m_log; }
 
-    //! Add callback for state changes.
+    //! Add callback for state changes. When a servo is added, removed or updated.
     // Called with device id and update type.
-    int AddServoStatusHandler(const std::function<void (int,ServoUpdateTypeT)> &callback);
-
-    //! Remove handler.
-    void RemoveServoStatusHandler(int id);
+    CallbackHandleC AddServoStatusHandler(const std::function<void (JointC *,ServoUpdateTypeT)> &callback)
+    { return m_jointStatusCallbacks.Add(callback); }
 
   protected:
-    //! Set the handler for servo reports for a device.
-    int SetServoUpdateHandler(int deviceId,const std::function<void (const PacketServoReportC &report)> &handler);
-
     //! Read calibration from a device.
     bool ReadCalibration(int deviceId,MotorCalibrationC &cal);
 
     //! Write calibration to a device.
     bool WriteCalibration(int deviceId,const MotorCalibrationC &cal);
 
-
     //! Issue an update notification
-    void ServoStatusUpdate(int id,ServoUpdateTypeT op);
+    void ServoStatusUpdate(JointC *,ServoUpdateTypeT op);
 
     //! Handle an incoming announce message.
     void HandlePacketAnnounce(const PacketDeviceIdC &pkt);
@@ -161,7 +156,7 @@ namespace DogBotN {
     void ProcessUnassignedDevices();
 
     //! Make an appropriate type of device.
-    std::shared_ptr<JointC> MakeJoint(const std::string &deviceType) const;
+    std::shared_ptr<JointC> MakeJoint(const std::string &jointType) const;
 
     //! Access device id, create entry if needed
     std::shared_ptr<ServoC> DeviceEntry(int deviceId);
@@ -179,8 +174,7 @@ namespace DogBotN {
 
     std::vector<int> m_comsHandlerIds;
 
-    std::mutex m_mutexStatusCallbacks;
-    std::vector<std::function<void (int id,ServoUpdateTypeT)> > m_statusCallbacks;
+    CallbackArrayC<std::function<void (JointC *,ServoUpdateTypeT)> > m_jointStatusCallbacks;
 
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("console");
 
@@ -197,7 +191,7 @@ namespace DogBotN {
 
     std::thread m_threadMonitor;
 
-    DeviceMasterModeT m_deviceMasterMode = DMM_ClientOnly;
+    DeviceManagerModeT m_deviceManagerMode = DMM_ClientOnly;
     bool m_started = false;
     bool m_terminate = false;
     std::mutex m_mutexKinematics;

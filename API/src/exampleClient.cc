@@ -61,30 +61,20 @@ int main(int nargs,char **argv)
     }
   }
 
+  DogBotN::CallbackSetC cs;
+
   if(!servoName.empty()) {
     std::shared_ptr<DogBotN::JointC> joint = dogbot.GetJointByName(servoName);
     if(!joint) {
       std::cout << "Joint " << servoName << " not found. " << std::endl;
       return 1;
     }
+
+    cs += joint->AddPositionUpdateCallback([](DogBotN::JointC::TimePointT theTime,double position,double velocity,double torque)
+                                     {
+                                       std::cout << "Joint at " << position << std::endl;
+                                     });
   }
-
-
-
-#if 0
-  //std::string devFilename = "/dev/tty.usbmodem401";
-  std::string configFile = "dogbot.conf";
-  if(nargs > 1)
-    configFile = argv[1];
-
-  DogBotN::DogBotAPIC dogbot;
-
-  dogbot.SetLogger(logger);
-
-  if(!dogbot.Init(configFile)) {
-    return 1;
-  }
-#endif
 
   while(1) {
     sleep(1);

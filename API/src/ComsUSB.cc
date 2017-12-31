@@ -461,8 +461,6 @@ namespace DogBotN
 
     m_threadUSB = std::move(std::thread { [this]{ RunUSB(); } });
 
-
-
   }
 
   //! Close connection

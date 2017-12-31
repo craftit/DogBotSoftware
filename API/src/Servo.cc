@@ -174,6 +174,13 @@ namespace DogBotN {
 
   }
 
+  //! Update coms device
+  void ServoC::UpdateComs(const std::shared_ptr<ComsC> &coms)
+  {
+    JointC::UpdateComs(coms);
+    m_coms = coms;
+  }
+
   //! Do constant setup
   void ServoC::SetupConstants()
   {
@@ -247,41 +254,48 @@ namespace DogBotN {
   {
     auto timeNow = std::chrono::steady_clock::now();
 
-    std::lock_guard<std::mutex> lock(m_mutexState);
+    {
+      std::lock_guard<std::mutex> lock(m_mutexState);
 
-    std::chrono::duration<double> timeSinceLastReport = timeNow - m_timeOfLastReport;
-    bool inSync = true;
-    if(timeSinceLastReport > m_tickDuration * 128) {
-      m_log->warn("Lost sync on servo {} ",m_id);
-      inSync = false;
+      std::chrono::duration<double> timeSinceLastReport = timeNow - m_timeOfLastReport;
+      bool inSync = true;
+      if(timeSinceLastReport > m_tickDuration * 128) {
+        m_log->warn("Lost sync on servo {} ",m_id);
+        inSync = false;
+      }
+      m_timeOfLastReport = timeNow;
+      m_timeOfLastComs = timeNow;
+      int tickDiff = (int) report.m_timestamp - (int) m_lastTimestamp;
+      m_lastTimestamp = report.m_timestamp;
+      while(tickDiff < 0)
+        tickDiff += 256;
+      if(tickDiff == 0)
+        tickDiff = 1;
+
+      m_tick += tickDiff;
+
+      float newPosition = ComsC::PositionReport2Angle(report.m_position);
+
+      // FIXME:- Check the position reference frame.
+
+      // Generate an estimate of the speed.
+      if(inSync) {
+        m_velocity = (newPosition - m_position) /  (m_tickDuration.count() * (float) tickDiff);
+      } else {
+        m_velocity = 0; // Set it to zero until we have up to date information.
+      }
+      m_positionRef = (enum PositionReferenceT) (report.m_mode & 0x3);
+      m_position = newPosition;
+      m_torque =  ComsC::TorqueReport2Current(report.m_torque) * m_servoKt;
+      m_reportedMode = report.m_mode;
+
+      // End block, and unlock m_mutexState.
     }
-    m_timeOfLastReport = timeNow;
-    m_timeOfLastComs = timeNow;
-    int tickDiff = (int) report.m_timestamp - (int) m_lastTimestamp;
-    m_lastTimestamp = report.m_timestamp;
-    while(tickDiff < 0)
-      tickDiff += 256;
-    if(tickDiff == 0)
-      tickDiff = 1;
 
-    m_tick += tickDiff;
-
-    float newPosition = ComsC::PositionReport2Angle(report.m_position);
-
-    // FIXME:- Check the position reference frame.
-
-    // Generate an estimate of the speed.
-    if(inSync) {
-      m_velocity = (newPosition - m_position) /  (m_tickDuration.count() * (float) tickDiff);
-    } else {
-      m_velocity = 0; // Set it to zero until we have up to date information.
+    for(auto &a : m_positionCallbacks.Calls()) {
+      if(a) a(timeNow,m_position,m_velocity,m_torque);
     }
-    m_positionRef = (enum PositionReferenceT) (report.m_mode & 0x3);
-    m_position = newPosition;
-    m_torque =  ComsC::TorqueReport2Current(report.m_torque) * m_servoKt;
-    m_reportedMode = report.m_mode;
 
-    //m_servoRef = 0;// (enum PositionReferenceT) (pkt->m_mode & 0x3);
 
     return true;
   }
@@ -309,8 +323,8 @@ namespace DogBotN {
     std::lock_guard<std::mutex> lock(m_mutexState);
     auto timeNow = std::chrono::steady_clock::now();
     m_timeOfLastComs = timeNow;
-
-    switch ((enum ComsParameterIndexT) pkt.m_header.m_index) {
+    ComsParameterIndexT cpi = (enum ComsParameterIndexT) pkt.m_header.m_index;
+    switch (cpi) {
     case CPI_DriveTemp: {
       float newTemp = pkt.m_data.float32[0];
       ret = (newTemp != m_temperature);
@@ -475,6 +489,11 @@ namespace DogBotN {
       break;
     }
 
+    for(auto &a : m_parameterCallbacks.Calls()) {
+      if(a) a(cpi);
+    }
+
+
     return ret;
   }
 
@@ -546,7 +565,7 @@ namespace DogBotN {
     }
 
     // Go through updating things, and avoiding flooding the bus.
-    if(m_toQuery < (int) m_updateQuery.size() && m_coms->IsReady()) {
+    if(m_toQuery < (int) m_updateQuery.size() && m_coms && m_coms->IsReady()) {
       m_coms->SendQueryParam(m_id,m_updateQuery[m_toQuery]);
       m_toQuery++;
     }

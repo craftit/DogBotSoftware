@@ -148,10 +148,10 @@ namespace DogBotN {
       const std::shared_ptr<ComsC> &coms,
       const std::shared_ptr<spdlog::logger> &log,
       bool manageComs,
-      DeviceMasterModeT devMasterMode
+      DeviceManagerModeT devMasterMode
       )
    : m_coms(coms),
-     m_deviceMasterMode(devMasterMode)
+     m_deviceManagerMode(devMasterMode)
   {
     m_manageComs = manageComs;
     m_log = log;
@@ -164,17 +164,17 @@ namespace DogBotN {
       const std::string &connectionName,
       const std::string &configurationFile,
       const std::shared_ptr<spdlog::logger> &log,
-      DeviceMasterModeT devMasterMode
+      DeviceManagerModeT devMasterMode
       )
-    : m_deviceMasterMode(devMasterMode)
+    : m_deviceManagerMode(devMasterMode)
   {
     m_log = log;
     m_manageComs = true;
+    if(!connectionName.empty())
+      Connect(connectionName);
     if(!configurationFile.empty()) {
       LoadConfig(configurationFile);
     }
-    if(!connectionName.empty())
-      Connect(connectionName);
     Init();
   }
 
@@ -207,15 +207,26 @@ namespace DogBotN {
     m_deviceName = name;
     if(name == "local") {
       m_coms = std::make_shared<ComsZMQClientC>("tcp://127.0.0.1");
-      return true;
-    }
-    if(name == "usb") {
+      if(m_deviceManagerMode == DMM_Auto)
+        m_deviceManagerMode = DMM_ClientOnly;
+    } else if(name == "usb") {
       m_coms = std::make_shared<ComsUSBC>();
-      return true;
+      if(m_deviceManagerMode == DMM_Auto)
+        m_deviceManagerMode = DMM_DeviceManager;
+    } else {
+      m_coms = std::make_shared<ComsSerialC>();
+      if(m_deviceManagerMode == DMM_Auto)
+        m_deviceManagerMode = DMM_DeviceManager;
     }
-    m_coms = std::make_shared<ComsSerialC>();
     m_coms->SetLogger(m_log);
-    return m_coms->Open(name.c_str());
+    if(!m_coms->Open(name.c_str()))
+      return false;
+    {
+      std::lock_guard<std::mutex> lock(m_mutexDevices);
+      for(auto &a : m_devices)
+        if(a) a->UpdateComs(m_coms);
+    }
+    return true;
   }
 
   //! Connect to coms object.
@@ -349,11 +360,11 @@ namespace DogBotN {
     //! Initialise which serial device to use.
     if(m_deviceName.empty())
       m_deviceName = m_configRoot.get("device","usb").asString();
-    if(m_deviceMasterMode == DMM_Auto && !m_deviceName.empty()) {
+    if(m_deviceManagerMode == DMM_Auto && !m_deviceName.empty()) {
       if(m_deviceName == "local") {
-        m_deviceMasterMode = DMM_ClientOnly;
+        m_deviceManagerMode = DMM_ClientOnly;
       } else {
-        m_deviceMasterMode = DMM_DeviceManager;
+        m_deviceManagerMode = DMM_DeviceManager;
       }
     }
     m_started = true;
@@ -478,7 +489,7 @@ namespace DogBotN {
           assert(device);
           if(device) {
             device->ConfigureFromJSON(*this,deviceConf);
-            ServoStatusUpdate(deviceId,op);
+            ServoStatusUpdate(device.get(),op);
             if(device->IsExported())
               m_joints.push_back(device);
           }
@@ -528,40 +539,12 @@ namespace DogBotN {
 
 
   //! Issue an update notification
-  void DogBotAPIC::ServoStatusUpdate(int id,ServoUpdateTypeT op)
+  void DogBotAPIC::ServoStatusUpdate(JointC *id,ServoUpdateTypeT op)
   {
-    std::lock_guard<std::mutex> lock(m_mutexStatusCallbacks);
-    for(auto &a : m_statusCallbacks) {
+    for(auto &a : m_jointStatusCallbacks.Calls()) {
       if(a) a(id,op);
     }
   }
-
-  //! Add callback for state changes.
-  int DogBotAPIC::AddServoStatusHandler(const std::function<void (int id,ServoUpdateTypeT)> &callback)
-  {
-    std::lock_guard<std::mutex> lock(m_mutexStatusCallbacks);
-    // Free slot anywhere?
-    for(int i = 0;i < (int) m_statusCallbacks.size();i++) {
-      if(!m_statusCallbacks[i]) {
-        m_statusCallbacks[i] = callback;
-        return i;
-      }
-    }
-    // Just create a new one
-    int ret = (int) m_statusCallbacks.size();
-    m_statusCallbacks.push_back(callback);
-    return ret;
-  }
-
-  //! Remove handler.
-  void DogBotAPIC::RemoveServoStatusHandler(int id)
-  {
-    assert(id >= 0);
-    assert(id < m_statusCallbacks.size());
-    std::lock_guard<std::mutex> lock(m_mutexStatusCallbacks);
-    m_statusCallbacks[id] = std::function<void (int id,ServoUpdateTypeT)>();
-  }
-
 
   //! Access device id, create entry if needed
   std::shared_ptr<ServoC> DogBotAPIC::DeviceEntry(int deviceId)
@@ -578,7 +561,7 @@ namespace DogBotN {
   {
     std::shared_ptr<ServoC> device;
     int deviceId = pkt.m_deviceId;
-    m_log->info("Handling device announcement {} {}   Id:{}",pkt.m_uid[0],pkt.m_uid[1],(int) pkt.m_deviceId);
+    m_log->info("Handling device announcement {} {}   Id:{} ",pkt.m_uid[0],pkt.m_uid[1],(int) pkt.m_deviceId);
     ServoUpdateTypeT updateType = SUT_Updated;
     // Check device id is
     if(deviceId != 0) {
@@ -600,7 +583,7 @@ namespace DogBotN {
         if(!device->HasUID(pkt.m_uid[0],pkt.m_uid[1])) {
           // Conflicting id's detected.
           deviceId = 0; // Treat device as if it is unassigned.
-          if(m_deviceMasterMode == DMM_DeviceManager)
+          if(m_deviceManagerMode == DMM_DeviceManager)
             m_coms->SendSetDeviceId(0,pkt.m_uid[0],pkt.m_uid[1]); // Stop it using the conflicting address.
           m_log->error(
              "Conflicting ids detected for device {}, with uid {}-{} and existing device {}-{} '{}' ",
@@ -621,7 +604,7 @@ namespace DogBotN {
         }
       }
       // No matching id found ?
-      if(!device && m_deviceMasterMode == DMM_DeviceManager) {
+      if(!device && m_deviceManagerMode == DMM_DeviceManager) {
         device = std::make_shared<ServoC>(m_coms,0,pkt);
         m_timeLastUnassignedUpdate = std::chrono::steady_clock::now();
         for(auto &a : m_unassignedDevices) {
@@ -633,10 +616,10 @@ namespace DogBotN {
         return ;
       }
     }
-    assert(device || m_deviceMasterMode != DMM_DeviceManager);
+    assert(device || m_deviceManagerMode != DMM_DeviceManager);
     if(device) {
-      device->HandlePacketAnnounce(pkt,m_deviceMasterMode);
-      ServoStatusUpdate(deviceId,updateType);
+      device->HandlePacketAnnounce(pkt,m_deviceManagerMode);
+      ServoStatusUpdate(device.get(),updateType);
     }
   }
 
@@ -644,7 +627,7 @@ namespace DogBotN {
   //! Monitor thread
   void DogBotAPIC::RunMonitor()
   {
-    m_log->info("Running monitor. Manager mode: {} ",((m_deviceMasterMode == DMM_DeviceManager) ? "master" : "client"));
+    m_log->info("Running monitor. Manager mode: {} ",((m_deviceManagerMode == DMM_DeviceManager) ? "master" : "client"));
     //logger->info("Starting bark");
 
     if(!m_coms) {
@@ -672,7 +655,7 @@ namespace DogBotN {
           if(!device)
             return ;
           if(device->HandlePacketServoReport(*pkt)) {
-            ServoStatusUpdate(pkt->m_deviceId,SUT_Updated);
+            ServoStatusUpdate(device.get(),SUT_Updated);
           }
         }
     );
@@ -703,7 +686,7 @@ namespace DogBotN {
                           if(!device)
                             return ;
                           if(device->HandlePacketReportParam(*pkt)) {
-                            ServoStatusUpdate(pkt->m_header.m_deviceId,SUT_Updated);
+                            ServoStatusUpdate(device.get(),SUT_Updated);
                           }
 
                         }
@@ -786,7 +769,7 @@ namespace DogBotN {
             if(!a)
               continue;
             if(a->UpdateTick(now)) {
-              ServoStatusUpdate(a->Id(),SUT_Updated);
+              ServoStatusUpdate(a.get(),SUT_Updated);
             }
           }
           if(unassignedDevicesFound)
@@ -805,7 +788,7 @@ namespace DogBotN {
   void DogBotAPIC::ProcessUnassignedDevices()
   {
     ServoUpdateTypeT op = SUT_Add;
-    std::vector<int> updated;
+    std::vector<JointC *> updated;
     {
       std::lock_guard<std::mutex> lock(m_mutexDevices);
       while(m_unassignedDevices.size() > 0) {
@@ -828,7 +811,7 @@ namespace DogBotN {
         }
         m_log->info("Adding new device '{}' ",deviceId);
         device->SetId(deviceId);
-        updated.push_back(deviceId);
+        updated.push_back(device.get());
         m_coms->SendSetDeviceId(deviceId,device->UId1(),device->UId2());
       }
     }
@@ -924,13 +907,6 @@ namespace DogBotN {
         return a;
     }
     return std::shared_ptr<LegKinematicsC>();
-  }
-
-  //! Set the handler for servo reports for a device.
-  int DogBotAPIC::SetServoUpdateHandler(int deviceId,const std::function<void (const PacketServoReportC &report)> &handler)
-  {
-    assert(0); // Not implemented
-    return 0;
   }
 
 

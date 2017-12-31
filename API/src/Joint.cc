@@ -99,16 +99,9 @@ namespace DogBotN {
     return false;
   }
 
-  //! Add a update callback
-  int JointC::AddPositionUpdateCallback(const PositionUpdateFuncT &callback)
+  //! Update coms device
+  void JointC::UpdateComs(const std::shared_ptr<ComsC> &coms)
   {
-
-  }
-
-  //! Remove a position update callback.
-  void JointC::RemovePositionUpdateCallback(int id)
-  {
-
   }
 
 

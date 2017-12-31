@@ -1,8 +1,12 @@
 
 cmake_minimum_required(VERSION 3.5)
+
+set(CMAKE_BUILD_TYPE Debug)
+
 project(dogbotapi LANGUAGES CXX)
 #VERSION 0.1 
 FIND_PACKAGE ( Threads REQUIRED )
+
 
 include (FindPkgConfig)
 if (PKG_CONFIG_FOUND)
@@ -36,6 +40,7 @@ ADD_LIBRARY (DogBotAPI
         JointRelative.cc 
         Joint4BarLinkage.cc 
         ZMQContext.cc
+        CallbackArray.cc
 )
 
 target_link_libraries (DogBotAPI LINK_PUBLIC ${JSONCPP_LIBRARIES} ${ZMQ_LIBRARIES} ${LIBUSB_LIBRARIES})
@@ -64,9 +69,6 @@ target_link_libraries (testKinematics LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_
 add_executable (dogBotServer dogBotServer.cc)
 
 target_link_libraries (dogBotServer LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT})
-
-#add_executable (xusb xusb.cc)
-#target_link_libraries (xusb LINK_PUBLIC ${LIBUSB_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 
 # 'make install' to the correct locations (provided by GNUInstallDirs).
