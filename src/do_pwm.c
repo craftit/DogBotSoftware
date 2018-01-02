@@ -43,6 +43,7 @@ float g_current[3] = { 0,0,0} ;
 float g_phaseAngle = 0 ;
 
 float g_driveTemperature = 0.0;
+float g_motorTemperature = 0.0;
 
 float g_current_Ibus = 0;
 float g_motor_p_gain = 1.2;  // 1.2
@@ -242,6 +243,9 @@ float g_positionISum = 0.0;
 float g_Id = 0.0;
 float g_Iq = 0.0;
 
+bool g_gateDriverWarning = false;
+bool g_gateDriverFault = false;
+
 enum PWMControlDynamicT g_controlMode = CM_Brake;
 
 static void UpdateCurrentMeasurementsFromADCValues(void) {
@@ -342,6 +346,8 @@ static void MotorControlLoop(void)
   int loopCount = 0;
   g_motorControlLoopReady = true;
 
+  int faultTimer = 0;
+
   while (g_pwmRun) {
     //palClearPad(GPIOB, GPIOB_PIN12); // Turn output off to measure timing
     if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
@@ -351,8 +357,21 @@ static void MotorControlLoop(void)
 
     ComputeState();
 
+    if(!palReadPad(GPIOC, GPIOC_PIN15)) { // Fault pin
+      faultTimer++;
+      if(faultTimer > 1) {
+        g_controlMode = CM_Fault;
+        g_gateDriverFault = true;
+      } else {
+        // Signal warning.
+        g_gateDriverWarning = true;
+      }
+    } else {
+      g_gateDriverFault = false;
+      faultTimer = 0;
+    }
+
     float demandCurrent = g_demandTorque;
-    //float targetVelocity = g_demandPhaseVelocity;
     float targetPosition = g_demandPhasePosition;
 
     switch(g_controlMode)
@@ -483,7 +502,7 @@ static THD_FUNCTION(ThreadPWM, arg) {
 
   //! Wait for powerup to complete
   // TODO: Add a timeout and report and error
-  while (!palReadPad(GPIOD, GPIOD_PIN2)) {
+  while (!palReadPad(GPIOD, GPIOD_PIN2) && g_pwmRun) {
     chThdSleepMilliseconds(100);
   }
 
@@ -495,6 +514,29 @@ static THD_FUNCTION(ThreadPWM, arg) {
 
   //! Wait a bit more
   chThdSleepMilliseconds(100);
+
+  //! Check status.
+  uint16_t status = Drv8503ReadRegister(DRV8503_REG_WARNING);
+
+  // Check for any faults.
+  if(status & DRV8503_WARN_FAULT) {
+    palClearPad(GPIOC, GPIOC_PIN14); // Paranoid gate disable
+    g_gateDriverWarning = true;
+    g_gateDriverFault = true;
+    g_pwmRun = false;
+    g_pwmThreadRunning = false;
+    return ;
+  }
+
+  // Double check with the fault bit.
+  if(!palReadPad(GPIOC, GPIOC_PIN15)) { // Fault pin
+    g_gateDriverWarning = true;
+    g_gateDriverFault = false; // Should only be a warning.
+  } else {
+    //! Reset fault flags.
+    g_gateDriverFault = false;
+    g_gateDriverWarning = false;
+  }
 
   // Setup PWM
   InitPWM();
@@ -643,18 +685,18 @@ void PWMUpdateDrivePhase(int pa,int pb,int pc)
 int PWMRun()
 {
   if(g_pwmRun)
-    return 0;
+    return g_pwmThreadRunning;
 
   g_pwmRun = true;
   if(!g_pwmThreadRunning) {
     g_motorControlLoopReady = false;
     g_pwmThreadRunning = true;
     chThdCreateStatic(waThreadPWM, sizeof(waThreadPWM), NORMALPRIO+8, ThreadPWM, NULL);
-    while(!g_motorControlLoopReady) {
+    while(!g_motorControlLoopReady && g_pwmThreadRunning) {
       chThdSleepMilliseconds(10);
     }
   }
-  return 0;
+  return g_pwmThreadRunning;
 }
 
 int PWMStop()
@@ -727,9 +769,19 @@ enum FaultCodeT PWMSelfTest()
   if(g_vbus_voltage > g_maxSupplyVoltage)
     return FC_OverVoltage;
 
-  g_driveTemperature = ReadDriveTemperature();
+  //if(g_vbus_voltage < 8.0) return FC_UnderVoltage;
+
+  {
+    float sum = 0;
+    for(int i = 0;i < 10;i++)
+      sum += ReadDriveTemperature();
+    g_driveTemperature = sum/10.0f;
+  }
   if(g_driveTemperature > g_maxOperatingTemperature)
-    return FC_OverTemprature;
+    return FC_OverTemperature;
+
+  //g_motorTemperature = ReadMotorTemperature();
+  //if()
 
   InitPWM();
   if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
@@ -760,19 +812,10 @@ enum FaultCodeT PWMSelfTest()
   if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
     return FC_Internal; // Not sure what is going on.
   }
-
-  int errCode = FC_Ok;
-  if((errCode = CheckHallInRange()) != FC_Ok)
+  int errCode = CheckHallInRange();
+  if(errCode != FC_Ok)
     return errCode;
 
-  // Are all readings very similar ?
-  // Sensor may not be near motor. This isn't full proof but better than nothing.
-  int diff1 = g_hall[1] - g_hall[0];
-  int diff2 = g_hall[1] - g_hall[2];
-  if(diff1 < 0) diff1 *= -1;
-  if(diff2 < 0) diff2 *= -1;
-  if(diff1 < 20 && diff2 < 20)
-    return FC_NoSensor;
 
   return FC_Ok;
 }

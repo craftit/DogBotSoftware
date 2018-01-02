@@ -354,6 +354,20 @@ float ReadDriveTemperature(void)
   return temp;
 }
 
+float ReadMotorTemperature(void)
+{
+  uint16_t adcVal = ReadADC(ADC_Channel_13);
+
+  const float refResistor = 10e3;
+  float res = refResistor * (((float) (1<<12)/(adcVal+1.0f)) - 1.0f);
+
+  const float thermistorNominal = 10e3;
+  const float temperatureNominal = 25;
+  const float thermistorK = 3435;
+
+  float temp = 1.0/((logf(res / thermistorNominal) / thermistorK) + 1.0 / (temperatureNominal + 273.15)) - 273.15;
+  return temp;
+}
 
 int DoADC(void)
 {

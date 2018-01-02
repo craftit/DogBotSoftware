@@ -14,7 +14,8 @@ MainWindow::MainWindow(QWidget *parent) :
 {
   ui->setupUi(this);
 
-  ui->lineEditDevice->setText("usb");
+  ui->lineEditDevice->setText("local");
+  //ui->lineEditDevice->setText("usb");
   //ui->lineEditDevice->setText("/dev/ttyACM1");
   //ui->lineEditDevice->setText("/dev/tty.usbmodem401");
 
@@ -45,8 +46,9 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(this,SIGNAL(setOtherJointGain(double)),ui->doubleSpinBoxJointRelGain,SLOT(setValue(double)));
   connect(this,SIGNAL(setOtherJointOffset(double)),ui->doubleSpinBoxJointRelOffset,SLOT(setValue(double)));
 
-  connect(this,SIGNAL(setSupplyVoltage(QString)),ui->label_SupplyVoltage,SLOT(setText(QString)));
-  connect(this,SIGNAL(setDriveTemperature(QString)),ui->label_DriverTemperature,SLOT(setText(QString)));
+  connect(this,SIGNAL(setSupplyVoltage(QString)),ui->lineEdit_SupplyVoltage,SLOT(setText(QString)));
+  connect(this,SIGNAL(setDriveTemperature(QString)),ui->lineEdit_DriveTemperature,SLOT(setText(QString)));
+  connect(this,SIGNAL(setMotorTemperature(QString)),ui->lineEdit_MotorTemperature,SLOT(setText(QString)));
   connect(this,SIGNAL(setMotorIGain(double)),this,SLOT(updateIGain(double)));
   connect(this,SIGNAL(setMotorVelocity(double)),ui->doubleSpinBoxVelocity,SLOT(setValue(double)));
   connect(this,SIGNAL(setVelocityPGain(double)),ui->doubleSpinBoxVelocityGain,SLOT(setValue(double)));
@@ -58,6 +60,9 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(this,SIGNAL(setHallSensors(QString)),ui->lineEditHallReadings,SLOT(setText(QString)));
   connect(this,SIGNAL(setUSBDrops(QString)),ui->lineEditUSBDrop,SLOT(setText(QString)));
   connect(this,SIGNAL(setUSBErrors(QString)),ui->lineEditUSBError,SLOT(setText(QString)));
+  connect(this,SIGNAL(setCANDrops(QString)),ui->lineEditCANDrop,SLOT(setText(QString)));
+  connect(this,SIGNAL(setCANErrors(QString)),ui->lineEditCANError,SLOT(setText(QString)));
+  connect(this,SIGNAL(setMainLoopTimeout(QString)),ui->lineEditMainLoopTimeout,SLOT(setText(QString)));
   connect(this,SIGNAL(setFaultMap(QString)),ui->lineEditFaultMap,SLOT(setText(QString)));
   connect(this,SIGNAL(setIndexSensor(bool)),ui->checkBoxIndexSensor,SLOT(setChecked(bool)));
 
@@ -82,19 +87,11 @@ MainWindow::MainWindow(QWidget *parent) :
   m_displayQuery.push_back(CPI_MaxCurrent);
   m_displayQuery.push_back(CPI_USBPacketDrops);
   m_displayQuery.push_back(CPI_USBPacketErrors);
+  m_displayQuery.push_back(CPI_CANPacketDrops);
+  m_displayQuery.push_back(CPI_CANPacketErrors);
+  m_displayQuery.push_back(CPI_MainLoopTimeout);
   m_displayQuery.push_back(CPI_FaultState);
 
-}
-
-void MainWindow::on_checkBoxBounce_clicked(bool checked)
-{
-    EnableBounce(checked);
-}
-
-void MainWindow::EnableBounce(bool state)
-{
-  m_startBounce = std::chrono::steady_clock::now();
-  m_bounceRunning = state;
 }
 
 void MainWindow::timerEvent(QTimerEvent *)
@@ -118,53 +115,8 @@ void MainWindow::timerEvent(QTimerEvent *)
   }
   ui->labelCalState->setText(posRefStr.c_str());
 
-  if(!m_bounceRunning)
-    return ;
-
-  auto now = std::chrono::steady_clock::now();
-
-  std::chrono::duration<double> diff = now-m_startBounce;
-
-  float phase = diff.count() * m_omega;
-  float height = sin(phase) * m_bounceRange + m_bounceOffset;
-
-  float position[3] = { 0,0,0 };
-  float angles[3] = { 0,0,0 };
-  position[2] = height;
-  if(!m_legKinematics.Inverse(position,angles)) {
-    std::cout << "Kinematics failed. \n";
-    return ;
-  }
-
-  std::cout << " Pelvis: " << angles[0] <<  " Hip:" << angles[1] << " Knee:" <<  angles[2] << std::endl;
-
-  m_coms->SendMoveWithEffort(m_hipJointId,m_reverseHip ? -angles[1] : angles[1],m_bounceTorque,PR_Absolute);
-  m_coms->SendMoveWithEffort(m_kneeJointId,-angles[2],m_bounceTorque,PR_Absolute);
-  //  int m_hipJointId = 1;
-  //int m_kneeJointId = 2;
 }
 
-
-void MainWindow::on_doubleSpinBoxBounceTorque_valueChanged(double arg1)
-{
-  m_bounceTorque = arg1;
-}
-
-void MainWindow::on_doubleSpinBoxOmega_valueChanged(double arg1)
-{
-  m_omega = arg1;
-}
-
-void MainWindow::on_verticalSliderBounceOffset_valueChanged(int value)
-{
-  m_bounceOffset = 0.3 + (float) value * 0.01;
-}
-
-
-void MainWindow::on_verticalSliderBounceRange_valueChanged(int value)
-{
-  m_bounceRange = (float) value * 0.01;
-}
 
 bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &displayStr)
 {
@@ -178,6 +130,20 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     }
     ret = false;
     sprintf(buff,"\n Drive temp:%3.1f ",((float) psp->m_data.float32[0]));
+    displayStr += buff;
+  } break;
+  case CPI_MotorTemp: {
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      float temp = ((float) psp->m_data.float32[0]);
+      if(temp < -60) {
+        sprintf(buff,"Fault");
+      } else {
+        sprintf(buff,"%3.1f",temp);
+      }
+      emit setMotorTemperature(buff);
+    }
+    ret = false;
+    sprintf(buff,"\n Motor temp:%3.1f ",((float) psp->m_data.float32[0]));
     displayStr += buff;
   } break;
   case CPI_VSUPPLY: {
@@ -373,6 +339,7 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     }
     sprintf(buff,"\n %d USB Packet drop: %d ",psp->m_header.m_deviceId,psp->m_data.uint32[0]);
     displayStr += buff;
+    ret = false;
   } break;
   case CPI_USBPacketErrors: {
     if(psp->m_header.m_deviceId == m_targetDeviceId) {
@@ -385,15 +352,16 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
   case CPI_CANPacketDrops: {
     if(psp->m_header.m_deviceId == m_targetDeviceId) {
       sprintf(buff,"%d ", (int) psp->m_data.uint32[0]);
-      //emit setCANDrops(buff);
+      emit setCANDrops(buff);
     }
     sprintf(buff,"\n %d CAN Packet drop: %d ",psp->m_header.m_deviceId,psp->m_data.uint32[0]);
     displayStr += buff;
+    ret = false;
   } break;
   case CPI_CANPacketErrors: {
     if(psp->m_header.m_deviceId == m_targetDeviceId) {
       sprintf(buff,"%d ", (int) psp->m_data.uint32[0]);
-      //emit setCANErrors(buff);
+      emit setCANErrors(buff);
     }
     sprintf(buff,"\n %d CAN Packet error: %d ",psp->m_header.m_deviceId,psp->m_data.uint32[0]);
     displayStr += buff;
@@ -411,6 +379,14 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
       emit setIndexSensor(psp->m_data.uint8[0] != 0);
     }
     sprintf(buff,"\n %d Index sensor: %X ",psp->m_header.m_deviceId,(int) psp->m_data.uint8[0]);
+    displayStr += buff;
+  } break;
+  case CPI_MainLoopTimeout: {
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      sprintf(buff,"%d ", (int) psp->m_data.uint32[0]);
+      emit setMainLoopTimeout(buff);
+    }
+    sprintf(buff,"\n %d Main loop timeouts: %d ",psp->m_header.m_deviceId,psp->m_data.uint32[0]);
     displayStr += buff;
   } break;
   default:
@@ -762,13 +738,13 @@ void MainWindow::on_spinDeviceId_valueChanged(int arg1)
 void MainWindow::on_comboBoxCalibration_activated(const QString &arg1)
 {
   enum MotionHomedStateT calMode = MHS_Lost;
-  if(arg1 == "Uncalibrated") {
+  if(arg1 == "Lost") {
     calMode = MHS_Lost;
   }
   if(arg1 == "Measuring") {
     calMode = MHS_Measuring;
   }
-  if(arg1 == "Calibrated") {
+  if(arg1 == "Homed") {
     calMode = MHS_Homed;
   }
   m_coms->SendSetParam(m_targetDeviceId,CPI_HomedState,calMode);
@@ -789,7 +765,7 @@ void MainWindow::on_comboBoxControlState_activated(const QString &arg1)
   if(arg1 == "Ready") {
     controlState = CS_Ready;
   }
-  if(arg1 == "Position Calibration") {
+  if(arg1 == "Home") {
     controlState = CS_Home;
   }
   if(arg1 == "Teach") {
@@ -904,21 +880,6 @@ void MainWindow::on_doubleSpinBoxCalibrationOffset_editingFinished()
   float calAngleRad =(ui->doubleSpinBoxCalibrationOffset->value() * (M_PI * 2.0) / 360.0f);
   m_coms->SendSetParam(m_targetDeviceId,CPI_CalibrationOffset,calAngleRad);
 
-}
-
-void MainWindow::on_spinBoxHipJointId_valueChanged(int arg1)
-{
-   m_hipJointId = arg1;
-}
-
-void MainWindow::on_spinBoxKneeJointId_valueChanged(int arg1)
-{
-   m_kneeJointId = arg1;
-}
-
-void MainWindow::on_checkBoxReverseHip_clicked(bool checked)
-{
-  m_reverseHip = checked;
 }
 
 void MainWindow::on_pushButton_3_clicked()
@@ -1070,4 +1031,9 @@ void MainWindow::on_pushButtonResetAll_clicked()
 void MainWindow::on_pushButtonRefresh_clicked()
 {
   m_dogBotAPI->RefreshAll();
+}
+
+void MainWindow::on_actionExit_triggered()
+{
+  QApplication::quit();
 }

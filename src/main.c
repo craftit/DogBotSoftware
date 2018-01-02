@@ -40,6 +40,8 @@
 #include "coms.h"
 #include "shell/shell.h"
 
+unsigned g_mainLoopTimeoutCount = 0;
+
 /*
  * This is a periodic thread that does absolutely nothing except flashing
  * a LED.
@@ -200,12 +202,6 @@ int ChangeControlState(enum ControlStateT newState)
 
   switch(newState)
   {
-    case CS_Home:
-    case CS_Ready:
-    case CS_Teach:
-      EnableSensorPower(true);
-      PWMRun();
-      break;
     case CS_SelfTest:
     case CS_FactoryCalibrate:
       EnableSensorPower(true);
@@ -225,6 +221,13 @@ int ChangeControlState(enum ControlStateT newState)
       g_currentLimit = 0;
       g_controlMode = CM_Brake;
       break;
+    case CS_Home:
+    case CS_Ready:
+    case CS_Teach:
+      EnableSensorPower(true);
+      if(PWMRun())
+        break;
+      /* no break */
     case CS_Fault: {
       g_currentLimit = 0;
       PWMStop();
@@ -250,13 +253,14 @@ void SendBackgroundStateReport(void)
   static int lastCANError = 0;
   static int lastCANDrop = 0;
   static unsigned lastFaultState = 0;
+  static unsigned lastMainLoopTimeoutCount = 0;
 
-  static bool lastSensor = false;
+  static bool lastIndexSensor = false;
 
   {
     bool isOn = palReadPad(GPIOC, GPIOC_PIN8);
-    if(lastSensor != isOn) {
-      lastSensor = isOn;
+    if(lastIndexSensor != isOn) {
+      lastIndexSensor = isOn;
       SendParamUpdate(CPI_IndexSensor);
     }
   }
@@ -273,9 +277,14 @@ void SendBackgroundStateReport(void)
       SendParamUpdate(CPI_DriveTemp);
       break;
     case 2:
-      SendParamUpdate(CPI_PhaseVelocity);
+      if(g_controlState != CS_LowPower  && g_controlState != CS_Standby) {
+        SendParamUpdate(CPI_MotorTemp);
+      }
       break;
     case 3:
+      SendParamUpdate(CPI_PhaseVelocity);
+      break;
+    case 4:
       if(lastUsbError != g_usbErrorCount) {
         lastUsbError = g_usbErrorCount;
         SendParamUpdate(CPI_USBPacketErrors);
@@ -292,22 +301,26 @@ void SendBackgroundStateReport(void)
         lastCANDrop = g_canDropCount;
         SendParamUpdate(CPI_CANPacketDrops);
       }
+      if(lastMainLoopTimeoutCount != g_mainLoopTimeoutCount) {
+        lastMainLoopTimeoutCount = g_mainLoopTimeoutCount;
+        SendParamUpdate(CPI_MainLoopTimeout);
+      }
       if(lastFaultState != g_faultState) {
         lastFaultState = g_faultState;
         SendParamUpdate(CPI_FaultState);
       }
       break;
-    case 4:
+    case 5:
       // Finish here unless we're in diagnostic mode.
       if(g_controlState != CS_Diagnostic) {
         stateCount = -1;
         return ;
       }
       break;
-    case 5:
+    case 6:
       SendParamUpdate(CPI_DemandPhaseVelocity);
       break;
-    case 6:
+    case 7:
       SendParamUpdate(CPI_HallSensors);
       break;
   }
@@ -344,6 +357,13 @@ void DoStartup(void)
     }
     g_driveTemperature = sum/10.0;
   }
+  {
+    float sum = 0;
+    for(int i = 0;i < 10;i++) {
+      sum += ReadMotorTemperature();
+    }
+    g_motorTemperature = sum/10.0;
+  }
 
   enum FaultCodeT faultCode = PWMSelfTest();
   if(faultCode != FC_Ok) {
@@ -372,10 +392,10 @@ int main(void) {
   getpid();
 
   /*
-   * System initializations.
-   * - HAL initialization, this also initializes the configured device drivers
-   *   and performs the board-specific initializations.
-   * - Kernel initialization, the main() function becomes a thread and the
+   * System initialisations.
+   * - HAL initialisation, this also initialises the configured device drivers
+   *   and performs the board-specific initialisations.
+   * - Kernel initialisation, the main() function becomes a thread and the
    *   RTOS is active.
    */
   halInit();
@@ -453,29 +473,53 @@ int main(void) {
       case CS_Home:
       case CS_Teach:
       case CS_Diagnostic:
-      case CS_Ready:
+      case CS_Ready: {
         if(chBSemWaitTimeout(&g_reportSampleReady,1000) != MSG_OK) {
+          g_mainLoopTimeoutCount++;
           //FaultDetected(FC_InternalTiming);
           break;
         }
-#if 0
-        if(!palReadPad(GPIOC, GPIOC_PIN15)) { // Fault pin
+
+        if(g_gateDriverFault) {
           FaultDetected(FC_DriverFault);
+          break;
         }
-#endif
+
         // This runs at 100Hz
         MotionStep();
 
-        // 5Hz
+        // Check the state of the gate driver.
+        uint16_t gateDriveStatus = Drv8503ReadRegister(DRV8503_REG_WARNING);
+        {
+          // Update gate status
+          static uint16_t lastGateStatus = 0;
+          if(lastGateStatus != gateDriveStatus) {
+            lastGateStatus = gateDriveStatus;
+            SendParamUpdate(CPI_DRV8305_01);
+          }
+        }
+        if(gateDriveStatus & DRV8503_WARN_FAULT) {
+          FaultDetected(FC_DriverFault);
+          break;
+        }
+
+        // 20Hz
         if(cycleCount++ > 5) {
           cycleCount = 0;
           SendBackgroundStateReport();
         }
-        break;
+      } break;
     }
 
+
+
     // Stuff we want to check all the time.
-    g_driveTemperature +=  (ReadDriveTemperature() - g_driveTemperature)*0.1;
+    g_driveTemperature +=  (ReadDriveTemperature() - g_driveTemperature) * 0.1;
+
+    // We can only ready motor temperatures when sensors are enabled.
+    if(g_controlState != CS_LowPower  && g_controlState != CS_Standby)
+      g_motorTemperature += (ReadMotorTemperature() - g_motorTemperature) * 0.1;
+
     g_vbus_voltage += (ReadSupplyVoltage() - g_vbus_voltage) * 0.2;
     if(g_controlState != CS_Fault) {
       if(g_vbus_voltage > g_maxSupplyVoltage) {
@@ -484,10 +528,14 @@ int main(void) {
       if(g_controlState != CS_LowPower &&
          g_controlState != CS_Standby &&
          g_vbus_voltage < g_minSupplyVoltage) {
+
         ChangeControlState(CS_LowPower);
       }
       if(g_driveTemperature > 80.0) {
-        FaultDetected(FC_OverTemprature);
+        FaultDetected(FC_OverTemperature);
+      }
+      if(g_motorTemperature > 60.0) {
+        FaultDetected(FC_OverTemperature);
       }
     }
   }

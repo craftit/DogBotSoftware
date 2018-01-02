@@ -110,6 +110,8 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_PhaseVelocity:
     case CPI_HallSensors:
     case CPI_MotorOffsetVoltage:
+    case CPI_DeviceType:
+    case CPI_TIM1_SR:
       break;
 
     case CPI_AuxPower:
@@ -288,7 +290,11 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_CANPacketErrors:
       g_canErrorCount = 0;
       break;
-
+    case CPI_MainLoopTimeout:
+      g_mainLoopTimeoutCount = 0;
+      break;
+    case CPI_FINAL:
+      return false;
 //    default:
 //      return false;
   }
@@ -392,7 +398,7 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       break;
     case CPI_MotorTemp:
       *len = 4;
-      data->float32[0] = 0;
+      data->float32[0] = g_motorTemperature;
       break;
     case CPI_OtherJoint:
       *len = 1;
@@ -516,6 +522,10 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
     case CPI_IndexSensor:
       *len = 1;
       data->uint8[0] = palReadPad(GPIOC, GPIOC_PIN8);
+      break;
+    case CPI_MainLoopTimeout:
+      *len = 4;
+      data->uint32[0] = g_mainLoopTimeoutCount;
       break;
     default:
       return false;

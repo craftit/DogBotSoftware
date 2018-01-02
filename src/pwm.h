@@ -29,11 +29,6 @@ void PWMUpdateDrive(int phase,int power);
 
 void MotionStep(void);
 
-extern uint16_t *ReadADCs(void);
-extern float ReadSupplyVoltage(void); // Read supply voltage from ADC.
-extern float ReadDriveTemperature(void); // Read driver temp
-extern float Read5VRailVoltage(void);
-
 float hallToAngle(uint16_t *sensors);
 
 extern binary_semaphore_t g_adcInjectedDataReady;
@@ -56,6 +51,8 @@ extern float g_maxSupplyVoltage;
 extern float g_maxOperatingTemperature;
 
 extern float g_driveTemperature;
+extern float g_motorTemperature;
+
 extern float g_maxCurrentSense;
 
 #define g_calibrationPointCount (18)
@@ -66,6 +63,9 @@ extern int g_adcTickCount;
 
 extern float g_vbus_voltage;
 extern float g_minSupplyVoltage;
+
+extern bool g_gateDriverWarning;
+extern bool g_gateDriverFault;
 
 extern float g_current[3];
 extern float g_phaseAngle;

@@ -28,7 +28,7 @@ namespace DogBotN {
     case FC_Internal5VRailOutOfRange: return "5V Rail Out Of Range";
     case FC_InternalStoreFailed: return "Store failed";
     case FC_InternalTiming: return "Timing error";
-    case FC_OverTemprature: return "Over Temperature";
+    case FC_OverTemperature: return "Over Temperature";
     case FC_OverVoltage:    return "Over Voltage";
     case FC_UnderVoltage:   return "Under Voltage";
     case FC_NoSensor:       return "No sensor";

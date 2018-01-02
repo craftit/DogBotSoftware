@@ -52,7 +52,7 @@ extern "C" {
     FC_NoSensor = 3,
     FC_NoMotor = 4,
     FC_CalibrationFailed = 5,
-    FC_OverTemprature = 6,
+    FC_OverTemperature = 6,
     FC_DriverFault = 7,
     FC_OverVoltage = 8,
     FC_PositionLost = 9,
@@ -149,6 +149,7 @@ extern "C" {
 
     CPI_CANPacketDrops   = 0x50,
     CPI_CANPacketErrors  = 0x51,
+    CPI_MainLoopTimeout  = 0x52,
 
     CPI_FINAL           = 0xff
   };

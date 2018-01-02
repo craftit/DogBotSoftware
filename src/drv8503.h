@@ -13,7 +13,25 @@ extern uint16_t Drv8503Test(void);
 extern void InitDrv8503(void);
 
 // ------------------------------------------------------
+// Register 0x1 :
+
+#define DRV8503_REG_WARNING     (0x1)
+
+#define DRV8503_WARN_FAULT      (1U<<10)
+#define DRV8503_WARN_TEMP_175C  (1U<<8)
+#define DRV8503_WARN_PVDD_UVFL  (1U<<7)
+#define DRV8503_WARN_PVDD_OVFL  (1U<<6)
+#define DRV8503_WARN_VDS_STATUS (1U<<5)
+
+#define DRV8503_WARN_VCHP_UVFL  (1U<<4)
+#define DRV8503_WARN_TEMP_105C  (1U<<3)
+#define DRV8503_WARN_TEMP_125C  (1U<<2)
+#define DRV8503_WARN_TEMP_135C  (1U<<1)
+#define DRV8503_WARN_OVERTEMP   (1U<<0)
+
+// ------------------------------------------------------
 // Register 0x5 :
+
 
 // ------------------------------------------------------
 // Register 0x9 : IC Operation

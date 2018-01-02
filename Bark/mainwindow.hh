@@ -77,16 +77,6 @@ private slots:
 
   void on_pushButton_2_clicked();
 
-  void on_checkBoxBounce_clicked(bool checked);
-
-  void on_verticalSliderBounceOffset_valueChanged(int value);
-
-  void on_verticalSliderBounceRange_valueChanged(int value);
-
-  void on_doubleSpinBoxOmega_valueChanged(double arg1);
-
-  void on_doubleSpinBoxBounceTorque_valueChanged(double arg1);
-
   void on_pushButtonCalZero_clicked();
 
   void on_doubleSpinBoxJointRelGain_valueChanged(double arg1);
@@ -100,12 +90,6 @@ private slots:
   void on_doubleSpinBoxDemandPosition_valueChanged(double arg1);
 
   void on_doubleSpinBoxCalibrationOffset_editingFinished();
-
-  void on_spinBoxHipJointId_valueChanged(int arg1);
-
-  void on_spinBoxKneeJointId_valueChanged(int arg1);
-
-  void on_checkBoxReverseHip_clicked(bool checked);
 
   void on_pushButton_3_clicked();
 
@@ -152,6 +136,8 @@ private slots:
 
   void on_pushButtonRefresh_clicked();
 
+  void on_actionExit_triggered();
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);
@@ -166,6 +152,7 @@ signals:
   void setOtherJointOffset(double offset);
   void setSupplyVoltage(QString str);
   void setDriveTemperature(QString str);
+  void setMotorTemperature(QString str);
   void setMotorIGain(double offset);
   void setMotorVelocity(double offset);
   void setVelocityPGain(double offset);
@@ -177,6 +164,9 @@ signals:
   void setHallSensors(const QString &str);
   void setUSBErrors(const QString &str);
   void setUSBDrops(const QString &str);
+  void setCANErrors(const QString &str);
+  void setCANDrops(const QString &str);
+  void setMainLoopTimeout(const QString &str);
   void setFaultMap(const QString &str);
   void setIndexSensor(bool state);
 
@@ -203,17 +193,6 @@ private:
   std::shared_ptr<std::ostream> m_logStrm;
   int m_targetDeviceId = 0;
   enum PositionReferenceT g_positionReference = PR_Relative;
-
-  bool m_bounceRunning = false;
-  std::chrono::time_point<std::chrono::steady_clock> m_startBounce;
-  float m_omega = M_PI ;
-  float m_bounceOffset = 0.4;
-  float m_bounceRange = 0.3;
-  float m_bounceTorque = 2.0;
-  int m_hipJointId = 2;
-  int m_kneeJointId = 1;
-  bool m_reverseHip = false;
-  DogBotN::LegKinematicsC m_legKinematics;
 
   float m_servoAngle = 0;
   float m_servoTorque = 0;
