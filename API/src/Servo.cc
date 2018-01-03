@@ -152,8 +152,8 @@ namespace DogBotN {
     SetupConstants();
 
     // Things to query
-    m_updateQuery.push_back(CPI_ControlState);
     m_updateQuery.push_back(CPI_FaultCode);
+    m_updateQuery.push_back(CPI_ControlState);
     m_updateQuery.push_back(CPI_HomedState);
     m_updateQuery.push_back(CPI_PositionRef);
     m_updateQuery.push_back(CPI_PWMMode);
@@ -170,7 +170,6 @@ namespace DogBotN {
     m_updateQuery.push_back(CPI_homeIndexPosition);
     m_updateQuery.push_back(CPI_MaxCurrent);
 
-    // See https://en.wikipedia.org/wiki/Motor_constants#Motor_Torque_constant
 
   }
 
@@ -184,6 +183,7 @@ namespace DogBotN {
   //! Do constant setup
   void ServoC::SetupConstants()
   {
+    // See https://en.wikipedia.org/wiki/Motor_constants#Motor_Torque_constant
     m_servoKt = (60.0f * m_gearRatio) / (2 * M_PI * m_motorKv);
   }
 

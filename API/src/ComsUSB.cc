@@ -172,22 +172,46 @@ namespace DogBotN
     Init();
   }
 
+  //! Close usb handle
+  void ComsUSBC::CloseUSB()
+  {
+    if(m_handle == 0)
+      return ;
+
+    std::lock_guard<std::mutex> lock(m_accessTx);
+
+    // Dump all packets from tx queue.
+    m_txQueue.empty();
+
+    for(auto &a : m_inDataTransfers) {
+      if(a.Transfer() != 0)
+        libusb_cancel_transfer(a.Transfer());
+    }
+    for(auto &a : m_outDataTransfers) {
+      if(a.Transfer() != 0)
+        libusb_cancel_transfer(a.Transfer());
+    }
+
+    if(m_claimedInferface) {
+      libusb_release_interface(m_handle, 0);
+      m_claimedInferface = false;
+    }
+
+    libusb_close(m_handle);
+    m_handle = 0;
+    m_device = 0;
+  }
+
   // Disconnects and closes file descriptors
   ComsUSBC::~ComsUSBC()
   {
     m_terminate = true;
 
-
     if(libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
       libusb_hotplug_deregister_callback(m_usbContext,m_hotplugCallbackHandle);
     }
-    if(m_handle != 0) {
-      if(m_claimedInferface)
-        libusb_release_interface(m_handle, 0);
 
-      libusb_close(m_handle);
-      m_handle = 0;
-    }
+    CloseUSB();
 
     if(m_threadUSB.joinable())
       m_threadUSB.join();
@@ -215,13 +239,7 @@ namespace DogBotN
     }
     m_log->info("Device departed. ");
 
-    m_device = 0;
-    if(m_handle != 0) {
-
-      // The device has left, we can only close it.
-      libusb_close(m_handle);
-      m_handle = 0;
-    }
+    CloseUSB();
   }
 
 
@@ -342,6 +360,12 @@ namespace DogBotN
 
   void ComsUSBC::ProcessInTransferIso(USBTransferDataC *data)
   {
+    // If not open, just drop the packet.
+    if(data->Transfer()->dev_handle != m_handle) {
+      m_log->info("Dropping in transfer from old device. ");
+      return ;
+    }
+
     //m_log->info("ProcessTransferIn");
     switch(data->Transfer()->status)
     {
@@ -400,7 +424,12 @@ namespace DogBotN
 
   void ComsUSBC::ProcessOutTransferIso(USBTransferDataC *data)
   {
-    //m_log->info("ProcessOutTransferIso");
+    // If not open, just drop the packet.
+    if(data->Transfer()->dev_handle != m_handle) {
+      m_log->info("Dropping out transfer from old device. ");
+      return ;
+    }
+
     SendTxQueue(data);
   }
 
@@ -521,13 +550,7 @@ namespace DogBotN
       }
     }
 
-    // Cancel all transfers.
-    for(auto &a : m_inDataTransfers) {
-      libusb_cancel_transfer(a.Transfer());
-    }
-    for(auto &a : m_outDataTransfers) {
-      libusb_cancel_transfer(a.Transfer());
-    }
+    CloseUSB();
 
     m_mutexExitOk.unlock();
     m_log->debug("Exiting receiver. ");
@@ -542,6 +565,8 @@ namespace DogBotN
     // Gather some data to send.
     {
       std::lock_guard<std::mutex> lock(m_accessTx);
+      if(m_handle == 0)
+        return ;
       if(txBuffer == 0) {
         if(m_txQueue.size() == 0)
           return ; // Nothing to do.
@@ -651,6 +676,10 @@ namespace DogBotN
     }
     {
       std::lock_guard<std::mutex> lock(m_accessTx);
+      // If not open, just drop the packet.
+      if(m_handle == 0)
+        return ;
+      // Is the queue too long ?
       if(m_txQueue.size() > 32) {
         m_log->error("Transmit queue to long, dropping packet. {} ",m_txQueue.size());
         return ;

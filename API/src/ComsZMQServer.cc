@@ -88,12 +88,13 @@ namespace DogBotN {
     } catch(zmq::error_t &err) {
       m_log->error("Caught exception run thread %d '%s' ",err.num(),err.what());
     }
+    m_log->info("Server run loop exiting.");
 
     // Remove handler with reference to this instance.
     m_coms->RemoveGenericHandler(m_genericHandlerId);
     m_genericHandlerId = -1;
 
-    m_log->info("Server run loop exiting.");
+    m_log->info("Server finished.");
   }
 
 }

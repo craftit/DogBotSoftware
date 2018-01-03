@@ -13,7 +13,7 @@ ServoTable::ServoTable(const std::shared_ptr<DogBotN::DogBotAPIC> &api)
           auto it = m_joint2row.find(device);
           int rowId = -1;
           if(it == m_joint2row.end()) {
-            std::cerr << "New joint " << device->Name() << " Type:"  << device->JointType() << " " << std::endl;
+            //  std::cerr << "New joint " << device->Name() << " Type:"  << device->JointType() << " " << std::endl;
             rowId = m_updateRows.size();
             m_updateRows.push_back(false);
             m_joint2row[device] = rowId;

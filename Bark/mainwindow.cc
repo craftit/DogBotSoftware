@@ -42,7 +42,6 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(this,SIGNAL(setPositionRef(const QString &)),ui->comboBoxPositionRef,SLOT(setCurrentText(const QString &)));
   connect(this,SIGNAL(setIndicator(bool)),ui->checkBoxIndicator,SLOT(setChecked(bool)));
 
-
   connect(this,SIGNAL(setOtherJointGain(double)),ui->doubleSpinBoxJointRelGain,SLOT(setValue(double)));
   connect(this,SIGNAL(setOtherJointOffset(double)),ui->doubleSpinBoxJointRelOffset,SLOT(setValue(double)));
 
@@ -91,7 +90,6 @@ MainWindow::MainWindow(QWidget *parent) :
   m_displayQuery.push_back(CPI_CANPacketErrors);
   m_displayQuery.push_back(CPI_MainLoopTimeout);
   m_displayQuery.push_back(CPI_FaultState);
-
 }
 
 void MainWindow::timerEvent(QTimerEvent *)
@@ -114,9 +112,7 @@ void MainWindow::timerEvent(QTimerEvent *)
     case PR_OtherJointAbsolute: posRefStr = "Absolute Other"; break;
   }
   ui->labelCalState->setText(posRefStr.c_str());
-
 }
-
 
 bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &displayStr)
 {
@@ -135,7 +131,7 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
   case CPI_MotorTemp: {
     if(psp->m_header.m_deviceId == m_targetDeviceId) {
       float temp = ((float) psp->m_data.float32[0]);
-      if(temp < -60) {
+      if(temp < -60 && false) {
         sprintf(buff,"Fault");
       } else {
         sprintf(buff,"%3.1f",temp);

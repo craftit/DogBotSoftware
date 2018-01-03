@@ -114,6 +114,8 @@ namespace DogBotN {
 #endif
 
   protected:
+    //! Close usb handle
+    void CloseUSB();
 
     // 'data' is a free buffer or null.
     void SendTxQueue(USBTransferDataC *data);
