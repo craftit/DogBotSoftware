@@ -206,6 +206,25 @@ namespace DogBotN
     return 0;
   }
 
+  //! Handle hot plug callback.
+  void ComsUSBC::HotPlugDepartedCallback(libusb_device *device, libusb_hotplug_event event)
+  {
+    if(m_device != device) {
+      m_log->info("Another device departed. ");
+      return ;
+    }
+    m_log->info("Device departed. ");
+
+    m_device = 0;
+    if(m_handle != 0) {
+
+      // The device has left, we can only close it.
+      libusb_close(m_handle);
+      m_handle = 0;
+    }
+  }
+
+
   void ComsUSBC::HotPlugArrivedCallback(libusb_device *device, libusb_hotplug_event event)
   {
     m_log->info("Got hotplug event {} ",(int) event);
@@ -247,6 +266,8 @@ namespace DogBotN
       return ;
     }
 
+    m_device = device;
+
     Open(m_handle);
   }
 
@@ -277,7 +298,9 @@ namespace DogBotN
 #endif
     }
 
-    m_outDataTransfers = std::vector<USBTransferDataC>(2);
+    m_outDataFree.empty();
+    m_outDataFree.reserve(4);
+    m_outDataTransfers = std::vector<USBTransferDataC>(4);
     // Setup some OUT transfers.
     for(auto &a : m_outDataTransfers) {
       a.SetupIso(this,handle,UTD_OUT);
@@ -301,6 +324,7 @@ namespace DogBotN
     }
 
     m_outIntrTransfers = std::vector<USBTransferDataC>(16);
+    m_outIntrFree.empty();
     // Setup some OUT transfers.
     for(auto &a : m_outIntrTransfers) {
       a.SetupIntr(this,handle,UTD_OUT);
@@ -308,6 +332,7 @@ namespace DogBotN
     }
 #endif
 
+    // From USB we're always in bridge mode.
     for(int i = 0;i < 3;i++)
       SendEnableBridge(true);
   }
@@ -332,8 +357,10 @@ namespace DogBotN
           //ONDEBUG(m_log->info("Packet iso size {} Type:{} Status:{}",usbLen,(int) pdata[dat],(int) data->Transfer()->iso_packet_desc[i].status));
           while(dat < usbLen) {
             int packetLen = pdata[dat++];
-            if(packetLen == 0)
+            if(packetLen == 0) {
+              m_log->error("Zero packet length at {} ",dat);
               break;
+            }
             if(packetLen < 0 || packetLen > 15) {
               m_log->error("Unexpected packet size at {} of {} ",dat,packetLen);
               break;
@@ -416,12 +443,6 @@ namespace DogBotN
 
   }
 #endif
-
-  //! Handle hot plug callback.
-  void ComsUSBC::HotPlugDepartedCallback(libusb_device *device, libusb_hotplug_event event)
-  {
-    m_log->info("Device left ");
-  }
 
 
   void ComsUSBC::Init()

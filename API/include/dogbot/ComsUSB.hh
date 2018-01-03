@@ -9,11 +9,14 @@ namespace DogBotN {
 
   class ComsUSBC;
 
+  //! Direction for USB transfer, used in USBTransferDataC.
+
   enum USBTransferDirectionT {
     UTD_IN,
     UTD_OUT
   };
 
+  //! Simple packet structure.
   class DataPacketT {
   public:
     int m_len;
@@ -26,8 +29,11 @@ namespace DogBotN {
   class USBTransferDataC
   {
   public:
+    //! Construct a blank transfer structure.
+    //! You must call SetupIso or SetupIntr before using.
     USBTransferDataC();
 
+    //! Free m_transfer structure.
     ~USBTransferDataC();
 
     //! Setup an ISO buffer
@@ -132,6 +138,8 @@ namespace DogBotN {
     void Open(struct libusb_device_handle *handle);
 
     struct libusb_device_handle *m_handle = 0;
+    struct libusb_device *m_device = 0;
+
     bool m_claimedInferface = false;
     int m_state = 0;
 

@@ -539,21 +539,22 @@ namespace DogBotN {
       timeSinceLastReport = timeNow - m_timeOfLastComs;
       faultCode = m_faultCode;
     }
-    if(faultCode != FC_Unknown) {
-      std::chrono::duration<double> comsTimeout = m_comsTimeout;
-      switch(m_controlState)
-      {
-      case CS_Ready:
-      case CS_Diagnostic:
-        comsTimeout = m_comsTimeout;
-      break;
-      case CS_FactoryCalibrate:
-        comsTimeout = std::chrono::seconds(30);
-      break;
-      default:
-        comsTimeout = std::chrono::seconds(2);
-      }
 
+    std::chrono::duration<double> comsTimeout = m_comsTimeout;
+    switch(m_controlState)
+    {
+    case CS_Ready:
+    case CS_Diagnostic:
+      comsTimeout = m_comsTimeout;
+    break;
+    case CS_FactoryCalibrate:
+      comsTimeout = std::chrono::seconds(30);
+    break;
+    default:
+      comsTimeout = std::chrono::seconds(2);
+    }
+
+    if(faultCode != FC_Unknown) {
       if(timeSinceLastReport > comsTimeout) {
         m_faultCode = FC_Unknown;
         ret = true;
@@ -561,6 +562,16 @@ namespace DogBotN {
 
         // Set velocity estimate to zero.
         m_velocity = 0;
+      }
+    } else {
+      if(timeSinceLastReport < comsTimeout) {
+        // Re-query servo status.
+        if((m_faultCode == FC_Unknown) &&
+            (m_toQuery == (int) m_updateQuery.size()))
+        {
+          m_log->warn("Regained contact with servo {}, querying.",m_id);
+          m_toQuery = 0;
+        }
       }
     }
 
