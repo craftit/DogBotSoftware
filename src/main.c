@@ -42,6 +42,9 @@
 
 unsigned g_mainLoopTimeoutCount = 0;
 
+enum FanModeT g_fanMode = FM_Auto;
+float g_fanTemperatureThreshold = 40.0;
+
 /*
  * This is a periodic thread that does absolutely nothing except flashing
  * a LED.
@@ -150,7 +153,7 @@ void EnableSensorPower(bool enable)
     palClearPad(GPIOB, GPIOB_PIN12); // Turn off sensor power
 }
 
-void EnableAuxPower(bool enable)
+void EnableFanPower(bool enable)
 {
   if(enable)
     palSetPad(GPIOA, GPIOA_PIN7); // Turn on aux power
@@ -402,7 +405,7 @@ int main(void) {
   chSysInit();
 
   EnableSensorPower(false);
-  EnableAuxPower(false);
+  EnableFanPower(false);
 
   InitADC();
 
@@ -516,26 +519,58 @@ int main(void) {
     // Stuff we want to check all the time.
     g_driveTemperature +=  (ReadDriveTemperature() - g_driveTemperature) * 0.1;
 
-    // We can only ready motor temperatures when sensors are enabled.
-    if(g_controlState != CS_LowPower  && g_controlState != CS_Standby)
+    // Check fan state.
+    switch(g_fanMode) {
+      case FM_Off:
+        palClearPad(GPIOA, GPIOA_PIN7);
+        break;
+      case FM_Auto: {
+        // FIXME:- Add Fan PWM ?
+        if(g_driveTemperature > g_fanTemperatureThreshold) {
+          EnableFanPower(true);
+        } else {
+          if(g_driveTemperature < (g_fanTemperatureThreshold-5)) {
+            EnableFanPower(false);
+          }
+        }
+      }
+      /* no break */
+      case FM_On: {
+        if(!palReadPad(GPIOB, GPIOB_PIN11)) { // Status feedback
+          EnableFanPower(false);
+          FaultDetected(FC_FanOverCurrent);
+          g_fanMode = FM_Off; // Turn it off.
+        }
+      } break;
+    }
+
+    // Check sensor over current input.
+    if(!palReadPad(GPIOB, GPIOB_PIN10)) {
+      EnableSensorPower(false);
+      FaultDetected(FC_SensorOverCurrent);
+    }
+
+    // We can only read motor temperatures when sensors are enabled.
+    if(g_controlState != CS_LowPower  && g_controlState != CS_Standby) {
       g_motorTemperature += (ReadMotorTemperature() - g_motorTemperature) * 0.1;
 
-    g_vbus_voltage += (ReadSupplyVoltage() - g_vbus_voltage) * 0.2;
-    if(g_controlState != CS_Fault) {
-      if(g_vbus_voltage > g_maxSupplyVoltage) {
-        FaultDetected(FC_OverVoltage);
+      if(g_motorTemperature > 60.0) {
+        FaultDetected(FC_MotorOverTemperature);
       }
+    }
+
+    g_vbus_voltage += (ReadSupplyVoltage() - g_vbus_voltage) * 0.2;
+    if(g_vbus_voltage > g_maxSupplyVoltage) {
+      FaultDetected(FC_OverVoltage);
+    }
+    if(g_driveTemperature > 80.0) {
+      FaultDetected(FC_DriverOverTemperature);
+    }
+    if(g_controlState != CS_Fault) {
       if(g_controlState != CS_LowPower &&
          g_controlState != CS_Standby &&
          g_vbus_voltage < g_minSupplyVoltage) {
-
         ChangeControlState(CS_LowPower);
-      }
-      if(g_driveTemperature > 80.0) {
-        FaultDetected(FC_OverTemperature);
-      }
-      if(g_motorTemperature > 60.0) {
-        FaultDetected(FC_OverTemperature);
       }
     }
   }

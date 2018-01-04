@@ -41,7 +41,7 @@ namespace DogBotN {
   protected:
     int m_genericHandlerId = -1;
     std::shared_ptr<ComsC> m_coms;
-    std::mutex m_accessTx;
+    mutable std::mutex m_accessTx;
 
   };
 }

@@ -28,7 +28,7 @@
        <bool>true</bool>
       </property>
       <property name="currentIndex">
-       <number>3</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="tab_connect">
        <attribute name="title">
@@ -47,13 +47,6 @@
            </size>
           </property>
          </spacer>
-        </item>
-        <item row="1" column="1" colspan="2">
-         <widget class="QLineEdit" name="lineEditDevice">
-          <property name="placeholderText">
-           <string>/dev/ttyACM1</string>
-          </property>
-         </widget>
         </item>
         <item row="2" column="0">
          <spacer name="horizontalSpacer">
@@ -107,6 +100,28 @@
            </size>
           </property>
          </spacer>
+        </item>
+        <item row="1" column="1" colspan="2">
+         <widget class="QComboBox" name="comboBoxConnect">
+          <property name="editable">
+           <bool>true</bool>
+          </property>
+          <item>
+           <property name="text">
+            <string>local</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>usb</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string/>
+           </property>
+          </item>
+         </widget>
         </item>
        </layout>
       </widget>
@@ -342,7 +357,313 @@
           </layout>
          </widget>
         </item>
-        <item row="0" column="1" rowspan="2">
+        <item row="1" column="0">
+         <widget class="QGroupBox" name="groupBox_10">
+          <property name="title">
+           <string>Mode</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_14">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_3">
+             <property name="text">
+              <string>State:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="label_7">
+             <property name="text">
+              <string>Fault:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1" colspan="2">
+            <widget class="QLineEdit" name="lineEditFault"/>
+           </item>
+           <item row="0" column="1" colspan="2">
+            <widget class="QComboBox" name="comboBoxControlState">
+             <item>
+              <property name="text">
+               <string>Low Power</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Ready</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Factory Calibrate</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Position Calibrate</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Diagnostic</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Emergency Stop</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Reset</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Standby</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Fault</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+           <item row="4" column="0">
+            <widget class="QCheckBox" name="checkBoxIndicator">
+             <property name="text">
+              <string>Indicator</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="2">
+            <widget class="QComboBox" name="comboBoxFanState">
+             <item>
+              <property name="text">
+               <string>On</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Off</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Auto</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+           <item row="4" column="1">
+            <widget class="QLabel" name="label_12">
+             <property name="text">
+              <string>Fan:</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item row="2" column="0" rowspan="4">
+         <widget class="QGroupBox" name="groupBox_8">
+          <property name="title">
+           <string>Motor Control</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_12">
+           <item row="4" column="1">
+            <widget class="QDoubleSpinBox" name="doubleSpinBoxTorqueLimit">
+             <property name="maximum">
+              <double>10.000000000000000</double>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QComboBox" name="comboBoxMotorControlMode">
+             <item>
+              <property name="text">
+               <string>Off</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Brake</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Torque</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Velocity</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Position</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+           <item row="4" column="0">
+            <widget class="QDoubleSpinBox" name="doubleSpinBoxDemandPosition">
+             <property name="minimum">
+              <double>-360.000000000000000</double>
+             </property>
+             <property name="maximum">
+              <double>360.000000000000000</double>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="0">
+            <widget class="QSlider" name="sliderPosition">
+             <property name="minimum">
+              <number>-360</number>
+             </property>
+             <property name="maximum">
+              <number>360</number>
+             </property>
+             <property name="value">
+              <number>0</number>
+             </property>
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="1">
+            <widget class="QSlider" name="sliderTorque">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0">
+            <widget class="QLabel" name="label">
+             <property name="text">
+              <string>Dynamic mode:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1">
+            <widget class="QLabel" name="label_4">
+             <property name="text">
+              <string> Current Limit</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="label_5">
+             <property name="text">
+              <string>Position</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QComboBox" name="comboBox">
+             <item>
+              <property name="text">
+               <string>Relative</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Absolute</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>RelativeOther</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>AbsoluteOther</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item row="3" column="1">
+         <widget class="QGroupBox" name="groupBox_6">
+          <property name="title">
+           <string>Homing</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_10">
+           <item row="1" column="0">
+            <widget class="QComboBox" name="comboBoxCalibration">
+             <item>
+              <property name="text">
+               <string>Lost</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Measuring</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Homed</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QPushButton" name="pushButtonCalZero">
+             <property name="text">
+              <string>Manual Home</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_15">
+             <property name="text">
+              <string>Home Value</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QDoubleSpinBox" name="doubleSpinBoxCalibrationOffset">
+             <property name="minimum">
+              <double>-720.000000000000000</double>
+             </property>
+             <property name="maximum">
+              <double>720.000000000000000</double>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="label_28">
+             <property name="text">
+              <string>Home Index</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1">
+            <widget class="QDoubleSpinBox" name="doubleSpinBoxHomeIndexOffset">
+             <property name="decimals">
+              <number>1</number>
+             </property>
+             <property name="minimum">
+              <double>-360.000000000000000</double>
+             </property>
+             <property name="maximum">
+              <double>360.000000000000000</double>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item row="0" column="1" rowspan="3">
          <widget class="QGroupBox" name="groupBox_5">
           <property name="title">
            <string>State</string>
@@ -429,12 +750,18 @@
              </property>
             </widget>
            </item>
+           <item row="1" column="2" colspan="2">
+            <widget class="QLineEdit" name="lineEdit_DriveTemperature"/>
+           </item>
            <item row="3" column="0">
             <widget class="QLabel" name="label_13">
              <property name="text">
               <string>Postion</string>
              </property>
             </widget>
+           </item>
+           <item row="0" column="2" colspan="2">
+            <widget class="QLineEdit" name="lineEdit_SupplyVoltage"/>
            </item>
            <item row="5" column="0">
             <widget class="QLabel" name="label_14">
@@ -443,95 +770,10 @@
              </property>
             </widget>
            </item>
-           <item row="1" column="2" colspan="2">
-            <widget class="QLineEdit" name="lineEdit_DriveTemperature"/>
-           </item>
-           <item row="0" column="2" colspan="2">
-            <widget class="QLineEdit" name="lineEdit_SupplyVoltage"/>
-           </item>
            <item row="2" column="2" colspan="2">
             <widget class="QLineEdit" name="lineEdit_MotorTemperature"/>
            </item>
-          </layout>
-         </widget>
-        </item>
-        <item row="2" column="1" rowspan="2">
-         <widget class="QGroupBox" name="groupBox_6">
-          <property name="title">
-           <string>Homing</string>
-          </property>
-          <layout class="QGridLayout" name="gridLayout_10">
-           <item row="1" column="0">
-            <widget class="QComboBox" name="comboBoxCalibration">
-             <item>
-              <property name="text">
-               <string>Lost</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Measuring</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Homed</string>
-              </property>
-             </item>
-            </widget>
-           </item>
-           <item row="1" column="1">
-            <widget class="QPushButton" name="pushButtonCalZero">
-             <property name="text">
-              <string>Manual Home</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="0">
-            <widget class="QLabel" name="label_15">
-             <property name="text">
-              <string>Home Value</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="1">
-            <widget class="QDoubleSpinBox" name="doubleSpinBoxCalibrationOffset">
-             <property name="minimum">
-              <double>-720.000000000000000</double>
-             </property>
-             <property name="maximum">
-              <double>720.000000000000000</double>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="0">
-            <widget class="QLabel" name="label_28">
-             <property name="text">
-              <string>Home Index</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="1">
-            <widget class="QDoubleSpinBox" name="doubleSpinBoxHomeIndexOffset">
-             <property name="decimals">
-              <number>1</number>
-             </property>
-             <property name="minimum">
-              <double>-360.000000000000000</double>
-             </property>
-             <property name="maximum">
-              <double>360.000000000000000</double>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="0">
-            <widget class="QLabel" name="label_8">
-             <property name="text">
-              <string>Position Ref</string>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="1">
+           <item row="3" column="4">
             <widget class="QComboBox" name="comboBoxPositionRef">
              <item>
               <property name="text">
@@ -541,228 +783,6 @@
              <item>
               <property name="text">
                <string>Absolute</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>RelativeOther</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>AbsoluteOther</string>
-              </property>
-             </item>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item row="1" column="0">
-         <widget class="QGroupBox" name="groupBox_10">
-          <property name="title">
-           <string>Mode</string>
-          </property>
-          <layout class="QGridLayout" name="gridLayout_14">
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_3">
-             <property name="text">
-              <string>State:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="0">
-            <widget class="QLabel" name="label_7">
-             <property name="text">
-              <string>Fault:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="1" colspan="2">
-            <widget class="QLineEdit" name="lineEditFault"/>
-           </item>
-           <item row="0" column="1" colspan="2">
-            <widget class="QComboBox" name="comboBoxControlState">
-             <item>
-              <property name="text">
-               <string>Low Power</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Ready</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Factory Calibrate</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Position Calibrate</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Diagnostic</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Emergency Stop</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Reset</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Standby</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Fault</string>
-              </property>
-             </item>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QCheckBox" name="checkBoxIndicator">
-             <property name="text">
-              <string>Indicator</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="2">
-            <widget class="QCheckBox" name="checkBoxFan">
-             <property name="text">
-              <string>Fan</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item row="2" column="0" rowspan="4">
-         <widget class="QGroupBox" name="groupBox_8">
-          <property name="title">
-           <string>Motor Control</string>
-          </property>
-          <layout class="QGridLayout" name="gridLayout_12">
-           <item row="0" column="1">
-            <widget class="QComboBox" name="comboBoxMotorControlMode">
-             <item>
-              <property name="text">
-               <string>Off</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Brake</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Torque</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Velocity</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Position</string>
-              </property>
-             </item>
-            </widget>
-           </item>
-           <item row="2" column="0">
-            <widget class="QLabel" name="label_5">
-             <property name="text">
-              <string>Position</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="1">
-            <widget class="QLabel" name="label_4">
-             <property name="text">
-              <string> Current Limit</string>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="0">
-            <widget class="QDoubleSpinBox" name="doubleSpinBoxDemandPosition">
-             <property name="minimum">
-              <double>-360.000000000000000</double>
-             </property>
-             <property name="maximum">
-              <double>360.000000000000000</double>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="1">
-            <widget class="QDoubleSpinBox" name="doubleSpinBoxTorqueLimit">
-             <property name="maximum">
-              <double>10.000000000000000</double>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="0">
-            <widget class="QSlider" name="sliderPosition">
-             <property name="minimum">
-              <number>-360</number>
-             </property>
-             <property name="maximum">
-              <number>360</number>
-             </property>
-             <property name="value">
-              <number>0</number>
-             </property>
-             <property name="orientation">
-              <enum>Qt::Vertical</enum>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="1">
-            <widget class="QSlider" name="sliderTorque">
-             <property name="orientation">
-              <enum>Qt::Vertical</enum>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="0">
-            <widget class="QLabel" name="label">
-             <property name="text">
-              <string>Dynamic mode:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="0">
-            <widget class="QComboBox" name="comboBox">
-             <item>
-              <property name="text">
-               <string>Relative</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Absolute</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>RelativeOther</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>AbsoluteOther</string>
               </property>
              </item>
             </widget>
@@ -1056,14 +1076,14 @@
            <string>Relative Joint Positoins</string>
           </property>
           <layout class="QGridLayout" name="gridLayout_4">
-           <item row="0" column="0">
+           <item row="1" column="0">
             <widget class="QLabel" name="label_16">
              <property name="text">
               <string>Joint Rel Gain:</string>
              </property>
             </widget>
            </item>
-           <item row="0" column="1">
+           <item row="1" column="1">
             <widget class="QDoubleSpinBox" name="doubleSpinBoxJointRelGain">
              <property name="minimum">
               <double>-10.000000000000000</double>
@@ -1076,14 +1096,14 @@
              </property>
             </widget>
            </item>
-           <item row="1" column="0">
+           <item row="2" column="0">
             <widget class="QLabel" name="label_17">
              <property name="text">
               <string>Joint Rel Offset:</string>
              </property>
             </widget>
            </item>
-           <item row="1" column="1">
+           <item row="2" column="1">
             <widget class="QDoubleSpinBox" name="doubleSpinBoxJointRelOffset">
              <property name="minimum">
               <double>-360.000000000000000</double>
@@ -1093,15 +1113,22 @@
              </property>
             </widget>
            </item>
-           <item row="2" column="0">
+           <item row="3" column="0">
             <widget class="QLabel" name="label_6">
              <property name="text">
-              <string>Other Joint</string>
+              <string>Other Joint id</string>
              </property>
             </widget>
            </item>
-           <item row="2" column="1">
+           <item row="3" column="1">
             <widget class="QSpinBox" name="spinOtherJointId"/>
+           </item>
+           <item row="0" column="0">
+            <widget class="QCheckBox" name="checkBoxJointRelative">
+             <property name="text">
+              <string>Joint Relative</string>
+             </property>
+            </widget>
            </item>
           </layout>
          </widget>

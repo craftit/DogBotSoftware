@@ -114,15 +114,6 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_TIM1_SR:
       break;
 
-    case CPI_AuxPower:
-      if(len != 1)
-        return false;
-      if(dataBuff->uint8[0] > 0)
-        palSetPad(GPIOA, GPIOA_PIN7);
-      else
-        palClearPad(GPIOA, GPIOA_PIN7);
-      return true;
-
     case CPI_CalibrationOffset:
       if(len != 4)
         return false;
@@ -156,8 +147,6 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
       {
         case PR_Relative:
         case PR_Absolute:
-        case PR_OtherJointRelative:
-        case PR_OtherJointAbsolute:
           g_motionPositionReference = posRef;
           break;
         default:
@@ -293,6 +282,52 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_MainLoopTimeout:
       g_mainLoopTimeoutCount = 0;
       break;
+    case CPI_JointRelative: {
+      if(len != 1)
+        return false;
+      enum JointRelativeT posRef = (enum JointRelativeT) dataBuff->uint8[0];
+      switch(posRef)
+      {
+        case JR_Isolated:
+        case JR_Offset:
+          g_motionJointRelative = posRef;
+          break;
+        default:
+          return false;
+      }
+    } break;
+    case CPI_FanMode: {
+      if(len != 1)
+        return false;
+      enum FanModeT fanMode = (enum FanModeT) dataBuff->uint8[0];
+      switch(fanMode)
+      {
+        case FM_Off:
+          palClearPad(GPIOA, GPIOA_PIN7);
+          break;
+        case FM_On:
+          palSetPad(GPIOA, GPIOA_PIN7);
+          break;
+        case FM_Auto:
+          break;
+        default:
+          return false;
+      }
+      g_fanMode = fanMode;
+    } break;
+    case CPI_FanTemperatureThreshold: {
+      if(len != 4)
+        return false;
+      g_fanTemperatureThreshold = dataBuff->float32[0];
+    } break;
+    case CPI_FanState: {
+      if(len != 1)
+        return false;
+      int i = palReadPad(GPIOA, GPIOA_PIN7); // Pin State.
+      if(palReadPad(GPIOB, GPIOB_PIN11)) // Status feedback
+        i |= 2;
+      dataBuff->uint8[0] = i;
+    } break;
     case CPI_FINAL:
       return false;
 //    default:
@@ -350,10 +385,6 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       data->uint16[0] = Drv8503ReadRegister(reg);
     } break;
 
-    case CPI_AuxPower: {
-      *len = 1;
-      data->uint8[0] = palReadPad(GPIOA,GPIOA_PIN7);
-    } break;
     case CPI_TIM1_SR: {
       stm32_tim_t *tim = (stm32_tim_t *)TIM1_BASE;
       *len = 2;
@@ -527,6 +558,26 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       *len = 4;
       data->uint32[0] = g_mainLoopTimeoutCount;
       break;
+    case CPI_JointRelative:
+      *len = 1;
+      data->uint8[0] = g_motionJointRelative;
+      break;
+    case CPI_FanMode: {
+      *len = 1;
+      data->uint8[0] = g_fanMode;
+    } break;
+    case CPI_FanTemperatureThreshold: {
+      *len = 4;
+      data->float32[0] = g_fanTemperatureThreshold;
+    } break;
+    case CPI_FanState: {
+      *len = 1;
+      int i = palReadPad(GPIOA, GPIOA_PIN7); // Pin State.
+      if(palReadPad(GPIOB, GPIOB_PIN11)) // Status feedback
+        i |= 2;
+      data->uint8[0] = i;
+    } break;
+
     default:
       return false;
   }

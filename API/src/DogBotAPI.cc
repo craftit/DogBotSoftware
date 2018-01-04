@@ -28,7 +28,7 @@ namespace DogBotN {
     case FC_Internal5VRailOutOfRange: return "5V Rail Out Of Range";
     case FC_InternalStoreFailed: return "Store failed";
     case FC_InternalTiming: return "Timing error";
-    case FC_OverTemperature: return "Over Temperature";
+    case FC_DriverOverTemperature: return "Over Temperature";
     case FC_OverVoltage:    return "Over Voltage";
     case FC_UnderVoltage:   return "Under Voltage";
     case FC_NoSensor:       return "No sensor";
@@ -36,6 +36,11 @@ namespace DogBotN {
     case FC_PositionLost:   return "Position Lost";
     case FC_MotorResistanceOutOfRange: return "Resistance out of range.";
     case FC_MotorInducetanceOutOfRange: return "Inductance out of range.";
+    case FC_InternalUSB: return "Internal USB error";
+    case FC_InternalCAN: return "Internal CAN error";
+    case FC_FanOverCurrent:return "Fan over current";
+    case FC_MotorOverTemperature: return "Motor Over Temperature";
+    case FC_SensorOverCurrent:return "Sensor over current";
     }
 
     printf("Invalid fault code %d \n", (int) faultCode);
@@ -100,6 +105,7 @@ namespace DogBotN {
       case CET_CANTransmitFailed: return "CAN transmit failed";
       case CET_InternalError: return "Internal error";
       case CET_MotorNotRunning: return "Motor not running";
+      case CET_NotImplemented: return "Not implemented";
     }
     printf("Unexpected error code %d",(int)errorCode);
     return "Invalid";

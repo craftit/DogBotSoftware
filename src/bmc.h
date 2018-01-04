@@ -20,6 +20,9 @@ extern float ReadMotorTemperature(void); // Read driver temp
 extern float Read5VRailVoltage(void);
 
 extern unsigned g_mainLoopTimeoutCount;
+extern enum FanModeT g_fanMode;
+extern float g_fanTemperatureThreshold;
+
 #ifdef __cplusplus
 }
 #endif

@@ -519,6 +519,13 @@ static THD_FUNCTION(can_rx, p) {
           // Shouldn't see this on the CAN bus, so report an error and drop it.
           CANSendError(CET_InternalError,CPT_BridgeMode,0);
         } break;
+        case CPT_SyncTime: {
+          // Not implemented yet.
+          CANSendError(CET_NotImplemented,CPT_SyncTime,0);
+        } break;
+        default: {
+          CANSendError(CET_NotImplemented,msgType,0);
+        } break;
       }
 
     }

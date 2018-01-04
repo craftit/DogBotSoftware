@@ -43,17 +43,20 @@ namespace DogBotN
                                 }
       );
     }
-    //m_coms->
   }
 
   //! Close connection
   void ComsProxyC::Close()
   {
+    m_coms->Close();
+    std::cerr << "Disconnecting proxy. " << std::endl;
+    SetComs(std::make_shared<ComsC>());
   }
 
   //! Is connection ready ?
   bool ComsProxyC::IsReady() const
   {
+    std::lock_guard<std::mutex> lock(m_accessTx);
     if(!m_coms)
       return false;
     return m_coms->IsReady();
@@ -79,6 +82,7 @@ namespace DogBotN
   //! Send packet
   void ComsProxyC::SendPacket(const uint8_t *buff,int len)
   {
+    std::lock_guard<std::mutex> lock(m_accessTx);
     if(!m_coms)
       return ;
     m_coms->SendPacket(buff,len);

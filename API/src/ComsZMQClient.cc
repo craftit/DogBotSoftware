@@ -30,13 +30,14 @@ namespace DogBotN
     if(!m_mutexExitOk.try_lock_for(std::chrono::milliseconds(1000))) {
       m_log->error("Failed to shutdown receiver thread.");
     }
-    m_threadRecieve.join();
+    if(m_threadRecieve.joinable())
+      m_threadRecieve.join();
   }
 
   //! Is connection ready ?
   bool ComsZMQClientC::IsReady() const
   {
-    return true;
+    return !m_terminate;
   }
 
 

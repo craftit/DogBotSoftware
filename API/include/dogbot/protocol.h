@@ -42,7 +42,8 @@ extern "C" {
     CET_ParameterOutOfRange = 2,
     CET_CANTransmitFailed = 3,
     CET_InternalError = 4,
-    CET_MotorNotRunning = 5 // Command requires motor to be running. (Like CalZero)
+    CET_MotorNotRunning = 5, // Command requires motor to be running. (Like CalZero)
+    CET_NotImplemented = 6
   };
 
   enum FaultCodeT {
@@ -52,7 +53,7 @@ extern "C" {
     FC_NoSensor = 3,
     FC_NoMotor = 4,
     FC_CalibrationFailed = 5,
-    FC_OverTemperature = 6,
+    FC_DriverOverTemperature = 6,
     FC_DriverFault = 7,
     FC_OverVoltage = 8,
     FC_PositionLost = 9,
@@ -63,7 +64,10 @@ extern "C" {
     FC_MotorResistanceOutOfRange = 14,
     FC_MotorInducetanceOutOfRange = 15,
     FC_InternalUSB = 14,
-    FC_InternalCAN = 15
+    FC_InternalCAN = 15,
+    FC_FanOverCurrent = 16,
+    FC_MotorOverTemperature = 17,
+    FC_SensorOverCurrent = 18
   };
 
 
@@ -117,7 +121,7 @@ extern "C" {
     CPI_DRV8305_05      = 36,
 
     CPI_5VRail          = 37,
-    CPI_AuxPower        = 38,
+    // 38 - Free Was fan mode
     CPI_MaxCurrent      = 39,
     CPI_homeIndexPosition = 40,
     CPI_HallSensors      = 41,
@@ -150,6 +154,10 @@ extern "C" {
     CPI_CANPacketDrops   = 0x50,
     CPI_CANPacketErrors  = 0x51,
     CPI_MainLoopTimeout  = 0x52,
+    CPI_JointRelative    = 0x53,
+    CPI_FanTemperatureThreshold = 0x54,
+    CPI_FanMode          = 0x55,
+    CPI_FanState         = 0x56,
 
     CPI_FINAL           = 0xff
   };
@@ -188,17 +196,27 @@ extern "C" {
    *
    * Relative  : Is relative to an arbitrary position at power up
    * Absolute  : Once position is calibrated
-   * OtherJoint: Position relative to another joint
    * */
 
   enum PositionReferenceT {
     PR_Relative = 0,
-    PR_Absolute = 1,
-    PR_OtherJointRelative = 2,
-    PR_OtherJointAbsolute = 3,
+    PR_Absolute = 1
   };
 
+  /*
+   * Position the joint relative to another.
+   */
 
+  enum JointRelativeT {
+    JR_Isolated = 0,
+    JR_Offset   = 1
+  };
+
+  enum FanModeT {
+    FM_Off = 0,
+    FM_On  = 1,
+    FM_Auto  = 2
+  };
 
   /* Motion calibration state
    *

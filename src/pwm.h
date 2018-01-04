@@ -16,7 +16,7 @@ int PWMStop(void);
 
 void EnableSensorPower(bool enable);
 bool HasSensorPower(void);
-void EnableAuxPower(bool enable);
+void EnableFanPower(bool enable);
 
 enum FaultCodeT PWMSelfTest(void);
 enum FaultCodeT PWMMotorCal(void);

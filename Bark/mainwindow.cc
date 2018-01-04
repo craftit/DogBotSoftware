@@ -14,7 +14,10 @@ MainWindow::MainWindow(QWidget *parent) :
 {
   ui->setupUi(this);
 
-  ui->lineEditDevice->setText("local");
+  ui->comboBoxConnect->setCurrentText("local");
+  ui->tabWidget->setCurrentIndex(0);
+  ui->tabWidget->tabBar()->hide();
+
   //ui->lineEditDevice->setText("usb");
   //ui->lineEditDevice->setText("/dev/ttyACM1");
   //ui->lineEditDevice->setText("/dev/tty.usbmodem401");
@@ -64,6 +67,8 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(this,SIGNAL(setMainLoopTimeout(QString)),ui->lineEditMainLoopTimeout,SLOT(setText(QString)));
   connect(this,SIGNAL(setFaultMap(QString)),ui->lineEditFaultMap,SLOT(setText(QString)));
   connect(this,SIGNAL(setIndexSensor(bool)),ui->checkBoxIndexSensor,SLOT(setChecked(bool)));
+  connect(this,SIGNAL(setJointRelativeEnabled(bool)),ui->checkBoxJointRelative,SLOT(setChecked(bool)));
+  connect(this,SIGNAL(setFanMode(const QString &)),ui->comboBoxFanState,SLOT(setCurrentText(QString)));
 
   startTimer(10);
 
@@ -90,6 +95,7 @@ MainWindow::MainWindow(QWidget *parent) :
   m_displayQuery.push_back(CPI_CANPacketErrors);
   m_displayQuery.push_back(CPI_MainLoopTimeout);
   m_displayQuery.push_back(CPI_FaultState);
+  m_displayQuery.push_back(CPI_FanMode);
 }
 
 void MainWindow::timerEvent(QTimerEvent *)
@@ -108,8 +114,6 @@ void MainWindow::timerEvent(QTimerEvent *)
   {
     case PR_Relative: posRefStr = "Relative"; break;
     case PR_Absolute: posRefStr = "Absolute"; break;
-    case PR_OtherJointRelative: posRefStr = "Relative Other"; break;
-    case PR_OtherJointAbsolute: posRefStr = "Absolute Other"; break;
   }
   ui->labelCalState->setText(posRefStr.c_str());
 }
@@ -206,11 +210,17 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
       {
         case PR_Relative: emit setPositionRef("Relative"); break;
         case PR_Absolute: emit setPositionRef("Absolute"); break;
-        case PR_OtherJointRelative: emit setPositionRef("RelativeOther"); break;
-        case PR_OtherJointAbsolute: emit setPositionRef("AbsoluteOther"); break;
       }
     }
   } break;
+  case CPI_JointRelative: {
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      enum JointRelativeT jointRelativeMode = (enum JointRelativeT) psp->m_data.uint8[0];
+      emit setJointRelativeEnabled(jointRelativeMode != JR_Isolated);
+    }
+  } break;
+
+
   case CPI_Indicator: {
     if(psp->m_header.m_deviceId == m_targetDeviceId) {
       emit setIndicator(psp->m_data.uint8[0] > 0);
@@ -568,15 +578,44 @@ void MainWindow::QueryAll()
     ui->comboBoxServoName->setCurrentText(servo->Name().c_str());
 }
 
+//! Close current connection
+void MainWindow::CloseConnection()
+{
+  m_coms->Close();
+  ui->pushButtonConnect->setText("Connect");
+  ui->tabWidget->setTabEnabled(1,false);
+  ui->tabWidget->setTabEnabled(2,false);
+  ui->tabWidget->setTabEnabled(3,false);
+  ui->labelConnectionState->setText("Disconnected");
+  ui->tabWidget->setCurrentIndex(0);
+  ui->tabWidget->tabBar()->hide();
+  return ;
+}
+
 void MainWindow::on_pushButtonConnect_clicked()
 {
-  if(m_coms->Open(ui->lineEditDevice->text().toStdString().c_str())) {
-    ui->labelConnectionState->setText("Ok");
+  if(m_coms->IsReady()) {
+    std::cerr << "Closing. " << std::endl;
+    CloseConnection();
+    return ;
+  }
+
+  if(m_coms->Open(ui->comboBoxConnect->currentText().toStdString().c_str())) {
+    std::cerr << "Connect ok. " << std::endl;
+    ui->labelConnectionState->setText("Connection Ok");
+    ui->pushButtonConnect->setText("Disconnect");
     emit setLogText("Connect ok");
+    ui->tabWidget->setTabEnabled(1,true);
+    ui->tabWidget->setTabEnabled(2,true);
+    ui->tabWidget->setTabEnabled(3,true);
+    ui->tabWidget->tabBar()->show();
+    ui->tabWidget->setCurrentIndex(1);
     QueryAll();
   } else {
+    std::cerr << "Failed to connect. " << std::endl;
     ui->labelConnectionState->setText("Failed");
     emit setLogText("Connect failed");
+    ui->pushButtonConnect->setText("Connect");
   }
 }
 
@@ -796,12 +835,6 @@ void MainWindow::on_comboBox_activated(const QString &arg1)
   if(arg1 == "Absolute") {
     g_positionReference = PR_Absolute;
   }
-  if(arg1 == "RelativeOther") {
-    g_positionReference = PR_OtherJointRelative;
-  }
-  if(arg1 == "AbsoluteOther") {
-    g_positionReference = PR_OtherJointAbsolute;
-  }
   std::cout << "Changing send positions to " << (int) g_positionReference << std::endl << std::flush;
 }
 
@@ -813,12 +846,6 @@ void MainWindow::on_comboBoxPositionRef_activated(const QString &arg1)
   }
   if(arg1 == "Absolute") {
     positionReference = PR_Absolute;
-  }
-  if(arg1 == "RelativeOther") {
-    positionReference = PR_OtherJointRelative;
-  }
-  if(arg1 == "AbsoluteOther") {
-    positionReference = PR_OtherJointAbsolute;
   }
   std::cout << "Changing requested ref to " << (int) positionReference << std::endl  << std::flush;
   m_coms->SendSetParam(m_targetDeviceId,CPI_PositionRef,(uint8_t) positionReference);
@@ -925,11 +952,6 @@ void MainWindow::on_doubleSpinBoxPositionGain_valueChanged(double arg1)
   m_coms->SendSetParam(m_targetDeviceId,CPI_PositionGain,(float) arg1);
 }
 
-void MainWindow::on_checkBoxFan_toggled(bool checked)
-{
-  m_coms->SendSetParam(m_targetDeviceId,CPI_AuxPower,checked ? 1 : 0);
-}
-
 void MainWindow::on_pushButton_5_clicked()
 {
   m_coms->SendQueryParam(m_targetDeviceId,CPI_5VRail);
@@ -1032,4 +1054,20 @@ void MainWindow::on_pushButtonRefresh_clicked()
 void MainWindow::on_actionExit_triggered()
 {
   QApplication::quit();
+}
+
+void MainWindow::on_comboBoxFanState_activated(int index)
+{
+  m_coms->SendSetParam(m_targetDeviceId,CPI_FanMode,index);
+}
+
+void MainWindow::on_checkBoxJointRelative_stateChanged(int arg1)
+{
+  enum JointRelativeT jointRelativeMode;
+  if(arg1 == 0) {
+    jointRelativeMode = JR_Isolated;
+  } else {
+    jointRelativeMode = JR_Offset;
+  }
+  m_coms->SendSetParam(m_targetDeviceId,CPI_JointRelative,jointRelativeMode);
 }

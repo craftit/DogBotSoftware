@@ -108,8 +108,6 @@ private slots:
 
   void on_doubleSpinBoxPositionGain_valueChanged(double arg1);
 
-  void on_checkBoxFan_toggled(bool checked);
-
   void on_pushButton_5_clicked();
 
   void on_pushButtonEmergencyStop_clicked();
@@ -137,6 +135,10 @@ private slots:
   void on_pushButtonRefresh_clicked();
 
   void on_actionExit_triggered();
+
+  void on_comboBoxFanState_activated(int index);
+
+  void on_checkBoxJointRelative_stateChanged(int arg1);
 
 signals:
   void setLogText(const QString &str);
@@ -169,6 +171,8 @@ signals:
   void setMainLoopTimeout(const QString &str);
   void setFaultMap(const QString &str);
   void setIndexSensor(bool state);
+  void setJointRelativeEnabled(bool state);
+  void setFanMode(const QString &str);
 
 private:
   void SetupComs();
@@ -177,7 +181,8 @@ private:
 
   bool ProcessParam(struct PacketParam8ByteC *psp, std::string &displayStr);
 
-  void EnableBounce(bool state);
+  //! Close current connection
+  void CloseConnection();
 
   int m_toQuery = 0;
   std::vector<ComsParameterIndexT> m_displayQuery;

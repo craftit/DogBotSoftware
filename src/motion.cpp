@@ -24,6 +24,8 @@ enum MotionHomedStateT g_motionHomedState = MHS_Lost;
 enum PositionReferenceT g_motionPositionReference = PR_Relative;
 enum ControlStateT g_controlState = CS_StartUp;
 enum FaultCodeT g_lastFaultCode = FC_Ok;
+enum JointRelativeT g_motionJointRelative = JR_Isolated;
+
 bool g_indicatorState = false;
 bool g_newCalibrationData = false;
 
@@ -173,13 +175,7 @@ bool MotionReport(int16_t position,int16_t torque,PositionReferenceT posRef)
 {
   uint8_t mode = posRef & 0x3;
 
-  // Report endstop switches.
-#if 0
-  if(palReadPad(GPIOC, GPIOC_PIN6))
-    mode |= 1 << 3;
-  if(palReadPad(GPIOC, GPIOC_PIN7))
-    mode |= 1 << 4;
-#endif
+  // Report endstop switch.
   if(palReadPad(GPIOC, GPIOC_PIN8))
     mode |= 1 << 3;
 
@@ -202,8 +198,7 @@ void CalibrationCheckFailed() {
   if(g_motionHomedState == MHS_Lost)
     return ;
   g_motionHomedState = MHS_Lost;
-  if(g_motionPositionReference == PR_Absolute ||
-      g_motionPositionReference == PR_OtherJointAbsolute) {
+  if(g_motionPositionReference == PR_Absolute) {
     FaultDetected(FC_PositionLost);
   }
   MotionResetCalibration(MHS_Lost);
@@ -277,9 +272,6 @@ void MotionStep()
 
   switch(g_motionPositionReference)
   {
-    case PR_OtherJointAbsolute:
-      position -= g_otherPhaseOffset;
-      /* no break */
     case PR_Absolute: {
       if(g_motionHomedState == MHS_Homed) {
         position -= g_homeAngleOffset;
@@ -288,13 +280,14 @@ void MotionStep()
         position = g_currentPhasePosition;
         posRef = PR_Relative;
       }
+      if(g_motionJointRelative == JR_Offset)
+        position -= g_otherPhaseOffset;
       int16_t reportPosition = PhasePositionToDemand(position);
       MotionReport(reportPosition,torque,posRef);
     } break;
-    case PR_OtherJointRelative:
-      position -= g_otherPhaseOffset;
-      /* no break */
     case PR_Relative: {
+      if(g_motionJointRelative == JR_Offset)
+        position -= g_otherPhaseOffset;
       uint16_t reportPosition = PhasePositionToDemand(position);
       MotionReport(reportPosition,torque,posRef);
     } break;

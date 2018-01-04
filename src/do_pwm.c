@@ -769,6 +769,11 @@ enum FaultCodeT PWMSelfTest()
   if(g_vbus_voltage > g_maxSupplyVoltage)
     return FC_OverVoltage;
 
+  if(!palReadPad(GPIOB, GPIOB_PIN11)) { // Sensor over current fault
+    EnableSensorPower(false);
+    return FC_SensorOverCurrent;
+  }
+
   //if(g_vbus_voltage < 8.0) return FC_UnderVoltage;
 
   {
@@ -778,7 +783,7 @@ enum FaultCodeT PWMSelfTest()
     g_driveTemperature = sum/10.0f;
   }
   if(g_driveTemperature > g_maxOperatingTemperature)
-    return FC_OverTemperature;
+    return FC_DriverOverTemperature;
 
   //g_motorTemperature = ReadMotorTemperature();
   //if()
@@ -816,6 +821,24 @@ enum FaultCodeT PWMSelfTest()
   if(errCode != FC_Ok)
     return errCode;
 
+  // Check fan
+  bool fanState = palReadPad(GPIOA, GPIOA_PIN7); // Read fan power.
+  EnableFanPower(true);
+  for(int i = 0;i < 10;i++) {
+    if(!palReadPad(GPIOB, GPIOB_PIN11)) { // Fan fault
+      EnableFanPower(false);
+      return FC_FanOverCurrent;
+    }
+    chThdSleepMilliseconds(10);
+  }
+  // Restore fan state.
+  EnableFanPower(fanState);
+
+  // Double check sensor over current fault
+  if(!palReadPad(GPIOB, GPIOB_PIN11)) {
+    EnableSensorPower(false);
+    return FC_SensorOverCurrent;
+  }
 
   return FC_Ok;
 }
