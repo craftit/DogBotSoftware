@@ -189,7 +189,7 @@ namespace DogBotN {
     { return m_reportedMode; }
 
     //! Update coms device
-    virtual void UpdateComs(const std::shared_ptr<ComsC> &coms);
+    virtual void UpdateComs(const std::shared_ptr<ComsC> &coms) override;
 
   protected:
     //! Initialise timeouts and setup

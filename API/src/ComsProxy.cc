@@ -3,6 +3,7 @@
 #include "dogbot/ComsZMQClient.hh"
 #include "dogbot/ComsSerial.hh"
 #include "dogbot/ComsUSB.hh"
+#include <iostream>
 
 namespace DogBotN
 {

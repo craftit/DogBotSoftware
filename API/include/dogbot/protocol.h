@@ -63,11 +63,11 @@ extern "C" {
     FC_Internal = 13,
     FC_MotorResistanceOutOfRange = 14,
     FC_MotorInducetanceOutOfRange = 15,
-    FC_InternalUSB = 14,
-    FC_InternalCAN = 15,
-    FC_FanOverCurrent = 16,
-    FC_MotorOverTemperature = 17,
-    FC_SensorOverCurrent = 18
+    FC_InternalUSB = 16,
+    FC_InternalCAN = 17,
+    FC_FanOverCurrent = 18,
+    FC_MotorOverTemperature = 19,
+    FC_SensorOverCurrent = 20
   };
 
 
