@@ -564,6 +564,7 @@ namespace DogBotN {
         m_velocity = 0;
       }
     } else {
+#if 0
       if(timeSinceLastReport < comsTimeout) {
         // Re-query servo status.
         if((m_faultCode == FC_Unknown) &&
@@ -573,6 +574,7 @@ namespace DogBotN {
           m_toQuery = 0;
         }
       }
+#endif
     }
 
     // Go through updating things, and avoiding flooding the bus.

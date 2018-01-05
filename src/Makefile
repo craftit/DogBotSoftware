@@ -108,7 +108,7 @@ include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
 # Define linker script file here
 #LDSCRIPT= ld_eeprom_emu.ld
 #LDSCRIPT= STM32F405xG_eeprom.ld
-LDSCRIPT= STM32F405xG.ld
+LDSCRIPT= STM32F405xG_boot.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -237,7 +237,8 @@ CPPWARN = -Wall -Wextra -Wundef
 #
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS = -DSHELL_CMD_TEST_ENABLED=FALSE -DSTM32_USB_USE_ISOCHRONOUS=1
+UDEFS = -DSHELL_CMD_TEST_ENABLED=FALSE -DSTM32_USB_USE_ISOCHRONOUS=1 -DCORTEX_VTOR_INIT=0x0800C000 -DCRT0_VTOR_INIT=TRUE -DCRT0_FORCE_MSP_INIT=TRUE 
+
 #-DCHPRINTF_USE_FLOAT=1 
 #-DUSE_PACKETUSB=0
 # -DSTM32F40_41xxx=1
@@ -253,6 +254,9 @@ ULIBDIR = ../lib
 
 # List all user libraries here
 ULIBS = -larm_cortexM4lf_math -lm
+
+SREC= $(CP) -O srec 
+
 
 #
 # End of user defines

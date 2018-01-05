@@ -16,13 +16,6 @@
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QPushButton" name="pushButtonEmergencyStop">
-      <property name="text">
-       <string>Emergency Stop</string>
-      </property>
-     </widget>
-    </item>
-    <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="enabled">
        <bool>true</bool>
@@ -576,16 +569,6 @@
                <string>Absolute</string>
               </property>
              </item>
-             <item>
-              <property name="text">
-               <string>RelativeOther</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>AbsoluteOther</string>
-              </property>
-             </item>
             </widget>
            </item>
           </layout>
@@ -643,7 +626,7 @@
            <item row="3" column="0">
             <widget class="QLabel" name="label_28">
              <property name="text">
-              <string>Home Index</string>
+              <string>Home Offset</string>
              </property>
             </widget>
            </item>
@@ -1161,6 +1144,13 @@
         </item>
        </layout>
       </widget>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="pushButtonEmergencyStop">
+      <property name="text">
+       <string>Emergency Stop</string>
+      </property>
      </widget>
     </item>
    </layout>

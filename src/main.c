@@ -166,6 +166,8 @@ uint32_t g_faultState = 0;
 void FaultDetected(enum FaultCodeT faultCode)
 {
   g_currentLimit = 0;
+  if(faultCode == FC_Ok)
+    return ;
   int faultBit = 1<<((int) faultCode);
   // Have we already flagged this error?
   if((g_faultState & faultBit) != 0) {
@@ -433,7 +435,7 @@ int main(void) {
   int cycleCount = 0;
 
   /* Is button pressed ?  */
-  g_doFactoryCal = !palReadPad(GPIOB, GPIOA_PIN2);
+  g_doFactoryCal = !palReadPad(GPIOB, GPIOB_PIN2);
 
   while(1) {
     switch(g_controlState)
@@ -519,6 +521,7 @@ int main(void) {
     // Stuff we want to check all the time.
     g_driveTemperature +=  (ReadDriveTemperature() - g_driveTemperature) * 0.1;
 
+#if 1
     // Check fan state.
     switch(g_fanMode) {
       case FM_Off:
@@ -549,6 +552,7 @@ int main(void) {
       EnableSensorPower(false);
       FaultDetected(FC_SensorOverCurrent);
     }
+#endif
 
     // We can only read motor temperatures when sensors are enabled.
     if(g_controlState != CS_LowPower  && g_controlState != CS_Standby) {

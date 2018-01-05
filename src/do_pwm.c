@@ -757,6 +757,8 @@ int PWMSVMScan(BaseSequentialStream *chp)
 void DisplayAngle(BaseSequentialStream *chp);
 
 
+#define CHECK_OVERCURRENT 1
+
 enum FaultCodeT PWMSelfTest()
 {
   EnableSensorPower(true);
@@ -769,10 +771,12 @@ enum FaultCodeT PWMSelfTest()
   if(g_vbus_voltage > g_maxSupplyVoltage)
     return FC_OverVoltage;
 
+#if CHECK_OVERCURRENT
   if(!palReadPad(GPIOB, GPIOB_PIN11)) { // Sensor over current fault
     EnableSensorPower(false);
     return FC_SensorOverCurrent;
   }
+#endif
 
   //if(g_vbus_voltage < 8.0) return FC_UnderVoltage;
 
@@ -784,9 +788,6 @@ enum FaultCodeT PWMSelfTest()
   }
   if(g_driveTemperature > g_maxOperatingTemperature)
     return FC_DriverOverTemperature;
-
-  //g_motorTemperature = ReadMotorTemperature();
-  //if()
 
   InitPWM();
   if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
@@ -821,6 +822,7 @@ enum FaultCodeT PWMSelfTest()
   if(errCode != FC_Ok)
     return errCode;
 
+#if CHECK_OVERCURRENT
   // Check fan
   bool fanState = palReadPad(GPIOA, GPIOA_PIN7); // Read fan power.
   EnableFanPower(true);
@@ -839,6 +841,7 @@ enum FaultCodeT PWMSelfTest()
     EnableSensorPower(false);
     return FC_SensorOverCurrent;
   }
+#endif
 
   return FC_Ok;
 }
