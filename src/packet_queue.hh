@@ -14,6 +14,7 @@ class PacketQueueC {
 public:
   PacketQueueC();
 
+
   struct PacketT *GetEmptyPacket(systime_t timeout);
 
   /* Post full packet. */
@@ -44,6 +45,10 @@ public:
   mailbox_t m_fullPackets;
 
   PacketT m_packetArray[PACKET_QUEUE_SIZE];
+
+protected:
+  void Init();
+
 };
 
 extern PacketQueueC g_txPacketQueue;

@@ -1,14 +1,13 @@
 #ifndef COMS_HEADER
 #define COMS_HEADER 1
 
-#define BMC_MAXPACKETSIZE 64
+#define BMC_MAXPACKETSIZE 63
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #include "hal.h"
-#include "serial_usbcfg.h"
 #include "dogbot/protocol.h"
 
   extern bool g_comsInitDone;
@@ -63,23 +62,15 @@ extern "C" {
   void SendParamUpdate(enum ComsParameterIndexT paramIndex);
 
 
-  /* True if this device is in bridge mode, relaying CAN messages back over the local USB connection. */
-  extern bool g_canBridgeMode;
-
-  /* The local device id. */
-  extern uint8_t g_deviceId;
-
   /* Count of USB messages dropped due to full buffers */
   extern int g_usbDropCount;
 
   /* Error encountered processing USB packets. */
   extern int g_usbErrorCount;
 
-  /* Count of CAN messages dropped due to full buffers */
-  extern int g_canDropCount;
+  /* True if this device is in bridge mode, relaying CAN messages back over the local USB connection. */
+  extern bool g_canBridgeMode;
 
-  /* Count of CAN errors encountered */
-  extern int g_canErrorCount;
 
 
 #ifdef __cplusplus

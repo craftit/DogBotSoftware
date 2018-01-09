@@ -1,9 +1,14 @@
 #ifndef CANBUS_HEADER
 #define CANBUS_HEADER 1
 
+#include <stdint.h>
+#include "dogbot/protocol.h"
+#include "hal.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 
 int InitCAN(void);
 
@@ -72,6 +77,27 @@ bool CANSendStoredSetup(
     enum ComsPacketTypeT pktType // Must be either CPT_SaveSetup or CPT_LoadSetup
 );
 
+bool CANSendAnnounceId();
+
+
+bool CANSendBootLoaderReset();
+bool CANSendBootLoaderResult(uint8_t lastSeqNum,enum BootLoaderStateT state,enum FlashOperationStatusT result);
+bool CANSendBootLoaderErase(uint8_t seqNum);
+bool CANSendBootLoaderData(uint8_t seqNum,uint8_t *data,uint8_t len);
+bool CANSendBootLoaderRead(uint8_t seqNum,uint32_t addr,uint16_t len);
+bool CANSendBootLoaderWrite(uint8_t seqNum,uint32_t addr,uint16_t len);
+bool CANSendBootLoaderCheckSum(uint8_t seqNum,uint32_t addr,uint16_t len);
+bool CANSendBootLoaderCheckSumResult(uint8_t seqNum,uint32_t sum);
+
+
+/* The local device id. */
+extern uint8_t g_deviceId;
+
+/* Count of CAN messages dropped due to full buffers */
+extern int g_canDropCount;
+
+/* Count of CAN errors encountered */
+extern int g_canErrorCount;
 
 extern uint32_t g_nodeUId[2];
 

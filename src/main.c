@@ -1,18 +1,4 @@
-/*
-    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
 
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
-*/
 
 #include "ch.h"
 #include "hal.h"
@@ -140,6 +126,40 @@ extern void InitADC(void);
 
 extern pid_t getpid(void);
 
+
+void flashJumpApplication(uint32_t address) {
+  typedef void (*pFunction)(void);
+
+  pFunction Jump_To_Application;
+
+  /* variable that will be loaded with the start address of the application */
+  vu32* JumpAddress;
+  const vu32* ApplicationAddress = (vu32*) address;
+
+  /* get jump address from application vector table */
+  JumpAddress = (vu32*) ApplicationAddress[1];
+
+  /* load this address into function pointer */
+  Jump_To_Application = (pFunction) JumpAddress;
+
+  /* reset all interrupts to default */
+  chSysDisable();
+
+  /* Clear pending interrupts just to be on the save side*/
+  //SCB->ICSR = SCB_ICSR_PENDSVCLR;
+//      ICSR_PENDSVCLR;;
+
+  /* Disable all interrupts */
+  int i;
+  for(i=0; i<8; i++)
+    NVIC->ICER[i] = NVIC->IABR[i];
+
+  /* set stack pointer as in application's vector table */
+  __set_MSP((u32) (ApplicationAddress[0]));
+  Jump_To_Application();
+}
+
+
 bool HasSensorPower()
 {
   return palReadPad(GPIOB, GPIOB_PIN12);
@@ -165,9 +185,9 @@ uint32_t g_faultState = 0;
 
 void FaultDetected(enum FaultCodeT faultCode)
 {
-  g_currentLimit = 0;
   if(faultCode == FC_Ok)
     return ;
+  g_currentLimit = 0;
   int faultBit = 1<<((int) faultCode);
   // Have we already flagged this error?
   if((g_faultState & faultBit) != 0) {
@@ -188,19 +208,30 @@ int ChangeControlState(enum ControlStateT newState)
   if(newState == g_controlState)
     return true;
 
+
   // Check transition is ok.
   switch(g_controlState)
   {
     case CS_Fault:
-      if(newState != CS_StartUp)
-        return false;
-      break;
     case CS_EmergencyStop:
-      if(newState != CS_StartUp)
+      if(newState != CS_StartUp) {
+        SendParamUpdate(CPI_ControlState);
         return false;
+      }
       break;
     default:
       break;
+  }
+
+  // Can only jump to boot loader from standby, low power or fault.
+  // Check state we're going to.
+  if(newState == CS_BootLoader &&
+      (g_controlState != CS_Standby &&
+          g_controlState != CS_LowPower &&
+          g_controlState != CS_Fault
+          )) {
+    SendParamUpdate(CPI_ControlState);
+    return false;
   }
 
   g_controlState = newState;
@@ -239,7 +270,11 @@ int ChangeControlState(enum ControlStateT newState)
       EnableSensorPower(false);
       SendParamUpdate(CPI_HomedState);
     } break;
-
+    case CS_BootLoader: {
+      PWMStop();
+      EnableSensorPower(false);
+      jump_to_bootloader(0x08000000);
+    } break;
     default:
       return false;
   }
@@ -440,6 +475,7 @@ int main(void) {
   while(1) {
     switch(g_controlState)
     {
+      case CS_BootLoader:
       case CS_StartUp:
         DoStartup();
         break;
@@ -474,7 +510,6 @@ int main(void) {
         chThdSleepMilliseconds(100);
         SendBackgroundStateReport();
         break;
-
       case CS_Home:
       case CS_Teach:
       case CS_Diagnostic:

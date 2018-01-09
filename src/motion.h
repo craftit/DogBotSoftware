@@ -26,7 +26,6 @@ extern "C" {
   extern enum PositionReferenceT g_motionPositionReference;
   extern enum JointRelativeT g_motionJointRelative;
   extern enum ControlStateT g_controlState;
-  extern enum FaultCodeT g_lastFaultCode;
   extern float g_homeAngleOffset;      // Offset from phase position to actuator position.
   extern uint8_t g_otherJointId;  //! Id of other joint
   extern float g_relativePositionGain;

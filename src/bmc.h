@@ -22,6 +22,7 @@ extern float Read5VRailVoltage(void);
 extern unsigned g_mainLoopTimeoutCount;
 extern enum FanModeT g_fanMode;
 extern float g_fanTemperatureThreshold;
+extern enum FaultCodeT g_lastFaultCode;
 
 #ifdef __cplusplus
 }

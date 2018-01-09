@@ -10,11 +10,19 @@ int g_canDropCount = 0;
 CANQueueC::CANQueueC()
 {
   chMBObjectInit(&m_emptyPackets,m_emptyPacketData,CAN_QUEUE_SIZE);
+  chMBObjectInit(&m_fullPackets,m_fullPacketData,CAN_QUEUE_SIZE);
+
+  Init();
+}
+
+//! Complete initialisation
+void CANQueueC::Init()
+{
   for(int i = 0;i < CAN_QUEUE_SIZE;i++) {
     chMBPost(&m_emptyPackets,reinterpret_cast<msg_t>(&m_packetArray[i]),TIME_IMMEDIATE);
   }
-  chMBObjectInit(&m_fullPackets,m_fullPacketData,CAN_QUEUE_SIZE);
 }
+
 
 void CANQueueC::ReturnEmptyPacketI(CANTxFrame *pkt) {
   if(chMBPostI(&m_emptyPackets,(msg_t) pkt) != MSG_OK)

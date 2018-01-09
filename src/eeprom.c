@@ -690,9 +690,3 @@ static uint16_t EE_EraseSectorIfNotEmpty(uint32_t FLASH_Sector, uint8_t VoltageR
 }
 
 
-
-/**
- * @}
- */
-
-/******************* (C) COPYRIGHT 2011 STMicroelectronics *****END OF FILE****/

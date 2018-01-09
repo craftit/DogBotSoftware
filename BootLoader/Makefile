@@ -83,7 +83,7 @@ endif
 #
 
 # Define project name here
-PROJECT = BMCV2
+PROJECT = BMCV2BOOT
 
 # Imported source files and paths
 CHIBIOS = ../../ChibiOS_17.6.3
@@ -106,8 +106,10 @@ include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
 #LDSCRIPT= $(STARTUPLD)/STM32F405xG.ld
 
 # Define linker script file here
-#LDSCRIPT= STM32F405xG_boot.ld
+#LDSCRIPT= ld_eeprom_emu.ld
+#LDSCRIPT= STM32F405xG_eeprom.ld
 LDSCRIPT= STM32F405xG.ld
+#LDSCRIPT= STM32F405xG.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -119,41 +121,28 @@ CSRC = $(STARTUPSRC) \
        $(PLATFORMSRC) \
        $(BOARDSRC) \
        $(TESTSRC) \
-       $(CHIBIOS)/os/various/shell/shell.c \
+       main.c \
+       $(STDPERIPH)/src/stm32f4xx_rcc.c \
+       $(STDPERIPH)/src/stm32f4xx_flash.c \
+       $(STDPERIPH)/src/misc.c \
+       ../src/stubs.c 
+
+#       $(STDPERIPH)/src/stm32f4xx_tim.c \
+#       $(STDPERIPH)/src/stm32f4xx_adc.c \
+#       $(CHIBIOS)/os/various/shell/shell.c \
        $(CHIBIOS)/os/various/shell/shell_cmd.c \
        $(CHIBIOS)/os/various/syscalls.c \
        $(CHIBIOS)/os/hal/lib/streams/memstreams.c \
        $(CHIBIOS)/os/hal/lib/streams/chprintf.c \
-       main.c \
-       serial_usbcfg.c \
-       coms_serial.c \
-       do_adc.c \
-       drv8503.c \
-       do_pwm.c \
-       svm.c \
-       eeprom.c \
-       storedconf.c \
-       terminal.c \
-       packet_usbcfg.c \
-       $(STDPERIPH)/src/stm32f4xx_tim.c \
-       $(STDPERIPH)/src/stm32f4xx_rcc.c \
-       $(STDPERIPH)/src/stm32f4xx_adc.c \
-       $(STDPERIPH)/src/stm32f4xx_flash.c \
-       $(STDPERIPH)/src/misc.c \
-       stubs.c 
  			
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
 CPPSRC = \
   coms.cpp \
-  motion.cpp \
-  serial_usbcoms.cpp \
-  serial_packet.cpp \
-  packet_usbcoms.cpp \
-  packet_queue.cpp \
-  can_queue.cpp \
-  canbus.cpp \
-  can_coms.cpp
+  flashops.cpp \
+  ../src/can_queue.cpp \
+  ../src/can_coms.cpp \
+  ../src/canbus.cpp
 
 
 # C sources to be compiled in ARM mode regardless of the global setting.
@@ -182,6 +171,7 @@ ASMXSRC = $(STARTUPASM) $(PORTASM) $(OSALASM)
 
 INCDIR = $(CHIBIOS)/os/license \
          $(STDPERIPH)/inc \
+         ../src \
          ../ext/STM32F4xx_DSP_StdPeriph_Lib/Libraries/CMSIS/Device/ST/STM32F4xx/Include \
          $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(TESTINC) \

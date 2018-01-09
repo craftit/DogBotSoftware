@@ -36,7 +36,7 @@
 #define VOLTAGE_RANGE           (uint8_t)VoltageRange_3
 
 /* EEPROM start address in Flash */
-#define EEPROM_START_ADDRESS  ((uint32_t)0x08004000) /* EEPROM emulation start address:
+#define EEPROM_START_ADDRESS  ((uint32_t)0x08008000) /* EEPROM emulation start address:
                                                   from sector1 : after 16KByte of used
                                                   Flash memory */
 

@@ -32,7 +32,15 @@ extern "C" {
     CPT_CalZero       = 16, // Set current position as calibrated zero.
     CPT_Sync          = 17, // Sync data stream
     CPT_PWMState      = 18, // PWM State. Packet holding internal controller data.
-    CPT_BridgeMode    = 19 // Enable bridge mode
+    CPT_BridgeMode    = 19, // Enable bridge mode
+    CPT_FlashCmdReset   = 20, // Status from a flash command
+    CPT_FlashCmdResult  = 21, // Status from a flash command
+    CPT_FlashChecksumResult = 22, // Generate a checksum
+    CPT_FlashEraseSector = 23, // Erase a flash sector
+    CPT_FlashChecksum    = 24, // Generate a checksum
+    CPT_FlashData        = 25, // Data packet
+    CPT_FlashWrite       = 26, // Write buffer
+    CPT_FlashRead        = 27  // Read buffer and send it back
   };
 
 
@@ -43,7 +51,13 @@ extern "C" {
     CET_CANTransmitFailed = 3,
     CET_InternalError = 4,
     CET_MotorNotRunning = 5, // Command requires motor to be running. (Like CalZero)
-    CET_NotImplemented = 6
+    CET_NotImplemented = 6,
+    CET_BootLoaderUnexpectState  = 7,
+    CET_BootLoaderLostSequence = 8,
+    CET_BootLoaderErase  = 9,
+    CET_BootLoaderProtected = 10,
+    CET_BootLoaderBusy  = 11,
+    CET_BootLoaderWriteFailed = 12
   };
 
   enum FaultCodeT {
@@ -75,7 +89,8 @@ extern "C" {
   {
     DT_Unknown = 0,
     DT_SystemController = 1,
-    DT_MotorDriver = 2
+    DT_MotorDriver = 2,
+    DT_BootLoader = 3
   };
 
   enum ComsParameterIndexT
@@ -177,7 +192,9 @@ extern "C" {
     CS_Home          = 7,
     CS_Fault         = 8,
     CS_Teach         = 9,
-    CS_Diagnostic    = 10
+    CS_Diagnostic    = 10,
+    CS_BootLoader    = 11
+
   };
 
 
@@ -321,6 +338,81 @@ extern "C" {
     uint8_t m_packetType; // CPT_SaveSetup / CPT_LoadSetup
     uint8_t m_deviceId;
   }  __attribute__((packed));
+
+
+
+  enum FlashOperationStatusT
+  {
+    FOS_Ok = 0,
+    FOS_SequenceLost = 1,
+    FOS_ProgrammingError = 2
+  };
+
+  enum BootLoaderStateT {
+    BLS_Idle = 0,
+    BLS_Checksum = 1,
+    BLS_Write = 2,
+    BLS_Read  = 3,
+    BLS_Error = 4
+  };
+
+  struct PacketFlashResetC {
+    uint8_t m_packetType;
+    uint8_t m_deviceId;
+  };
+
+  struct PacketFlashResultC {
+    uint8_t m_packetType;
+    uint8_t m_deviceId;
+    uint8_t m_state;
+    uint8_t m_rxSequence;
+    uint8_t m_result;
+  };
+
+  struct PacketFlashEraseC {
+    uint8_t m_packetType;
+    uint8_t m_deviceId;
+    uint8_t m_sequenceNumber;
+  };
+
+  struct PacketFlashChecksumResultC {
+    uint8_t m_packetType;
+    uint8_t m_deviceId;
+    uint8_t m_sequenceNumber;
+    uint32_t m_sum;
+  };
+
+  struct PacketFlashChecksumC {
+    uint8_t m_packetType;
+    uint8_t m_deviceId;
+    uint8_t m_sequenceNumber;
+    uint32_t m_addr;
+    uint16_t m_len;
+  };
+
+  struct PacketFlashDataC {
+    uint8_t m_packetType;
+    uint8_t m_deviceId;
+    uint8_t m_sequenceNumber;
+    uint8_t m_data[0];
+  };
+
+  struct PacketFlashWriteC {
+    uint8_t m_packetType;
+    uint8_t m_deviceId;
+    uint8_t m_sequenceNumber;
+    uint32_t m_addr;
+    uint16_t m_len;
+  };
+
+  struct PacketFlashReadC {
+    uint8_t m_packetType;
+    uint8_t m_deviceId;
+    uint8_t m_sequenceNumber;
+    uint32_t m_addr;
+    uint16_t m_len;
+  };
+
 
 #ifdef __cplusplus
 }

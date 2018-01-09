@@ -6,10 +6,15 @@
 PacketQueueC::PacketQueueC()
 {
   chMBObjectInit(&m_emptyPackets,m_emptyPacketData,PACKET_QUEUE_SIZE);
+  chMBObjectInit(&m_fullPackets,m_fullPacketData,PACKET_QUEUE_SIZE);
+  Init();
+}
+
+void PacketQueueC::Init()
+{
   for(int i = 0;i < PACKET_QUEUE_SIZE;i++) {
     chMBPost(&m_emptyPackets,reinterpret_cast<msg_t>(&m_packetArray[i]),TIME_IMMEDIATE);
   }
-  chMBObjectInit(&m_fullPackets,m_fullPacketData,PACKET_QUEUE_SIZE);
 }
 
 void PacketQueueC::ReturnEmptyPacketI(struct PacketT *pkt) {

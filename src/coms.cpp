@@ -780,15 +780,17 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
         USBSendError(g_deviceId,CET_InternalError,CPT_LoadSetup,ret);
       }
     }
-    if((psp->m_deviceId != g_deviceId || psp->m_deviceId == 0) && g_deviceId != 0) {
-      if(!CANSendStoredSetup(psp->m_deviceId,cpt)) {
-        USBSendError(g_deviceId,CET_CANTransmitFailed,CPT_SaveSetup,m_data[0]);
+    if(g_canBridgeMode) {
+      if((psp->m_deviceId != g_deviceId || psp->m_deviceId == 0) && g_deviceId != 0) {
+        if(!CANSendStoredSetup(psp->m_deviceId,cpt)) {
+          USBSendError(g_deviceId,CET_CANTransmitFailed,CPT_SaveSetup,m_data[0]);
+        }
       }
     }
   } break;
   case CPT_CalZero: {
     if(m_packetLen != sizeof(struct PacketCalZeroC)) {
-      USBSendError(g_deviceId,CET_UnexpectedPacketSize,CPT_CalZero,m_packetLen);
+      USBSendError(g_deviceId,CET_UnexpectedPacketSize,cpt,m_packetLen);
       break;
     }
     struct PacketCalZeroC *psp = (struct PacketCalZeroC *) m_data;
@@ -808,6 +810,106 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
     // Unsupported yet.
     USBSendError(g_deviceId,CET_UnknownPacketType,m_data[0],m_packetLen);
     break;
+
+  case CPT_FlashCmdReset: { // Status from a flash command
+    if(m_packetLen != sizeof(struct PacketFlashResetC)) {
+      USBSendError(g_deviceId,CET_UnexpectedPacketSize,cpt,m_packetLen);
+      break;
+    }
+    struct PacketFlashResetC *psp = (struct PacketFlashResetC *) m_data;
+    if(g_canBridgeMode) {
+      if(psp->m_deviceId == g_deviceId || psp->m_deviceId == 0) {
+        CANSendBootLoaderReset();
+      }
+    }
+  } break;
+
+  case CPT_FlashCmdResult:  { // Status from a flash command
+    if(m_packetLen != sizeof(struct PacketFlashResultC)) {
+      USBSendError(g_deviceId,CET_UnexpectedPacketSize,cpt,m_packetLen);
+      break;
+    }
+    struct PacketFlashResultC *psp = (struct PacketFlashResultC *) m_data;
+    if(g_canBridgeMode) {
+      if(psp->m_deviceId == g_deviceId || psp->m_deviceId == 0) {
+        CANSendBootLoaderResult(psp->m_rxSequence,(enum BootLoaderStateT) psp->m_state,(enum FlashOperationStatusT) psp->m_result);
+      }
+    }
+  } break;
+  case CPT_FlashChecksumResult: {// Generate a checksum
+    if(m_packetLen != sizeof(struct PacketFlashChecksumResultC)) {
+      USBSendError(g_deviceId,CET_UnexpectedPacketSize,cpt,m_packetLen);
+      break;
+    }
+    auto *psp = (struct PacketFlashChecksumResultC *) m_data;
+    if(g_canBridgeMode) {
+      if(psp->m_deviceId == g_deviceId || psp->m_deviceId == 0) {
+        CANSendBootLoaderCheckSumResult(psp->m_sequenceNumber,psp->m_sum);
+      }
+    }
+  } break;
+  case CPT_FlashEraseSector: { // Erase a flash sector
+    if(m_packetLen != sizeof(struct PacketFlashEraseC)) {
+      USBSendError(g_deviceId,CET_UnexpectedPacketSize,cpt,m_packetLen);
+      break;
+    }
+    auto *psp = (struct PacketFlashEraseC *) m_data;
+    if(g_canBridgeMode) {
+      if(psp->m_deviceId == g_deviceId || psp->m_deviceId == 0) {
+        CANSendBootLoaderErase(psp->m_sequenceNumber);
+      }
+    }
+  } break;
+  case CPT_FlashChecksum: { // Generate a checksum
+    if(m_packetLen != sizeof(struct PacketFlashChecksumC)) {
+      USBSendError(g_deviceId,CET_UnexpectedPacketSize,cpt,m_packetLen);
+      break;
+    }
+    auto *psp = (struct PacketFlashChecksumC *) m_data;
+    if(g_canBridgeMode) {
+      if(psp->m_deviceId == g_deviceId || psp->m_deviceId == 0) {
+        CANSendBootLoaderCheckSum(psp->m_sequenceNumber,psp->m_addr,psp->m_len);
+      }
+    }
+  } break;
+  case CPT_FlashData: { // Data packet
+    if(m_packetLen < sizeof(struct PacketFlashDataC)) {
+      USBSendError(g_deviceId,CET_UnexpectedPacketSize,cpt,m_packetLen);
+      break;
+    }
+    auto *psp = (struct PacketFlashDataC *) m_data;
+    if(g_canBridgeMode) {
+      if(psp->m_deviceId == g_deviceId || psp->m_deviceId == 0) {
+        int len = m_packetLen - sizeof(struct PacketFlashDataC);
+        CANSendBootLoaderData(psp->m_sequenceNumber,&psp->m_data[0],len);
+      }
+    }
+  } break;
+  case CPT_FlashWrite: {// Write buffer
+    if(m_packetLen != sizeof(struct PacketFlashWriteC)) {
+      USBSendError(g_deviceId,CET_UnexpectedPacketSize,cpt,m_packetLen);
+      break;
+    }
+    auto *psp = (struct PacketFlashWriteC *) m_data;
+    if(g_canBridgeMode) {
+      if(psp->m_deviceId == g_deviceId || psp->m_deviceId == 0) {
+        CANSendBootLoaderWrite(psp->m_sequenceNumber,psp->m_addr,psp->m_len);
+      }
+    }
+
+  } break;
+  case CPT_FlashRead: { // Read buffer and send it back
+    if(m_packetLen != sizeof(struct PacketFlashReadC)) {
+      USBSendError(g_deviceId,CET_UnexpectedPacketSize,cpt,m_packetLen);
+      break;
+    }
+    auto *psp = (struct PacketFlashReadC *) m_data;
+    if(g_canBridgeMode) {
+      if(psp->m_deviceId == g_deviceId || psp->m_deviceId == 0) {
+        CANSendBootLoaderRead(psp->m_sequenceNumber,psp->m_addr,psp->m_len);
+      }
+    }
+  } break;
 #if 1
   default: {
     USBSendError(g_deviceId,CET_UnknownPacketType,m_data[0],m_packetLen);

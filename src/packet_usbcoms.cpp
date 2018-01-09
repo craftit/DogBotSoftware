@@ -5,6 +5,7 @@
 
 #include "packet_queue.hh"
 #include "packet_usb.h"
+#include "canbus.h"
 #include "coms.h"
 #include "hal.h"
 #include "bmc.h"
@@ -229,7 +230,7 @@ void InitComs()
 void InitUSB(void)
 {
   /*
-   * Initialisation of USB is doen on the InitComs() rx thread to avoid a delay in starting up.
+   * Initialisation of USB is done on the InitComs() rx thread to avoid a delay in starting up.
    * */
 }
 

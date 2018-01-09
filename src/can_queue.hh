@@ -2,8 +2,6 @@
 #define PACKET_QUEUE_HEADER 1
 
 #include "hal.h"
-#include "bmc.h"
-#include "coms.h"
 
 #define CAN_QUEUE_SIZE 24
 
@@ -41,6 +39,9 @@ public:
   mailbox_t m_fullPackets;
 
   CANTxFrame m_packetArray[CAN_QUEUE_SIZE];
+
+protected:
+  void Init();
 };
 
 extern int g_canErrorCount;

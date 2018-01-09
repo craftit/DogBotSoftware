@@ -74,6 +74,7 @@ namespace DogBotN {
     case CS_Fault: return "Fault";
     case CS_StartUp: return "Startup";
     case CS_Diagnostic: return "Diagnostic";
+    case CS_BootLoader: return "Boot Loader";
     }
     printf("Unexpected state %d",(int)controlState);
     return "Invalid";
