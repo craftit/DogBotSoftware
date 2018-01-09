@@ -78,11 +78,13 @@ blt_bool BackDoorEntryHook(void)
 ****************************************************************************************/
 blt_bool CpuUserProgramStartHook(void)
 {
+#if 0
   /* do not start the user program if the pushbutton is pressed */
   if (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_2) == Bit_SET)
   {
     return BLT_FALSE;
   }
+#endif
   /* clean up the LED driver */
   LedBlinkExit();
   /* okay to start the user program */

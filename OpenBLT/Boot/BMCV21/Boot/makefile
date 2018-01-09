@@ -93,6 +93,7 @@ INC_PATH = $(patsubst %/,%,$(patsubst %,-I%,$(sort $(foreach file,$(filter %.h,$
 LIB_PATH = -Lcfg 
 
 
+#-DFLASH_VECTOR_TABLE_CS_OFFSET=0x1e0
 #|--------------------------------------------------------------------------------------|
 #| Options for toolchain binaries                                                       |
 #|--------------------------------------------------------------------------------------|
@@ -103,7 +104,7 @@ STDFLAGS   += -fdata-sections -ffunction-sections -Wall -g3
 OPTFLAGS    = -Og
 CFLAGS      = $(STDFLAGS) $(OPTFLAGS)
 CFLAGS     += -DSTM32F405RG -DSTM32F4XX -DUSE_STDPERIPH_DRIVER -DHSE_VALUE=8000000
-CFLAGS     += -DARM_MATH_CM4 -D__FPU_USED -DUSE_USB_OTG_FS
+CFLAGS     += -DARM_MATH_CM4 -D__FPU_USED -DUSE_USB_OTG_FS 
 CFLAGS     += -D__HEAP_SIZE=$(HEAP_SIZE) -D__STACK_SIZE=$(STACK_SIZE)
 CFLAGS     += $(INC_PATH)
 AFLAGS      = $(CFLAGS)
@@ -140,6 +141,7 @@ all: $(BIN_PATH)/$(PROJ_NAME).srec
 $(BIN_PATH)/$(PROJ_NAME).srec : $(BIN_PATH)/$(PROJ_NAME).elf
 	@$(OC) $< $(OFLAGS) $@
 	@$(OD) $(ODFLAGS) $< > $(BIN_PATH)/$(PROJ_NAME).map
+	@$(OC) -O binary $< $(BIN_PATH)/$(PROJ_NAME).bin
 	@echo +++ Summary of memory consumption:
 	@$(SZ) $(SZFLAGS) $<
 	@echo +++ Build complete [$(notdir $@)]
