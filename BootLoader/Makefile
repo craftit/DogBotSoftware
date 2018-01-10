@@ -125,8 +125,9 @@ CSRC = $(STARTUPSRC) \
        $(STDPERIPH)/src/stm32f4xx_rcc.c \
        $(STDPERIPH)/src/stm32f4xx_flash.c \
        $(STDPERIPH)/src/misc.c \
-       ../src/stubs.c 
-
+       ../src/stubs.c \
+       ../src/exec.c 
+        
 #       $(STDPERIPH)/src/stm32f4xx_tim.c \
 #       $(STDPERIPH)/src/stm32f4xx_adc.c \
 #       $(CHIBIOS)/os/various/shell/shell.c \

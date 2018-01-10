@@ -3,7 +3,7 @@
 
 #include "stm32f4xx_flash.h"
 
-bool BootLoaderReset();
+bool BootLoaderReset(bool enable);
 bool BootLoaderBeginWrite(uint8_t seqNum,uint32_t address,uint16_t len);
 bool BootLoaderErase(uint8_t seqNum,uint32_t address);
 bool BootLoaderCheckSum(uint8_t seqNum,uint32_t address,uint16_t len);

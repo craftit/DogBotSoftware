@@ -91,6 +91,15 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
         BootLoaderErase(rxmsg.data8[0]);
       }
     } break;
+    case CPT_FlashCmdReset: {// Erase a flash sector
+      if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
+        if(rxmsg.DLC != 1) {
+          CANSendError(CET_UnexpectedPacketSize,msgType,rxmsg.DLC);
+          break;
+        }
+        BootLoaderReset(rxmsg.data8[0] != 0);
+      }
+    } break;
     case CPT_FlashChecksum: { // Generate a checksum
       if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
         if(rxmsg.DLC != 7) {

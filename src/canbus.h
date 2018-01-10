@@ -77,10 +77,10 @@ bool CANSendStoredSetup(
     enum ComsPacketTypeT pktType // Must be either CPT_SaveSetup or CPT_LoadSetup
 );
 
-bool CANSendAnnounceId();
+bool CANSendAnnounceId(void);
 
 
-bool CANSendBootLoaderReset();
+bool CANSendBootLoaderReset(bool enable);
 bool CANSendBootLoaderResult(uint8_t lastSeqNum,enum BootLoaderStateT state,enum FlashOperationStatusT result);
 bool CANSendBootLoaderErase(uint8_t seqNum);
 bool CANSendBootLoaderData(uint8_t seqNum,uint8_t *data,uint8_t len);

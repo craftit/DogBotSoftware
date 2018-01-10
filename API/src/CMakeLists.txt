@@ -41,6 +41,7 @@ ADD_LIBRARY (DogBotAPI
         Joint4BarLinkage.cc 
         ZMQContext.cc
         CallbackArray.cc
+        FirmwareUpdate.cc
 )
 
 target_link_libraries (DogBotAPI LINK_PUBLIC ${JSONCPP_LIBRARIES} ${ZMQ_LIBRARIES} ${LIBUSB_LIBRARIES})

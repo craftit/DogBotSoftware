@@ -23,7 +23,7 @@
 
 MEMORY
 {
-/*    flash : org = 0x08000000, len = 16k */
+    flash : org = 0x08000000, len = 16k 
     flash2 : org = 0x08010000, len = 384k
     ram0  : org = 0x20000000, len = 128k    /* SRAM1 + SRAM2 */
     ram1  : org = 0x20000000, len = 112k    /* SRAM1 */
@@ -102,7 +102,7 @@ SECTIONS
     startup : ALIGN(16) SUBALIGN(16)
     {
         KEEP(*(.vectors))
-    } > flash2
+    } > flash
 
     constructors : ALIGN(4) SUBALIGN(4)
     {

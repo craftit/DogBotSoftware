@@ -5,7 +5,7 @@
 #include "bmc.h"
 #include "coms.h"
 
-#define PACKET_QUEUE_SIZE 16
+#define PACKET_QUEUE_SIZE 32
 
 /* TX/RX Data buffer management. */
 

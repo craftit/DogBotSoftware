@@ -184,14 +184,15 @@ bool CANSendAnnounceId()
   return true;
 }
 
-bool CANSendBootLoaderReset()
+bool CANSendBootLoaderReset(bool enable)
 {
   CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
   if(txmsg == 0)
     return false;
   CANSetAddress(txmsg,g_deviceId,CPT_FlashCmdReset);
   txmsg->RTR = CAN_RTR_DATA;
-  txmsg->DLC = 0;
+  txmsg->DLC = 1;
+  txmsg->data8[0] = enable;
   g_txCANQueue.PostFullPacket(txmsg);
   return true;
 }
@@ -296,6 +297,7 @@ bool CANSendBootLoaderCheckSumResult(uint8_t seqNum,uint32_t sum)
   txmsg->RTR = CAN_RTR_DATA;
   txmsg->DLC = 4;
   txmsg->data32[0] = sum;
+  txmsg->data8[4] = seqNum;
   g_txCANQueue.PostFullPacket(txmsg);
   return true;
 }

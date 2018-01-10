@@ -819,7 +819,7 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
     struct PacketFlashResetC *psp = (struct PacketFlashResetC *) m_data;
     if(g_canBridgeMode) {
       if(psp->m_deviceId == g_deviceId || psp->m_deviceId == 0) {
-        CANSendBootLoaderReset();
+        CANSendBootLoaderReset(psp->m_enable > 0);
       }
     }
   } break;

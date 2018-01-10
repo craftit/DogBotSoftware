@@ -106,8 +106,8 @@ include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
 #LDSCRIPT= $(STARTUPLD)/STM32F405xG.ld
 
 # Define linker script file here
-#LDSCRIPT= STM32F405xG_boot.ld
-LDSCRIPT= STM32F405xG.ld
+LDSCRIPT= STM32F405xG_boot.ld
+#LDSCRIPT= STM32F405xG.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -140,7 +140,8 @@ CSRC = $(STARTUPSRC) \
        $(STDPERIPH)/src/stm32f4xx_adc.c \
        $(STDPERIPH)/src/stm32f4xx_flash.c \
        $(STDPERIPH)/src/misc.c \
-       stubs.c 
+       stubs.c \
+       exec.c
  			
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.

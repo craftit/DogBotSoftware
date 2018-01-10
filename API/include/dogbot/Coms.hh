@@ -6,6 +6,7 @@
 #include <thread>
 #include <vector>
 #include <functional>
+#include <future>
 #include <assert.h>
 #include <mutex>
 #include <string.h>
@@ -47,7 +48,7 @@ namespace DogBotN {
 
   //! Set of callbacks to de-register when class is destroyed
   //! This manages resource allocation and provides similar
-  //! exception safety to 'resource acquisition is initialization' variable.
+  //! exception safety to 'resource acquisition is initialisation' variable.
 
   class ComsRegisteredCallbackSetC
   {
@@ -136,9 +137,10 @@ namespace DogBotN {
       msg.m_header.m_index = (uint16_t) param;
       memcpy(msg.m_data.uint8, &value,sizeof(value));
 
-      std::timed_mutex done;
-      done.lock();
-      auto handler = SetHandler(CPT_ReportParam,[this,deviceId,param,&msg,&ret,&done](uint8_t *data,int len) mutable {
+      std::promise<bool> promiseDone;
+      std::future<bool> done = promiseDone.get_future();
+
+      auto handler = SetHandler(CPT_ReportParam,[this,deviceId,param,&msg,&ret,&promiseDone](uint8_t *data,int len) mutable {
         if(len < sizeof(PacketParamHeaderC)) {
           m_log->error("Short ReportParam packet received. {} Bytes ",len);
           return ;
@@ -151,12 +153,12 @@ namespace DogBotN {
           return ;
         if(len != sizeof(msg.m_header)+sizeof(value)) {
           m_log->error("Unexpected reply size {}, when {} bytes were sent for parameter {} ",len,sizeof(msg.m_header)+sizeof(value),(int) param);
-          done.unlock();
+          promiseDone.set_value(false);
           return ;
         }
         if(memcmp(msg.m_data.uint8,pkt->m_data.uint8,sizeof(value)) == 0) {
           ret = true;
-          done.unlock();
+          promiseDone.set_value(true);
         }
       });
       assert(sizeof(value) <= 7);
@@ -169,7 +171,7 @@ namespace DogBotN {
       for(int i = 0;i < 4 && ret;i++) {
         // Send data.
         SendPacket((uint8_t*) &msg,sizeof(msg.m_header)+sizeof(value));
-        if(done.try_lock_for(Ms(100))) {
+        if(done.wait_for(Ms(100)) == std::future_status::ready) {
           break;
         }
       }

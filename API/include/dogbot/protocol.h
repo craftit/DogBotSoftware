@@ -344,21 +344,25 @@ extern "C" {
   enum FlashOperationStatusT
   {
     FOS_Ok = 0,
-    FOS_SequenceLost = 1,
-    FOS_ProgrammingError = 2
+    FOS_WriteComplete = 1,
+    FOS_DataAck = 2,
+    FOS_SequenceLost = 3,
+    FOS_ProgrammingError = 4
   };
 
   enum BootLoaderStateT {
-    BLS_Idle = 0,
-    BLS_Checksum = 1,
-    BLS_Write = 2,
-    BLS_Read  = 3,
-    BLS_Error = 4
+    BLS_Ready = 0,
+    BLS_Disabled = 1,
+    BLS_Checksum = 2,
+    BLS_Write = 3,
+    BLS_Read  = 4,
+    BLS_Error = 5
   };
 
   struct PacketFlashResetC {
     uint8_t m_packetType;
     uint8_t m_deviceId;
+    uint8_t m_enable;
   };
 
   struct PacketFlashResultC {
@@ -395,6 +399,13 @@ extern "C" {
     uint8_t m_deviceId;
     uint8_t m_sequenceNumber;
     uint8_t m_data[0];
+  };
+
+  // Data packet with associated buffer.
+  struct PacketFlashDataBufferC
+  {
+    struct PacketFlashDataC m_header;
+    uint8_t m_data[7];
   };
 
   struct PacketFlashWriteC {
