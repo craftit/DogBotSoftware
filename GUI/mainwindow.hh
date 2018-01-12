@@ -4,9 +4,9 @@
 #include <QMainWindow>
 #include <chrono>
 
-#include "../API/include/dogbot/Coms.hh"
-#include "../API/include/dogbot/DogBotAPI.hh"
-#include "../API/include/dogbot/LegKinematics.hh"
+#include "dogbot/Coms.hh"
+#include "dogbot/DogBotAPI.hh"
+#include "dogbot/LegKinematics.hh"
 #include "ServoTable.hh"
 
 namespace Ui {
