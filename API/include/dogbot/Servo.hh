@@ -208,7 +208,7 @@ namespace DogBotN {
 
     //! Handle an incoming announce message.
     //! Returns true if state changed.
-    bool HandlePacketAnnounce(const PacketDeviceIdC &pkt,bool isMaster);
+    bool HandlePacketAnnounce(const PacketDeviceIdC &pkt,bool isManager);
 
     //! Handle parameter update.
     bool HandlePacketReportParam(const PacketParam8ByteC &pkt);
@@ -258,6 +258,7 @@ namespace DogBotN {
     float m_temperature = 0;
 
     int m_toQuery = 0;
+    int m_bootloaderQueryCount;
     std::vector<ComsParameterIndexT> m_updateQuery;
 
     unsigned m_reportedMode = 0;

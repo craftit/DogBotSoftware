@@ -3,39 +3,92 @@
 #include "dogbot/protocol.h"
 #include <cassert>
 #include <string.h>
+#include <fstream>
 #include <condition_variable>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 namespace DogBotN {
 
+  static long GetFileSize(std::string filename)
+  {
+    struct stat stat_buf;
+    int rc = stat(filename.c_str(), &stat_buf);
+    return rc == 0 ? stat_buf.st_size : -1;
+  }
+
   //! State machine for handling firmware update for a set of devices.
 
-  FirmwareUpdateC::FirmwareUpdateC(std::shared_ptr<ComsC> &coms)
+  FirmwareUpdateC::FirmwareUpdateC(const std::shared_ptr<ComsC> &coms)
    : m_coms(coms)
   {}
 
+  //! Wait for result.
+  bool FirmwareUpdateC::WaitForResult(uint8_t seqNo,const std::string &op)
+  {
+    m_log->info("Waiting for seq {} for op '{}' ",(int) seqNo,op);
+    using Ms = std::chrono::milliseconds;
+    std::unique_lock<std::mutex> lk(m_mutexResult);
+    if(!m_condVar.wait_for(lk,Ms(2000),[&]{
+      //m_log->info("Got Notify Result:{} ",m_gotResult);
+      return m_gotResult;
+    })) {
+      m_log->error("Timeout waiting for op '{}'.",op);
+      return false;
+    }
+    m_gotResult = false;
+    m_log->info("Got seq {} (expected {}) , and result {} for op '{}' ",(int) m_pktResult.m_rxSequence,(int) seqNo,(int) m_pktResult.m_result,op);
+    return m_pktResult.m_rxSequence == seqNo;
+  }
+
   //! Start update
 
-  bool FirmwareUpdateC::DoUpdate(const std::string &filename)
+  bool FirmwareUpdateC::DoUpdate(int targetDevice,const std::string &filename)
   {
     using Ms = std::chrono::milliseconds;
 
-    uint8_t targetDevice = 0;
-    uint32_t targetAddress = 0x08010000;
+    uint32_t targetAddress = 0x08020000;
     uint16_t blockSize = 0;
 
     uint8_t blockBuffer[1<<16];
 
+    for(int i = 0;i < 1<<16;i++)
+      blockBuffer[i] = i;
+    blockSize = 128;
+
+#if 0
+    {
+      long fileSize = GetFileSize(filename);
+      if(fileSize < 0) {
+        m_log->error("Failed to find file '{}' ",filename);
+        return false;
+      }
+      std::ifstream inf(filename,inf.binary);
+      if(!inf.is_open()) {
+        m_log->error("Failed to open file '{}' ",filename);
+        return false;
+      }
+#if 0
+      if(fileSize >= 1<<16) {
+        m_log->error("File {} to large. {} ",filename,fileSize);
+        return false;
+      }
+      inf.read((char *)blockBuffer,fileSize);
+      blockSize = inf.gcount();
+#endif
+      m_log->info("Read {} bytes of {}. ",blockSize,fileSize);
+    }
+#endif
+
     ComsRegisteredCallbackSetC callbacks(m_coms);
 
-    bool m_flagError = false;
-    bool m_gotResult = false;
-    std::mutex m_mutexResult;
-    std::condition_variable m_condVar;
-    struct PacketFlashResultC m_pktResult;
 
     callbacks.SetHandler(CPT_FlashCmdResult,[&](uint8_t *data,int len)
      {
        auto *pkt = (struct PacketFlashResultC *) data;
+       m_log->info("Got flash result from device {}, waiting for {}  rxSequence:{} State:{} Result:{} ",
+                   (int) pkt->m_deviceId,(int) targetDevice,(int) pkt->m_rxSequence,(int) pkt->m_state,(int) pkt->m_result);
        // Is packet of interest ?
        if(pkt->m_deviceId != targetDevice && targetDevice != 0)
          return ;
@@ -54,82 +107,62 @@ namespace DogBotN {
 
 
     // Change device into boot-loader mode.
-    if(!m_coms->SetParam(targetDevice,CPI_ControlState,CS_BootLoader)) {
+    if(!m_coms->SetParam(targetDevice,CPI_ControlState,(uint8_t) CS_BootLoader)) {
       m_log->error("Failed to change into boot-loader.");
       return false;
     }
 
     // Wait for change to happen.
 
+    m_log->info("Setting up connection for device {} ",targetDevice);
     SendBootLoaderReset(targetDevice,true);
 
     // Wait for ack.
-    {
-      std::unique_lock<std::mutex> lk(m_mutexResult);
-      if(!m_condVar.wait_for(lk,Ms(1000),[&]{
-        if(!m_gotResult)
-          return false;
-        return (m_pktResult.m_packetType == CPT_FlashCmdReset);
-      })) {
-        m_log->error("Timeout waiting for reset.");
-        return false;
-      }
-      m_gotResult = false;
-    }
+    WaitForResult(0,"reset");
 
-    uint8_t seqNo = 0;
+    m_log->info("Starting erase. ");
 
-    SendBootLoaderErase(targetDevice,seqNo++,targetAddress);
+    uint8_t seqNo = -1;
 
-    // Wait for ack.
-    {
-      std::unique_lock<std::mutex> lk(m_mutexResult);
-      if(!m_condVar.wait_for(lk,Ms(2000),[&]{
-        if(!m_gotResult)
-          return false;
-        return (m_pktResult.m_packetType == CPT_FlashEraseSector);
-      }))
-      {
-        m_log->error("Timeout waiting for erase.");
-        return false;
-      }
-      m_gotResult = false;
-    }
+    SendBootLoaderErase(targetDevice,++seqNo,targetAddress);
 
-    SendBootLoaderBeginWrite(targetDevice,seqNo++,targetAddress,blockSize);
+    WaitForResult(seqNo,"erase");
+
+    m_log->info("Erase completed ok");
+
+
+    SendBootLoaderBeginWrite(targetDevice,++seqNo,targetAddress,blockSize);
+
+    WaitForResult(seqNo,"write");
 
     // Send data.
     int at = 0;
     while(at < blockSize) {
-      for(int i = 0;i < 16 && at < blockSize;i++) {
+      for(int i = 0;i < 8 && at < blockSize;i++) {
         int len = 7;
         int nextAt = at+len;
         if(nextAt > blockSize) {
-          len = blockSize - nextAt;
+          len = blockSize - at;
           nextAt = blockSize;
         }
-        SendBootLoaderData(targetDevice,seqNo++,&blockBuffer[at],len);
+        SendBootLoaderData(targetDevice,++seqNo,&blockBuffer[at],len);
+        m_log->info("Seq {}, Sent {} data bytes.",(int) seqNo,len);
         at = nextAt;
       }
       // Wait for ack.
-      {
-        std::unique_lock<std::mutex> lk(m_mutexResult);
-        if(!m_condVar.wait_for(lk,Ms(1000),[&]{
-          if(!m_gotResult)
-            return false;
-          return (m_pktResult.m_packetType == CPT_FlashData);
-        })) {
-          m_log->error("Timeout waiting for write.");
-          return false;
-        }
-        m_gotResult = false;
+      m_log->info("Waiting for data ack. seq {} ",seqNo);
+      if(!WaitForResult(seqNo,"data")) {
+        m_log->error("Failed to get data ack..");
+        break;
       }
     }
 
+#if 0
     // Restart into normal mode
-    if(!m_coms->SetParam(targetDevice,CPI_ControlState,CS_StartUp)) {
+    if(!m_coms->SetParam(targetDevice,CPI_ControlState,(uint8_t) CS_StartUp)) {
       m_log->error("Failed to restart the controller.");
     }
+#endif
 
     return true;
   }
@@ -143,14 +176,6 @@ namespace DogBotN {
     uint32_t m_sum;
   };
 
-  CPT_FlashCmdReset   = 20, // Status from a flash command
-  CPT_FlashCmdResult  = 21, // Status from a flash command
-  CPT_FlashChecksumResult = 22, // Generate a checksum
-  CPT_FlashEraseSector = 23, // Erase a flash sector
-  CPT_FlashChecksum    = 24, // Generate a checksum
-  CPT_FlashData        = 25, // Data packet
-  CPT_FlashWrite       = 26, // Write buffer
-  CPT_FlashRead        = 27  // Read buffer and send it back
 #endif
 
   //! Send a boot-loader reset
@@ -182,6 +207,7 @@ namespace DogBotN {
     pkt.m_packetType = CPT_FlashEraseSector;
     pkt.m_deviceId = deviceId;
     pkt.m_sequenceNumber = seqNum;
+    pkt.m_addr = address;
     m_coms->SendPacket((const uint8_t *)&pkt,sizeof(pkt));
   }
 

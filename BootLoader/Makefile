@@ -172,7 +172,6 @@ ASMXSRC = $(STARTUPASM) $(PORTASM) $(OSALASM)
 
 INCDIR = $(CHIBIOS)/os/license \
          $(STDPERIPH)/inc \
-         ../src \
          ../ext/STM32F4xx_DSP_StdPeriph_Lib/Libraries/CMSIS/Device/ST/STM32F4xx/Include \
          $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(TESTINC) \
@@ -239,7 +238,7 @@ UADEFS = -DCRT0_FORCE_MSP_INIT=TRUE  -DCRT0_VTOR_INIT=TRUE
 #-DCORTEX_VTOR_INIT=0x0800C000
 
 # List all user directories here
-UINCDIR = ../API/include
+UINCDIR = ../API/include ../src
 
 # List the user directory to look for the libraries here
 ULIBDIR = ../lib

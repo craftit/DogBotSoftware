@@ -44,15 +44,12 @@ namespace DogBotN
   bool ComsZMQClientC::Open(const std::string &portAddr)
   {
     m_terminate = false;
-
-
-    if(m_terminate)
-      return false;
-
     if(!m_mutexExitOk.try_lock()) {
-      m_log->error("Exit lock already locked, multiple threads attempting to open coms ?");
+      m_log->warn("Exit lock already locked, multiple threads attempting to open coms ?");
       return false;
     }
+    if(m_terminate)
+      return false;
     try {
       {
         std::lock_guard<std::mutex> lock(m_accessTx);

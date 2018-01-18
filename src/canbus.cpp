@@ -184,12 +184,12 @@ bool CANSendAnnounceId()
   return true;
 }
 
-bool CANSendBootLoaderReset(bool enable)
+bool CANSendBootLoaderReset(uint8_t deviceId,bool enable)
 {
   CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
   if(txmsg == 0)
     return false;
-  CANSetAddress(txmsg,g_deviceId,CPT_FlashCmdReset);
+  CANSetAddress(txmsg,deviceId,CPT_FlashCmdReset);
   txmsg->RTR = CAN_RTR_DATA;
   txmsg->DLC = 1;
   txmsg->data8[0] = enable;
@@ -198,12 +198,12 @@ bool CANSendBootLoaderReset(bool enable)
 }
 
 
-bool CANSendBootLoaderResult(uint8_t lastSeqNum,enum BootLoaderStateT state,enum FlashOperationStatusT result)
+bool CANSendBootLoaderResult(uint8_t deviceId,uint8_t lastSeqNum,enum BootLoaderStateT state,enum FlashOperationStatusT result)
 {
   CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
   if(txmsg == 0)
     return false;
-  CANSetAddress(txmsg,g_deviceId,CPT_FlashCmdResult);
+  CANSetAddress(txmsg,deviceId,CPT_FlashCmdResult);
   txmsg->RTR = CAN_RTR_DATA;
   txmsg->DLC = 3;
   txmsg->data8[0] = lastSeqNum;
@@ -213,42 +213,43 @@ bool CANSendBootLoaderResult(uint8_t lastSeqNum,enum BootLoaderStateT state,enum
   return true;
 }
 
-bool CANSendBootLoaderErase(uint8_t seqNum)
+bool CANSendBootLoaderErase(uint8_t deviceId,uint8_t seqNum,uint32_t blockAddr)
 {
   CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
   if(txmsg == 0)
     return false;
-  CANSetAddress(txmsg,g_deviceId,CPT_FlashEraseSector);
+  CANSetAddress(txmsg,deviceId,CPT_FlashEraseSector);
   txmsg->RTR = CAN_RTR_DATA;
-  txmsg->DLC = 1;
-  txmsg->data8[0] = seqNum;
+  txmsg->DLC = 5;
+  txmsg->data32[0] = blockAddr;
+  txmsg->data8[4] = seqNum;
   g_txCANQueue.PostFullPacket(txmsg);
   return true;
 }
 
-bool CANSendBootLoaderData(uint8_t seqNum,uint8_t *data,uint8_t len)
+bool CANSendBootLoaderData(uint8_t deviceId,uint8_t seqNum,uint8_t *data,uint8_t len)
 {
   if(len > 7)
     return false;
   CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
   if(txmsg == 0)
     return false;
-  CANSetAddress(txmsg,g_deviceId,CPT_FlashData);
+  CANSetAddress(txmsg,deviceId,CPT_FlashData);
   txmsg->RTR = CAN_RTR_DATA;
   txmsg->DLC = 1 + len;
   txmsg->data8[0] = seqNum;
-  memcpy(&txmsg->data8[0],data,len);
+  memcpy(&txmsg->data8[1],data,len);
 
   g_txCANQueue.PostFullPacket(txmsg);
   return true;
 }
 
-bool CANSendBootLoaderRead(uint8_t seqNum,uint32_t addr,uint16_t len)
+bool CANSendBootLoaderRead(uint8_t deviceId,uint8_t seqNum,uint32_t addr,uint16_t len)
 {
   CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
   if(txmsg == 0)
     return false;
-  CANSetAddress(txmsg,g_deviceId,CPT_FlashData);
+  CANSetAddress(txmsg,deviceId,CPT_FlashRead);
   txmsg->RTR = CAN_RTR_DATA;
   txmsg->DLC = 7;
   txmsg->data32[0] = addr;
@@ -258,12 +259,12 @@ bool CANSendBootLoaderRead(uint8_t seqNum,uint32_t addr,uint16_t len)
   return true;
 }
 
-bool CANSendBootLoaderWrite(uint8_t seqNum,uint32_t addr,uint16_t len)
+bool CANSendBootLoaderWrite(uint8_t deviceId,uint8_t seqNum,uint32_t addr,uint16_t len)
 {
   CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
   if(txmsg == 0)
     return false;
-  CANSetAddress(txmsg,g_deviceId,CPT_FlashWrite);
+  CANSetAddress(txmsg,deviceId,CPT_FlashWrite);
   txmsg->RTR = CAN_RTR_DATA;
   txmsg->DLC = 7;
   txmsg->data32[0] = addr;
@@ -273,12 +274,12 @@ bool CANSendBootLoaderWrite(uint8_t seqNum,uint32_t addr,uint16_t len)
   return true;
 }
 
-bool CANSendBootLoaderCheckSum(uint8_t seqNum,uint32_t addr,uint16_t len)
+bool CANSendBootLoaderCheckSum(uint8_t deviceId,uint8_t seqNum,uint32_t addr,uint16_t len)
 {
   CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
   if(txmsg == 0)
     return false;
-  CANSetAddress(txmsg,g_deviceId,CPT_FlashChecksum);
+  CANSetAddress(txmsg,deviceId,CPT_FlashChecksum);
   txmsg->RTR = CAN_RTR_DATA;
   txmsg->DLC = 7;
   txmsg->data32[0] = addr;
@@ -288,12 +289,12 @@ bool CANSendBootLoaderCheckSum(uint8_t seqNum,uint32_t addr,uint16_t len)
   return true;
 }
 
-bool CANSendBootLoaderCheckSumResult(uint8_t seqNum,uint32_t sum)
+bool CANSendBootLoaderCheckSumResult(uint8_t deviceId,uint8_t seqNum,uint32_t sum)
 {
   CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
   if(txmsg == 0)
     return false;
-  CANSetAddress(txmsg,g_deviceId,CPT_FlashChecksum);
+  CANSetAddress(txmsg,deviceId,CPT_FlashChecksumResult);
   txmsg->RTR = CAN_RTR_DATA;
   txmsg->DLC = 4;
   txmsg->data32[0] = sum;

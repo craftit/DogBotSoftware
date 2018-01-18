@@ -1,6 +1,7 @@
 
 #include "flashops.hh"
 #include "canbus.h"
+#include "hal.h"
 
 #define FLASH_SECTORS                   12
 
@@ -94,43 +95,37 @@ bool BootLoaderReset(bool enable)
   g_bootLoader_len = 0;
   g_bootLoader_at = 0;
   g_bootLoader_address = 0;
-  CANSendBootLoaderResult(0,g_bootLoaderState,FOS_Ok);
+
+  CANSendBootLoaderResult(g_deviceId,0,g_bootLoaderState,FOS_Ok);
   return true;
 }
 
-
-bool BootLoaderBeginWrite(uint8_t seqNum,uint32_t address,uint16_t len)
-{
-  if(!BootLoaderCheckSequence(seqNum,CPT_FlashWrite))
-    return false;
-
-  if(g_bootLoaderState != BLS_Ready) {
-    CANSendError(CET_BootLoaderUnexpectState,CPT_FlashWrite,g_bootLoaderState);
-    return false;
-  }
-  g_bootLoader_address = address;
-  g_bootLoader_at = address;
-  g_bootLoader_lastAck = 0;
-  g_bootLoader_len = len;
-  g_bootLoaderState = BLS_Write;
-  CANSendBootLoaderResult(seqNum,BLS_Write,FOS_Ok);
-  return true;
-}
-
-bool BootLoaderErase(uint8_t seqNum)
+bool BootLoaderErase(uint8_t seqNum,uint32_t blockAddress)
 {
   if(!BootLoaderCheckSequence(seqNum,CPT_FlashEraseSector))
     return false;
-  if(g_bootLoaderState != BLS_Write) {
-    CANSendError(CET_BootLoaderUnexpectState,CPT_FlashEraseSector,g_bootLoaderState);
+  if(g_bootLoaderState == BLS_Disabled)
+    return true;
+  if(g_bootLoaderState != BLS_Ready && g_bootLoaderState != BLS_Write) {
+    CANSendError(CET_BootLoaderUnexpectedState,CPT_FlashEraseSector,g_bootLoaderState);
     return false;
   }
 
-  uint32_t address = g_bootLoader_address;
+  int sectorNumber = -1;
+  for(int i = 0;i < FLASH_SECTORS;i++) {
+    if(g_flash_addr[i] == blockAddress) {
+      sectorNumber = i;
+      break;
+    }
+  }
+
+  if(sectorNumber < 0) {
+    CANSendError(CET_BootLoaderUnalignedAddress,CPT_FlashEraseSector,blockAddress >> 16);
+    return false;
+  }
 
   // Be really inflexible for the moment
-  int sectorNumber = 4;
-  if(address != 0x0801000){
+  if(sectorNumber < 3){
     CANSendError(CET_BootLoaderProtected,CPT_FlashEraseSector,sectorNumber);
     return false;
   }
@@ -142,19 +137,120 @@ bool BootLoaderErase(uint8_t seqNum)
 
   FLASH_Lock();
 
-  if(ret != 0) {
+  if(ret != 0 && ret != FLASH_COMPLETE) {
     CANSendError(CET_BootLoaderErase,CPT_FlashEraseSector,ret);
   }
-  CANSendBootLoaderResult(seqNum,BLS_Write,FOS_Ok);
+  CANSendBootLoaderResult(g_deviceId,seqNum,g_bootLoaderState,FOS_Ok);
   return true;
 }
+
+
+bool BootLoaderBeginWrite(uint8_t seqNum,uint32_t address,uint16_t len)
+{
+  if(!BootLoaderCheckSequence(seqNum,CPT_FlashWrite))
+    return false;
+  if(g_bootLoaderState == BLS_Disabled)
+    return true;
+  if(g_bootLoaderState != BLS_Ready) {
+    CANSendError(CET_BootLoaderUnexpectedState,CPT_FlashWrite,g_bootLoaderState);
+    return false;
+  }
+  // Check alignment of address
+  if((address & 0x3) != 0) {
+    g_bootLoaderState = BLS_Error;
+    CANSendError(CET_BootLoaderUnalignedAddress,CPT_FlashWrite,g_bootLoaderState);
+    return false;
+  }
+  if(address < 0x08010000) {
+    g_bootLoaderState = BLS_Error;
+    CANSendError(CET_BootLoaderProtected,CPT_FlashWrite,g_bootLoaderState);
+    return false;
+  }
+
+  g_bootLoader_address = address;
+  g_bootLoader_at = address;
+  g_bootLoader_lastAck = 0;
+  g_bootLoader_len = len;
+  g_bootLoaderState = BLS_Write;
+  CANSendBootLoaderResult(g_deviceId,seqNum,BLS_Write,FOS_Ok);
+  return true;
+}
+
+
+bool BootLoaderData(uint8_t seqNum,uint8_t *data,uint8_t len)
+{
+  if(!BootLoaderCheckSequence(seqNum,CPT_FlashData)) {
+   // return false;
+  }
+  if(g_bootLoaderState == BLS_Disabled)
+    return true;
+  if(g_bootLoaderState != BLS_Write) {
+    CANSendError(CET_BootLoaderUnexpectedState,CPT_FlashData,g_bootLoaderState);
+    return false;
+  }
+
+  FLASH_Unlock();
+  FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR);
+
+  // FIXME:- Do stuff!
+
+  union WriteBufferT {
+    uint8_t uint8[4];
+    uint32_t uint32[1];
+  } ;
+
+  static union WriteBufferT g_bootLoaderBuffer;
+
+  for(int i = 0;i < len;i++,g_bootLoader_at++) {
+    int ringAt = g_bootLoader_at & 0x03;
+    g_bootLoaderBuffer.uint8[ringAt] = data[i];
+    if(ringAt == 3) {
+      uint32_t addr = g_bootLoader_at & 0xfffffffc;
+      if (FLASH_ProgramWord(addr,g_bootLoaderBuffer.uint32[0]) != FLASH_COMPLETE) {
+        CANSendError(CET_BootLoaderWriteFailed,CPT_FlashData,seqNum);
+        g_bootLoaderState = BLS_Error;
+        FLASH_Lock();
+        return 1;
+      }
+      g_bootLoaderBuffer.uint32[0] = 0;
+    }
+  }
+  // Write any remaining bytes in buffer.
+  if(g_bootLoader_at >= (g_bootLoader_address + g_bootLoader_len)) {
+    uint32_t addr = g_bootLoader_at & 0xfffffffc;
+    for(int i = 0;i < (int) (g_bootLoader_at & 0x3);i++) {
+      if (FLASH_ProgramByte(addr+i,g_bootLoaderBuffer.uint8[i]) != FLASH_COMPLETE) {
+        CANSendError(CET_BootLoaderWriteFailed,CPT_FlashData,seqNum);
+        g_bootLoaderState = BLS_Error;
+        FLASH_Lock();
+        return 1;
+      }
+    }
+    g_bootLoaderState = BLS_Ready;
+    CANSendBootLoaderResult(g_deviceId,seqNum,BLS_Write,FOS_WriteComplete);
+  } else {
+    // Send an acknowledge every 16 messages so we can throttle sending data appropriately
+    g_bootLoader_lastAck++;
+    if(g_bootLoader_lastAck >= 8) {
+      g_bootLoader_lastAck = 0;
+      CANSendBootLoaderResult(g_deviceId,seqNum,BLS_Write,FOS_DataAck);
+    }
+  }
+
+  FLASH_Lock();
+  return true;
+}
+
+
 
 bool BootLoaderCheckSum(uint8_t seqNum,uint32_t address,uint16_t len)
 {
   if(!BootLoaderCheckSequence(seqNum,CPT_FlashChecksum))
     return false;
+  if(g_bootLoaderState == BLS_Disabled)
+    return true;
   if(g_bootLoaderState == BLS_Error) {
-    CANSendError(CET_BootLoaderUnexpectState,CPT_FlashChecksum,g_bootLoaderState);
+    CANSendError(CET_BootLoaderUnexpectedState,CPT_FlashChecksum,g_bootLoaderState);
     return false;
   }
   uint32_t sum = 0;
@@ -163,7 +259,7 @@ bool BootLoaderCheckSum(uint8_t seqNum,uint32_t address,uint16_t len)
   for(;at < end;at++)
     sum += *at;
 
-  return CANSendBootLoaderCheckSumResult(seqNum,sum);
+  return CANSendBootLoaderCheckSumResult(g_deviceId,seqNum,sum);
 }
 
 /*
@@ -173,6 +269,7 @@ static uint8_t g_bootLoaderSequenceRead = 0;
 
 static THD_WORKING_AREA(waThreadBootLoadRead, 128);
 static THD_FUNCTION(ThreadBootLoadRead, arg) {
+  (void) arg;
 
   uint8_t *at = (uint8_t *) g_bootLoader_address;
   uint8_t *end = at + g_bootLoader_len;
@@ -183,12 +280,12 @@ static THD_FUNCTION(ThreadBootLoadRead, arg) {
   {
     uint8_t *next = at + 7;
     if(next <= end) {
-      CANSendBootLoaderData(g_bootLoaderTxSequenceNumber++,at,7);
+      CANSendBootLoaderData(g_deviceId,g_bootLoaderTxSequenceNumber++,at,7);
       at = next;
     } else {
       int len = end - at;
       if(len > 0)
-        CANSendBootLoaderData(g_bootLoaderTxSequenceNumber++,at,len);
+        CANSendBootLoaderData(g_deviceId,g_bootLoaderTxSequenceNumber++,at,len);
       at += len;
       break;
     }
@@ -196,7 +293,7 @@ static THD_FUNCTION(ThreadBootLoadRead, arg) {
   }
 
   g_bootLoaderState = BLS_Ready;
-  CANSendBootLoaderResult(g_bootLoaderSequenceRead,BLS_Ready,FOS_Ok);
+  CANSendBootLoaderResult(g_deviceId,g_bootLoaderSequenceRead,BLS_Ready,FOS_Ok);
 
 }
 
@@ -206,10 +303,11 @@ bool BootLoaderBeginRead(uint8_t seqNum,uint32_t address,uint16_t len)
 {
   if(!BootLoaderCheckSequence(seqNum,CPT_FlashRead))
     return false;
-
+  if(g_bootLoaderState == BLS_Disabled)
+    return true;
   // We can only being read from idle.
   if(g_bootLoaderState != BLS_Ready) {
-    CANSendError(CET_BootLoaderUnexpectState,CPT_FlashRead,g_bootLoaderState);
+    CANSendError(CET_BootLoaderUnexpectedState,CPT_FlashRead,g_bootLoaderState);
     return false;
   }
 
@@ -226,72 +324,9 @@ bool BootLoaderBeginRead(uint8_t seqNum,uint32_t address,uint16_t len)
   g_bootLoaderState = BLS_Read;
   g_bootLoaderSequenceRead = seqNum;
 
-  CANSendBootLoaderResult(g_bootLoaderSequenceRead,BLS_Read,FOS_Ok);
+  CANSendBootLoaderResult(g_deviceId,g_bootLoaderSequenceRead,BLS_Read,FOS_Ok);
 
   g_bootLoadThreadThread = chThdCreateStatic(waThreadBootLoadRead, sizeof(waThreadBootLoadRead), NORMALPRIO, ThreadBootLoadRead, NULL);
-
-  return true;
-}
-
-
-bool BootLoaderData(uint8_t seqNum,uint8_t *data,uint8_t len)
-{
-  if(!BootLoaderCheckSequence(seqNum,CPT_FlashData))
-    return false;
-  if(g_bootLoaderState != BLS_Write) {
-    CANSendError(CET_BootLoaderUnexpectState,CPT_FlashData,g_bootLoaderState);
-    return false;
-  }
-
-  FLASH_Unlock();
-  FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR);
-
-  // FIXME:- Do stuff!
-
-  union {
-    uint8_t uint8[4];
-    uint32_t uint32[1];
-  } WriteBufferT;
-
-  static WriteBufferT g_bootLoaderBuffer;
-
-  for(int i = 0;i < len;i++,g_bootLoader_at++) {
-    int ringAt = g_bootLoader_at & 0x03;
-    g_bootLoaderBuffer.uint8[ringAt] = data[len];
-    if(ringAt == 3) {
-      uint32_t addr = g_bootLoader_at & ~0x3;
-      if (FLASH_ProgramWord(addr,g_bootLoaderBuffer.uint32[0]) != FLASH_COMPLETE) {
-        CANSendError(CET_BootLoaderWriteFailed,CPT_FlashData,seqNum);
-        g_bootLoaderState = BLS_Error;
-        FLASH_Lock();
-        return 1;
-      }
-      g_bootLoaderBuffer.uint32[0] = 0;
-    }
-  }
-  // Write any remaining bytes in buffer.
-  if(g_bootLoader_at >= (g_bootLoader_address + g_bootLoader_len)) {
-    uint32_t addr = g_bootLoader_at & ~0x3;
-    for(int i = 0;i < (g_bootLoader_at & 0x3);i++) {
-      if (FLASH_ProgramByte(addr+i,g_bootLoaderBuffer.uint8[i]) != FLASH_COMPLETE) {
-        CANSendError(CET_BootLoaderWriteFailed,CPT_FlashData,seqNum);
-        g_bootLoaderState = BLS_Error;
-        FLASH_Lock();
-        return 1;
-      }
-    }
-    g_bootLoaderState = BLS_Ready;
-    CANSendBootLoaderResult(seqNum,BLS_Write,FOS_WriteComplete);
-  } else {
-    // Send an acknowledge every 16 messages so we can throttle sending data appropriately
-    g_bootLoader_lastAck++;
-    if(g_bootLoader_lastAck >= 16) {
-      g_bootLoader_lastAck = 0;
-      CANSendBootLoaderResult(seqNum,BLS_Write,FOS_DataAck);
-    }
-  }
-
-  FLASH_Lock();
 
   return true;
 }

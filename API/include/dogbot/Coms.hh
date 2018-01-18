@@ -157,8 +157,12 @@ namespace DogBotN {
           return ;
         }
         if(memcmp(msg.m_data.uint8,pkt->m_data.uint8,sizeof(value)) == 0) {
-          ret = true;
-          promiseDone.set_value(true);
+          if(!ret) {
+            ret = true;
+            promiseDone.set_value(true);
+          }
+        } else {
+          m_log->warn("Unexpected value returned. ");
         }
       });
       assert(sizeof(value) <= 7);
@@ -168,10 +172,10 @@ namespace DogBotN {
         m_log->error("Parameter {} too large.",(int) param);
         return false;
       }
-      for(int i = 0;i < 4 && ret;i++) {
+      for(int i = 0;i < 4 && !ret;i++) {
         // Send data.
         SendPacket((uint8_t*) &msg,sizeof(msg.m_header)+sizeof(value));
-        if(done.wait_for(Ms(100)) == std::future_status::ready) {
+        if(done.wait_for(Ms(250)) == std::future_status::ready) {
           break;
         }
       }

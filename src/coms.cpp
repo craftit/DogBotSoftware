@@ -818,8 +818,8 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
     }
     struct PacketFlashResetC *psp = (struct PacketFlashResetC *) m_data;
     if(g_canBridgeMode) {
-      if(psp->m_deviceId == g_deviceId || psp->m_deviceId == 0) {
-        CANSendBootLoaderReset(psp->m_enable > 0);
+      if(psp->m_deviceId != g_deviceId || psp->m_deviceId == 0) {
+        CANSendBootLoaderReset(psp->m_deviceId,psp->m_enable > 0);
       }
     }
   } break;
@@ -831,8 +831,8 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
     }
     struct PacketFlashResultC *psp = (struct PacketFlashResultC *) m_data;
     if(g_canBridgeMode) {
-      if(psp->m_deviceId == g_deviceId || psp->m_deviceId == 0) {
-        CANSendBootLoaderResult(psp->m_rxSequence,(enum BootLoaderStateT) psp->m_state,(enum FlashOperationStatusT) psp->m_result);
+      if(psp->m_deviceId != g_deviceId || psp->m_deviceId == 0) {
+        CANSendBootLoaderResult(psp->m_deviceId,psp->m_rxSequence,(enum BootLoaderStateT) psp->m_state,(enum FlashOperationStatusT) psp->m_result);
       }
     }
   } break;
@@ -843,8 +843,8 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
     }
     auto *psp = (struct PacketFlashChecksumResultC *) m_data;
     if(g_canBridgeMode) {
-      if(psp->m_deviceId == g_deviceId || psp->m_deviceId == 0) {
-        CANSendBootLoaderCheckSumResult(psp->m_sequenceNumber,psp->m_sum);
+      if(psp->m_deviceId != g_deviceId || psp->m_deviceId == 0) {
+        CANSendBootLoaderCheckSumResult(psp->m_deviceId,psp->m_sequenceNumber,psp->m_sum);
       }
     }
   } break;
@@ -855,8 +855,8 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
     }
     auto *psp = (struct PacketFlashEraseC *) m_data;
     if(g_canBridgeMode) {
-      if(psp->m_deviceId == g_deviceId || psp->m_deviceId == 0) {
-        CANSendBootLoaderErase(psp->m_sequenceNumber);
+      if(psp->m_deviceId != g_deviceId || psp->m_deviceId == 0) {
+        CANSendBootLoaderErase(psp->m_deviceId,psp->m_sequenceNumber,psp->m_addr);
       }
     }
   } break;
@@ -867,8 +867,8 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
     }
     auto *psp = (struct PacketFlashChecksumC *) m_data;
     if(g_canBridgeMode) {
-      if(psp->m_deviceId == g_deviceId || psp->m_deviceId == 0) {
-        CANSendBootLoaderCheckSum(psp->m_sequenceNumber,psp->m_addr,psp->m_len);
+      if(psp->m_deviceId != g_deviceId || psp->m_deviceId == 0) {
+        CANSendBootLoaderCheckSum(psp->m_deviceId,psp->m_sequenceNumber,psp->m_addr,psp->m_len);
       }
     }
   } break;
@@ -879,9 +879,9 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
     }
     auto *psp = (struct PacketFlashDataC *) m_data;
     if(g_canBridgeMode) {
-      if(psp->m_deviceId == g_deviceId || psp->m_deviceId == 0) {
+      if(psp->m_deviceId != g_deviceId || psp->m_deviceId == 0) {
         int len = m_packetLen - sizeof(struct PacketFlashDataC);
-        CANSendBootLoaderData(psp->m_sequenceNumber,&psp->m_data[0],len);
+        CANSendBootLoaderData(psp->m_deviceId,psp->m_sequenceNumber,&psp->m_data[0],len);
       }
     }
   } break;
@@ -892,8 +892,8 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
     }
     auto *psp = (struct PacketFlashWriteC *) m_data;
     if(g_canBridgeMode) {
-      if(psp->m_deviceId == g_deviceId || psp->m_deviceId == 0) {
-        CANSendBootLoaderWrite(psp->m_sequenceNumber,psp->m_addr,psp->m_len);
+      if(psp->m_deviceId != g_deviceId || psp->m_deviceId == 0) {
+        CANSendBootLoaderWrite(psp->m_deviceId,psp->m_sequenceNumber,psp->m_addr,psp->m_len);
       }
     }
 
@@ -905,8 +905,8 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
     }
     auto *psp = (struct PacketFlashReadC *) m_data;
     if(g_canBridgeMode) {
-      if(psp->m_deviceId == g_deviceId || psp->m_deviceId == 0) {
-        CANSendBootLoaderRead(psp->m_sequenceNumber,psp->m_addr,psp->m_len);
+      if(psp->m_deviceId != g_deviceId || psp->m_deviceId == 0) {
+        CANSendBootLoaderRead(psp->m_deviceId,psp->m_sequenceNumber,psp->m_addr,psp->m_len);
       }
     }
   } break;

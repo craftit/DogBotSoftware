@@ -11,10 +11,10 @@ namespace DogBotN {
   {
   public:
     //! Construct from coms object
-    FirmwareUpdateC(std::shared_ptr<ComsC> &coms);
+    FirmwareUpdateC(const std::shared_ptr<ComsC> &coms);
 
     //! Start update
-    bool DoUpdate(const std::string &filename);
+    bool DoUpdate(int deviceId,const std::string &filename);
 
   protected:
     //! Connect
@@ -38,6 +38,8 @@ namespace DogBotN {
     //! Send a boot-loader begin read
     void SendBootLoaderData(uint8_t deviceId,uint8_t seqNum,uint8_t *data,uint8_t len);
 
+    //! Wait for result.
+    bool WaitForResult(uint8_t seqNo,const std::string &op);
 
     //! Set the handler for a particular type of packet.
     //! Returns the id of the handler or -1 if failed.
@@ -46,6 +48,11 @@ namespace DogBotN {
     std::shared_ptr<ComsC> m_coms;
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("console");
 
+    bool m_flagError = false;
+    bool m_gotResult = false;
+    std::mutex m_mutexResult;
+    std::condition_variable m_condVar;
+    struct PacketFlashResultC m_pktResult;
   };
 
 }

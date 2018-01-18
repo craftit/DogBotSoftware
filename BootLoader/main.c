@@ -4,6 +4,7 @@
 #include "dogbot/protocol.h"
 #include "bootloader.h"
 #include "exec.h"
+#include "canbus.h"
 
 enum FaultCodeT g_lastFaultCode = FC_Ok;
 uint32_t g_faultState = 0;
@@ -43,11 +44,19 @@ int main(void) {
   InitCAN();
 
 
+  bool sentBootloaderMode = false;
+
   palSetPad(GPIOC, GPIOC_PIN4);       /* Green.  */
   palClearPad(GPIOC, GPIOC_PIN5);       /* Yellow led. */
 
   while(g_controlState == CS_BootLoader)
   {
+    if(g_deviceId != 0 && !sentBootloaderMode) {
+      /* Let the world know we're in bootloader mode. */
+      SendParamUpdate(CPI_ControlState);
+      sentBootloaderMode = true;
+    }
+
     palTogglePad(GPIOC, GPIOC_PIN5);       /* Yellow led. */
     palTogglePad(GPIOC, GPIOC_PIN4);       /* Green led. */
     chThdSleepMilliseconds(100);
