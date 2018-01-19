@@ -16,6 +16,7 @@ int main(int argc,char **argv)
   std::string configFile;
   std::string firmwareFile;
   int targetDeviceId = 0;
+  bool dryRun = false;
   auto logger = spdlog::stdout_logger_mt("console");
 
   try
@@ -30,6 +31,7 @@ int main(int argc,char **argv)
       ("d,device", "Device to use from communication ", cxxopts::value<std::string>(devFilename))
       ("f,firmware", "Firmware file ", cxxopts::value<std::string>(firmwareFile))
       ("t,target","Target device id", cxxopts::value<int>(targetDeviceId))
+      ("n,dryrun","Target device id", cxxopts::value<bool>(dryRun))
       ("h,help", "Print help")
     ;
 
@@ -59,6 +61,8 @@ int main(int argc,char **argv)
       );
 
   DogBotN::FirmwareUpdateC updater(dogbot.Connection());
+  if(dryRun)
+    updater.SetDryRun();
 
   if(!updater.DoUpdate(targetDeviceId,firmwareFile)) {
     logger->error("Firmware update failed");

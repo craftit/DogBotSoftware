@@ -16,9 +16,20 @@ namespace DogBotN {
     //! Start update
     bool DoUpdate(int deviceId,const std::string &filename);
 
+    //! Switch into dry run mode.
+    void SetDryRun()
+    { m_dryRun = true; }
+
   protected:
+
     //! Connect
     void Init();
+
+    //! Load an intel hex file
+    bool LoadHexFile(const std::string &filename);
+
+    //! Write data to flash
+    bool WriteFlash(uint8_t targetDevice,uint32_t address,uint8_t *data,uint32_t size);
 
     //! Send a boot-loader reset
     void SendBootLoaderReset(uint8_t deviceId,bool enable);
@@ -45,14 +56,20 @@ namespace DogBotN {
     //! Returns the id of the handler or -1 if failed.
     ComsCallbackHandleC SetHandler(ComsPacketTypeT packetType,const std::function<void (uint8_t *data,int len)> &handler);
 
+    bool Hex2Number(const char *start,const char *end,uint32_t &value);
+
     std::shared_ptr<ComsC> m_coms;
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("console");
+
+    std::map<uint32_t,std::vector<uint8_t> > m_dataMap; //! Start address and byte to write
 
     bool m_flagError = false;
     bool m_gotResult = false;
     std::mutex m_mutexResult;
     std::condition_variable m_condVar;
     struct PacketFlashResultC m_pktResult;
+    uint8_t m_seqNo = -1;
+    bool m_dryRun = false;
   };
 
 }
