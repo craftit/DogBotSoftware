@@ -156,7 +156,9 @@ CPPSRC = \
   packet_queue.cpp \
   can_queue.cpp \
   canbus.cpp \
-  can_coms.cpp
+  can_coms.cpp \
+  parameters.cpp \
+  flashStubs.cpp
 
 
 # C sources to be compiled in ARM mode regardless of the global setting.

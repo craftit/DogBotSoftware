@@ -17,6 +17,7 @@ int main(int argc,char **argv)
   std::string firmwareFile;
   int targetDeviceId = 0;
   bool dryRun = false;
+  bool stayInBootloader = false;
   auto logger = spdlog::stdout_logger_mt("console");
 
   try
@@ -28,10 +29,11 @@ int main(int argc,char **argv)
 
     options.add_options()
       ("c,config", "Configuration file", cxxopts::value<std::string>(configFile))
-      ("d,device", "Device to use from communication ", cxxopts::value<std::string>(devFilename))
+      ("d,device", "Device to use from communication. Typically 'local' for local server or 'usb' for direct connection ", cxxopts::value<std::string>(devFilename))
       ("f,firmware", "Firmware file ", cxxopts::value<std::string>(firmwareFile))
       ("t,target","Target device id", cxxopts::value<int>(targetDeviceId))
       ("n,dryrun","Target device id", cxxopts::value<bool>(dryRun))
+      ("e,noexit","Stay in boot-loader after update is complete.", cxxopts::value<bool>(stayInBootloader))
       ("h,help", "Print help")
     ;
 
@@ -63,7 +65,7 @@ int main(int argc,char **argv)
   DogBotN::FirmwareUpdateC updater(dogbot.Connection());
   if(dryRun)
     updater.SetDryRun();
-
+  updater.SetExitBootloaderOnComplete(!stayInBootloader);
   if(!updater.DoUpdate(targetDeviceId,firmwareFile)) {
     logger->error("Firmware update failed");
     return 1;

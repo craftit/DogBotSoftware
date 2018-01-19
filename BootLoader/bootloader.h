@@ -11,6 +11,7 @@ extern "C" {
   extern enum ControlStateT g_controlState;
   extern uint32_t g_faultState;
   extern uint8_t g_indicatorState;
+  extern bool g_canBridgeMode;
 
   void SendParamUpdate(enum ComsParameterIndexT paramIndex);
   bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len);

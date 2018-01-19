@@ -3,8 +3,33 @@
 #include "canbus.h"
 #include "bootloader.h"
 
-uint8_t g_debugIndex = 0x55;
+#if 0
 bool g_canBridgeMode = false;
+void SendParamUpdate(enum ComsParameterIndexT paramIndex) {
+#if 0
+  if(g_deviceId == 0 || g_canBridgeMode) {
+    if(!USBReadParamAndReply(paramIndex)) {
+      USBSendError(g_deviceId,CET_ParameterOutOfRange,CPT_ReadParam,(uint8_t) paramIndex);
+    }
+  }
+  if(g_deviceId != 0) {
+    CANSendParam(paramIndex);
+#if 0
+    if(!CANSendReadParam(g_deviceId,paramIndex)) {
+      USBSendError(g_deviceId,CET_CANTransmitFailed,CPT_ReadParam,(uint8_t) paramIndex);
+    }
+#endif
+  }
+#else
+  if(g_deviceId != 0) {
+    CANSendParam(paramIndex);
+  }
+#endif
+}
+#endif
+
+
+uint8_t g_debugIndex = 0x55;
 
 bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len)
 {
@@ -250,28 +275,5 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       return false;
   }
   return true;
-}
-
-
-void SendParamUpdate(enum ComsParameterIndexT paramIndex) {
-#if 0
-  if(g_deviceId == 0 || g_canBridgeMode) {
-    if(!USBReadParamAndReply(paramIndex)) {
-      USBSendError(g_deviceId,CET_ParameterOutOfRange,CPT_ReadParam,(uint8_t) paramIndex);
-    }
-  }
-  if(g_deviceId != 0) {
-    CANSendParam(paramIndex);
-#if 0
-    if(!CANSendReadParam(g_deviceId,paramIndex)) {
-      USBSendError(g_deviceId,CET_CANTransmitFailed,CPT_ReadParam,(uint8_t) paramIndex);
-    }
-#endif
-  }
-#else
-  if(g_deviceId != 0) {
-    CANSendParam(paramIndex);
-  }
-#endif
 }
 

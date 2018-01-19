@@ -241,6 +241,14 @@ int ChangeControlState(enum ControlStateT newState)
     case CS_BootLoader: {
       PWMStop();
       EnableSensorPower(false);
+
+      usbDisconnectBus(&USBD1);
+      usbStop(&USBD1);
+
+      //chSysLockFromIsr();
+      chSysDisable();
+      NVIC_SystemReset();
+
       flashJumpApplication(0x08000000);
     } break;
     default:
@@ -438,7 +446,7 @@ int main(void) {
   int cycleCount = 0;
 
   /* Is button pressed ?  */
-  g_doFactoryCal = !palReadPad(GPIOB, GPIOB_PIN2);
+  g_doFactoryCal = false;
 
   while(1) {
     switch(g_controlState)

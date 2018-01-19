@@ -22,6 +22,84 @@ bool CANSetAddress(CANTxFrame *txmsg,int nodeId,int packetType)
   return true;
 }
 
+bool CANSendStoredSetup(
+    uint8_t deviceId,
+    enum ComsPacketTypeT pktType // Must be either CPT_SaveSetup or CPT_LoadSetup
+)
+{
+  switch(pktType)
+  {
+    case CPT_SaveSetup:
+    case CPT_LoadSetup:
+      break;
+    default:
+      return false;
+  }
+  CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
+  if(txmsg == 0)
+    return false;
+  CANSetAddress(txmsg,deviceId,pktType);
+  txmsg->RTR = CAN_RTR_DATA;
+  txmsg->DLC = 0;
+  return g_txCANQueue.PostFullPacket(txmsg);
+}
+
+
+bool CANSendCalZero(
+    uint8_t deviceId
+    )
+{
+  enum ComsPacketTypeT pktType = CPT_CalZero;
+
+  CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
+  if(txmsg == 0)
+    return false;
+  CANSetAddress(txmsg,deviceId,pktType);
+  txmsg->RTR = CAN_RTR_DATA;
+  txmsg->DLC = 0;
+  return g_txCANQueue.PostFullPacket(txmsg);
+}
+
+
+bool CANSendServoReport(
+    uint8_t deviceId,
+    int16_t position,
+    int16_t torque,
+    uint8_t state
+    )
+{
+  CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
+  if(txmsg == 0)
+    return false;
+  CANSetAddress(txmsg,deviceId,CPT_ServoReport);
+  txmsg->RTR = CAN_RTR_DATA;
+  txmsg->DLC = 5;
+  txmsg->data16[0] = position;
+  txmsg->data16[1] = torque;
+  txmsg->data8[4] = state;
+  return g_txCANQueue.PostFullPacket(txmsg);
+}
+
+bool CANSendServo(
+    uint8_t deviceId,
+    int16_t position,
+    uint16_t torqueLimit,
+    uint8_t state
+    )
+{
+  CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
+  if(txmsg == 0)
+    return false;
+
+  CANSetAddress(txmsg,deviceId,CPT_Servo);
+  txmsg->RTR = CAN_RTR_DATA;
+  txmsg->DLC = 5;
+  txmsg->data16[0] = position;
+  txmsg->data16[1] = torqueLimit;
+  txmsg->data8[4] = state;
+  return g_txCANQueue.PostFullPacket(txmsg);
+}
+
 // Send an emergency stop
 bool CANEmergencyStop()
 {

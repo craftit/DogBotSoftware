@@ -6,6 +6,8 @@
 #include "exec.h"
 #include "canbus.h"
 
+#include "coms.h"
+
 enum FaultCodeT g_lastFaultCode = FC_Ok;
 uint32_t g_faultState = 0;
 uint8_t g_indicatorState = 0;
@@ -39,29 +41,57 @@ int main(void) {
    *   RTOS is active.
    */
   halInit();
-  chSysInit();
 
-  InitCAN();
-
+  bool forceBootload = !palReadPad(GPIOB, GPIOB_PIN2);
+  if(forceBootload)
+    g_controlState = CS_BootLoader;
+  else {
+    if (RCC->CSR & RCC_CSR_SFTRSTF) { // Software reset ?
+      g_controlState = CS_BootLoader;
+    } else {
+      g_controlState = CS_StartUp;
+    }
+  }
+  /*!< Remove reset flags */
+  RCC->CSR |= RCC_CSR_RMVF;
 
   bool sentBootloaderMode = false;
 
-  palSetPad(GPIOC, GPIOC_PIN4);       /* Green.  */
-  palClearPad(GPIOC, GPIOC_PIN5);       /* Yellow led. */
+  if(g_controlState == CS_BootLoader) {
+    chSysInit();
 
-  while(g_controlState == CS_BootLoader)
-  {
-    if(g_deviceId != 0 && !sentBootloaderMode) {
-      /* Let the world know we're in bootloader mode. */
+    InitCAN();
+
+  #if 1
+    InitUSB();
+    InitComs();
+  #endif
+
+    palSetPad(GPIOC, GPIOC_PIN4);       /* Green.  */
+    palClearPad(GPIOC, GPIOC_PIN5);       /* Yellow led. */
+
+    while(g_controlState == CS_BootLoader)
+    {
+
+      palTogglePad(GPIOC, GPIOC_PIN5);       /* Yellow led. */
+      palTogglePad(GPIOC, GPIOC_PIN4);       /* Green led. */
+      chThdSleepMilliseconds(100);
+#if 0
+      if(g_deviceId != 0 && !sentBootloaderMode) {
+        /* Let the world know we're in bootloader mode. */
+        SendParamUpdate(CPI_ControlState);
+        sentBootloaderMode = true;
+      }
+#endif
+      // Just send this regularly so the controller knows we're alive
       SendParamUpdate(CPI_ControlState);
-      sentBootloaderMode = true;
     }
 
-    palTogglePad(GPIOC, GPIOC_PIN5);       /* Yellow led. */
-    palTogglePad(GPIOC, GPIOC_PIN4);       /* Green led. */
-    chThdSleepMilliseconds(100);
+    usbDisconnectBus(&USBD1);
+    usbStop(&USBD1);
 
-    SendParamUpdate(CPI_ControlState);
+    //chSysLockFromIsr();
+    chSysDisable();
   }
 
   flashJumpApplication(0x08010000);

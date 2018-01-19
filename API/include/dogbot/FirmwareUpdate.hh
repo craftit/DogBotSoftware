@@ -20,6 +20,11 @@ namespace DogBotN {
     void SetDryRun()
     { m_dryRun = true; }
 
+    //! Exit boot-loader on complete.
+    void SetExitBootloaderOnComplete(bool enable) {
+      m_exitBootloaderOnComplete = enable;
+    }
+
   protected:
 
     //! Connect
@@ -64,6 +69,7 @@ namespace DogBotN {
     std::map<uint32_t,std::vector<uint8_t> > m_dataMap; //! Start address and byte to write
 
     bool m_flagError = false;
+    bool m_exitBootloaderOnComplete = true;
     bool m_gotResult = false;
     std::mutex m_mutexResult;
     std::condition_variable m_condVar;
