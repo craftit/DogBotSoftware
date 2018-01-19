@@ -6,6 +6,7 @@
 #include "bootloader.h"
 #include "flashops.hh"
 
+#if 0
 // Code for processing incoming CAN packets.
 
 bool CANRecieveFrame(CANRxFrame *rxmsgptr)
@@ -166,3 +167,4 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
   return true;
 }
 
+#endif

@@ -1,12 +1,12 @@
 
 #include "coms.h"
 #include "motion.h"
-#include "pwm.h"
+#include "bmc.h"
 #include "canbus.h"
 #include "can_coms.hh"
 #include <string.h>
 #include "can_queue.hh"
-
+#include "flashops.hh"
 
 void CANReportPacketSizeError(int msgType,int size)
 {
@@ -273,7 +273,34 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
         USBSendPacket((uint8_t *) &pkt,sizeof(pkt));
       }
       break;
-    case CPT_FlashData: // Data packet
+    case CPT_FlashEraseSector: {// Erase a flash sector
+      if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
+        if(rxmsg.DLC != 5) {
+          CANSendError(CET_UnexpectedPacketSize,msgType,rxmsg.DLC);
+          break;
+        }
+        BootLoaderErase(rxmsg.data8[4],rxmsg.data32[0]);
+      }
+    } break;
+    case CPT_FlashCmdReset: {// Erase a flash sector
+      if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
+        if(rxmsg.DLC != 1) {
+          CANSendError(CET_UnexpectedPacketSize,msgType,rxmsg.DLC);
+          break;
+        }
+        BootLoaderReset(rxmsg.data8[0] != 0);
+      }
+    } break;
+    case CPT_FlashChecksum: { // Generate a checksum
+      if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
+        if(rxmsg.DLC != 7) {
+          CANSendError(CET_UnexpectedPacketSize,msgType,rxmsg.DLC);
+          break;
+        }
+        BootLoaderCheckSum(rxmsg.data8[6],rxmsg.data32[0],rxmsg.data16[2]);
+      }
+    } break;
+    case CPT_FlashData: {     // Data packet
       if(g_canBridgeMode) {
         if(rxmsg.DLC < 1) {
           CANReportPacketSizeError(msgType,rxmsg.DLC);
@@ -287,14 +314,32 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
         memcpy(pkt.m_data,&rxmsg.data8[1],dataLen);
         USBSendPacket((uint8_t *) &pkt,sizeof(pkt.m_header)+dataLen);
       }
-      break;
-    case CPT_FlashCmdReset: // Status from a flash command
-    case CPT_FlashEraseSector: // Erase a flash sector
-    case CPT_FlashChecksum: // Generate a checksum
-    case CPT_FlashWrite: // Write buffer
-    case CPT_FlashRead:  // Read buffer and send it back
-      // Not in boot-loader mode, just drop
-      break;
+      if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
+        if(rxmsg.DLC == 0) {
+          CANSendError(CET_UnexpectedPacketSize,msgType,rxmsg.DLC);
+          break;
+        }
+        BootLoaderData(rxmsg.data8[0],&rxmsg.data8[1],rxmsg.DLC-1);
+      }
+    } break;
+    case CPT_FlashWrite: {    // Write buffer
+      if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
+        if(rxmsg.DLC != 7) {
+          CANSendError(CET_UnexpectedPacketSize,msgType,rxmsg.DLC);
+          break;
+        }
+        BootLoaderBeginWrite(rxmsg.data8[6],rxmsg.data32[0],rxmsg.data16[2]);
+      }
+    } break;
+    case CPT_FlashRead:  {    // Read buffer and send it back
+      if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
+        if(rxmsg.DLC != 7) {
+          CANSendError(CET_UnexpectedPacketSize,msgType,rxmsg.DLC);
+          break;
+        }
+        BootLoaderBeginRead(rxmsg.data8[6],rxmsg.data32[0],rxmsg.data16[2]);
+      }
+    } break;
     default: {
       if(g_canBridgeMode) {
         USBSendError(rxDeviceId,CET_NotImplemented,msgType,0);
