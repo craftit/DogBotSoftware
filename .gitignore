@@ -1,4 +1,4 @@
-Bark.pro.user
+build-*
 build
 .dep
 .project
@@ -34,3 +34,6 @@ build
 *.exe
 *.out
 *.app
+
+#Dolphin or similar
+.directory

@@ -1,1 +1,10 @@
 build
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+src/CMakeFiles/
+src/DogBotAPIConfig.cmake
+src/Makefile
+src/cmake_install.cmake
+

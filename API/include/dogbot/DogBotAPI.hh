@@ -98,7 +98,7 @@ namespace DogBotN {
     bool SaveConfig(const std::string &configFile);
 
     //! Start API
-    //! \return true if started ok. It will return false if API has already been initialised.
+    //! return true if started ok. It will return false if API has already been initialised.
     bool Init();
 
     //! Tell all servos to hold the current position
