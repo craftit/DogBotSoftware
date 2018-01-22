@@ -58,6 +58,7 @@ namespace DogBotN
   {
     if(m_transfer != 0)
       libusb_free_transfer(m_transfer);
+    m_transfer = 0;
   }
 
   void USBTransferDataC::SetupIso(ComsUSBC *coms,struct libusb_device_handle *handle,USBTransferDirectionT direction)
@@ -301,54 +302,60 @@ namespace DogBotN
     }
     m_claimedInferface = true;
 
-    m_inDataTransfers = std::vector<USBTransferDataC>(2);
+    {
+      std::lock_guard<std::mutex> lock(m_accessTx);
 
-    // Setup a series of IN transfers.
-    for(auto &a : m_inDataTransfers) {
-      a.SetupIso(this,handle,UTD_IN);
-#if 1
-      int rc = libusb_submit_transfer(a.Transfer());
-      if(rc != LIBUSB_SUCCESS) {
-        m_log->error("Got error setting up input iso transfer. {} ",libusb_error_name(rc));
-      } else {
-        m_log->debug("Input iso transfer setup ok. ");
+      m_inDataTransfers = std::vector<USBTransferDataC>(2);
+
+      // Setup a series of IN transfers.
+      for(auto &a : m_inDataTransfers) {
+        a.SetupIso(this,handle,UTD_IN);
+  #if 1
+        int rc = libusb_submit_transfer(a.Transfer());
+        if(rc != LIBUSB_SUCCESS) {
+          m_log->error("Got error setting up input iso transfer. {} ",libusb_error_name(rc));
+          assert(0); // We need to deal with this.
+        } else {
+          m_log->debug("Input iso transfer setup ok. ");
+        }
+  #endif
       }
-#endif
-    }
 
-    m_outDataFree.empty();
-    m_outDataFree.reserve(4);
-    m_outDataTransfers = std::vector<USBTransferDataC>(4);
-    // Setup some OUT transfers.
-    for(auto &a : m_outDataTransfers) {
-      a.SetupIso(this,handle,UTD_OUT);
-      m_outDataFree.push_back(&a);
-    }
-
-#if BMC_USE_USB_EXTRA_ENDPOINTS
-    // Setup a series of IN transfers.
-    m_inIntrTransfers = std::vector<USBTransferDataC>(2);
-
-    for(auto &a : m_inIntrTransfers) {
-      a.SetupIntr(this,handle,UTD_IN);
-#if 1
-      int rc = libusb_submit_transfer(a.Transfer());
-      if(rc != LIBUSB_SUCCESS) {
-        m_log->error("Got error setting up input intr transfer. {} ",libusb_error_name(rc));
-      } else {
-        m_log->debug("Input intr transfer setup ok. ");
+      m_outDataFree.empty();
+      m_outDataFree.reserve(4);
+      m_outDataTransfers = std::vector<USBTransferDataC>(4);
+      // Setup some OUT transfers.
+      for(auto &a : m_outDataTransfers) {
+        a.SetupIso(this,handle,UTD_OUT);
+        m_outDataFree.push_back(&a);
       }
-#endif
+
+  #if BMC_USE_USB_EXTRA_ENDPOINTS
+      // Setup a series of IN transfers.
+      m_inIntrTransfers = std::vector<USBTransferDataC>(2);
+
+      for(auto &a : m_inIntrTransfers) {
+        a.SetupIntr(this,handle,UTD_IN);
+  #if 1
+        int rc = libusb_submit_transfer(a.Transfer());
+        if(rc != LIBUSB_SUCCESS) {
+          m_log->error("Got error setting up input intr transfer. {} ",libusb_error_name(rc));
+        } else {
+          m_log->debug("Input intr transfer setup ok. ");
+        }
+  #endif
+      }
+
+      m_outIntrTransfers = std::vector<USBTransferDataC>(16);
+      m_outIntrFree.empty();
+      // Setup some OUT transfers.
+      for(auto &a : m_outIntrTransfers) {
+        a.SetupIntr(this,handle,UTD_OUT);
+        m_outIntrFree.push_back(&a);
+      }
+  #endif
     }
 
-    m_outIntrTransfers = std::vector<USBTransferDataC>(16);
-    m_outIntrFree.empty();
-    // Setup some OUT transfers.
-    for(auto &a : m_outIntrTransfers) {
-      a.SetupIntr(this,handle,UTD_OUT);
-      m_outIntrFree.push_back(&a);
-    }
-#endif
 
     // From USB we're always in bridge mode.
     for(int i = 0;i < 3;i++)
@@ -576,6 +583,7 @@ namespace DogBotN
         }
         txBuffer = m_outDataFree.back();
         m_outDataFree.pop_back();
+        assert(txBuffer->Transfer() != 0);
       } else {
         if(m_txQueue.size() == 0) {
           // Nothing to send, just return the buffer.
@@ -583,6 +591,7 @@ namespace DogBotN
           return ;
         }
       }
+
       uint8_t *txData = txBuffer->Buffer();
       while(!m_txQueue.empty() && at < 50) {
         DataPacketT &packet = m_txQueue.front();
@@ -594,7 +603,7 @@ namespace DogBotN
     }
 
     // Put the packet together and transfer it.
-
+    assert(txBuffer->Transfer() != 0);
     txBuffer->Transfer()->num_iso_packets = 1;
     txBuffer->Transfer()->iso_packet_desc[0].actual_length = at;
     txBuffer->Transfer()->iso_packet_desc[0].length = at;

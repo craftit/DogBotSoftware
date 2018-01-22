@@ -34,6 +34,38 @@ bool USBSendPing(uint8_t deviceId)
   return USBSendPacket((uint8_t *) &pkt,sizeof(struct PacketPingPongC));
 }
 
+bool USBSendBootLoaderResult(uint8_t deviceId,uint8_t lastSeqNum,enum BootLoaderStateT state,enum FlashOperationStatusT result)
+{
+  struct PacketFlashResultC pkt;
+  pkt.m_packetType = CPT_FlashCmdResult;
+  pkt.m_deviceId = deviceId;
+  pkt.m_rxSequence = lastSeqNum;
+  pkt.m_state = state;
+  pkt.m_result = result;
+  return USBSendPacket((uint8_t *) &pkt,sizeof(pkt));
+}
+
+bool USBSendBootLoaderCheckSumResult(uint8_t deviceId,uint8_t seqNum,uint32_t sum)
+{
+  struct PacketFlashChecksumResultC pkt;
+  pkt.m_packetType = CPT_FlashChecksumResult;
+  pkt.m_deviceId = deviceId;
+  pkt.m_sequenceNumber = seqNum;
+  pkt.m_sum = sum;
+  return USBSendPacket((uint8_t *) &pkt,sizeof(pkt));
+}
+
+bool USBSendBootLoaderData(uint8_t deviceId,uint8_t seqNum,uint8_t *data,uint8_t len)
+{
+  struct PacketFlashDataBufferC pkt;
+  pkt.m_header.m_packetType = CPT_FlashData;
+  pkt.m_header.m_deviceId = deviceId;
+  pkt.m_header.m_sequenceNumber = seqNum;
+  int dataLen = len;
+  memcpy(pkt.m_data,data,dataLen);
+  return USBSendPacket((uint8_t *) &pkt,sizeof(pkt.m_header)+dataLen);
+}
+
 // Error codes
 //  1 - Unexpected packet.
 //  2 - Packet unexpected length.
@@ -55,6 +87,15 @@ void USBSendError(
   USBSendPacket((uint8_t *) &pkt,sizeof(struct PacketErrorC));
 }
 
+
+/* Report an error  */
+void SendError(enum ComsErrorTypeT code,uint8_t originalPacketType,uint8_t data)
+{
+  if(g_canBridgeMode) {
+    USBSendError(g_deviceId,code,originalPacketType,data);
+  }
+  CANSendError(code,originalPacketType,data);
+}
 
 
 bool USBReadParamAndReply(enum ComsParameterIndexT paramIndex)

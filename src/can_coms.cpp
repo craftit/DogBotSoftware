@@ -250,13 +250,12 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
           CANReportPacketSizeError(msgType,rxmsg.DLC);
           break;
         }
-        struct PacketFlashResultC pkt;
-        pkt.m_packetType = CPT_FlashCmdResult;
-        pkt.m_deviceId = rxDeviceId;
-        pkt.m_rxSequence = rxmsg.data8[0];
-        pkt.m_state = rxmsg.data8[1];
-        pkt.m_result = rxmsg.data8[2];
-        USBSendPacket((uint8_t *) &pkt,sizeof(pkt));
+        USBSendBootLoaderResult(
+            rxDeviceId,
+            rxmsg.data8[0], // Last sequence number
+            (enum BootLoaderStateT) rxmsg.data8[1], // state
+            (enum FlashOperationStatusT) rxmsg.data8[2] // status
+        );
       }
       break;
     case CPT_FlashChecksumResult: // Generate a checksum
@@ -265,12 +264,11 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
           CANReportPacketSizeError(msgType,rxmsg.DLC);
           break;
         }
-        struct PacketFlashChecksumResultC pkt;
-        pkt.m_packetType = CPT_FlashChecksumResult;
-        pkt.m_deviceId = rxDeviceId;
-        pkt.m_sequenceNumber = rxmsg.data8[4];
-        pkt.m_sum = rxmsg.data32[0];
-        USBSendPacket((uint8_t *) &pkt,sizeof(pkt));
+        USBSendBootLoaderCheckSumResult(
+            rxDeviceId,
+            rxmsg.data8[4], // Sequence number
+            rxmsg.data32[0] // Sum
+         );
       }
       break;
     case CPT_FlashEraseSector: {// Erase a flash sector
@@ -306,13 +304,7 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
           CANReportPacketSizeError(msgType,rxmsg.DLC);
           break;
         }
-        struct PacketFlashDataBufferC pkt;
-        pkt.m_header.m_packetType = CPT_FlashData;
-        pkt.m_header.m_deviceId = rxDeviceId;
-        pkt.m_header.m_sequenceNumber = rxmsg.data8[0];
-        int dataLen = rxmsg.DLC-1;
-        memcpy(pkt.m_data,&rxmsg.data8[1],dataLen);
-        USBSendPacket((uint8_t *) &pkt,sizeof(pkt.m_header)+dataLen);
+        USBSendBootLoaderData(rxDeviceId,rxmsg.data8[0],&rxmsg.data8[1],rxmsg.DLC-1);
       }
       if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
         if(rxmsg.DLC == 0) {

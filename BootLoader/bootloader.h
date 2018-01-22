@@ -16,6 +16,9 @@ extern "C" {
   void SendParamUpdate(enum ComsParameterIndexT paramIndex);
   bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len);
   bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data);
+
+  bool SendBootLoaderResult(uint8_t lastSeqNum,enum BootLoaderStateT state,enum FlashOperationStatusT result);
+
   int InitCAN(void);
 
 #ifdef __cplusplus
