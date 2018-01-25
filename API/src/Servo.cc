@@ -154,12 +154,15 @@ namespace DogBotN {
     // Things to query
     m_updateQuery.push_back(CPI_FaultCode);
     m_updateQuery.push_back(CPI_ControlState);
+    m_updateQuery.push_back(CPI_Indicator);
+
+    m_bootloaderQueryCount = m_updateQuery.size();
+
     m_updateQuery.push_back(CPI_HomedState);
     m_updateQuery.push_back(CPI_PositionRef);
     m_updateQuery.push_back(CPI_PWMMode);
     m_updateQuery.push_back(CPI_CalibrationOffset);
     m_updateQuery.push_back(CPI_OtherJoint);
-    m_updateQuery.push_back(CPI_Indicator);
     m_updateQuery.push_back(CPI_OtherJointOffset);
     m_updateQuery.push_back(CPI_OtherJointGain);
     m_updateQuery.push_back(CPI_MotorIGain);
@@ -301,10 +304,11 @@ namespace DogBotN {
   }
 
   //! Handle an incoming announce message.
-  bool ServoC::HandlePacketAnnounce(const PacketDeviceIdC &pkt,bool isMaster)
+  bool ServoC::HandlePacketAnnounce(const PacketDeviceIdC &pkt,bool isManager)
   {
     bool ret = false;
-    if(pkt.m_deviceId != m_id && isMaster) {
+    if(pkt.m_deviceId != m_id && isManager) {
+      m_log->info("Updating device {} {} with id {} ",m_uid1,m_uid2,m_id);
       m_coms->SendSetDeviceId(m_id,m_uid1,m_uid2);
       ret = true;
     }
@@ -579,8 +583,11 @@ namespace DogBotN {
 
     // Go through updating things, and avoiding flooding the bus.
     if(m_toQuery < (int) m_updateQuery.size() && m_coms && m_coms->IsReady()) {
-      m_coms->SendQueryParam(m_id,m_updateQuery[m_toQuery]);
-      m_toQuery++;
+      // Don't query everything in bootloader mode.
+      if(m_controlState != CS_BootLoader || m_toQuery < m_bootloaderQueryCount) {
+        m_coms->SendQueryParam(m_id,m_updateQuery[m_toQuery]);
+        m_toQuery++;
+      }
     }
 
     return ret;

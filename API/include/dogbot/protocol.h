@@ -52,12 +52,13 @@ extern "C" {
     CET_InternalError = 4,
     CET_MotorNotRunning = 5, // Command requires motor to be running. (Like CalZero)
     CET_NotImplemented = 6,
-    CET_BootLoaderUnexpectState  = 7,
+    CET_BootLoaderUnexpectedState  = 7,
     CET_BootLoaderLostSequence = 8,
     CET_BootLoaderErase  = 9,
     CET_BootLoaderProtected = 10,
     CET_BootLoaderBusy  = 11,
-    CET_BootLoaderWriteFailed = 12
+    CET_BootLoaderWriteFailed = 12,
+    CET_BootLoaderUnalignedAddress = 13
   };
 
   enum FaultCodeT {
@@ -368,8 +369,8 @@ extern "C" {
   struct PacketFlashResultC {
     uint8_t m_packetType;
     uint8_t m_deviceId;
-    uint8_t m_state;
     uint8_t m_rxSequence;
+    uint8_t m_state;
     uint8_t m_result;
   };
 
@@ -377,6 +378,7 @@ extern "C" {
     uint8_t m_packetType;
     uint8_t m_deviceId;
     uint8_t m_sequenceNumber;
+    uint32_t m_addr;
   };
 
   struct PacketFlashChecksumResultC {

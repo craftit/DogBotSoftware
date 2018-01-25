@@ -126,7 +126,8 @@ CSRC = $(STARTUPSRC) \
        $(STDPERIPH)/src/stm32f4xx_flash.c \
        $(STDPERIPH)/src/misc.c \
        ../src/stubs.c \
-       ../src/exec.c 
+       ../src/exec.c \
+       ../src/packet_usbcfg.c 
         
 #       $(STDPERIPH)/src/stm32f4xx_tim.c \
 #       $(STDPERIPH)/src/stm32f4xx_adc.c \
@@ -139,11 +140,15 @@ CSRC = $(STARTUPSRC) \
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
 CPPSRC = \
-  coms.cpp \
+  parameters.cpp \
   flashops.cpp \
   ../src/can_queue.cpp \
   ../src/can_coms.cpp \
-  ../src/canbus.cpp
+  ../src/canbus.cpp \
+  ../src/packet_queue.cpp \
+  ../src/packet_usbcoms.cpp \
+  ../src/coms.cpp \
+  ../src/bmcStubs.cpp 
 
 
 # C sources to be compiled in ARM mode regardless of the global setting.
@@ -172,7 +177,6 @@ ASMXSRC = $(STARTUPASM) $(PORTASM) $(OSALASM)
 
 INCDIR = $(CHIBIOS)/os/license \
          $(STDPERIPH)/inc \
-         ../src \
          ../ext/STM32F4xx_DSP_StdPeriph_Lib/Libraries/CMSIS/Device/ST/STM32F4xx/Include \
          $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(TESTINC) \
@@ -239,7 +243,7 @@ UADEFS = -DCRT0_FORCE_MSP_INIT=TRUE  -DCRT0_VTOR_INIT=TRUE
 #-DCORTEX_VTOR_INIT=0x0800C000
 
 # List all user directories here
-UINCDIR = ../API/include
+UINCDIR = ../API/include ../src
 
 # List the user directory to look for the libraries here
 ULIBDIR = ../lib

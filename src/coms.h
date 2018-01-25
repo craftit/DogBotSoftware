@@ -43,6 +43,15 @@ extern "C" {
   /* Send a ping message to a device. */
   bool USBSendPing(uint8_t targetDevice);
 
+  /* Send a boot-loader result message. */
+  bool USBSendBootLoaderResult(uint8_t deviceId,uint8_t lastSeqNum,enum BootLoaderStateT state,enum FlashOperationStatusT result);
+
+  /* Send boot-loader check-sum result. */
+  bool USBSendBootLoaderCheckSumResult(uint8_t deviceId,uint8_t seqNum,uint32_t sum);
+
+  /* Send bootloader data */
+  bool USBSendBootLoaderData(uint8_t deviceId,uint8_t seqNum,uint8_t *data,uint8_t len);
+
   /* Process a set parameter request. */
   bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len);
 
@@ -54,6 +63,10 @@ extern "C" {
 
   /* Report an error. */
   void USBSendError(uint8_t deviceId,enum ComsErrorTypeT code,uint8_t originalPacketType,uint8_t data);
+
+  /* Report an error. */
+  void SendError(enum ComsErrorTypeT code,uint8_t originalPacketType,uint8_t data);
+
 
   /* Broadcast new parameter value.
    * This will send the update message over the appropriate channels, and will likely broadcast

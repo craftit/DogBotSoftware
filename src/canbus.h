@@ -80,14 +80,14 @@ bool CANSendStoredSetup(
 bool CANSendAnnounceId(void);
 
 
-bool CANSendBootLoaderReset(bool enable);
-bool CANSendBootLoaderResult(uint8_t lastSeqNum,enum BootLoaderStateT state,enum FlashOperationStatusT result);
-bool CANSendBootLoaderErase(uint8_t seqNum);
-bool CANSendBootLoaderData(uint8_t seqNum,uint8_t *data,uint8_t len);
-bool CANSendBootLoaderRead(uint8_t seqNum,uint32_t addr,uint16_t len);
-bool CANSendBootLoaderWrite(uint8_t seqNum,uint32_t addr,uint16_t len);
-bool CANSendBootLoaderCheckSum(uint8_t seqNum,uint32_t addr,uint16_t len);
-bool CANSendBootLoaderCheckSumResult(uint8_t seqNum,uint32_t sum);
+bool CANSendBootLoaderReset(uint8_t deviceId,bool enable);
+bool CANSendBootLoaderResult(uint8_t deviceId,uint8_t lastSeqNum,enum BootLoaderStateT state,enum FlashOperationStatusT result);
+bool CANSendBootLoaderErase(uint8_t deviceId,uint8_t seqNum,uint32_t blockAddr);
+bool CANSendBootLoaderData(uint8_t deviceId,uint8_t seqNum,uint8_t *data,uint8_t len);
+bool CANSendBootLoaderRead(uint8_t deviceId,uint8_t seqNum,uint32_t addr,uint16_t len);
+bool CANSendBootLoaderWrite(uint8_t deviceId,uint8_t seqNum,uint32_t addr,uint16_t len);
+bool CANSendBootLoaderCheckSum(uint8_t deviceId,uint8_t seqNum,uint32_t addr,uint16_t len);
+bool CANSendBootLoaderCheckSumResult(uint8_t deviceId,uint8_t seqNum,uint32_t sum);
 
 
 /* The local device id. */

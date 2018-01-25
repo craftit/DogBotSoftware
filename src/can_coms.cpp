@@ -1,88 +1,18 @@
 
 #include "coms.h"
 #include "motion.h"
-#include "pwm.h"
+#include "bmc.h"
 #include "canbus.h"
 #include "can_coms.hh"
 #include <string.h>
 #include "can_queue.hh"
+#include "flashops.hh"
 
-bool CANSendStoredSetup(
-    uint8_t deviceId,
-    enum ComsPacketTypeT pktType // Must be either CPT_SaveSetup or CPT_LoadSetup
-)
+void CANReportPacketSizeError(int msgType,int size)
 {
-  switch(pktType)
-  {
-    case CPT_SaveSetup:
-    case CPT_LoadSetup:
-      break;
-    default:
-      return false;
-  }
-  CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
-  if(txmsg == 0)
-    return false;
-  CANSetAddress(txmsg,deviceId,pktType);
-  txmsg->RTR = CAN_RTR_DATA;
-  txmsg->DLC = 0;
-  return g_txCANQueue.PostFullPacket(txmsg);
-}
-
-
-bool CANSendCalZero(
-    uint8_t deviceId
-    )
-{
-  enum ComsPacketTypeT pktType = CPT_CalZero;
-
-  CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
-  if(txmsg == 0)
-    return false;
-  CANSetAddress(txmsg,deviceId,pktType);
-  txmsg->RTR = CAN_RTR_DATA;
-  txmsg->DLC = 0;
-  return g_txCANQueue.PostFullPacket(txmsg);
-}
-
-
-bool CANSendServoReport(
-    uint8_t deviceId,
-    int16_t position,
-    int16_t torque,
-    uint8_t state
-    )
-{
-  CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
-  if(txmsg == 0)
-    return false;
-  CANSetAddress(txmsg,deviceId,CPT_ServoReport);
-  txmsg->RTR = CAN_RTR_DATA;
-  txmsg->DLC = 5;
-  txmsg->data16[0] = position;
-  txmsg->data16[1] = torque;
-  txmsg->data8[4] = state;
-  return g_txCANQueue.PostFullPacket(txmsg);
-}
-
-bool CANSendServo(
-    uint8_t deviceId,
-    int16_t position,
-    uint16_t torqueLimit,
-    uint8_t state
-    )
-{
-  CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
-  if(txmsg == 0)
-    return false;
-
-  CANSetAddress(txmsg,deviceId,CPT_Servo);
-  txmsg->RTR = CAN_RTR_DATA;
-  txmsg->DLC = 5;
-  txmsg->data16[0] = position;
-  txmsg->data16[1] = torqueLimit;
-  txmsg->data8[4] = state;
-  return g_txCANQueue.PostFullPacket(txmsg);
+  if(g_canBridgeMode)
+    USBSendError(g_deviceId,CET_UnexpectedPacketSize,msgType,size);
+  CANSendError(CET_UnexpectedPacketSize,msgType,size);
 }
 
 // Code for processing incoming CAN packets.
@@ -110,7 +40,7 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
     case CPT_Ping: { // Ping request
       if(g_deviceId == rxDeviceId || rxDeviceId == 0) {
         if(rxmsg.DLC != 0) {
-          CANSendError(CET_UnexpectedPacketSize,CPT_Ping,rxmsg.DLC);
+          CANReportPacketSizeError(msgType,rxmsg.DLC);
           break;
         }
         CANPing(CPT_Pong,g_deviceId);
@@ -119,7 +49,7 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
     case CPT_Pong: {
       if(g_canBridgeMode) {
         if(rxmsg.DLC != 0) {
-          USBSendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_Pong,rxmsg.DLC);
+          CANReportPacketSizeError(msgType,rxmsg.DLC);
           break;
         }
         struct PacketPingPongC pkt;
@@ -131,7 +61,7 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
     case CPT_Error:
       if(g_canBridgeMode) {
         if(rxmsg.DLC != 3) {
-          USBSendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_Error,rxmsg.DLC);
+          USBSendError(rxDeviceId,CET_UnexpectedPacketSize,msgType,rxmsg.DLC);
           break;
         }
         struct PacketErrorC pkt;
@@ -151,7 +81,7 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
     case CPT_ReportParam: {
       if(g_canBridgeMode) {
         if(rxmsg.DLC < 1) {
-          USBSendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_ReportParam,rxmsg.DLC);
+          USBSendError(rxDeviceId,CET_UnexpectedPacketSize,msgType,rxmsg.DLC);
           break;
         }
         struct PacketParam8ByteC reply;
@@ -166,7 +96,7 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
     case CPT_AnnounceId: {
       if(g_canBridgeMode) {
         if(rxmsg.DLC != 8) {
-          USBSendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_ReportParam,rxmsg.DLC);
+          USBSendError(rxDeviceId,CET_UnexpectedPacketSize,msgType,rxmsg.DLC);
           break;
         }
         struct PacketDeviceIdC pkt;
@@ -181,7 +111,7 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
     case CPT_ReadParam: {
       if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
         if(rxmsg.DLC != 1) {
-          CANSendError(CET_UnexpectedPacketSize,CPT_ReadParam,rxmsg.DLC);
+          CANReportPacketSizeError(msgType,rxmsg.DLC);
           break;
         }
         enum ComsParameterIndexT index = (enum ComsParameterIndexT) rxmsg.data8[0];
@@ -191,7 +121,7 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
     case CPT_SetParam: {
       if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
         if(rxmsg.DLC < 1) {
-          CANSendError(CET_UnexpectedPacketSize,CPT_SetParam,rxmsg.DLC);
+          CANReportPacketSizeError(msgType,rxmsg.DLC);
           break;
         }
         enum ComsParameterIndexT index = (enum ComsParameterIndexT) rxmsg.data8[0];
@@ -219,7 +149,7 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
     } break;
     case CPT_SetDeviceId: {
       if(rxmsg.DLC != 8) {
-        CANSendError(CET_UnexpectedPacketSize,CPT_SetDeviceId,rxmsg.DLC);
+        CANReportPacketSizeError(msgType,rxmsg.DLC);
         break;
       }
       // Check if we're the targeted node.
@@ -232,7 +162,7 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
     } break;
     case CPT_QueryDevices: {
       if(rxmsg.DLC != 0) {
-        CANSendError(CET_UnexpectedPacketSize,CPT_QueryDevices,rxmsg.DLC);
+        CANReportPacketSizeError(msgType,rxmsg.DLC);
         break;
       }
       CANSendAnnounceId();
@@ -240,7 +170,8 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
     case CPT_ServoReport:
       if(rxDeviceId == g_otherJointId &&
           g_otherJointId != 0 &&
-          g_otherJointId != g_deviceId) {
+          g_otherJointId != g_deviceId &&
+          rxmsg.DLC == 5) {
         MotionOtherJointUpdate(rxmsg.data16[0],rxmsg.data16[1],rxmsg.data8[4]);
       }
       if(g_canBridgeMode) {
@@ -260,7 +191,7 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
     case CPT_Servo: {
       if(rxDeviceId == g_deviceId && rxDeviceId != 0) {
         if(rxmsg.DLC != 5) {
-          CANSendError(CET_UnexpectedPacketSize,CPT_Servo,rxmsg.DLC);
+          CANReportPacketSizeError(msgType,rxmsg.DLC);
           break;
         }
         uint16_t position = rxmsg.data16[0];
@@ -271,6 +202,10 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
     } break;
     case CPT_SaveSetup: {
       if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
+        if(rxmsg.DLC != 0) {
+          CANReportPacketSizeError(msgType,rxmsg.DLC);
+          break;
+        }
         enum FaultCodeT ret = SaveSetup();
         if(ret != FC_Ok) {
           CANSendError(CET_InternalError,CPT_SaveSetup,ret);
@@ -279,6 +214,10 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
     } break;
     case CPT_LoadSetup: {
       if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
+        if(rxmsg.DLC != 0) {
+          CANReportPacketSizeError(msgType,rxmsg.DLC);
+          break;
+        }
         enum FaultCodeT ret = LoadSetup();
         if(ret != FC_Ok) {
           CANSendError(CET_InternalError,CPT_LoadSetup,ret);
@@ -287,6 +226,10 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
     } break;
     case CPT_CalZero: {
       if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
+        if(rxmsg.DLC != 0) {
+          CANReportPacketSizeError(msgType,rxmsg.DLC);
+          break;
+        }
         if(!MotionCalZero()) {
           CANSendError(CET_MotorNotRunning,CPT_CalZero,0);
         }
@@ -301,7 +244,98 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
       // Not implemented yet.
       CANSendError(CET_NotImplemented,CPT_SyncTime,0);
     } break;
+    case CPT_FlashCmdResult: // Status from a flash command
+      if(g_canBridgeMode) {
+        if(rxmsg.DLC != 3) {
+          CANReportPacketSizeError(msgType,rxmsg.DLC);
+          break;
+        }
+        USBSendBootLoaderResult(
+            rxDeviceId,
+            rxmsg.data8[0], // Last sequence number
+            (enum BootLoaderStateT) rxmsg.data8[1], // state
+            (enum FlashOperationStatusT) rxmsg.data8[2] // status
+        );
+      }
+      break;
+    case CPT_FlashChecksumResult: // Generate a checksum
+      if(g_canBridgeMode) {
+        if(rxmsg.DLC != 5) {
+          CANReportPacketSizeError(msgType,rxmsg.DLC);
+          break;
+        }
+        USBSendBootLoaderCheckSumResult(
+            rxDeviceId,
+            rxmsg.data8[4], // Sequence number
+            rxmsg.data32[0] // Sum
+         );
+      }
+      break;
+    case CPT_FlashEraseSector: {// Erase a flash sector
+      if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
+        if(rxmsg.DLC != 5) {
+          CANSendError(CET_UnexpectedPacketSize,msgType,rxmsg.DLC);
+          break;
+        }
+        BootLoaderErase(rxmsg.data8[4],rxmsg.data32[0]);
+      }
+    } break;
+    case CPT_FlashCmdReset: {// Erase a flash sector
+      if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
+        if(rxmsg.DLC != 1) {
+          CANSendError(CET_UnexpectedPacketSize,msgType,rxmsg.DLC);
+          break;
+        }
+        BootLoaderReset(rxmsg.data8[0] != 0);
+      }
+    } break;
+    case CPT_FlashChecksum: { // Generate a checksum
+      if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
+        if(rxmsg.DLC != 7) {
+          CANSendError(CET_UnexpectedPacketSize,msgType,rxmsg.DLC);
+          break;
+        }
+        BootLoaderCheckSum(rxmsg.data8[6],rxmsg.data32[0],rxmsg.data16[2]);
+      }
+    } break;
+    case CPT_FlashData: {     // Data packet
+      if(g_canBridgeMode) {
+        if(rxmsg.DLC < 1) {
+          CANReportPacketSizeError(msgType,rxmsg.DLC);
+          break;
+        }
+        USBSendBootLoaderData(rxDeviceId,rxmsg.data8[0],&rxmsg.data8[1],rxmsg.DLC-1);
+      }
+      if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
+        if(rxmsg.DLC == 0) {
+          CANSendError(CET_UnexpectedPacketSize,msgType,rxmsg.DLC);
+          break;
+        }
+        BootLoaderData(rxmsg.data8[0],&rxmsg.data8[1],rxmsg.DLC-1);
+      }
+    } break;
+    case CPT_FlashWrite: {    // Write buffer
+      if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
+        if(rxmsg.DLC != 7) {
+          CANSendError(CET_UnexpectedPacketSize,msgType,rxmsg.DLC);
+          break;
+        }
+        BootLoaderBeginWrite(rxmsg.data8[6],rxmsg.data32[0],rxmsg.data16[2]);
+      }
+    } break;
+    case CPT_FlashRead:  {    // Read buffer and send it back
+      if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
+        if(rxmsg.DLC != 7) {
+          CANSendError(CET_UnexpectedPacketSize,msgType,rxmsg.DLC);
+          break;
+        }
+        BootLoaderBeginRead(rxmsg.data8[6],rxmsg.data32[0],rxmsg.data16[2]);
+      }
+    } break;
     default: {
+      if(g_canBridgeMode) {
+        USBSendError(rxDeviceId,CET_NotImplemented,msgType,0);
+      }
       CANSendError(CET_NotImplemented,msgType,0);
     } break;
   }

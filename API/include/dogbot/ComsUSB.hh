@@ -59,6 +59,8 @@ namespace DogBotN {
     struct libusb_transfer* Transfer()
     { return m_transfer; }
 
+    //! Test if the object if for a particular device.
+    bool IsForUSBDevice(struct libusb_device_handle *handle) const;
   protected:
     ComsUSBC *m_comsUSB = 0;
     USBTransferDirectionT m_direction = UTD_IN;
@@ -105,14 +107,6 @@ namespace DogBotN {
     //! Process outgoing data complete
     void ProcessOutTransferIso(USBTransferDataC *data);
 
-#if BMC_USE_USB_EXTRA_ENDPOINTS
-    //! Process incoming data.
-    void ProcessInTransferIntr(USBTransferDataC *data);
-
-    //! Process outgoing data complete
-    void ProcessOutTransferIntr(USBTransferDataC *data);
-#endif
-
   protected:
     //! Close usb handle
     void CloseUSB();
@@ -120,24 +114,16 @@ namespace DogBotN {
     // 'data' is a free buffer or null.
     void SendTxQueue(USBTransferDataC *data);
 
-#if BMC_USE_USB_EXTRA_ENDPOINTS
-    void SendPacketIso(const uint8_t *data,int len);
-
-    void SendPacketIntr(const uint8_t *data,int len);
-
-    std::vector<USBTransferDataC> m_inIntrTransfers;
-    std::vector<USBTransferDataC> m_outIntrTransfers;
-    std::vector<USBTransferDataC *> m_outIntrFree;
-#endif
-
-    std::vector<USBTransferDataC> m_inDataTransfers;
-    std::vector<USBTransferDataC> m_outDataTransfers;
-    std::vector<USBTransferDataC *> m_outDataFree;
-
     void Init();
 
     //! Open connection to device
     void Open(struct libusb_device_handle *handle);
+
+    //! Remove transfer from active list.
+    void TransferComplete(USBTransferDataC *data);
+
+    std::vector<USBTransferDataC *> m_outDataFree;
+    std::vector<USBTransferDataC *> m_activeTransfers;
 
     struct libusb_device_handle *m_handle = 0;
     struct libusb_device *m_device = 0;

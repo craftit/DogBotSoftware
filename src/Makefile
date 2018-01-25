@@ -119,11 +119,7 @@ CSRC = $(STARTUPSRC) \
        $(PLATFORMSRC) \
        $(BOARDSRC) \
        $(TESTSRC) \
-       $(CHIBIOS)/os/various/shell/shell.c \
-       $(CHIBIOS)/os/various/shell/shell_cmd.c \
        $(CHIBIOS)/os/various/syscalls.c \
-       $(CHIBIOS)/os/hal/lib/streams/memstreams.c \
-       $(CHIBIOS)/os/hal/lib/streams/chprintf.c \
        main.c \
        serial_usbcfg.c \
        coms_serial.c \
@@ -142,6 +138,12 @@ CSRC = $(STARTUPSRC) \
        $(STDPERIPH)/src/misc.c \
        stubs.c \
        exec.c
+
+#       $(CHIBIOS)/os/hal/lib/streams/memstreams.c \
+#       $(CHIBIOS)/os/hal/lib/streams/chprintf.c \
+#       $(CHIBIOS)/os/various/shell/shell.c \
+#       $(CHIBIOS)/os/various/shell/shell_cmd.c \
+
  			
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -154,7 +156,9 @@ CPPSRC = \
   packet_queue.cpp \
   can_queue.cpp \
   canbus.cpp \
-  can_coms.cpp
+  can_coms.cpp \
+  parameters.cpp \
+  flashStubs.cpp
 
 
 # C sources to be compiled in ARM mode regardless of the global setting.

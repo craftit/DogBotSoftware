@@ -107,6 +107,13 @@ namespace DogBotN {
       case CET_InternalError: return "Internal error";
       case CET_MotorNotRunning: return "Motor not running";
       case CET_NotImplemented: return "Not implemented";
+      case CET_BootLoaderUnexpectedState: return "BootLoader in unexpected state";
+      case CET_BootLoaderLostSequence: return "BootLoader lost sequence";
+      case CET_BootLoaderErase: return "BootLoader erase";
+      case CET_BootLoaderProtected: return "BootLoader protected";
+      case CET_BootLoaderBusy: return "BootLoader busy";
+      case CET_BootLoaderWriteFailed: return "BootLoader write failed";
+      case CET_BootLoaderUnalignedAddress: return "BootLoader unaligned address";
     }
     printf("Unexpected error code %d",(int)errorCode);
     return "Invalid";
@@ -136,6 +143,14 @@ namespace DogBotN {
       case CPT_Sync: return "Sync";
       case CPT_PWMState: return "PWMState";
       case CPT_BridgeMode: return "BridgeMode";
+      case CPT_FlashCmdReset: return "FlashCmdReset";
+      case CPT_FlashCmdResult: return "FlashCmdResult";
+      case CPT_FlashChecksumResult: return "FlashChecksumResult";
+      case CPT_FlashEraseSector: return "FlashEraseSector";
+      case CPT_FlashChecksum: return "FlashChecksum";
+      case CPT_FlashData: return "FlashData";
+      case CPT_FlashWrite: return "FlashWrite";
+      case CPT_FlashRead: return "FlashRead";
     }
     printf("Unexpected packet type %d",(int)packetType);
     return "Invalid";
@@ -582,7 +597,17 @@ namespace DogBotN {
         std::lock_guard<std::mutex> lock(m_mutexDevices);
         while(m_devices.size() <= deviceId)
           m_devices.push_back(nullptr);
-        device = std::make_shared<ServoC>(m_coms,deviceId,pkt);
+        // Look through things previously flagged as unassigned.
+        for(int i = 0;i < m_unassignedDevices.size();i++) {
+          if(m_unassignedDevices[i]->HasUID(pkt.m_uid[0],pkt.m_uid[1])) {
+            // Found it!
+            device = m_unassignedDevices[i];
+            m_unassignedDevices.erase(m_unassignedDevices.begin() + i);
+            break;
+          }
+        }
+        if(!device)
+          device = std::make_shared<ServoC>(m_coms,deviceId,pkt);
         m_devices[deviceId] = device;
         updateType = SUT_Add;
       } else {
@@ -625,7 +650,7 @@ namespace DogBotN {
     }
     assert(device || m_deviceManagerMode != DMM_DeviceManager);
     if(device) {
-      device->HandlePacketAnnounce(pkt,m_deviceManagerMode);
+      device->HandlePacketAnnounce(pkt,m_deviceManagerMode == DMM_DeviceManager);
       ServoStatusUpdate(device.get(),updateType);
     }
   }
@@ -801,6 +826,14 @@ namespace DogBotN {
       while(m_unassignedDevices.size() > 0) {
         auto device = m_unassignedDevices.back();
         m_unassignedDevices.pop_back();
+        // Has device been an assigned an id after
+        // it was initially queued ?
+        if(device->Id() != 0) {
+          // A bit of paranoia to make sure things aren't getting confused.
+          assert(m_devices.size() > device->Id());
+          assert(m_devices[device->Id()] == device);
+          continue;
+        }
         int deviceId = 0;
         // 0 is a reserved id, so start from 1
         for(int i = 1;i < m_devices.size();i++) {
@@ -811,8 +844,8 @@ namespace DogBotN {
           }
         }
         if(deviceId == 0) {
-           deviceId = m_devices.size();
-           m_devices.push_back(device);
+          deviceId = m_devices.size();
+          m_devices.push_back(device);
         } else {
           m_devices[deviceId] = device;
         }

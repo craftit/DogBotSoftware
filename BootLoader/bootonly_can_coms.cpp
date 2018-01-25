@@ -6,6 +6,7 @@
 #include "bootloader.h"
 #include "flashops.hh"
 
+#if 0
 // Code for processing incoming CAN packets.
 
 bool CANRecieveFrame(CANRxFrame *rxmsgptr)
@@ -48,7 +49,9 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
         int len = ((int)rxmsg.DLC)-1;
         if(len > 7) len = 7;
         memcpy(dataBuff.uint8,&rxmsg.data8[1],len);
-        if(!SetParam(index,&dataBuff,len)) {
+        if(SetParam(index,&dataBuff,len)) {
+          SendParamUpdate(index);
+        } else {
           CANSendError(CET_ParameterOutOfRange,CPT_SetParam,index);
         }
       }
@@ -84,11 +87,11 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
     case CPT_FlashEraseSector: {// Erase a flash sector
 
       if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
-        if(rxmsg.DLC != 1) {
+        if(rxmsg.DLC != 5) {
           CANSendError(CET_UnexpectedPacketSize,msgType,rxmsg.DLC);
           break;
         }
-        BootLoaderErase(rxmsg.data8[0]);
+        BootLoaderErase(rxmsg.data8[4],rxmsg.data32[0]);
       }
     } break;
     case CPT_FlashCmdReset: {// Erase a flash sector
@@ -164,3 +167,4 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
   return true;
 }
 
+#endif
