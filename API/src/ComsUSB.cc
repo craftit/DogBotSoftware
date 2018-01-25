@@ -146,10 +146,22 @@ namespace DogBotN
     m_txQueue.empty();
 
     // Cancel all active transfers.
+    std::vector<USBTransferDataC *> stillActive;
+    stillActive.reserve(32);
     for(auto a : m_activeTransfers) {
-      if(a->Transfer() != 0)
-        libusb_cancel_transfer(a->Transfer());
+      assert(a->Transfer() != 0);
+      int rc = libusb_cancel_transfer(a->Transfer());
+      if(rc == 0) {
+        stillActive.push_back(a);
+      } else {
+        if(rc != LIBUSB_ERROR_NOT_FOUND) {
+          m_log->error("Unexpected error cancelling transfer {} ",rc);
+        }
+        delete a;
+        continue;
+      }
     }
+    m_activeTransfers = stillActive;
 
     // Free all waiting buffers
     while(m_outDataFree.size() > 0) {
@@ -269,6 +281,8 @@ namespace DogBotN
 
     {
       std::lock_guard<std::mutex> lock(m_accessTx);
+
+      m_log->info("Active transfers on open: {} ",m_activeTransfers.size());
 
       // Setup a series of IN transfers.
       for(int i = 0;i < 2;i++) {
@@ -528,63 +542,7 @@ namespace DogBotN
       m_activeTransfers.push_back(txBuffer);
       ONDEBUG(m_log->info("Output iso transfer setup ok. "));
     }
-
   }
-
-#if 0
-
-  void ComsUSBC::SendPacketIso(const uint8_t *data,int len)
-  {
-    USBTransferDataC *txBuffer;
-    {
-      std::lock_guard<std::mutex> lock(m_accessTx);
-      if(m_outDataFree.empty()) {
-        m_log->error("Dropping packet, no free iso transmit buffers.");
-        return ;
-      }
-      txBuffer = m_outDataFree.back();
-      m_outDataFree.pop_back();
-
-    }
-
-    memcpy(txBuffer->Buffer(),data,len);
-    txBuffer->Transfer()->num_iso_packets = 1;
-    txBuffer->Transfer()->iso_packet_desc[0].actual_length = len;
-    txBuffer->Transfer()->iso_packet_desc[0].length = len;
-    txBuffer->Transfer()->length = len;
-    int rc = libusb_submit_transfer(txBuffer->Transfer());
-    if(rc != LIBUSB_SUCCESS) {
-      m_log->error("Got error setting up output iso transfer. {} ",libusb_error_name(rc));
-    } else {
-      ONDEBUG(m_log->info("Output iso transfer setup ok. "));
-    }
-  }
-#endif
-
-#if BMC_USE_USB_EXTRA_ENDPOINTS
-  void ComsUSBC::SendPacketIntr(const uint8_t *data,int len)
-  {
-    USBTransferDataC *txBuffer;
-    {
-      std::lock_guard<std::mutex> lock(m_accessTx);
-      if(m_outIntrFree.empty()) {
-        m_log->error("Dropping packet, no free intr transmit buffers.");
-        return ;
-      }
-      txBuffer = m_outIntrFree.back();
-      m_outIntrFree.pop_back();
-    }
-
-    memcpy(txBuffer->Buffer(),data,len);
-    txBuffer->Transfer()->length = len;
-    int rc = libusb_submit_transfer(txBuffer->Transfer());
-    if(rc != LIBUSB_SUCCESS) {
-      m_log->error("Got error setting up output iso transfer. {} ",libusb_error_name(rc));
-    } else {
-      m_log->info("Output intr transfer setup ok. ");
-    }
-  }
-#endif
 
   //! Send packet
   void ComsUSBC::SendPacket(const uint8_t *buff,int len)
