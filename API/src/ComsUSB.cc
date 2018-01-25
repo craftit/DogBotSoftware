@@ -61,7 +61,10 @@ namespace DogBotN
     m_transfer = 0;
   }
 
-  void USBTransferDataC::SetupIso(ComsUSBC *coms,struct libusb_device_handle *handle,USBTransferDirectionT direction)
+  void USBTransferDataC::SetupIso(
+      ComsUSBC *coms,
+      struct libusb_device_handle *handle,
+      USBTransferDirectionT direction)
   {
     m_direction = direction;
     m_comsUSB = coms;
@@ -107,57 +110,15 @@ namespace DogBotN
     m_transfer->iso_packet_desc[0].actual_length = sizeof(m_buffer);
     m_transfer->iso_packet_desc[0].length = sizeof(m_buffer);
     m_transfer->iso_packet_desc[0].status = LIBUSB_TRANSFER_COMPLETED;
-
   }
 
-#if BMC_USE_USB_EXTRA_ENDPOINTS
-
-  //! Setup an Ctrl buffer
-  void USBTransferDataC::SetupIntr(ComsUSBC *coms,struct libusb_device_handle *handle,USBTransferDirectionT direction)
+  //! Test if the object if for a particular device.
+  bool USBTransferDataC::IsForUSBDevice(struct libusb_device_handle *handle) const
   {
-    m_direction = direction;
-    m_comsUSB = coms;
-
-    memset(m_buffer,0,sizeof(m_buffer));
-
-    unsigned char endPoint;
-    if(direction == UTD_IN)
-      endPoint = BMCUSB_INTR_IN_EP | 0x80;
-    else
-      endPoint = BMCUSB_INTR_OUT_EP;
-
-    // Initialise an input transfer.
-    m_transfer = libusb_alloc_transfer(0);
-#if 1
-    libusb_fill_interrupt_transfer(
-        m_transfer,
-        handle,
-        endPoint,
-        m_buffer,
-        sizeof(m_buffer),
-        &usbTransferCB,
-        (void *)this,
-        0);
-
-#else
-
-    m_transfer->dev_handle = handle;
-    if(direction == UTD_IN)
-      m_transfer->endpoint = BMCUSB_INTR_IN_EP | 0x80;
-    else
-      m_transfer->endpoint = BMCUSB_INTR_OUT_EP;
-    m_transfer->flags = 0;
-    m_transfer->type = LIBUSB_TRANSFER_TYPE_INTERRUPT;
-    m_transfer->timeout = 0;
-    m_transfer->callback = &usbTransferCB;
-    m_transfer->user_data = this;
-    m_transfer->buffer = m_buffer;
-    m_transfer->length = sizeof(m_buffer);
-    m_transfer->actual_length = sizeof(m_buffer);
-    m_transfer->num_iso_packets = 0;
-#endif
+    if(m_transfer == 0)
+      return false;
+    return m_transfer->dev_handle == handle;
   }
-#endif
 
   // ====================================================================
 
@@ -184,19 +145,23 @@ namespace DogBotN
     // Dump all packets from tx queue.
     m_txQueue.empty();
 
-    for(auto &a : m_inDataTransfers) {
-      if(a.Transfer() != 0)
-        libusb_cancel_transfer(a.Transfer());
+    // Cancel all active transfers.
+    for(auto a : m_activeTransfers) {
+      if(a->Transfer() != 0)
+        libusb_cancel_transfer(a->Transfer());
     }
-    for(auto &a : m_outDataTransfers) {
-      if(a.Transfer() != 0)
-        libusb_cancel_transfer(a.Transfer());
+
+    // Free all waiting buffers
+    while(m_outDataFree.size() > 0) {
+      delete m_outDataFree.back();
+      m_outDataFree.pop_back();
     }
 
     if(m_claimedInferface) {
       libusb_release_interface(m_handle, 0);
       m_claimedInferface = false;
     }
+
 
     libusb_close(m_handle);
     m_handle = 0;
@@ -305,55 +270,30 @@ namespace DogBotN
     {
       std::lock_guard<std::mutex> lock(m_accessTx);
 
-      m_inDataTransfers = std::vector<USBTransferDataC>(2);
-
       // Setup a series of IN transfers.
-      for(auto &a : m_inDataTransfers) {
-        a.SetupIso(this,handle,UTD_IN);
-  #if 1
-        int rc = libusb_submit_transfer(a.Transfer());
+      for(int i = 0;i < 2;i++) {
+        USBTransferDataC *a = new USBTransferDataC();
+        a->SetupIso(this,handle,UTD_IN);
+        int rc = libusb_submit_transfer(a->Transfer());
         if(rc != LIBUSB_SUCCESS) {
           m_log->error("Got error setting up input iso transfer. {} ",libusb_error_name(rc));
+          delete a;
           assert(0); // We need to deal with this.
         } else {
+          m_activeTransfers.push_back(a);
           m_log->debug("Input iso transfer setup ok. ");
         }
-  #endif
       }
 
       m_outDataFree.empty();
       m_outDataFree.reserve(4);
-      m_outDataTransfers = std::vector<USBTransferDataC>(4);
       // Setup some OUT transfers.
-      for(auto &a : m_outDataTransfers) {
-        a.SetupIso(this,handle,UTD_OUT);
-        m_outDataFree.push_back(&a);
+      for(int i = 0;i < 4;i++) {
+        USBTransferDataC *a = new USBTransferDataC();
+        a->SetupIso(this,handle,UTD_OUT);
+        m_outDataFree.push_back(a);
       }
 
-  #if BMC_USE_USB_EXTRA_ENDPOINTS
-      // Setup a series of IN transfers.
-      m_inIntrTransfers = std::vector<USBTransferDataC>(2);
-
-      for(auto &a : m_inIntrTransfers) {
-        a.SetupIntr(this,handle,UTD_IN);
-  #if 1
-        int rc = libusb_submit_transfer(a.Transfer());
-        if(rc != LIBUSB_SUCCESS) {
-          m_log->error("Got error setting up input intr transfer. {} ",libusb_error_name(rc));
-        } else {
-          m_log->debug("Input intr transfer setup ok. ");
-        }
-  #endif
-      }
-
-      m_outIntrTransfers = std::vector<USBTransferDataC>(16);
-      m_outIntrFree.empty();
-      // Setup some OUT transfers.
-      for(auto &a : m_outIntrTransfers) {
-        a.SetupIntr(this,handle,UTD_OUT);
-        m_outIntrFree.push_back(&a);
-      }
-  #endif
     }
 
 
@@ -362,14 +302,26 @@ namespace DogBotN
       SendEnableBridge(true);
   }
 
+  //! Remove transfer from active list.
+  void ComsUSBC::TransferComplete(USBTransferDataC *data)
+  {
+    auto at = std::find(m_activeTransfers.begin(),m_activeTransfers.end(),data);
+    if(at == m_activeTransfers.end()) {
+      m_log->error("Transfer not found, can't be completed.");
+      return ;
+    }
+    *at = *(m_activeTransfers.end()-1);
+    m_activeTransfers.pop_back();
+  }
 
   //! Process incoming data.
 
   void ComsUSBC::ProcessInTransferIso(USBTransferDataC *data)
   {
-    // If not open, just drop the packet.
-    if(data->Transfer()->dev_handle != m_handle) {
+    if(!data->IsForUSBDevice(m_handle)) {
       m_log->info("Dropping in transfer from old device. ");
+      TransferComplete(data);
+      delete data;
       return ;
     }
 
@@ -431,54 +383,16 @@ namespace DogBotN
 
   void ComsUSBC::ProcessOutTransferIso(USBTransferDataC *data)
   {
+    TransferComplete(data);
     // If not open, just drop the packet.
-    if(data->Transfer()->dev_handle != m_handle) {
-      m_log->info("Dropping out transfer from old device. ");
+    if(!data->IsForUSBDevice(m_handle)) {
+      m_log->info("Dropping in transfer from old device. ");
+      delete data;
       return ;
     }
 
     SendTxQueue(data);
   }
-
-#if BMC_USE_USB_EXTRA_ENDPOINTS
-
-  //! Process incoming data.
-  void ComsUSBC::ProcessInTransferIntr(USBTransferDataC *data)
-  {
-    m_log->info("ProcessTransferInIntr");
-    switch(data->Transfer()->status)
-    {
-      case LIBUSB_TRANSFER_COMPLETED: {
-        m_log->info("Transfer completed %d ",data->Transfer()->actual_length);
-        //ProcessPacket(data->m_buffer,data->m_transfer->actual_length);
-      } break;
-      case LIBUSB_TRANSFER_NO_DEVICE:
-        m_log->warn("Device removed.");
-        break;
-      case LIBUSB_TRANSFER_ERROR:
-        m_log->warn("Transfer intr error {} ",data->Transfer()->status);
-        break;
-      case LIBUSB_TRANSFER_OVERFLOW:
-      default:
-        m_log->warn("Transfer status {} ",data->Transfer()->status);
-        break;
-    }
-
-
-    // Resubmit transfer to get more lovely data.
-    libusb_submit_transfer(data->Transfer());
-  }
-
-  //! Process outgoing data complete
-  void ComsUSBC::ProcessOutTransferIntr(USBTransferDataC *data)
-  {
-    m_log->info("ProcessOutTransferIntr");
-
-    std::lock_guard<std::mutex> lock(m_accessTx);
-    m_outIntrFree.push_back(data);
-
-  }
-#endif
 
 
   void ComsUSBC::Init()
@@ -489,9 +403,6 @@ namespace DogBotN
       m_log->error("Failed to create libusb context {} : {} ",r,libusb_error_name(r));
       return ;
     }
-
-    m_inDataTransfers = std::vector<USBTransferDataC>(16);
-    m_outDataTransfers = std::vector<USBTransferDataC>(16);
 
     libusb_set_debug(m_usbContext,LIBUSB_LOG_LEVEL_INFO);
     if(libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
@@ -611,7 +522,10 @@ namespace DogBotN
     int rc = libusb_submit_transfer(txBuffer->Transfer());
     if(rc != LIBUSB_SUCCESS) {
       m_log->error("Got error setting up output iso transfer. {} ",libusb_error_name(rc));
+      TransferComplete(txBuffer);
+      m_outDataFree.push_back(txBuffer);
     } else {
+      m_activeTransfers.push_back(txBuffer);
       ONDEBUG(m_log->info("Output iso transfer setup ok. "));
     }
 
