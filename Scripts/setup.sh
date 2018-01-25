@@ -12,7 +12,7 @@ cp $DIR/../Config/configexample.json /home/$USER/.config/DogBot/
 
 #set the rules for  accessing USB
 sudo cp $DIR/../API/src/reactai.rules /etc/udev/rules.d/
-sudo udevadm control --reload-rules
+sudo udevadm control --reload-rules && udevadm trigger
 
 BUILDARG=""
 

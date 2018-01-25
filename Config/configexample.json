@@ -116,15 +116,6 @@
 			"uid1" : 2883616,
 			"uid2" : 1650753082,
       "motorKv" : 335.0
-		},
-		{
-			"deviceId" : 15,
-			"enabled" : false,
-			"name" : "front_left_knee",
-			"notes" : "#2",
-			"uid1" : 2883613,
-			"uid2" : 1650753082,
-      "motorKv" : 335.0
 		}
 	]
 }
