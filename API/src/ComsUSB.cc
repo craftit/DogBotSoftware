@@ -274,7 +274,9 @@ namespace DogBotN
 
     int rc = libusb_claim_interface(handle, 0);
     if (rc != LIBUSB_SUCCESS) {
-      m_log->error("Failed to claim interface. {} ",libusb_error_name(rc));
+      m_log->error("Failed to claim interface. {},  Is there another client using the connection? ",libusb_error_name(rc));
+      libusb_close(m_handle);
+      m_handle = 0;
       return ;
     }
     m_claimedInferface = true;
