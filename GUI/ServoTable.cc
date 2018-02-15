@@ -78,7 +78,7 @@ void ServoTable::updateRows()
   for(auto a : rowChanged) {
     // Update existing device.
     QModelIndex from = createIndex(a,ColumnName);
-    QModelIndex to = createIndex(a,ColumnTemperature);
+    QModelIndex to = createIndex(a,ColumnMotorTemperature);
     emit dataChanged(from,to);
   }
 }
@@ -140,8 +140,10 @@ QVariant ServoTable::headerData(int section, Qt::Orientation orientation, int ro
       return tr("Speed");
     case ColumnTorque:
       return tr("Torque");
-    case ColumnTemperature:
-      return tr("Temperature");
+    case ColumnDriveTemperature:
+      return tr("Drive Temp.");
+    case ColumnMotorTemperature:
+      return tr("Motor Temp.");
     case ColumnSupplyVoltage:
       return tr("Supply");
     case ColumnIndex:
@@ -196,9 +198,17 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
       return joint->Velocity();
     case ColumnTorque:
       return joint->Torque();
-    case ColumnTemperature:
+    case ColumnDriveTemperature:
       if(servo != 0)
-        return servo->Temperature();
+        return servo->DriveTemperature();
+      return "";
+    case ColumnMotorTemperature:
+      if(servo != 0) {
+        float motorTemp = servo->MotorTemperature();
+        if(motorTemp < 10)
+          return 0;
+        return motorTemp;
+      }
       return "";
     case ColumnSupplyVoltage:
       if(servo != 0)
@@ -239,12 +249,24 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
         return QColor(Qt::red);
       }
       break;
-    case ColumnTemperature:
+    case ColumnDriveTemperature:
       if(servo == 0)
         return QColor(Qt::white);
-      if(servo->Temperature() < 60.0)
+      if(servo->DriveTemperature() < 10.0)
+        return QColor(Qt::yellow);
+      if(servo->DriveTemperature() < 60.0)
         return QColor(Qt::white);
-      if(servo->Temperature() < 70.0)
+      if(servo->DriveTemperature() < 70.0)
+        return QColor(Qt::yellow);
+      return QColor(Qt::red);
+    case ColumnMotorTemperature:
+      if(servo == 0)
+        return QColor(Qt::white);
+      if(servo->MotorTemperature() < 10.0)
+        return QColor(Qt::yellow);
+      if(servo->MotorTemperature() < 40.0)
+        return QColor(Qt::white);
+      if(servo->MotorTemperature() < 50.0)
         return QColor(Qt::yellow);
       return QColor(Qt::red);
     case ColumnSupplyVoltage:

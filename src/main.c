@@ -293,14 +293,17 @@ void SendBackgroundStateReport(void)
       SendParamUpdate(CPI_DriveTemp);
       break;
     case 2:
+      SendParamUpdate(CPI_MotorTemp);
+      break;
+    case 3:
       if(g_controlState != CS_LowPower  && g_controlState != CS_Standby) {
         SendParamUpdate(CPI_MotorTemp);
       }
       break;
-    case 3:
+    case 4:
       SendParamUpdate(CPI_PhaseVelocity);
       break;
-    case 4:
+    case 5:
       if(lastUsbError != g_usbErrorCount) {
         lastUsbError = g_usbErrorCount;
         SendParamUpdate(CPI_USBPacketErrors);
@@ -326,17 +329,17 @@ void SendBackgroundStateReport(void)
         SendParamUpdate(CPI_FaultState);
       }
       break;
-    case 5:
+    case 6:
       // Finish here unless we're in diagnostic mode.
       if(g_controlState != CS_Diagnostic) {
         stateCount = -1;
         return ;
       }
       break;
-    case 6:
+    case 7:
       SendParamUpdate(CPI_DemandPhaseVelocity);
       break;
-    case 7:
+    case 8:
       SendParamUpdate(CPI_HallSensors);
       break;
   }
@@ -465,7 +468,7 @@ int main(void) {
         ChangeControlState(CS_StartUp);
         break;
       case CS_Standby:
-        chThdSleepMilliseconds(500);
+        chThdSleepMilliseconds(200);
         if(g_vbus_voltage > (g_minSupplyVoltage + 0.1)) {
           ChangeControlState(CS_StartUp);
           break;
@@ -476,7 +479,7 @@ int main(void) {
         break;
       case CS_LowPower:
       case CS_Fault:
-        chThdSleepMilliseconds(500);
+        chThdSleepMilliseconds(200);
         SendBackgroundStateReport();
         break;
       case CS_EmergencyStop:
@@ -569,7 +572,7 @@ int main(void) {
     if(g_controlState != CS_LowPower  && g_controlState != CS_Standby) {
       g_motorTemperature += (ReadMotorTemperature() - g_motorTemperature) * 0.1;
 
-      if(g_motorTemperature > 60.0) {
+      if(g_motorTemperature > 52.0) {
         FaultDetected(FC_MotorOverTemperature);
       }
     }

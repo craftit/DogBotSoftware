@@ -331,8 +331,13 @@ namespace DogBotN {
     switch (cpi) {
     case CPI_DriveTemp: {
       float newTemp = pkt.m_data.float32[0];
-      ret = (newTemp != m_temperature);
-      m_temperature = newTemp;
+      ret = (newTemp != m_driveTemperature);
+      m_driveTemperature = newTemp;
+    } break;
+    case CPI_MotorTemp: {
+      float newTemp = pkt.m_data.float32[0];
+      ret = (newTemp != m_driveTemperature);
+      m_motorTemperature = newTemp;
     } break;
     case CPI_VSUPPLY: {
       float newSupplyVoltage =  ((float) pkt.m_data.uint16[0] / 1000.0f);

@@ -166,8 +166,12 @@ namespace DogBotN {
     { return m_controlState; }
 
     //! Last reported temperature
-    float Temperature() const
-    { return m_temperature; }
+    float DriveTemperature() const
+    { return m_driveTemperature; }
+
+    //! Last reported temperature
+    float MotorTemperature() const
+    { return m_motorTemperature; }
 
     //! Access supply voltage
     float SupplyVoltage() const
@@ -255,7 +259,8 @@ namespace DogBotN {
     float m_defaultPositionTorque = 4.0;
     float m_supplyVoltage = 0;
     enum PositionReferenceT m_positionRef = PR_Relative;
-    float m_temperature = 0;
+    float m_driveTemperature = 0;
+    float m_motorTemperature = 0;
 
     int m_toQuery = 0;
     int m_bootloaderQueryCount;

@@ -41,5 +41,5 @@ win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/../API/build/s
 else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/../API/build/src/debug/libDogBotAPI.a
 else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/../API/build/src/release/DogBotAPI.lib
 else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/../API/build/src/debug/DogBotAPI.lib
-else:unix:!macx: PRE_TARGETDEPS += $$PWD/../API/build/src/libDogBotAPI.a
+else:unix:!macx: PRE_TARGETDEPS += $$PWD/../API/build/libDogBotAPI.a
 else:macx: PRE_TARGETDEPS += $$PWD/../API/build/libDogBotAPI.a
