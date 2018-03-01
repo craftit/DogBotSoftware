@@ -1,4 +1,18 @@
 {
+        "kinematics" : [
+                {
+                  "name":"front_left"
+                },
+                {
+                  "name":"front_right"
+                },
+                {
+                  "name":"back_left"
+                },
+                {
+                  "name":"back_right"
+                }
+        ],
 	"devices" : 
 	[
 		{
@@ -17,7 +31,7 @@
 			"notes" : "",
 			"uid1" : 2818072,
 			"uid2" : 1650753082,
-      "motorKv" : 270.0
+                        "motorKv" : 270.0
 		},
 		{
 			"deviceId" : 3,
@@ -26,7 +40,7 @@
 			"notes" : "",
 			"uid1" : 2752540,
 			"uid2" : 1768652619,
-      "motorKv" : 270.0
+                        "motorKv" : 270.0
 		},
 		{
 			"deviceId" : 4,
@@ -35,7 +49,7 @@
 			"notes" : "",
 			"uid1" : 2490394,
 			"uid2" : 1650753082,
-      "motorKv" : 335.0
+                        "motorKv" : 335.0
 		},
 		{
 			"deviceId" : 5,
@@ -44,7 +58,7 @@
 			"notes" : "",
 			"uid1" : 2883611,
 			"uid2" : 1650753082,
-      "motorKv" : 270.0
+                        "motorKv" : 270.0
 		},
 		{
 			"deviceId" : 6,
@@ -61,7 +75,7 @@
 			"notes" : "",
 			"uid1" : 2752576,
 			"uid2" : 1768652619,
-      "motorKv" : 335.0
+                        "motorKv" : 335.0
 		},
 		{
 			"deviceId" : 8,
@@ -70,7 +84,7 @@
 			"notes" : "",
 			"uid1" : 2621483,
 			"uid2" : 1650753082,
-      "motorKv" : 335.0
+                        "motorKv" : 335.0
 		},
 		{
 			"deviceId" : 9,
@@ -79,7 +93,7 @@
 			"notes" : "",
 			"uid1" : 2883619,
 			"uid2" : 1650753082,
-      "motorKv" : 270.0
+                        "motorKv" : 270.0
 		},
 		{
 			"deviceId" : 10,
@@ -88,7 +102,7 @@
 			"notes" : "#8",
 			"uid1" : 2621487,
 			"uid2" : 1650753082,
-      "motorKv" : 335.0
+                        "motorKv" : 335.0
 		},
 		{
 			"deviceId" : 11,
@@ -97,7 +111,7 @@
 			"notes" : "",
 			"uid1" : 2621484,
 			"uid2" : 1650753082,
-      "motorKv" : 335.0
+                        "motorKv" : 335.0
 		},
 		{
 			"deviceId" : 12,
@@ -106,7 +120,7 @@
 			"notes" : "",
 			"uid1" : 2883617,
 			"uid2" : 1650753082,
-      "motorKv" : 335.0
+                        "motorKv" : 335.0
 		},
 		{
 			"deviceId" : 14,
@@ -115,7 +129,44 @@
 			"notes" : "",
 			"uid1" : 2883616,
 			"uid2" : 1650753082,
-      "motorKv" : 335.0
-		}
+                        "motorKv" : 335.0
+		},
+		{
+		      "name":"virtual_front_left_knee",
+		      "type":"4bar",
+		      "legKinematics":"front_left",
+		      "jointRef":"front_left_pitch",
+		      "jointDrive":"front_left_knee",
+		      "refGain":1.0,
+		      "refOffset":1.0
+		},
+                {
+                      "name":"virtual_front_right_knee",
+                      "type":"4bar",
+                      "legKinematics":"front_right",
+                      "jointRef":"front_right_pitch",
+                      "jointDrive":"front_right_knee",
+                      "refGain":1.0,
+                      "refOffset":1.0
+                },
+                {
+                      "name":"virtual_back_left_knee",
+                      "type":"4bar",
+                      "legKinematics":"back_left",
+                      "jointRef":"back_left_pitch",
+                      "jointDrive":"back_left_knee",
+                      "refGain":1.0,
+                      "refOffset":1.0
+                },
+                {
+                      "name":"virtual_back_right_knee",
+                      "type":"4bar",
+                      "legKinematics":"back_right",
+                      "jointRef":"back_right_pitch",
+                      "jointDrive":"back_right_knee",
+                      "refGain":1.0,
+                      "refOffset":1.0
+                }
+		
 	]
 }

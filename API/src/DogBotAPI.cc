@@ -537,22 +537,37 @@ namespace DogBotN {
     }
     Json::Value rootConfig;
 
-    std::lock_guard<std::mutex> lock(m_mutexDevices);
-    Json::Value deviceList;
-    int index =0;
-    for(auto &a : m_devices) {
-      if(!a)
-        continue;
-      deviceList[index++] = a->ConfigAsJSON();
+    {
+      std::lock_guard<std::mutex> lock(m_mutexDevices);
+      Json::Value deviceList;
+      int index =0;
+      for(auto &a : m_devices) {
+        if(!a)
+          continue;
+        deviceList[index++] = a->ConfigAsJSON();
+      }
+      for(auto &a : m_joints) {
+        if(!a)
+          continue;
+        if(a->JointType() == "servo")
+          continue;
+        deviceList[index++] = a->ConfigAsJSON();
+      }
+      rootConfig["devices"] = deviceList;
+
+      Json::Value kinematicsList;
+      index = 0;
+      for(auto &a : m_legKinematics) {
+        if(!a)
+          continue;
+        a->ConfigAsJSON();
+        kinematicsList[index++] = a->ConfigAsJSON();
+      }
+
+      rootConfig["kinematics"] = kinematicsList;
     }
-    for(auto &a : m_joints) {
-      if(!a)
-        continue;
-      if(a->JointType() == "servo")
-        continue;
-      deviceList[index++] = a->ConfigAsJSON();
-    }
-    rootConfig["devices"] = deviceList;
+
+
 
     confStrm << rootConfig;
 
