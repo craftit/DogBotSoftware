@@ -59,7 +59,7 @@ namespace DogBotN {
 
     //! Set the handler for a particular type of packet.
     //! Returns the id of the handler or -1 if failed.
-    ComsCallbackHandleC SetHandler(ComsPacketTypeT packetType,const std::function<void (uint8_t *data,int len)> &handler);
+    CallbackHandleC SetHandler(ComsPacketTypeT packetType,const std::function<void (uint8_t *data,int len)> &handler);
 
     bool Hex2Number(const char *start,const char *end,uint32_t &value);
 

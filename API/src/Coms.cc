@@ -59,72 +59,9 @@ namespace DogBotN
     return false;
   }
 
-  //! Set handler for all packets, this is called as well as any specific handlers that have been installed.
-  //! Only one can be set at any time.
-  int ComsC::SetGenericHandler(const std::function<void (uint8_t *data,int len)> &handler)
-  {
-    std::lock_guard<std::mutex> lock(m_accessPacketHandler);
-    for(int i = 0;i < m_genericHandler.size();i++) {
-      if(!m_genericHandler[i]) {
-        m_genericHandler[i] = handler;
-        return i;
-      }
-    }
-    int ret = m_genericHandler.size();
-    m_genericHandler.push_back(handler);
-    return ret;
-  }
-
-
-  //! Remove generic handler
-  void ComsC::RemoveGenericHandler(int id)
-  {
-    if(id < 0)
-      return ;
-    std::lock_guard<std::mutex> lock(m_accessPacketHandler);
-    assert(id < m_genericHandler.size());
-    if(id >= m_genericHandler.size())
-      return ;
-    m_genericHandler[id] = std::function<void (uint8_t *data,int len)>();
-  }
-
-
-
-  ComsCallbackHandleC ComsC::SetHandler(ComsPacketTypeT packetId,const std::function<void (uint8_t *data,int )> &handler)
-  {
-    std::lock_guard<std::mutex> lock(m_accessPacketHandler);
-    assert((int) packetId < 256);
-
-    while(m_packetHandler.size() <= (int) packetId) {
-      m_packetHandler.push_back(std::vector<std::function<void (uint8_t *data,int )> >());
-    }
-    std::vector<std::function<void (uint8_t *data,int )> > &list = m_packetHandler[(int) packetId];
-    for(int i = 0;i < list.size();i++) {
-      if(!list[i]) { // Found free slot.
-        list[i] = handler;
-        return ComsCallbackHandleC(packetId,i);
-      }
-    }
-    int id = list.size();
-    list.push_back(handler);
-    return ComsCallbackHandleC(packetId,id);
-  }
-
-  //! Delete given handler
-  void ComsC::DeleteHandler(const ComsCallbackHandleC &handle)
-  {
-    ComsPacketTypeT packetType = handle.PacketType();
-    int id = handle.Id();
-    assert(id >= 0);
-    assert((unsigned) packetType < m_packetHandler.size());
-    assert(id < m_packetHandler[(int) packetType].size());
-    m_packetHandler[(int) packetType][id] = std::function<void (uint8_t *data,int )>();
-  }
-
-
 
   //! Process received packet.
-  void ComsC::ProcessPacket(uint8_t *packetData,int packetLen)
+  void ComsC::ProcessPacket(const uint8_t *packetData,int packetLen)
   {
     std::string dataStr;
 #if 0
@@ -136,8 +73,7 @@ namespace DogBotN
 
     // Do some handling
     {
-      std::lock_guard<std::mutex> lock(m_accessPacketHandler);
-      for(auto &func : m_genericHandler) {
+      for(auto &func : m_genericHandler.Calls()) {
         if(func) func(packetData,packetLen);
       }
     }
@@ -160,18 +96,15 @@ namespace DogBotN
         break;
       default: {
         {
-          std::lock_guard<std::mutex> lock(m_accessPacketHandler);
-          if(packetId < m_packetHandler.size()) {
-            bool hasHandler = false;
-            for(auto a : m_packetHandler[packetId]) {
-              if(a) {
-                hasHandler =  true;
-                a(packetData,packetLen);
-              }
+          bool hasHandler = false;
+          for(auto a : m_packetHandler[packetId].Calls()) {
+            if(a) {
+              hasHandler =  true;
+              a(packetData,packetLen);
             }
-            if(hasHandler)
-              return ;
           }
+          if(hasHandler)
+            return ;
         }
         // Fall back to the default handlers.
         switch(packetId) {
@@ -208,6 +141,17 @@ namespace DogBotN
 
   //! Send packet
   void ComsC::SendPacket(const uint8_t *buff,int len)
+  {
+    // I'm not totally happy with the delay this will add to sending the packet,
+    // but it isn't clear what to do about that without adding lots of complexity.
+    for(auto &a : m_commandCallback.Calls()) {
+      if(a) a(buff,len);
+    }
+    SendPacketWire(buff,len);
+  }
+
+  //! Send packet
+  void ComsC::SendPacketWire(const uint8_t *buff,int len)
   {
     assert(0); // Abstract method
   }
@@ -379,41 +323,6 @@ namespace DogBotN
   {
     uint8_t packetType = CPT_EmergencyStop;
     SendPacket((uint8_t *)&packetType,sizeof(packetType));
-  }
-
-  // ------------------------------------------------------------------------------
-
-  //! Construct from 'coms' object we're registering callbacks from.
-  ComsRegisteredCallbackSetC::ComsRegisteredCallbackSetC(std::shared_ptr<ComsC> &coms)
-   : m_coms(coms)
-  {
-    assert(coms);
-  }
-
-  //! Destructor
-  ComsRegisteredCallbackSetC::~ComsRegisteredCallbackSetC()
-  {
-    PopAll();
-  }
-
-  //! /param cb A callback to be added to the list.
-  void ComsRegisteredCallbackSetC::Push(const ComsCallbackHandleC &cb)
-  {
-    m_callbacks.push_back(cb);
-  }
-
-  //! De-register all currently registered callbacks.
-  void ComsRegisteredCallbackSetC::PopAll()
-  {
-    while(!m_callbacks.empty()) {
-      m_coms->DeleteHandler(m_callbacks.back());
-      m_callbacks.pop_back();
-    }
-  }
-
-  void ComsRegisteredCallbackSetC::SetHandler(ComsPacketTypeT packetType,const std::function<void (uint8_t *data,int len)> &handler)
-  {
-    Push(m_coms->SetHandler(packetType,handler));
   }
 
 }

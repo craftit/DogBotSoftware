@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "dogbot/protocol.h"
+#include "dogbot/CallbackArray.hh"
 #include <spdlog/spdlog.h>
 #include <cstdint>
 
@@ -19,71 +20,14 @@ namespace DogBotN {
 
   class ComsC;
 
-  //! handle containing call back information
-
-  class ComsCallbackHandleC
-  {
-  public:
-    ComsCallbackHandleC()
-    {}
-
-    //! Access packet type
-    ComsPacketTypeT PacketType() const
-    { return m_packetType; }
-
-    int Id() const
-    { return m_id; }
-
-  protected:
-    ComsCallbackHandleC(ComsPacketTypeT packetType,int id)
-      : m_packetType(packetType),
-        m_id(id)
-    {}
-
-    ComsPacketTypeT m_packetType = CPT_NoOp;
-    int m_id = -1;
-
-    friend class ComsC;
-  };
-
-  //! Set of callbacks to de-register when class is destroyed
-  //! This manages resource allocation and provides similar
-  //! exception safety to 'resource acquisition is initialisation' variable.
-
-  class ComsRegisteredCallbackSetC
-  {
-  public:
-    //! Construct from 'coms' object we're registering callbacks from.
-    ComsRegisteredCallbackSetC(std::shared_ptr<ComsC> &coms);
-
-    //! Destructor
-    ~ComsRegisteredCallbackSetC();
-
-    //! Access associated communication object.
-    ComsC &Coms()
-    { return *m_coms; }
-
-    //! \param cb A callback to be added to the list.
-    void Push(const ComsCallbackHandleC &cb);
-
-    //! Helper function for adding new functions
-    //! \param packetType Type of packet to handle reports for
-    //! \param handler Handler to call
-    void SetHandler(ComsPacketTypeT packetType,const std::function<void (uint8_t *data,int len)> &handler);
-
-    //! De-register all currently registered callbacks.
-    void PopAll();
-
-  protected:
-    std::shared_ptr<ComsC> m_coms;
-    std::vector<ComsCallbackHandleC> m_callbacks;
-  };
-
   //! Low level communication interface
 
   class ComsC
   {
   public:
+    typedef std::function<void (const uint8_t *data,int len)> PacketFuncT;
+
+
     ComsC(std::shared_ptr<spdlog::logger> &log);
 
     //! default
@@ -106,10 +50,11 @@ namespace DogBotN {
     virtual bool IsReady() const;
 
     //! Process received packet.
-    void ProcessPacket(uint8_t *data,int len);
+    void ProcessPacket(const uint8_t *data,int len);
 
     //! Send packet
-    virtual void SendPacket(const uint8_t *data,int len);
+    void SendPacket(const uint8_t *data,int len);
+
 
     //! Send an emergency stop
     void SendEmergencyStop();
@@ -140,12 +85,12 @@ namespace DogBotN {
       std::promise<bool> promiseDone;
       std::future<bool> done = promiseDone.get_future();
 
-      auto handler = SetHandler(CPT_ReportParam,[this,deviceId,param,&msg,&ret,&promiseDone](uint8_t *data,int len) mutable {
+      auto handler = SetHandler(CPT_ReportParam,[this,deviceId,param,&msg,&ret,&promiseDone](const uint8_t *data,int len) mutable {
         if(len < sizeof(PacketParamHeaderC)) {
           m_log->error("Short ReportParam packet received. {} Bytes ",len);
           return ;
         }
-        PacketParam8ByteC *pkt = reinterpret_cast<PacketParam8ByteC *>(data);
+        const PacketParam8ByteC *pkt = reinterpret_cast<const PacketParam8ByteC *>(data);
         // Is it from the device we're interested in
         if(pkt->m_header.m_deviceId != deviceId)
           return ;
@@ -168,7 +113,7 @@ namespace DogBotN {
       assert(sizeof(value) <= 7);
       if(sizeof(value) > 7) {
         //! Delete given handler
-        DeleteHandler(handler);
+        handler.Remove();
         m_log->error("Parameter {} too large.",(int) param);
         return false;
       }
@@ -181,7 +126,7 @@ namespace DogBotN {
       }
 
       //! Delete given handler
-      DeleteHandler(handler);
+      handler.Remove();
 
       return ret;
     }
@@ -219,19 +164,25 @@ namespace DogBotN {
     //! Send a calibration zero
     void SendCalZero(int deviceId);
 
-    //! Set handler for all packets, this is called as well as any specific handlers that have been installed.
-    //! Only one can be set at any time.
-    int SetGenericHandler(const std::function<void (uint8_t *data,int len)> &handler);
+    //! Set handler for all received packets, this is called as well as any specific handlers that have been installed.
+    CallbackHandleC SetGenericHandler(const PacketFuncT &handler)
+    { return m_genericHandler.Add(handler); }
 
-    //! Remove generic handler
-    void RemoveGenericHandler(int id);
+    //! Set handler for all received packets, this is called as well as any specific handlers that have been installed.
+    CallbackHandleC SetCommandHandler(const PacketFuncT &handler)
+    { return m_commandCallback.Add(handler); }
 
     //! Set the handler for a particular type of packet.
     //! Returns the id of the handler or -1 if failed.
-    ComsCallbackHandleC SetHandler(ComsPacketTypeT packetType,const std::function<void (uint8_t *data,int len)> &handler);
+    CallbackHandleC SetHandler(ComsPacketTypeT packetType,const PacketFuncT &handler)
+    {
+      assert((size_t) packetType < (size_t)CPT_Final);
+      return m_packetHandler[packetType].Add(handler);
+    }
 
-    //! Remove given handler
-    void DeleteHandler(const ComsCallbackHandleC &handle);
+    //! Add a update callback for motor position
+    CallbackHandleC AddCommandCallback(const PacketFuncT &callback)
+    { return m_commandCallback.Add(callback); }
 
     //! Convert a report value to an angle in radians
     static float PositionReport2Angle(int16_t val)
@@ -242,15 +193,18 @@ namespace DogBotN {
     { return val * 10.0/ 65535.0; }
 
   protected:
+    //! Send packet
+    virtual void SendPacketWire(const uint8_t *data,int len);
 
     volatile bool m_terminate = false;
 
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("console");
 
-    std::mutex m_accessPacketHandler;
+    std::vector<CallbackArrayC<PacketFuncT> > m_packetHandler = std::vector<CallbackArrayC<PacketFuncT> >((size_t) CPT_Final);
+    CallbackArrayC<PacketFuncT> m_genericHandler;
 
-    std::vector<std::vector<std::function<void (uint8_t *data,int len)> > > m_packetHandler;
-    std::vector<std::function<void (uint8_t *data,int len)> > m_genericHandler;
+    CallbackArrayC<PacketFuncT> m_commandCallback;
+
   };
 
 

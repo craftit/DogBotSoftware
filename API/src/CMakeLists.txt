@@ -35,6 +35,7 @@ ADD_LIBRARY (DogBotAPI STATIC
         ComsSerial.cc 
         ComsProxy.cc 
         ComsUSB.cc 
+        ComsRecorder.cc
         DogBotAPI.cc 
         Servo.cc 
         LegKinematics.cc 

@@ -40,7 +40,8 @@ extern "C" {
     CPT_FlashChecksum    = 24, // Generate a checksum
     CPT_FlashData        = 25, // Data packet
     CPT_FlashWrite       = 26, // Write buffer
-    CPT_FlashRead        = 27  // Read buffer and send it back
+    CPT_FlashRead        = 27, // Read buffer and send it back
+    CPT_Final                  // Use to get count of known packet types.
   };
 
 

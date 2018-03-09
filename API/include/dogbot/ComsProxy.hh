@@ -35,11 +35,11 @@ namespace DogBotN {
     virtual bool IsReady() const override;
 
     //! Send packet
-    virtual void SendPacket(const uint8_t *data,int len) override;
+    virtual void SendPacketWire(const uint8_t *data,int len) override;
 
 
   protected:
-    int m_genericHandlerId = -1;
+    CallbackHandleC m_genericHandlerId;
     std::shared_ptr<ComsC> m_coms;
     mutable std::mutex m_accessTx;
 

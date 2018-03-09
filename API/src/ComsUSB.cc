@@ -547,7 +547,7 @@ namespace DogBotN
   }
 
   //! Send packet
-  void ComsUSBC::SendPacket(const uint8_t *buff,int len)
+  void ComsUSBC::SendPacketWire(const uint8_t *buff,int len)
   {
     if(len >= 64) {
       m_log->error("Dropping large packet.");

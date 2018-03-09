@@ -6,6 +6,7 @@
 #include "dogbot/ComsSerial.hh"
 #include "dogbot/DogBotAPI.hh"
 #include "dogbot/ComsZMQServer.hh"
+#include "dogbot/ComsRecorder.hh"
 #include "cxxopts.hpp"
 
 // This provides a network interface for controlling the servos via ZMQ.
@@ -14,6 +15,7 @@ int main(int argc,char **argv)
 {
   std::string devFilename = "usb";
   std::string configFile;
+  std::string logFile;
 
   bool managerMode = true;
   auto logger = spdlog::stdout_logger_mt("console");
@@ -29,6 +31,7 @@ int main(int argc,char **argv)
       ("m,manager", "Manager mode, allowing allocation of device ids", cxxopts::value<bool>(managerMode))
       ("c,config", "Configuration file", cxxopts::value<std::string>(configFile))
       ("d,device", "Device to use from communication ", cxxopts::value<std::string>(devFilename))
+      ("l,log"   , "File to use for communication log ", cxxopts::value<std::string>(logFile))
       ("h,help", "Print help")
     ;
 
@@ -51,6 +54,7 @@ int main(int argc,char **argv)
   logger->info("Manager mode: {}",managerMode);
   logger->info("Using config file: '{}'",configFile);
   logger->info("Using communication type: '{}'",devFilename);
+  logger->info("Communication log: '{}'",logFile);
 
   DogBotN::DogBotAPIC dogbot(
       devFilename,
@@ -61,6 +65,12 @@ int main(int argc,char **argv)
 
 
   DogBotN::ComsZMQServerC server(dogbot.Connection(),logger);
+
+  std::shared_ptr<DogBotN::ComsRecorderC> logRecorder;
+  if(!logFile.empty()) {
+    logRecorder = std::make_shared<DogBotN::ComsRecorderC>(dogbot.Connection(),logger,logFile);
+    logRecorder->Start();
+  }
 
   logger->info("Setup and ready. ");
 

@@ -30,7 +30,7 @@ namespace DogBotN {
     virtual bool IsReady() const override;
 
     //! Send packet
-    virtual void SendPacket(const uint8_t *data,int len) override;
+    virtual void SendPacketWire(const uint8_t *data,int len) override;
 
     //! Accept a byte
     void AcceptByte(uint8_t sendByte);

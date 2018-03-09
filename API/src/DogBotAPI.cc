@@ -275,10 +275,10 @@ namespace DogBotN {
     std::vector<bool> gotData(toGo,false);
     std::timed_mutex done;
     done.lock();
-    ComsRegisteredCallbackSetC callbacks(m_coms);
-    callbacks.SetHandler(CPT_ReportParam,[this,&gotData,&toGo,&cal,&done](uint8_t *data,int size) mutable
+    CallbackSetC callbacks;
+    callbacks += m_coms->SetHandler(CPT_ReportParam,[this,&gotData,&toGo,&cal,&done](const uint8_t *data,int size) mutable
       {
-        struct PacketParam8ByteC *psp = (struct PacketParam8ByteC *) data;
+        const struct PacketParam8ByteC *psp = (const struct PacketParam8ByteC *) data;
         int index = psp->m_header.m_index;
         if(index < CPI_ANGLE_CAL || index > CPI_ANGLE_CAL_11)
           return ;
@@ -321,10 +321,10 @@ namespace DogBotN {
     std::vector<bool> gotData(toGo,false);
     std::timed_mutex done;
     done.lock();
-    ComsRegisteredCallbackSetC callbacks(m_coms);
-    callbacks.SetHandler(CPT_ReportParam,[this,&gotData,&toGo,&cal,&done](uint8_t *data,int size) mutable
+    CallbackSetC callbacks;
+    callbacks += m_coms->SetHandler(CPT_ReportParam,[this,&gotData,&toGo,&cal,&done](const uint8_t *data,int size) mutable
       {
-        struct PacketParam8ByteC *psp = (struct PacketParam8ByteC *) data;
+        const struct PacketParam8ByteC *psp = (const struct PacketParam8ByteC *) data;
         int index = psp->m_header.m_index;
         if(index < CPI_ANGLE_CAL || index > CPI_ANGLE_CAL_11)
           return ;
@@ -682,16 +682,18 @@ namespace DogBotN {
       return ;
     }
 
-    ComsRegisteredCallbackSetC callbacks(m_coms);
+    CallbackSetC callbacks;
 
-    callbacks.SetHandler(CPT_Pong, [this](uint8_t *data,int size) mutable
+    callbacks += m_coms->SetHandler(
+        CPT_Pong, [this](const uint8_t *data,int size) mutable
     {
       struct PacketPingPongC *pkt = (struct PacketPingPongC *) data;
       m_log->info("Got pong from {} ",(int) pkt->m_deviceId);
     });
 
-    callbacks.SetHandler(CPT_ServoReport,
-             [this](uint8_t *data,int size) mutable
+    callbacks += m_coms->SetHandler(
+        CPT_ServoReport,
+             [this](const uint8_t *data,int size) mutable
         {
           if(size != sizeof(struct PacketServoReportC)) {
             m_log->error("Unexpected 'ServoReport' packet length {} ",size);
@@ -707,9 +709,9 @@ namespace DogBotN {
         }
     );
 
-    callbacks.SetHandler(
+    callbacks += m_coms->SetHandler(
           CPT_AnnounceId,
-           [this](uint8_t *data,int size) mutable
+           [this](const uint8_t *data,int size) mutable
             {
               if(size != sizeof(struct PacketDeviceIdC)) {
                 m_log->error("Unexpected 'AnnounceId' packet length {} ",size);
@@ -720,8 +722,9 @@ namespace DogBotN {
             }
            );
 
-    callbacks.SetHandler(CPT_ReportParam,
-                       [this](uint8_t *data,int size) mutable
+    callbacks += m_coms->SetHandler(
+        CPT_ReportParam,
+                       [this](const uint8_t *data,int size) mutable
                         {
                           if(size < sizeof(struct PacketParamHeaderC)) {
                             m_log->error("'ReportParam' packet to short {} ",size);
@@ -739,8 +742,8 @@ namespace DogBotN {
                         }
                        );
 
-    callbacks.SetHandler(CPT_Error,
-                       [this](uint8_t *data,int size) mutable
+    callbacks += m_coms->SetHandler(CPT_Error,
+                       [this](const uint8_t *data,int size) mutable
                         {
                           if(size < sizeof(struct PacketErrorC)) {
                             m_log->error("'Error' packet to short {} ",size);

@@ -97,7 +97,7 @@ namespace DogBotN
   }
 
   //! Send packet
-  void ComsZMQClientC::SendPacket(const uint8_t *buff,int len)
+  void ComsZMQClientC::SendPacketWire(const uint8_t *buff,int len)
   {
     if(m_terminate)
       return ; // Drop packets if we're terminating.

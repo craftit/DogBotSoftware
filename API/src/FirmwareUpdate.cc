@@ -259,12 +259,12 @@ namespace DogBotN {
     if(!LoadHexFile(filename))
       return false;
 
-    ComsRegisteredCallbackSetC callbacks(m_coms);
+    CallbackSetC callbacks;
 
     if(!m_dryRun) {
-      callbacks.SetHandler(CPT_FlashCmdResult,[&](uint8_t *data,int len)
+      callbacks += m_coms->SetHandler(CPT_FlashCmdResult,[&](const uint8_t *data,int len)
        {
-         auto *pkt = (struct PacketFlashResultC *) data;
+         auto *pkt = (const struct PacketFlashResultC *) data;
          //m_log->info("Got flash result from device {}, waiting for {}  rxSequence:{} State:{} Result:{} ",(int) pkt->m_deviceId,(int) targetDevice,(int) pkt->m_rxSequence,(int) pkt->m_state,(int) pkt->m_result);
          // Is packet of interest ?
          if(pkt->m_deviceId != targetDevice && targetDevice != 0)

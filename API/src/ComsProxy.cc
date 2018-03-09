@@ -19,11 +19,7 @@ namespace DogBotN
   // Disconnects and closes file descriptors
   ComsProxyC::~ComsProxyC()
   {
-    if(m_coms) {
-      std::lock_guard<std::mutex> lock(m_accessTx);
-      m_coms->RemoveGenericHandler(m_genericHandlerId);
-      m_genericHandlerId = -1;
-    }
+    m_genericHandlerId.Remove();
   }
 
   //! Set
@@ -32,13 +28,10 @@ namespace DogBotN
     assert(coms.get() != this); // On the off chance something tried to make a loop.
     std::lock_guard<std::mutex> lock(m_accessTx);
 
-    if(m_coms && m_genericHandlerId >= 0) {
-      m_coms->RemoveGenericHandler(m_genericHandlerId);
-      m_genericHandlerId = -1;
-    }
+    m_genericHandlerId.Remove();
     m_coms = coms;
     if(m_coms) {
-      m_genericHandlerId = m_coms->SetGenericHandler([this](uint8_t *data,int len) mutable
+      m_genericHandlerId = m_coms->SetGenericHandler([this](const uint8_t *data,int len) mutable
                                 {
                                   ProcessPacket(data,len);
                                 }
@@ -81,7 +74,7 @@ namespace DogBotN
   }
 
   //! Send packet
-  void ComsProxyC::SendPacket(const uint8_t *buff,int len)
+  void ComsProxyC::SendPacketWire(const uint8_t *buff,int len)
   {
     std::lock_guard<std::mutex> lock(m_accessTx);
     if(!m_coms)

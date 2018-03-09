@@ -16,11 +16,7 @@ namespace DogBotN {
   //! Make sure everything is disconnected.
   ComsZMQServerC::~ComsZMQServerC()
   {
-    if(m_coms && m_genericHandlerId >= 0) {
-      m_coms->RemoveGenericHandler(m_genericHandlerId);
-      m_genericHandlerId = -1;
-    }
-
+    m_genericHandlerId.Remove();
   }
 
   //! Run server
@@ -36,7 +32,7 @@ namespace DogBotN {
     zpub->bind ("tcp://*:7201");
     zpub->setsockopt(ZMQ_SNDTIMEO,500);
 
-    m_genericHandlerId = m_coms->SetGenericHandler([this,zpub](uint8_t *data,int len) mutable
+    m_genericHandlerId = m_coms->SetGenericHandler([this,zpub](const uint8_t *data,int len) mutable
                               {
                                 ComsPacketTypeT cpt = (ComsPacketTypeT)data[0];
                                 switch(cpt)
@@ -91,8 +87,7 @@ namespace DogBotN {
     m_log->info("Server run loop exiting.");
 
     // Remove handler with reference to this instance.
-    m_coms->RemoveGenericHandler(m_genericHandlerId);
-    m_genericHandlerId = -1;
+    m_genericHandlerId.Remove();
 
     m_log->info("Server finished.");
   }

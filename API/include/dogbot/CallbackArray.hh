@@ -32,12 +32,19 @@ namespace DogBotN {
   class CallbackHandleC
   {
   public:
+    //! Default constructor,
+    //! Creates an invalid handle. It is safe to call Remove() on it which will have no effect.
+    CallbackHandleC()
+    {}
+
+    //! Create from an array entry and an id
     CallbackHandleC(AbstractCallbackArrayC *cb,int id)
       : m_cb(cb),
         m_id(id)
     {}
 
-    //! Remove callback from list.
+    //! Remove callback from list if handle is valid, otherwise take no action.
+    //! The handle will be changed to an invalid state after call back is removed.
     void Remove();
 
     //! Test if the callback is still active.

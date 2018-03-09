@@ -255,7 +255,7 @@ namespace DogBotN
   }
 
   //! Send packet
-  void ComsSerialC::SendPacket(const uint8_t *buff,int len)
+  void ComsSerialC::SendPacketWire(const uint8_t *buff,int len)
   {
     assert(m_fd >= 0);
 

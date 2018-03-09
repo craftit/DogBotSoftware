@@ -31,7 +31,7 @@ namespace DogBotN {
 
     bool m_verbose = false;
     bool m_terminate = false;
-    int m_genericHandlerId = -1;
+    CallbackHandleC m_genericHandlerId;
   };
 
 }
