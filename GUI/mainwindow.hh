@@ -142,6 +142,10 @@ private slots:
 
   void on_lineEditFanTempThreshold_editingFinished();
 
+  void on_comboBoxFanState_currentIndexChanged(const QString &arg1);
+
+  void on_updatePosition(double angle);
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);
@@ -176,9 +180,11 @@ signals:
   void setIndexSensor(bool state);
   void setJointRelativeEnabled(bool state);
   void setFanMode(const QString &str);
+  void updatePosition(double angle);
 
 private:
   void SetupComs();
+
 
   void QueryAll();
 
@@ -190,6 +196,8 @@ private:
   int m_toQuery = 0;
   std::vector<ComsParameterIndexT> m_displayQuery;
 
+  bool m_inDeviceChange = false;
+
   Ui::MainWindow *ui;
   std::shared_ptr<DogBotN::ComsC> m_coms;
   std::shared_ptr<DogBotN::DogBotAPIC> m_dogBotAPI;
@@ -197,7 +205,7 @@ private:
 
   std::vector<PacketDeviceIdC> m_devices;
   float m_position = 0;
-  float m_torque = 0;
+  float m_torque = 3.0;
   std::shared_ptr<std::ostream> m_logStrm;
   int m_targetDeviceId = 0;
   enum PositionReferenceT g_positionReference = PR_Relative;

@@ -71,6 +71,7 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(this,SIGNAL(setIndexSensor(bool)),ui->checkBoxIndexSensor,SLOT(setChecked(bool)));
   connect(this,SIGNAL(setJointRelativeEnabled(bool)),ui->checkBoxJointRelative,SLOT(setChecked(bool)));
   connect(this,SIGNAL(setFanMode(const QString &)),ui->comboBoxFanState,SLOT(setCurrentText(QString)));
+  connect(this,SIGNAL(updatePosition(double)),this,SLOT(on_updatePosition(double)));
 
   startTimer(10);
 
@@ -99,6 +100,10 @@ MainWindow::MainWindow(QWidget *parent) :
   m_displayQuery.push_back(CPI_FaultState);
   m_displayQuery.push_back(CPI_FanMode);
   m_displayQuery.push_back(CPI_FanTemperatureThreshold);
+
+  // Update default position
+  ui->sliderTorque->setSliderPosition(m_torque*10.0);
+  ui->doubleSpinBoxTorqueLimit->setValue(m_torque);
 }
 
 void MainWindow::timerEvent(QTimerEvent *)
@@ -576,6 +581,11 @@ void MainWindow::SetupComs()
       m_servoAngle = m_coms->PositionReport2Angle(pkt->m_position);
       m_servoTorque = m_coms->TorqueReport2Current(pkt->m_torque);
       m_servoRef = (enum PositionReferenceT) (pkt->m_mode & 0x3);
+
+      if(m_inDeviceChange) {
+        m_inDeviceChange = false;
+        emit updatePosition(m_servoAngle);
+      }
     }
 
     //std::cout << "ServoReport " << (int) pkt->m_deviceId << ((pkt->m_mode & 1) ? " Abs " : " Rel ") << " Position:" << pkt->m_position << " Torque: " << pkt->m_torque  << " State:" << (int) pkt->m_mode << std::endl;
@@ -696,6 +706,13 @@ void MainWindow::on_comboBoxMotorControlMode_activated(const QString &arg1)
   m_coms->SendSetParam(m_targetDeviceId,CPI_PWMMode,controlMode);
 }
 
+void MainWindow::on_updatePosition(double angle)
+{
+  int index = angle * 360 / (2.0 * 3.14159265359);
+  ui->sliderPosition->setSliderPosition(index);
+  ui->doubleSpinBoxDemandPosition->setValue(index);
+}
+
 void MainWindow::on_sliderPosition_sliderMoved(int position)
 {
   m_position = position * 2.0 * 3.14159265359/ 360.0;
@@ -727,7 +744,13 @@ void MainWindow::on_sliderTorque_sliderMoved(int torque)
 {
   m_torque = torque / 10.0;
   std::cout << "Sending move. Pos: " << m_position << " Torque:" << m_torque << " Ref:" << (int) g_positionReference << std::endl << std::flush;
-  m_coms->SendMoveWithEffort(m_targetDeviceId,m_position,m_torque,g_positionReference);
+  switch(m_controlMode)
+  {
+  case CM_Position:
+    m_coms->SendMoveWithEffort(m_targetDeviceId,m_position,m_torque,g_positionReference);
+  default:
+    break;
+  }
   ui->doubleSpinBoxTorqueLimit->setValue(m_torque);
 }
 
@@ -799,6 +822,7 @@ void MainWindow::on_pushButtonTim1_clicked()
 void MainWindow::on_spinDeviceId_valueChanged(int arg1)
 {
   m_targetDeviceId = arg1;
+  m_inDeviceChange = true;
   QueryAll();
 }
 
@@ -1088,6 +1112,12 @@ void MainWindow::on_actionExit_triggered()
   QApplication::quit();
 }
 
+
+void MainWindow::on_comboBoxFanState_currentIndexChanged(const QString &arg1)
+{
+
+}
+
 void MainWindow::on_comboBoxFanState_activated(int index)
 {
   m_coms->SendSetParam(m_targetDeviceId,CPI_FanMode,index);
@@ -1109,3 +1139,4 @@ void MainWindow::on_lineEditFanTempThreshold_editingFinished()
   float value = atof(ui->lineEditFanTempThreshold->text().toLatin1().data());
   m_coms->SendSetParam(m_targetDeviceId,CPI_FanTemperatureThreshold,value);
 }
+
