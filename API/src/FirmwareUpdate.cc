@@ -283,7 +283,16 @@ namespace DogBotN {
       );
 
       // Change device into boot-loader mode.
-      if(!m_coms->SetParam(targetDevice,CPI_ControlState,(uint8_t) CS_BootLoader)) {
+      // This involves a reboot, so try a few times.
+      bool inBootloader = false;
+      for(int i = 0;i < 3;i++) {
+        if(m_coms->SetParam(targetDevice,CPI_ControlState,(uint8_t) CS_BootLoader)) {
+          inBootloader = true;
+          break;
+        }
+        sleep(1);
+      }
+      if(!inBootloader) {
         m_log->error("Failed to change into boot-loader.");
         return false;
       }
