@@ -33,7 +33,7 @@ enum FanModeT g_fanMode = FM_Auto;
 float g_fanTemperatureThreshold = 40.0;
 
 /*
- * This is a periodic thread that does absolutely nothing except flashing
+ * This is a periodic thread that does nothing except flashing
  * a LED.
  */
 static THD_WORKING_AREA(waThread1, 128);
@@ -141,13 +141,6 @@ void EnableSensorPower(bool enable)
     palClearPad(GPIOB, GPIOB_PIN12); // Turn off sensor power
 }
 
-void EnableFanPower(bool enable)
-{
-  if(enable)
-    palSetPad(GPIOA, GPIOA_PIN7); // Turn on aux power
-  else
-    palClearPad(GPIOA, GPIOA_PIN7); // Turn off aux power
-}
 
 uint32_t g_faultState = 0;
 
@@ -539,16 +532,14 @@ int main(void) {
     // Check fan state.
     switch(g_fanMode) {
       case FM_Off:
-        palClearPad(GPIOA, GPIOA_PIN7);
+        EnableFanPower(false);
         break;
       case FM_Auto: {
         // FIXME:- Add Fan PWM ?
         if(g_driveTemperature > g_fanTemperatureThreshold) {
           EnableFanPower(true);
-        } else {
-          if(g_driveTemperature < (g_fanTemperatureThreshold-5)) {
-            EnableFanPower(false);
-          }
+        } else if(g_driveTemperature < (g_fanTemperatureThreshold-5.0f)) {
+          EnableFanPower(false);
         }
       }
       /* no break */

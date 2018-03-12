@@ -824,7 +824,7 @@ enum FaultCodeT PWMSelfTest()
 
 #if CHECK_OVERCURRENT
   // Check fan
-  bool fanState = palReadPad(GPIOA, GPIOA_PIN7); // Read fan power.
+  bool fanState = !palReadPad(GPIOA, GPIOA_PIN7); // Read fan power.
   EnableFanPower(true);
   for(int i = 0;i < 10;i++) {
     if(!palReadPad(GPIOB, GPIOB_PIN11)) { // Fan fault

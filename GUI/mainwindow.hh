@@ -140,6 +140,8 @@ private slots:
 
   void on_checkBoxJointRelative_stateChanged(int arg1);
 
+  void on_lineEditFanTempThreshold_editingFinished();
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);
@@ -155,6 +157,7 @@ signals:
   void setSupplyVoltage(QString str);
   void setDriveTemperature(QString str);
   void setMotorTemperature(QString str);
+  void setFanTemperatureThreshold(QString str);
   void setMotorIGain(double offset);
   void setMotorVelocity(double offset);
   void setVelocityPGain(double offset);

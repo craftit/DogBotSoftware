@@ -16,6 +16,15 @@
 
 uint8_t g_debugIndex = 0x55;
 
+void EnableFanPower(bool enable)
+{
+  if(enable)
+    palSetPad(GPIOA, GPIOA_PIN7); // Turn off aux power
+  else
+    palClearPad(GPIOA, GPIOA_PIN7); // Turn on aux power
+}
+
+
 bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len)
 {
   switch(index )
@@ -257,10 +266,10 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
       switch(fanMode)
       {
         case FM_Off:
-          palClearPad(GPIOA, GPIOA_PIN7);
+          EnableFanPower(false);
           break;
         case FM_On:
-          palSetPad(GPIOA, GPIOA_PIN7);
+          EnableFanPower(true);
           break;
         case FM_Auto:
           break;

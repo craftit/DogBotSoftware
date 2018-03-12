@@ -51,6 +51,8 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(this,SIGNAL(setSupplyVoltage(QString)),ui->lineEdit_SupplyVoltage,SLOT(setText(QString)));
   connect(this,SIGNAL(setDriveTemperature(QString)),ui->lineEdit_DriveTemperature,SLOT(setText(QString)));
   connect(this,SIGNAL(setMotorTemperature(QString)),ui->lineEdit_MotorTemperature,SLOT(setText(QString)));
+  connect(this,SIGNAL(setFanTemperatureThreshold(QString)),ui->lineEditFanTempThreshold,SLOT(setText(QString)));
+
   connect(this,SIGNAL(setMotorIGain(double)),this,SLOT(updateIGain(double)));
   connect(this,SIGNAL(setMotorVelocity(double)),ui->doubleSpinBoxVelocity,SLOT(setValue(double)));
   connect(this,SIGNAL(setVelocityPGain(double)),ui->doubleSpinBoxVelocityGain,SLOT(setValue(double)));
@@ -96,6 +98,7 @@ MainWindow::MainWindow(QWidget *parent) :
   m_displayQuery.push_back(CPI_MainLoopTimeout);
   m_displayQuery.push_back(CPI_FaultState);
   m_displayQuery.push_back(CPI_FanMode);
+  m_displayQuery.push_back(CPI_FanTemperatureThreshold);
 }
 
 void MainWindow::timerEvent(QTimerEvent *)
@@ -153,6 +156,15 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     }
     ret = false;
     sprintf(buff,"\n Supply Voltage:%2.1f ",((float) psp->m_data.uint16[0] / 1000.0f));
+    displayStr += buff;
+  } break;
+  case CPI_FanTemperatureThreshold: {
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      sprintf(buff,"%2.1f",((float) psp->m_data.float32[0]));
+      emit setFanTemperatureThreshold(buff);
+    }
+    ret = false;
+    sprintf(buff,"\n Temperature threshold:%2.1f ",((float) psp->m_data.float32[0]));
     displayStr += buff;
   } break;
   case CPI_HomedState: {
@@ -303,6 +315,26 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     displayStr += buff;
     ret = false;
     break;
+  case CPI_FanMode:
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      switch((FanModeT) psp->m_data.uint8[0])
+      {
+      case FM_On:
+        emit setFanMode("On");
+        break;
+      case FM_Off:
+        emit setFanMode("Off");
+        break;
+      case FM_Auto:
+        emit setFanMode("Auto");
+        break;
+      }
+    }
+    sprintf(buff,"\n Fan mode: %d ",psp->m_data.uint8[0]);
+    displayStr += buff;
+    ret = false;
+    break;
+    break;
   case CPI_DRV8305_01:
   case CPI_DRV8305_02:
   case CPI_DRV8305_03:
@@ -411,7 +443,7 @@ void MainWindow::SetupComs()
   m_coms->SetLogger(logger);
   m_dogBotAPI = std::make_shared<DogBotN::DogBotAPIC>(m_coms,logger,false,DogBotN::DogBotAPIC::DMM_ClientOnly);
 
-  m_coms->SetHandler(CPT_PWMState,[this](uint8_t *data,int size) mutable
+  m_coms->SetHandler(CPT_PWMState,[this](const uint8_t *data,int size) mutable
   {
     char buff[1024];
     PacketPWMStateC *msg = (PacketPWMStateC *) data;
@@ -429,9 +461,9 @@ void MainWindow::SetupComs()
     //emit setLogText(buff);
   });
 
-  m_coms->SetHandler(CPT_Pong,[this](uint8_t *data,int size) mutable
+  m_coms->SetHandler(CPT_Pong,[this](const uint8_t *data,int size) mutable
   {
-    struct PacketPingPongC *psp = (struct PacketPingPongC *) data;
+    const struct PacketPingPongC *psp = (const struct PacketPingPongC *) data;
     if(size != sizeof(struct PacketPingPongC)) {
       std::cerr << "Packet PingPong length was " << size << " expected " << sizeof(struct PacketPingPongC) << std::endl;
       emit setLogText("Unexpected pong packet size.");
@@ -443,7 +475,7 @@ void MainWindow::SetupComs()
     emit setLogText(displayStr.c_str());
   });
 
-  m_coms->SetHandler(CPT_SetParam,[this](uint8_t *data,int size) mutable
+  m_coms->SetHandler(CPT_SetParam,[this](const uint8_t *data,int size) mutable
   {
     printf("Got SetParam.  Size:%d \n",size);
     if(size < (int) sizeof(struct PacketParamHeaderC)) {
@@ -468,7 +500,7 @@ void MainWindow::SetupComs()
     emit setLogText(displayStr.c_str());
   });
 
-  m_coms->SetHandler(CPT_ReportParam,[this](uint8_t *data,int size) mutable
+  m_coms->SetHandler(CPT_ReportParam,[this](const uint8_t *data,int size) mutable
   {
 //    printf("Got ReportParam.  Size:%d \n",size);
     if(size < (int) sizeof(struct PacketParamHeaderC)) {
@@ -494,7 +526,7 @@ void MainWindow::SetupComs()
     }
   });
 
-  m_coms->SetHandler(CPT_AnnounceId,[this](uint8_t *data,int size) mutable
+  m_coms->SetHandler(CPT_AnnounceId,[this](const uint8_t *data,int size) mutable
   {
     if(size != sizeof(struct PacketDeviceIdC)) {
       std::cerr << "Packet length " << size << " expected " << sizeof(struct PacketDeviceIdC) << std::endl;
@@ -522,7 +554,7 @@ void MainWindow::SetupComs()
     emit setLogText(displayStr.c_str());
   });
 
-  m_coms->SetHandler(CPT_Servo,[this](uint8_t *data,int size) mutable
+  m_coms->SetHandler(CPT_Servo,[this](const uint8_t *data,int size) mutable
   {
     if(size != sizeof(struct PacketServoC)) {
       emit setLogText("Unexpected packet length.");
@@ -533,7 +565,7 @@ void MainWindow::SetupComs()
   });
 
 
-  m_coms->SetHandler(CPT_ServoReport,[this](uint8_t *data,int size) mutable
+  m_coms->SetHandler(CPT_ServoReport,[this](const uint8_t *data,int size) mutable
   {
     if(size != sizeof(struct PacketServoReportC)) {
       emit setLogText("Unexpected packet length.");
@@ -549,7 +581,7 @@ void MainWindow::SetupComs()
     //std::cout << "ServoReport " << (int) pkt->m_deviceId << ((pkt->m_mode & 1) ? " Abs " : " Rel ") << " Position:" << pkt->m_position << " Torque: " << pkt->m_torque  << " State:" << (int) pkt->m_mode << std::endl;
   });
 
-  m_coms->SetHandler(CPT_Error,[this](uint8_t *data,int size) mutable
+  m_coms->SetHandler(CPT_Error,[this](const uint8_t *data,int size) mutable
   {
     if(size != sizeof(struct PacketErrorC)) {
       emit setLogText("Unexpected packet length.");
@@ -1070,4 +1102,10 @@ void MainWindow::on_checkBoxJointRelative_stateChanged(int arg1)
     jointRelativeMode = JR_Offset;
   }
   m_coms->SendSetParam(m_targetDeviceId,CPI_JointRelative,jointRelativeMode);
+}
+
+void MainWindow::on_lineEditFanTempThreshold_editingFinished()
+{
+  float value = atof(ui->lineEditFanTempThreshold->text().toLatin1().data());
+  m_coms->SendSetParam(m_targetDeviceId,CPI_FanTemperatureThreshold,value);
 }
