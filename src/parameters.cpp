@@ -25,7 +25,7 @@ void EnableFanPower(bool enable)
 }
 
 
-bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len)
+bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
 {
   switch(index )
   {
@@ -34,7 +34,7 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_PWMState:
       if(len < 1)
         return false;
-      if(dataBuff->uint8[0] > 0) {
+      if(data->uint8[0] > 0) {
         PWMRun();
       } else {
         PWMStop();
@@ -43,19 +43,19 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_PWMMode:
       if(len != 1)
         return false;
-      if(dataBuff->uint8[0] >= (int) CM_Final)
+      if(data->uint8[0] >= (int) CM_Final)
         return false;
-      g_controlMode = (PWMControlDynamicT) dataBuff->uint8[0];
+      g_controlMode = (PWMControlDynamicT) data->uint8[0];
       break;
     case CPI_PWMFullReport:
       if(len != 1)
         return false;
-      g_pwmFullReport = dataBuff->uint8[0] > 0;
+      g_pwmFullReport = data->uint8[0] > 0;
       break;
     case CPI_CANBridgeMode:
       if(len != 1)
         return false;
-      g_canBridgeMode = dataBuff->uint8[0] > 0;
+      g_canBridgeMode = data->uint8[0] > 0;
       break;
     case CPI_IndexSensor:
     case CPI_BoardUID:
@@ -80,13 +80,13 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_CalibrationOffset:
       if(len != 4)
         return false;
-      g_homeAngleOffset = dataBuff->float32[0] * g_actuatorRatio;
+      g_homeAngleOffset = data->float32[0] * g_actuatorRatio;
       return true;
 
     case CPI_HomedState: {
       if(len != 1)
         return false;
-      enum MotionHomedStateT newCal = (enum MotionHomedStateT) dataBuff->uint8[0];
+      enum MotionHomedStateT newCal = (enum MotionHomedStateT) data->uint8[0];
       switch(newCal)
       {
         case MHS_Lost:
@@ -105,7 +105,7 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_PositionRef: {
       if(len != 1)
         return false;
-      enum PositionReferenceT posRef = (enum PositionReferenceT) dataBuff->uint8[0];
+      enum PositionReferenceT posRef = (enum PositionReferenceT) data->uint8[0];
       switch(posRef)
       {
         case PR_Relative:
@@ -119,7 +119,7 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_ControlState: {
       if(len != 1)
         return false;
-      enum ControlStateT newState = (enum ControlStateT) dataBuff->uint8[0];
+      enum ControlStateT newState = (enum ControlStateT) data->uint8[0];
       if(!ChangeControlState(newState))
         return false;
     } break;
@@ -134,22 +134,22 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_Indicator:
       if(len != 1)
         return false;
-      g_indicatorState = dataBuff->uint8[0] > 0;
+      g_indicatorState = data->uint8[0] > 0;
       break;
     case CPI_OtherJoint:
       if(len != 1)
         return false;
-      g_otherJointId = dataBuff->uint8[0];
+      g_otherJointId = data->uint8[0];
       break;
     case CPI_OtherJointGain:
       if(len != 4)
         return false;
-      g_relativePositionGain = dataBuff->float32[0];
+      g_relativePositionGain = data->float32[0];
       break;
     case CPI_OtherJointOffset:
       if(len != 4)
         return false;
-      g_relativePositionOffset = dataBuff->float32[0] * g_actuatorRatio;
+      g_relativePositionOffset = data->float32[0] * g_actuatorRatio;
       break;
     case CPI_DebugIndex:
       g_debugIndex = len;
@@ -157,52 +157,52 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_MotorIGain:
       if(len != 4)
         return false;
-      g_motor_i_gain = dataBuff->float32[0];
+      g_motor_i_gain = data->float32[0];
       break;
     case CPI_MotorPGain:
       if(len != 4)
         return false;
-      g_motor_p_gain = dataBuff->float32[0];
+      g_motor_p_gain = data->float32[0];
       break;
     case CPI_VelocityPGain:
       if(len != 4)
         return false;
-      g_velocityPGain =  dataBuff->float32[0];
+      g_velocityPGain =  data->float32[0];
       break;
     case CPI_VelocityIGain:
       if(len != 4)
         return false;
-      g_velocityIGain =  dataBuff->float32[0];
+      g_velocityIGain =  data->float32[0];
       break;
     case CPI_DemandPhaseVelocity:
       if(len != 4)
         return false;
-      g_demandPhaseVelocity = dataBuff->float32[0];
+      g_demandPhaseVelocity = data->float32[0];
       break;
     case CPI_VelocityLimit:
       if(len != 4)
         return false;
-      g_velocityLimit = dataBuff->float32[0];
+      g_velocityLimit = data->float32[0];
       break;
     case CPI_PositionGain:
       if(len != 4)
         return false;
-      g_positionGain = dataBuff->float32[0];
+      g_positionGain = data->float32[0];
       break;
     case CPI_MaxCurrent:
       if(len != 4)
         return false;
-      g_absoluteMaxCurrent = dataBuff->float32[0];
+      g_absoluteMaxCurrent = data->float32[0];
       break;
     case CPI_homeIndexPosition:
       if(len != 4)
         return false;
-      g_homeIndexPosition = dataBuff->float32[0];
+      g_homeIndexPosition = data->float32[0];
       break;
     case CPI_MinSupplyVoltage:
       if(len != 4)
         return false;
-      g_minSupplyVoltage = dataBuff->float32[0];
+      g_minSupplyVoltage = data->float32[0];
       break;
     //case CPI_ANGLE_CAL: // 12 Values
     case CPI_ANGLE_CAL_0:
@@ -227,7 +227,7 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
       int reg = ((int) index - CPI_ANGLE_CAL);
       if(len != 6) return false;
       for(int i = 0;i < 3;i++)
-        g_phaseAngles[reg][i] = dataBuff->uint16[i];
+        g_phaseAngles[reg][i] = data->uint16[i];
     } break;
 
     case CPI_USBPacketDrops:
@@ -248,7 +248,7 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_JointRelative: {
       if(len != 1)
         return false;
-      enum JointRelativeT posRef = (enum JointRelativeT) dataBuff->uint8[0];
+      enum JointRelativeT posRef = (enum JointRelativeT) data->uint8[0];
       switch(posRef)
       {
         case JR_Isolated:
@@ -262,7 +262,7 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_FanMode: {
       if(len != 1)
         return false;
-      enum FanModeT fanMode = (enum FanModeT) dataBuff->uint8[0];
+      enum FanModeT fanMode = (enum FanModeT) data->uint8[0];
       switch(fanMode)
       {
         case FM_Off:
@@ -281,20 +281,77 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_FanTemperatureThreshold: {
       if(len != 4)
         return false;
-      g_fanTemperatureThreshold = dataBuff->float32[0];
+      g_fanTemperatureThreshold = data->float32[0];
     } break;
     case CPI_FanState: {
+      return false;
+    } break;
+
+    case CPI_JointRole: {
       if(len != 1)
         return false;
-      int i = palReadPad(GPIOA, GPIOA_PIN7); // Pin State.
-      if(palReadPad(GPIOB, GPIOB_PIN11)) // Status feedback
-        i |= 2;
-      dataBuff->uint8[0] = i;
+      g_jointRole = (enum JointRoleT) data->uint8[0];
+      break;
+    }
+    case CPI_SafetyMode: {
+      if(len != 1)
+        return false;
+      g_safetyMode = (enum SafetyModeT) data->uint8[0];
     } break;
+
+    case CPI_EndStopEnable: {
+      if(len != 1)
+        return false;
+      g_endStopEnable = data->uint8[0] != 0;
+    } break;
+    case CPI_EndStopStart: {
+      if(len != 4)
+        return false;
+      g_endStopStart = data->float32[0];
+      SetupEndStops();
+    } break;
+    case CPI_EndStopStartBounce:{
+      if(len != 4)
+        return false;
+      g_endStopStartBounce = data->float32[0];
+      SetupEndStops();
+    } break;
+
+    case CPI_EndStopEnd:{
+      if(len != 4)
+        return false;
+      g_endStopEnd = data->float32[0];
+      SetupEndStops();
+    } break;
+    case CPI_EndStopEndBounce:{
+      if(len != 4)
+        return false;
+      g_endStopEndBounce = data->float32[0];
+      SetupEndStops();
+    } break;
+    case CPI_EndStopTargetBreakForce:{
+      if(len != 4)
+        return false;
+      g_endStopTargetBreakCurrent = data->float32[0];
+      SetupEndStops();
+    } break;
+    case CPI_EndStopLimitBreakForce: {
+      if(len != 4)
+        return false;
+      g_endStopMaxBreakCurrent = data->float32[0];
+      SetupEndStops();
+    } break;
+    case CPI_JointInertia:{
+      if(len != 4)
+        return false;
+      g_jointInertia = data->float32[0];
+      SetupEndStops();
+    } break;
+
     case CPI_FINAL:
       return false;
-//    default:
-//      return false;
+    default:
+      return false;
   }
 
   SendParamUpdate(index);
@@ -315,7 +372,7 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       break;
     case CPI_FirmwareVersion:
       *len = 1;
-      data->uint8[0] = 2;
+      data->uint8[0] = 3;
       break;
     case CPI_PWMState:
       *len = 1;
@@ -541,8 +598,54 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       data->uint8[0] = i;
     } break;
 
-    default:
-      return false;
+    case CPI_JointRole: {
+      *len = 1;
+      data->uint8[0] = g_jointRole;
+      break;
+    }
+    case CPI_SafetyMode: {
+      *len = 1;
+      data->uint8[0] = g_safetyMode;
+    } break;
+
+    case CPI_EndStopEnable: {
+      *len = 1;
+      data->uint8[0] = g_endStopEnable;
+    } break;
+    case CPI_EndStopStart: {
+      *len = 4;
+      data->float32[0] = g_endStopStart;
+    } break;
+    case CPI_EndStopStartBounce:{
+      *len = 4;
+      data->float32[0] = g_endStopStartBounce;
+    } break;
+    case CPI_EndStopEnd:{
+      *len = 4;
+      data->float32[0] = g_endStopEnd;
+    } break;
+    case CPI_EndStopEndBounce:{
+      *len = 4;
+      data->float32[0] = g_endStopEndBounce;
+    } break;
+    case CPI_EndStopTargetBreakForce:{
+      *len = 4;
+      data->float32[0] = g_endStopTargetBreakCurrent;
+    } break;
+    case CPI_EndStopLimitBreakForce: {
+      *len = 4;
+      data->float32[0] = g_endStopMaxBreakCurrent;
+    } break;
+    case CPI_JointInertia:{
+      *len = 4;
+      data->float32[0] = g_jointInertia;
+    } break;
+    case CPI_MotorOffsetVoltage:{
+      *len = 4;
+      data->float32[0] = g_phaseOffsetVoltage;
+    } break;
+    case CPI_FINAL:
+    default: return false;
   }
   return true;
 }

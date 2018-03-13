@@ -141,6 +141,9 @@ namespace DogBotN {
     void SendSetParam(int deviceId,ComsParameterIndexT param,float value);
 
     //! Set a parameter
+    void SendSetParam(int deviceId,ComsParameterIndexT param,double value);
+
+    //! Set a parameter
     void SendSetParam(int deviceId,ComsParameterIndexT param,BufferTypeT &buff,int len);
 
     //! Query a parameter
@@ -163,6 +166,12 @@ namespace DogBotN {
 
     //! Send a calibration zero
     void SendCalZero(int deviceId);
+
+    //! Send command to store configuration to eeprom.
+    void SendStoreConfig(int deviceId);
+
+    //! Send command to load configuration from eeprom.
+    void SendLoadConfig(int deviceId);
 
     //! Set handler for all received packets, this is called as well as any specific handlers that have been installed.
     CallbackHandleC SetGenericHandler(const PacketFuncT &handler)

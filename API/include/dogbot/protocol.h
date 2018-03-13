@@ -95,6 +95,23 @@ extern "C" {
     DT_BootLoader = 3
   };
 
+  enum JointRoleT {
+    JR_Spare = 0,
+    JR_FrontLeftKnee,
+    JR_FrontLeftPitch,
+    JR_FrontLeftRoll,
+    JR_FrontRightKnee,
+    JR_FrontRightPitch,
+    JR_FrontRightRoll,
+    JR_BackLeftKnee,
+    JR_BackLeftPitch,
+    JR_BackLeftRoll,
+    JR_BackRightKnee,
+    JR_BackRightPitch,
+    JR_BackRightRoll
+  };
+
+
   enum ComsParameterIndexT
   {
     CPI_DeviceType      = 0,
@@ -176,6 +193,17 @@ extern "C" {
     CPI_FanMode          = 0x55,
     CPI_FanState         = 0x56,
 
+    CPI_SafetyMode       = 0x57,
+    CPI_JointRole        = 0x58,
+    CPI_EndStopEnable    = 0x59,
+    CPI_EndStopStart     = 0x5A,
+    CPI_EndStopStartBounce = 0x5B,
+    CPI_EndStopEnd       = 0x5C,
+    CPI_EndStopEndBounce = 0x5D,
+    CPI_EndStopTargetBreakForce = 0x5E,
+    CPI_EndStopLimitBreakForce = 0x5F,
+    CPI_JointInertia     = 0x60,
+
     CPI_FINAL           = 0xff
   };
 
@@ -184,21 +212,25 @@ extern "C" {
    */
 
   enum ControlStateT {
-    CS_StartUp       = 0,
-    CS_Standby       = 1,
-    CS_LowPower      = 2,
-    CS_Ready         = 3,
-    CS_EmergencyStop = 4,
-    CS_SelfTest      = 5,
-    CS_FactoryCalibrate = 6,
-    CS_Home          = 7,
-    CS_Fault         = 8,
-    CS_Teach         = 9,
-    CS_Diagnostic    = 10,
-    CS_BootLoader    = 11
-
+    CS_StartUp       = 0, //!< Doing self test.
+    CS_Standby       = 1, //!< Waiting for main power to be applied, then go to Ready.
+    CS_LowPower      = 2, //!< Reduced power consumption mode.
+    CS_Ready         = 3, //!< Motor control loop running, ready for motion commands.
+    CS_EmergencyStop = 4, //!< Motor in break state.
+    CS_SelfTest      = 5, //!< Doing a self test.
+    CS_FactoryCalibrate = 6, //!< Calibrating motor
+    CS_Home          = 7, //!< Auto homing motor, NOT IMPLEMENTED
+    CS_Fault         = 8, //!< Hardware or configuration fault detected.
+    CS_Teach         = 9, //!< Motor position monitored but no torque. NOT IMPLEMENTED
+    CS_Diagnostic    = 10, //!< As CS_Ready, but with extra status reporting.
+    CS_BootLoader    = 11, //!< Ready for firmware update
+    CS_MotionCalibrate = 12 //!< Calibrating motion parameters of joint
   };
 
+  enum SafetyModeT {
+    SM_GlobalEmergencyStop = 0, //!< If we enter fault condition send a global emergency stop. (default)
+    SM_LocalStop = 1            //!< Only stop the local servo and report problem to control software.
+  };
 
 
   enum PWMControlDynamicT {

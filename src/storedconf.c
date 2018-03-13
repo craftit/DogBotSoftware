@@ -85,6 +85,17 @@ bool StoredConf_Load(struct StoredConfigT *conf)
     conf->m_absoluteMaxCurrent = 20.0;
     conf->m_homeIndexPosition = 0.0;
     conf->m_minSupplyVoltage = 6.0;
+
+    conf->m_jointRole = JR_Spare;
+    conf->m_endStopEnable = false;
+    conf->m_endStopStart = 0;
+    conf->m_endStopStartBounce = 0;
+    conf->m_endStopEnd = 0;
+    conf->m_endStopEndBounce = 0;
+    conf->m_endStopTargetBreakCurrent = 0;
+    conf->m_endStopMaxBreakCurrent = 0;
+    conf->m_jointInertia = 0.0;
+
   }
 
   return is_ok;

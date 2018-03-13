@@ -192,6 +192,16 @@ namespace DogBotN
     SendPacket((uint8_t*) &msg,sizeof(msg.m_header)+4);
   }
 
+  //! Set a parameter
+  void ComsC::SendSetParam(int deviceId,ComsParameterIndexT param,double value)
+  {
+    PacketParam8ByteC msg;
+    msg.m_header.m_packetType = CPT_SetParam;
+    msg.m_header.m_deviceId = deviceId;
+    msg.m_header.m_index = (uint16_t) param;
+    msg.m_data.float32[0] = value;
+    SendPacket((uint8_t*) &msg,sizeof(msg.m_header)+4);
+  }
 
   //! Set a parameter
   void ComsC::SendSetParam(int deviceId,ComsParameterIndexT param,BufferTypeT &buff,int len)
@@ -298,6 +308,25 @@ namespace DogBotN
     pkt.m_deviceId = deviceId;
     SendPacket((uint8_t *)&pkt,sizeof pkt);
   }
+
+  //! Send command to store configuration to eeprom.
+  void ComsC::SendStoreConfig(int deviceId)
+  {
+    struct PacketStoredConfigC pkt;
+    pkt.m_packetType = CPT_SaveSetup;
+    pkt.m_deviceId = deviceId;
+    SendPacket((uint8_t *)&pkt,sizeof pkt);
+  }
+
+  //! Send command to load configuration from eeprom.
+  void ComsC::SendLoadConfig(int deviceId)
+  {
+    struct PacketStoredConfigC pkt;
+    pkt.m_packetType = CPT_LoadSetup;
+    pkt.m_deviceId = deviceId;
+    SendPacket((uint8_t *)&pkt,sizeof pkt);
+  }
+
 
   //! Send a move command
   void ComsC::SendPing(int deviceId)

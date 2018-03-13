@@ -73,6 +73,9 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(this,SIGNAL(setFanMode(const QString &)),ui->comboBoxFanState,SLOT(setCurrentText(QString)));
   connect(this,SIGNAL(updatePosition(double)),this,SLOT(on_updatePosition(double)));
 
+  connect(this,SIGNAL(callLocalProcessParam(PacketParam8ByteC)),this,SLOT(LocalProcessParam(PacketParam8ByteC)));
+
+
   startTimer(10);
 
   m_displayQuery.push_back(CPI_ControlState);
@@ -100,6 +103,11 @@ MainWindow::MainWindow(QWidget *parent) :
   m_displayQuery.push_back(CPI_FaultState);
   m_displayQuery.push_back(CPI_FanMode);
   m_displayQuery.push_back(CPI_FanTemperatureThreshold);
+  m_displayQuery.push_back(CPI_EndStopEnable);
+  m_displayQuery.push_back(CPI_EndStopStart);
+  m_displayQuery.push_back(CPI_EndStopEnd);
+  m_displayQuery.push_back(CPI_EndStopTargetBreakForce);
+  m_displayQuery.push_back(CPI_JointInertia);
 
   // Update default position
   ui->sliderTorque->setSliderPosition(m_torque*10.0);
@@ -236,12 +244,7 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
       emit setJointRelativeEnabled(jointRelativeMode != JR_Isolated);
     }
   } break;
-
-
   case CPI_Indicator: {
-    if(psp->m_header.m_deviceId == m_targetDeviceId) {
-      emit setIndicator(psp->m_data.uint8[0] > 0);
-    }
   } break;
   case CPI_OtherJointGain:
     if(psp->m_header.m_deviceId == m_targetDeviceId) {
@@ -363,6 +366,16 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     sprintf(buff,"\n %d Home: %f ",psp->m_header.m_deviceId,homePos);
     displayStr += buff;
   } break;
+  case CPI_EndStopEnd: {
+    double homePos = psp->m_data.float32[0] * 360.0 / (M_PI * 2.0);
+    sprintf(buff,"\n %d EndStopEnd: %f ",psp->m_header.m_deviceId,homePos);
+    displayStr += buff;
+  } break;
+  case CPI_EndStopStart: {
+    double homePos = psp->m_data.float32[0] * 360.0 / (M_PI * 2.0);
+    sprintf(buff,"\n %d EndStopStart: %f ",psp->m_header.m_deviceId,homePos);
+    displayStr += buff;
+  } break;
   case CPI_HallSensors: {
     if(psp->m_header.m_deviceId == m_targetDeviceId) {
       sprintf(buff,"%5d %5d %5d ",
@@ -436,7 +449,41 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     break;
   }
 
+  if(psp->m_header.m_deviceId == m_targetDeviceId) {
+    emit LocalProcessParam(*psp);
+  }
+
   return ret;
+}
+
+void MainWindow::LocalProcessParam(PacketParam8ByteC psp)
+{
+  switch ((enum ComsParameterIndexT) psp.m_header.m_index)
+  {
+  case CPI_Indicator:
+    ui->checkBoxIndicator->setChecked(psp.m_data.uint8[0] > 0);
+    break;
+  case CPI_EndStopEnable:
+    ui->checkBoxEndStopEnable->setChecked(psp.m_data.uint8[0] > 0);
+    break;
+  case CPI_EndStopStart: {
+    float angleDeg = (psp.m_data.float32[0] * 360.0f / (M_PI * 2.0));
+    ui->doubleSpinBoxEndStopStart->setValue(angleDeg);
+  } break;
+  case CPI_EndStopEnd: {
+    float angleDeg = (psp.m_data.float32[0] * 360.0f / (M_PI * 2.0));
+    ui->doubleSpinBoxEndStopEnd->setValue(angleDeg);
+  } break;
+  case CPI_EndStopLimitBreakForce:
+    ui->doubleSpinBoxEndStopForce->setValue(psp.m_data.float32[0]);
+    break;
+  case CPI_JointInertia:
+    ui->doubleSpinBoxJointInertia->setValue(psp.m_data.float32[0]);
+    break;
+
+  default:
+    break;
+  }
 }
 
 void MainWindow::SetupComs()
@@ -850,13 +897,16 @@ void MainWindow::on_comboBoxControlState_activated(const QString &arg1)
   if(arg1 == "Factory Calibrate") {
     controlState = CS_FactoryCalibrate;
   }
+  if(arg1 == "Motion Calibrate") {
+    controlState = CS_MotionCalibrate;
+  }
   if(arg1 == "Low Power") {
     controlState = CS_LowPower;
   }
   if(arg1 == "Ready") {
     controlState = CS_Ready;
   }
-  if(arg1 == "Home") {
+  if(arg1 == "Auto Home") {
     controlState = CS_Home;
   }
   if(arg1 == "Teach") {
@@ -1140,3 +1190,65 @@ void MainWindow::on_lineEditFanTempThreshold_editingFinished()
   m_coms->SendSetParam(m_targetDeviceId,CPI_FanTemperatureThreshold,value);
 }
 
+void MainWindow::on_doubleSpinBoxEndStopStart_valueChanged(double arg1)
+{
+  float endStopAngleRad = (arg1 * (M_PI * 2.0) / 360.0f);
+  m_coms->SendSetParam(m_targetDeviceId,CPI_EndStopStart,endStopAngleRad);
+}
+
+void MainWindow::on_doubleSpinBoxEndStopEnd_valueChanged(double arg1)
+{
+  float endStopAngleRad = (arg1 * (M_PI * 2.0) / 360.0f);
+  m_coms->SendSetParam(m_targetDeviceId,CPI_EndStopEnd,endStopAngleRad);
+}
+
+void MainWindow::on_checkBoxEndStopEnable_toggled(bool checked)
+{
+  m_coms->SendSetParam(m_targetDeviceId,CPI_EndStopEnable,checked);
+}
+
+void MainWindow::on_doubleSpinBoxJointInertia_valueChanged(double arg1)
+{
+  m_coms->SendSetParam(m_targetDeviceId,CPI_JointInertia,arg1);
+}
+
+//! Get the current position and set the given parameter to it.
+void MainWindow::SetValueToCurrentPosition(ComsParameterIndexT param)
+{
+  if(m_targetDeviceId == 0) {
+    std::cerr << "No device id\n";
+    return ;
+  }
+  std::shared_ptr<DogBotN::ServoC> servo =  m_dogBotAPI->GetServoById(m_targetDeviceId);
+  if(!servo) {
+    std::cerr << "No servo\n";
+    return ;
+  }
+  DogBotN::JointC::TimePointT tick;
+  double position = 0;
+  double velocity = 0;
+  double torque = 0;
+  if(!servo->GetState(tick,position,velocity,torque)) {
+    std::cerr << "No position\n";
+    return ;
+  }
+  m_coms->SendSetParam(m_targetDeviceId,param,position);
+
+}
+
+void MainWindow::on_pushButtonSetEndStopStart_clicked()
+{
+  SetValueToCurrentPosition(CPI_EndStopStart);
+}
+
+void MainWindow::on_pushButtonSetEndStopEnd_clicked()
+{
+  SetValueToCurrentPosition(CPI_EndStopEnd);
+}
+
+void MainWindow::on_pushButtonSaveConfig_clicked()
+{
+  if(m_targetDeviceId == 0)
+    return ;
+  m_coms->SendStoreConfig(m_targetDeviceId);
+}

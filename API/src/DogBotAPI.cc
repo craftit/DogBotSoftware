@@ -65,10 +65,11 @@ namespace DogBotN {
     switch(controlState) {
     case CS_EmergencyStop: return "Emergency Stop";
     case CS_FactoryCalibrate: return "Factory Calibrate";
+    case CS_MotionCalibrate: return "Motion Calibrate";
     case CS_Standby: return "Standby";
     case CS_LowPower: return "Low Power";
     case CS_Ready: return "Ready";
-    case CS_Home: return "Position Calibration";
+    case CS_Home: return "Auto Home";
     case CS_SelfTest: return "Self Test";
     case CS_Teach: return "Teach";
     case CS_Fault: return "Fault";

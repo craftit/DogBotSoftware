@@ -146,6 +146,22 @@ private slots:
 
   void on_updatePosition(double angle);
 
+  void on_doubleSpinBoxEndStopStart_valueChanged(double arg1);
+
+  void on_doubleSpinBoxEndStopEnd_valueChanged(double arg1);
+
+  void on_checkBoxEndStopEnable_toggled(bool checked);
+
+  void on_doubleSpinBoxJointInertia_valueChanged(double arg1);
+
+  void LocalProcessParam(PacketParam8ByteC psp);
+
+  void on_pushButtonSetEndStopStart_clicked();
+
+  void on_pushButtonSetEndStopEnd_clicked();
+
+  void on_pushButtonSaveConfig_clicked();
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);
@@ -182,9 +198,10 @@ signals:
   void setFanMode(const QString &str);
   void updatePosition(double angle);
 
+  void callLocalProcessParam(struct PacketParam8ByteC psp);
+
 private:
   void SetupComs();
-
 
   void QueryAll();
 
@@ -192,6 +209,9 @@ private:
 
   //! Close current connection
   void CloseConnection();
+
+  //! Get the current position and set the given parameter to it.
+  void SetValueToCurrentPosition(ComsParameterIndexT param);
 
   int m_toQuery = 0;
   std::vector<ComsParameterIndexT> m_displayQuery;

@@ -47,7 +47,7 @@ void MotionResetCalibration(enum MotionHomedStateT defaultCalibrationState) {
   }
 }
 
-static int EndStopUpdateOffset(bool newState,bool velocityPositive)
+static int HomeIndexUpdateOffset(bool newState,bool velocityPositive)
 {
   return (newState ? 1 : 0) + ((velocityPositive ? 2 : 0));
 }
@@ -56,7 +56,7 @@ void MotionUpdateIndex(int num,bool state,float position,float velocity)
 {
   if(g_motionHomedState != MHS_Lost) {
 
-    int entry = EndStopUpdateOffset(state,velocity > 0);
+    int entry = HomeIndexUpdateOffset(state,velocity > 0);
     if(!g_haveIndexPositionSample[entry]) {
       g_haveIndexPositionSample[entry] = true;
     }
@@ -75,11 +75,11 @@ bool MotionEstimateOffset(float &value)
   int off1,off2;
   for(int i = 0;i < 2;i++) {
     if(i == 0) {
-      off1 = EndStopUpdateOffset(true,true);
-      off2 = EndStopUpdateOffset(false,false);
+      off1 = HomeIndexUpdateOffset(true,true);
+      off2 = HomeIndexUpdateOffset(false,false);
     } else {
-      off1 = EndStopUpdateOffset(false,true);
-      off2 = EndStopUpdateOffset(true,false);
+      off1 = HomeIndexUpdateOffset(false,true);
+      off2 = HomeIndexUpdateOffset(true,false);
     }
     if(g_haveIndexPositionSample[off1] && g_haveIndexPositionSample[off2]) {
 
@@ -113,6 +113,26 @@ static int16_t PhasePositionToDemand(float angle)
 {
   return (angle * 65535.0) / (g_actuatorRatio * M_PI * 4.0);
 }
+
+
+// This is converts the absolute coordinates into phase coordinates which
+// the motor control loop understands.
+
+void SetupEndStops()
+{
+  g_endStopPhaseStart = DemandToPhasePosition(g_endStopStart);
+  g_endStopPhaseEnd = DemandToPhasePosition(g_endStopEnd);
+  g_endStopTargetAcceleration = g_endStopTargetBreakCurrent / g_jointInertia;
+}
+
+void EnterHomedState()
+{
+  g_motionHomedState = MHS_Homed;
+  SetupEndStops();
+  SendParamUpdate(CPI_CalibrationOffset);
+  SendParamUpdate(CPI_HomedState);
+}
+
 
 bool UpdateRequestedPosition()
 {
@@ -216,12 +236,10 @@ bool MotionCalZero()
   g_requestedJointPosition = g_currentPhasePosition;
 
   g_homeAngleOffset = g_currentPhasePosition;
-  g_motionHomedState = MHS_Homed;
-
-  SendParamUpdate(CPI_CalibrationOffset);
-  SendParamUpdate(CPI_HomedState);
+  EnterHomedState();
   return true;
 }
+
 
 void MotionStep()
 {
@@ -238,9 +256,7 @@ void MotionStep()
       if(g_newCalibrationData) {
         g_newCalibrationData = false;
         if(MotionEstimateOffset(g_homeAngleOffset)) {
-          g_motionHomedState = MHS_Homed;
-          SendParamUpdate(CPI_CalibrationOffset);
-          SendParamUpdate(CPI_HomedState);
+          EnterHomedState();
         }
       }
       break;
@@ -324,6 +340,18 @@ enum FaultCodeT LoadSetup(void) {
     g_phaseAngles[i][2] = g_storedConfig.phaseAngles[i][2];
   }
 
+  g_jointRole = g_storedConfig.m_jointRole;
+  g_endStopEnable = g_storedConfig.m_endStopEnable;
+  g_endStopStart = g_storedConfig.m_endStopStart;
+  g_endStopStartBounce = g_storedConfig.m_endStopStartBounce;
+  g_endStopEnd = g_storedConfig.m_endStopEnd;
+  g_endStopEndBounce = g_storedConfig.m_endStopEndBounce;
+  g_endStopTargetBreakCurrent = g_storedConfig.m_endStopTargetBreakCurrent;
+  g_endStopMaxBreakCurrent = g_storedConfig.m_endStopMaxBreakCurrent;
+  g_jointInertia = g_storedConfig.m_jointInertia;
+
+  SetupEndStops();
+
   return FC_Ok;
 }
 
@@ -353,6 +381,17 @@ enum FaultCodeT SaveSetup(void) {
     g_storedConfig.phaseAngles[i][1] = g_phaseAngles[i][1];
     g_storedConfig.phaseAngles[i][2] = g_phaseAngles[i][2];
   }
+
+  g_storedConfig.m_jointRole = g_jointRole;
+  g_storedConfig.m_endStopEnable = g_endStopEnable;
+  g_storedConfig.m_endStopStart = g_endStopStart;
+  g_storedConfig.m_endStopStartBounce = g_endStopStartBounce;
+  g_storedConfig.m_endStopEnd = g_endStopEnd;
+  g_storedConfig.m_endStopEndBounce = g_endStopEndBounce;
+  g_storedConfig.m_endStopTargetBreakCurrent = g_endStopTargetBreakCurrent;
+  g_storedConfig.m_endStopMaxBreakCurrent = g_endStopMaxBreakCurrent;
+  g_storedConfig.m_jointInertia = g_jointInertia;
+
   if(!StoredConf_Save(&g_storedConfig)) {
     return FC_InternalStoreFailed;
   }

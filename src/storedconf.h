@@ -24,6 +24,16 @@ struct StoredConfigT {
   float m_absoluteMaxCurrent;
   float m_homeIndexPosition;
   float m_minSupplyVoltage;
+
+  enum JointRoleT m_jointRole;
+  bool m_endStopEnable;
+  float m_endStopStart;
+  float m_endStopStartBounce;
+  float m_endStopEnd;
+  float m_endStopEndBounce;
+  float m_endStopTargetBreakCurrent;
+  float m_endStopMaxBreakCurrent;
+  float m_jointInertia;
 };
 
 void StoredConf_Init(void);

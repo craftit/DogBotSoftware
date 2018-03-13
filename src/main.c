@@ -30,6 +30,8 @@
 unsigned g_mainLoopTimeoutCount = 0;
 
 enum FanModeT g_fanMode = FM_Auto;
+enum SafetyModeT g_safetyMode = SM_GlobalEmergencyStop;
+enum JointRoleT g_jointRole = JR_Spare;
 float g_fanTemperatureThreshold = 40.0;
 
 /*
@@ -218,14 +220,26 @@ int ChangeControlState(enum ControlStateT newState)
       g_currentLimit = 0;
       g_controlMode = CM_Brake;
       break;
+    case CS_MotionCalibrate:
+    case CS_Diagnostic:
     case CS_Home:
     case CS_Ready:
     case CS_Teach:
+#if 0
+      if(!CheckMotorSetup()) {
+        g_controlState = CS_LowPower;
+        break;
+      }
+#endif
+
       EnableSensorPower(true);
       if(PWMRun())
         break;
+
       /* no break */
+    default:
     case CS_Fault: {
+      g_controlState = CS_Fault;
       g_currentLimit = 0;
       PWMStop();
       EnableSensorPower(false);
@@ -244,8 +258,6 @@ int ChangeControlState(enum ControlStateT newState)
 
       flashJumpApplication(0x08000000);
     } break;
-    default:
-      return false;
   }
 
   SendParamUpdate(CPI_ControlState);
@@ -444,6 +456,8 @@ int main(void) {
   /* Is button pressed ?  */
   g_doFactoryCal = false;
 
+  SendParamUpdate(CPI_ControlState);
+
   while(1) {
     switch(g_controlState)
     {
@@ -482,6 +496,7 @@ int main(void) {
         chThdSleepMilliseconds(100);
         SendBackgroundStateReport();
         break;
+      case CS_MotionCalibrate:
       case CS_Home:
       case CS_Teach:
       case CS_Diagnostic:

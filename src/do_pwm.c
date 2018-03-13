@@ -225,10 +225,23 @@ float g_demandPhasePosition = 0;
 float g_demandPhaseVelocity = 0;
 float g_demandTorque = 0;
 
+bool g_endStopEnable = false;
+float g_endStopStart = 0;
+float g_endStopStartBounce = 0; // How far we can go beyond the end-stop before we flag a fault.
+float g_endStopEnd = 0;
+float g_endStopEndBounce = 0;
+float g_endStopTargetBreakCurrent = 3;
+float g_endStopMaxBreakCurrent = 6;
+float g_endStopPhaseStart = 0;
+float g_endStopPhaseEnd = 0;
+float g_endStopTargetAcceleration = 0;
+float g_jointInertia = 0; // Estimate of inertia of joint
+
+
 int g_phaseRotationCount = 0;
 float g_currentPhasePosition = 0;
 float g_currentPhaseVelocity = 0;
-float g_velocityLimit = 4000.0; // Phase is radians a second.
+float g_velocityLimit = 4000.0; // Phase velocity in radians a second.
 float g_velocityPGain = 0.03;
 float g_velocityIGain = 3.0;
 float g_velocityISum = 0.0;
@@ -247,6 +260,48 @@ bool g_gateDriverWarning = false;
 bool g_gateDriverFault = false;
 
 enum PWMControlDynamicT g_controlMode = CM_Brake;
+
+// Do some sanity checks on the setup.
+// FIXME:- we should include a way of reporting source of the fault.
+
+bool CheckMotorSetup(void)
+{
+
+  if(g_endStopEnable) {
+    if(g_endStopEnd <= g_endStopStart) {
+      return false;
+    }
+    if(g_endStopStartBounce > g_endStopStart) {
+      return false;
+    }
+    if(g_endStopEndBounce < g_endStopEnd) {
+      return false;
+    }
+    if(g_jointInertia <= 0) {
+      return false;
+    }
+    if(g_endStopMaxBreakCurrent < g_endStopTargetBreakCurrent) {
+      return false;
+    }
+    if(g_endStopMaxBreakCurrent > g_maxCurrentSense) {
+      return false;
+    }
+    if(g_endStopTargetBreakCurrent > g_maxCurrentSense) {
+      return false;
+    }
+  }
+  if(g_velocityLimit > 6000 || g_velocityLimit < 0) {
+    return false;
+  }
+
+  if(g_currentLimit  > g_maxCurrentSense) {
+    return false;
+  }
+
+  return true;
+}
+
+
 
 static void UpdateCurrentMeasurementsFromADCValues(void) {
   // Compute motor currents;
@@ -338,7 +393,43 @@ static void SetCurrent(float current)
   FOC_current(g_phaseAngle,0,current);
 }
 
+// Check endstop limits, return true if everything is ok.
 
+static bool MotorCheckEndStop(void)
+{
+  // Check virtual end stops.
+
+  if(g_endStopEnable && g_motionHomedState == MHS_Homed) {
+
+    float sign;
+    float distanceToGo;
+    // Establish current direction.
+    if(g_currentPhaseVelocity < 0) {
+      distanceToGo = g_currentPhasePosition - g_endStopStart;
+      sign = -1.0;
+    } else {
+      distanceToGo = g_endStopEnd - g_currentPhasePosition;
+      sign = 1.0;
+    }
+
+#if 1
+    // Compare stopping distance with our distance from the endstop in the current direction of travel
+    float timeToStop = sign * g_currentPhaseVelocity / g_endStopTargetAcceleration;
+    float distance = g_endStopTargetAcceleration * timeToStop * timeToStop * 0.5;
+    if(distance < distanceToGo) {
+      SetCurrent(sign * g_endStopTargetBreakCurrent);
+      return false;
+    }
+#else
+    float v2 = g_currentPhaseVelocity * g_currentPhaseVelocity;
+    if(v2 > (2 * g_endStopTargetAcceleration * distanceToGo)) {
+      SetCurrent(sign * g_endStopTargetBreakCurrent);
+      return false;
+    }
+#endif
+  }
+  return true;
+}
 
 static void MotorControlLoop(void)
 {
@@ -395,6 +486,7 @@ static void MotorControlLoop(void)
         break;
       case CM_Brake:
         // Just turn everything off, this should passively brake the motor
+        // as there are no switching losses this applies more breaking force.
         PWMUpdateDrivePhase(
             0,
             0,
@@ -414,12 +506,14 @@ static void MotorControlLoop(void)
       }
       // no break
       case CM_Velocity: {
-        //g_demandPhasePosition += g_demandPhaseVelocity * CURRENT_MEAS_PERIOD;
-        //targetPosition = g_demandPhasePosition;
+
+        if(!MotorCheckEndStop())
+          break;
 
         float err = g_demandPhaseVelocity - g_currentPhaseVelocity;
 
-        // Add a small deadzone.
+        // Add a small deadzone.  This reduces noise and small oscillations
+        // coupled through from the sensors
         const float deadZone = M_PI/8.0f;
         if(err < 0) {
           if(err > -deadZone)
@@ -445,11 +539,13 @@ static void MotorControlLoop(void)
 
       } break;
       case CM_Torque: {
+        if(!MotorCheckEndStop())
+          break;
         SetCurrent(demandCurrent);
       } break;
     }
 
-    // Check limit switches.
+    // Check home index switch.
     {
       bool es3 = palReadPad(GPIOC, GPIOC_PIN8);
       if(es3 != g_lastLimitState) {
@@ -497,6 +593,7 @@ static THD_FUNCTION(ThreadPWM, arg) {
 
   (void)arg;
   chRegSetThreadName("pwm");
+
 
   palSetPad(GPIOC, GPIOC_PIN13); // Wake
 
