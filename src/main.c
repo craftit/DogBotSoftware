@@ -204,6 +204,7 @@ int ChangeControlState(enum ControlStateT newState)
     case CS_SelfTest:
     case CS_FactoryCalibrate:
       EnableSensorPower(true);
+      EnableFanPower(true); // Turn on the fan, as we won't be monitoring temperature while doing the calibration.
       PWMStop();
       SendParamUpdate(CPI_HomedState);
       break;
@@ -218,7 +219,7 @@ int ChangeControlState(enum ControlStateT newState)
     case CS_EmergencyStop:
       // Just put the breaks on.
       g_currentLimit = 0;
-      g_controlMode = CM_Brake;
+      SetMotorControlMode(CM_Brake);
       break;
     case CS_MotionCalibrate:
     case CS_Diagnostic:
@@ -466,6 +467,7 @@ int main(void) {
         DoStartup();
         break;
       case CS_FactoryCalibrate:
+        SetMotorControlMode(CM_Brake);
         SendBackgroundStateReport();
         faultCode = PWMMotorCal();
         if(faultCode != FC_Ok) {
@@ -491,7 +493,7 @@ int main(void) {
         break;
       case CS_EmergencyStop:
         // Just make sure the breaks are on.
-        g_controlMode = CM_Brake;
+        SetMotorControlMode(CM_Brake);
         g_currentLimit = 0;
         chThdSleepMilliseconds(100);
         SendBackgroundStateReport();

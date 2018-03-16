@@ -25,6 +25,13 @@ void EnableFanPower(bool enable)
 }
 
 
+void SetMotorControlMode(PWMControlDynamicT controlMode)
+{
+  g_controlMode = controlMode;
+  SendParamUpdate(CPI_PWMMode);
+}
+
+
 bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
 {
   switch(index )

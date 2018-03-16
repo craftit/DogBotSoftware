@@ -629,8 +629,8 @@ void MainWindow::SetupComs()
       m_servoTorque = m_coms->TorqueReport2Current(pkt->m_torque);
       m_servoRef = (enum PositionReferenceT) (pkt->m_mode & 0x3);
 
-      if(m_inDeviceChange) {
-        m_inDeviceChange = false;
+      if(m_updatePositionFromController) {
+        m_updatePositionFromController = false;
         emit updatePosition(m_servoAngle);
       }
     }
@@ -751,6 +751,7 @@ void MainWindow::on_comboBoxMotorControlMode_activated(const QString &arg1)
   }
   m_controlMode = controlMode;
   m_coms->SendSetParam(m_targetDeviceId,CPI_PWMMode,controlMode);
+  m_updatePositionFromController = true; // Refresh the position when ever this is done.
 }
 
 void MainWindow::on_updatePosition(double angle)
@@ -869,7 +870,7 @@ void MainWindow::on_pushButtonTim1_clicked()
 void MainWindow::on_spinDeviceId_valueChanged(int arg1)
 {
   m_targetDeviceId = arg1;
-  m_inDeviceChange = true;
+  m_updatePositionFromController = true;
   QueryAll();
 }
 
@@ -941,6 +942,7 @@ void MainWindow::on_comboBox_activated(const QString &arg1)
   if(arg1 == "Absolute") {
     g_positionReference = PR_Absolute;
   }
+  m_updatePositionFromController = true;
   std::cout << "Changing send positions to " << (int) g_positionReference << std::endl << std::flush;
 }
 

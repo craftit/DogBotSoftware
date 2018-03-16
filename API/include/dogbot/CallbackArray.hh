@@ -1,5 +1,5 @@
-#ifndef CALLBACK_ARRAY_HEADER
-#define CALLBACK_ARRAY_HEADER 1
+#ifndef DOGBOT_CALLBACK_ARRAY_HEADER
+#define DOGBOT_CALLBACK_ARRAY_HEADER 1
 
 #include <thread>
 #include <vector>

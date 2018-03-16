@@ -282,6 +282,10 @@ namespace DogBotN {
        }
       );
 
+      // FIXME:- Check we're in a state where we can change into the bootloader.
+
+      if(m_coms->SetParam(targetDevice,CPI_ControlState,(uint8_t) CS_BootLoader)) {
+
       // Change device into boot-loader mode.
       // This involves a reboot, so try a few times.
       bool inBootloader = false;

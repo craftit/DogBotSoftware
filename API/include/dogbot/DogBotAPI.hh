@@ -27,6 +27,12 @@ namespace DogBotN {
   //! Convert coms packet type to a string
   const char *ComsPacketTypeToString(ComsPacketTypeT packetType);
 
+  //! Convert an parameter index to a name
+  const char *ComsParameterIndexToString(ComsParameterIndexT paramIndex);
+
+  //! Get type information for parameters
+  enum ComsParameterIndexTypeT ComsParameterIndexToType(ComsParameterIndexT paramIndex);
+
   //! Dogbot device control
 
   //! This does low level management of the robot, configuration of the drivers and status monitoring.

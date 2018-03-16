@@ -9,7 +9,9 @@
 extern "C" {
 #endif
 
-  // These messages are ordered by decreasing priority.
+  /* Message packet types, see end of file for structs transmitted for each message type.
+   * These messages are ordered by decreasing priority.
+   */
 
   enum ComsPacketTypeT
   {
@@ -45,6 +47,9 @@ extern "C" {
   };
 
 
+  /* Communication error codes.
+   */
+
   enum ComsErrorTypeT {
     CET_UnknownPacketType = 0,
     CET_UnexpectedPacketSize = 1,
@@ -61,6 +66,10 @@ extern "C" {
     CET_BootLoaderWriteFailed = 12,
     CET_BootLoaderUnalignedAddress = 13
   };
+
+  /* Fault codes.
+   *
+   */
 
   enum FaultCodeT {
     FC_Ok = 0,
@@ -86,6 +95,9 @@ extern "C" {
     FC_SensorOverCurrent = 20
   };
 
+  /* An identifier for the role of a device
+   *
+   */
 
   enum DeviceTypeT
   {
@@ -94,6 +106,11 @@ extern "C" {
     DT_MotorDriver = 2,
     DT_BootLoader = 3
   };
+
+
+  /* A table of known joint types
+   *
+   */
 
   enum JointRoleT {
     JR_Spare = 0,
@@ -111,6 +128,9 @@ extern "C" {
     JR_BackRightRoll
   };
 
+  /* Parameter indices
+   *
+   */
 
   enum ComsParameterIndexT
   {
@@ -207,6 +227,29 @@ extern "C" {
     CPI_FINAL           = 0xff
   };
 
+
+  /* Parameter types.
+   *
+   */
+
+  enum ComsParameterIndexTypeT
+  {
+    CPIT_Unknown,
+    CPIT_Invalid,
+    CPIT_Custom,
+    CPIT_bool,
+    CPIT_enum8,
+    CPIT_uint8,
+    CPIT_int8,
+    CPIT_uint16,
+    CPIT_int16,
+    CPIT_uint16_3,
+    CPIT_int32,
+    CPIT_uint32,
+    CPIT_uint32_2,
+    CPIT_float32
+  };
+
   /* Control state.
    *
    */
@@ -227,12 +270,18 @@ extern "C" {
     CS_MotionCalibrate = 12 //!< Calibrating motion parameters of joint
   };
 
+  /* Safety mode, this sets the behaviour if a fault is detected on a controller.
+   *
+   */
+
   enum SafetyModeT {
-    SM_GlobalEmergencyStop = 0, //!< If we enter fault condition send a global emergency stop. (default)
-    SM_LocalStop = 1            //!< Only stop the local servo and report problem to control software.
+    SM_GlobalEmergencyStop = 0, /*!< If we enter fault condition send a global emergency stop. (default) */
+    SM_LocalStop = 1            /*!< Only stop the local servo and report problem to control software.   */
   };
 
-
+  /* Dynamics mode for the control loop.
+   *
+   */
   enum PWMControlDynamicT {
     CM_Off      = 0,
     CM_Brake    = 1,
@@ -436,7 +485,9 @@ extern "C" {
     uint8_t m_data[0];
   };
 
-  // Data packet with associated buffer.
+  /* Data packet with associated buffer.
+   *
+   */
   struct PacketFlashDataBufferC
   {
     struct PacketFlashDataC m_header;

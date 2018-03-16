@@ -146,6 +146,15 @@ bool UpdateRequestedPosition()
       {
         if((g_requestedJointMode & 0x1) != 0) { // Calibrated position ?
           if(g_motionHomedState != MHS_Homed) return false;
+
+          // Check end stops.
+          if(g_endStopEnable) {
+            if(posf < g_endStopStart)
+              posf = g_endStopStart;
+            if(posf > g_endStopEnd)
+              posf = g_endStopEnd;
+          }
+
           posf += g_homeAngleOffset;
         }
 

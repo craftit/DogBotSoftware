@@ -67,6 +67,7 @@ static THD_WORKING_AREA(waThreadPWM, 512);
 
 void PWMUpdateDrivePhase(int pa,int pb,int pc);
 
+
 void SetupMotorCurrentPID(void);
 
 static float sqrf(float v)
@@ -405,10 +406,10 @@ static bool MotorCheckEndStop(void)
     float distanceToGo;
     // Establish current direction.
     if(g_currentPhaseVelocity < 0) {
-      distanceToGo = g_currentPhasePosition - g_endStopStart;
+      distanceToGo = g_currentPhasePosition - g_endStopPhaseStart;
       sign = -1.0;
     } else {
-      distanceToGo = g_endStopEnd - g_currentPhasePosition;
+      distanceToGo = g_endStopPhaseEnd - g_currentPhasePosition;
       sign = 1.0;
     }
 
@@ -451,7 +452,7 @@ static void MotorControlLoop(void)
     if(!palReadPad(GPIOC, GPIOC_PIN15)) { // Fault pin
       faultTimer++;
       if(faultTimer > 1) {
-        g_controlMode = CM_Fault;
+        SetMotorControlMode(CM_Brake);
         g_gateDriverFault = true;
       } else {
         // Signal warning.

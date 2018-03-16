@@ -216,7 +216,7 @@ private:
   int m_toQuery = 0;
   std::vector<ComsParameterIndexT> m_displayQuery;
 
-  bool m_inDeviceChange = false;
+  bool m_updatePositionFromController = false;
 
   Ui::MainWindow *ui;
   std::shared_ptr<DogBotN::ComsC> m_coms;

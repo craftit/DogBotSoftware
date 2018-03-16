@@ -79,7 +79,7 @@ namespace DogBotN {
                               RecordPacket(true,data,len);
                             }
     );
-
+    return true;
   }
 
 
@@ -91,7 +91,9 @@ namespace DogBotN {
     if(m_fd >= 0) {
       close(m_fd);
       m_fd = -1;
-    }
+    } else
+      return false;
+    return true;
   }
 
 

@@ -158,6 +158,204 @@ namespace DogBotN {
   }
 
 
+  //! Convert an parameter index to a name
+  const char *ComsParameterIndexToString(ComsParameterIndexT paramIndex)
+  {
+    switch(paramIndex)
+    {
+      case CPI_DeviceType: return "DeviceType";
+      case CPI_FirmwareVersion: return "FirmwareVersion";
+      case CPI_PWMState: return "PWMState";
+      case CPI_PWMMode: return "PWMMode";
+      case CPI_PWMFullReport: return "PWMFullReport";
+      case CPI_CANBridgeMode: return "CANBridgeMode";
+      case CPI_BoardUID: return "BoardUID";
+      case CPI_TIM1_SR: return "TIM1_SR";
+      case CPI_VSUPPLY: return "VSUPPLY";
+      case CPI_ControlState: return "ControlState";
+      case CPI_HomedState: return "HomedState";
+      case CPI_PositionRef: return "PositionRef";
+      case CPI_CalibrationOffset: return "CalibrationOffset";
+      case CPI_FaultCode: return "FaultCode";
+      case CPI_Indicator: return "Indicator";
+      case CPI_DriveTemp: return "DriveTemp";
+      case CPI_MotorTemp: return "MotorTemp";
+      case CPI_OtherJoint: return "OtherJoint";
+      case CPI_OtherJointGain: return "OtherJointGain";
+      case CPI_OtherJointOffset: return "OtherJointOffset";
+      case CPI_DebugIndex: return "DebugIndex";
+      case CPI_MotorResistance: return "MotorResistance";
+      case CPI_MotorInductance: return "MotorInductance";
+      case CPI_MotorOffsetVoltage: return "MotorOffsetVoltage";
+      case CPI_MotorIGain: return "MotorIGain";
+      case CPI_MotorPGain: return "MotorPGain";
+      case CPI_PhaseVelocity: return "PhaseVelocity";
+      case CPI_VelocityPGain: return "VelocityPGain";
+      case CPI_VelocityIGain: return "VelocityIGain";
+      case CPI_DemandPhaseVelocity: return "DemandPhaseVelocity";
+      case CPI_VelocityLimit: return "VelocityLimit";
+      case CPI_PositionGain: return "PositionGain";
+
+      case CPI_DRV8305_01: return "DRV8305_01";
+      case CPI_DRV8305_02: return "DRV8305_02";
+      case CPI_DRV8305_03: return "DRV8305_03";
+      case CPI_DRV8305_04: return "DRV8305_04";
+      case CPI_DRV8305_05: return "DRV8305_05";
+
+      case CPI_5VRail: return "5VRail";
+      case CPI_MaxCurrent: return "MaxCurrent";
+      case CPI_homeIndexPosition: return "homeIndexPosition";
+      case CPI_HallSensors: return "HallSensors";
+      case CPI_MinSupplyVoltage: return "MinSupplyVoltage";
+      case CPI_USBPacketDrops: return "USBPacketDrops";
+      case CPI_USBPacketErrors: return "USBPacketErrors";
+      case CPI_FaultState: return "FaultState";
+      case CPI_IndexSensor: return "IndexSensor";
+
+      case CPI_ANGLE_CAL_0: return "ANGLE_CAL_0";
+      case CPI_ANGLE_CAL_1: return "ANGLE_CAL_1";
+      case CPI_ANGLE_CAL_2: return "ANGLE_CAL_2";
+      case CPI_ANGLE_CAL_3: return "ANGLE_CAL_3";
+      case CPI_ANGLE_CAL_4: return "ANGLE_CAL_4";
+      case CPI_ANGLE_CAL_5: return "ANGLE_CAL_5";
+      case CPI_ANGLE_CAL_6: return "ANGLE_CAL_6";
+      case CPI_ANGLE_CAL_7: return "ANGLE_CAL_7";
+      case CPI_ANGLE_CAL_8: return "ANGLE_CAL_8";
+      case CPI_ANGLE_CAL_9: return "ANGLE_CAL_9";
+      case CPI_ANGLE_CAL_10: return "ANGLE_CAL_10";
+      case CPI_ANGLE_CAL_11: return "ANGLE_CAL_11";
+      case CPI_ANGLE_CAL_12: return "ANGLE_CAL_12";
+      case CPI_ANGLE_CAL_13: return "ANGLE_CAL_13";
+      case CPI_ANGLE_CAL_14: return "ANGLE_CAL_14";
+      case CPI_ANGLE_CAL_15: return "ANGLE_CAL_15";
+      case CPI_ANGLE_CAL_16: return "ANGLE_CAL_16";
+      case CPI_ANGLE_CAL_17: return "ANGLE_CAL_17";
+
+      case CPI_CANPacketDrops: return "CANPacketDrops";
+      case CPI_CANPacketErrors: return "CANPacketErrors";
+      case CPI_MainLoopTimeout: return "MainLoopTimeout";
+      case CPI_JointRelative: return "JointRelative";
+      case CPI_FanTemperatureThreshold: return "FanTemperatureThreshold";
+      case CPI_FanMode: return "FanMode";
+      case CPI_FanState: return "FanState";
+
+      case CPI_SafetyMode: return "SafetyMode";
+      case CPI_JointRole: return "JointRole";
+      case CPI_EndStopEnable: return "EndStopEnable";
+      case CPI_EndStopStart: return "EndStopStart";
+      case CPI_EndStopStartBounce: return "EndStopStartBounce";
+      case CPI_EndStopEnd: return "EndStopEnd";
+      case CPI_EndStopEndBounce: return "EndStopEndBounce";
+      case CPI_EndStopTargetBreakForce: return "EndStopTargetBreakForce";
+      case CPI_EndStopLimitBreakForce: return "EndStopLimitBreakForce";
+      case CPI_JointInertia: return "JointInertia";
+
+      case CPI_FINAL: return "FINAL";
+    }
+    printf("Unexpected parameter index %d",(int)paramIndex);
+    return "Invalid";
+  }
+
+  //! Get type information for parameters
+  enum ComsParameterIndexTypeT ComsParameterIndexToType(ComsParameterIndexT paramIndex)
+  {
+
+    switch(paramIndex)
+    {
+      case CPI_DeviceType: return CPIT_enum8;
+      case CPI_FirmwareVersion: return CPIT_uint8;
+      case CPI_PWMState: return CPIT_enum8;
+      case CPI_PWMMode: return CPIT_enum8;
+      case CPI_PWMFullReport: return CPIT_bool;
+      case CPI_CANBridgeMode: return CPIT_bool;
+      case CPI_BoardUID: return CPIT_uint32_2;
+      case CPI_TIM1_SR: return CPIT_uint16;
+      case CPI_VSUPPLY: return CPIT_uint16;
+      case CPI_ControlState: return CPIT_enum8;
+      case CPI_HomedState: return CPIT_enum8;
+      case CPI_PositionRef: return CPIT_enum8;
+      case CPI_CalibrationOffset: return CPIT_float32;
+      case CPI_FaultCode: return CPIT_enum8;
+      case CPI_Indicator: return CPIT_bool;
+      case CPI_DriveTemp: return CPIT_float32;
+      case CPI_MotorTemp: return CPIT_float32;
+      case CPI_OtherJoint: return CPIT_uint8;
+      case CPI_OtherJointGain: return CPIT_float32;
+      case CPI_OtherJointOffset: return CPIT_float32;
+      case CPI_DebugIndex: return CPIT_uint8;
+      case CPI_MotorResistance: return CPIT_float32;
+      case CPI_MotorInductance: return CPIT_float32;
+      case CPI_MotorOffsetVoltage: return CPIT_float32;
+      case CPI_MotorIGain: return CPIT_float32;
+      case CPI_MotorPGain: return CPIT_float32;
+      case CPI_PhaseVelocity: return CPIT_float32;
+      case CPI_VelocityPGain: return CPIT_float32;
+      case CPI_VelocityIGain: return CPIT_float32;
+      case CPI_DemandPhaseVelocity: return CPIT_float32;
+      case CPI_VelocityLimit: return CPIT_float32;
+      case CPI_PositionGain: return CPIT_float32;
+
+      case CPI_DRV8305_01: return CPIT_uint16;
+      case CPI_DRV8305_02: return CPIT_uint16;
+      case CPI_DRV8305_03: return CPIT_uint16;
+      case CPI_DRV8305_04: return CPIT_uint16;
+      case CPI_DRV8305_05: return CPIT_uint16;
+
+      case CPI_5VRail: return CPIT_uint16;
+      case CPI_MaxCurrent: return CPIT_float32;
+      case CPI_homeIndexPosition: return CPIT_float32;
+      case CPI_HallSensors: return CPIT_uint16_3;
+      case CPI_MinSupplyVoltage: return CPIT_float32;
+      case CPI_USBPacketDrops: return CPIT_uint32;
+      case CPI_USBPacketErrors: return CPIT_uint32;
+      case CPI_FaultState: return CPIT_uint32;
+      case CPI_IndexSensor: return CPIT_bool;
+
+      case CPI_ANGLE_CAL_0: return CPIT_uint16;
+      case CPI_ANGLE_CAL_1: return CPIT_uint16;
+      case CPI_ANGLE_CAL_2: return CPIT_uint16;
+      case CPI_ANGLE_CAL_3: return CPIT_uint16;
+      case CPI_ANGLE_CAL_4: return CPIT_uint16;
+      case CPI_ANGLE_CAL_5: return CPIT_uint16;
+      case CPI_ANGLE_CAL_6: return CPIT_uint16;
+      case CPI_ANGLE_CAL_7: return CPIT_uint16;
+      case CPI_ANGLE_CAL_8: return CPIT_uint16;
+      case CPI_ANGLE_CAL_9: return CPIT_uint16;
+      case CPI_ANGLE_CAL_10: return CPIT_uint16;
+      case CPI_ANGLE_CAL_11: return CPIT_uint16;
+      case CPI_ANGLE_CAL_12: return CPIT_uint16;
+      case CPI_ANGLE_CAL_13: return CPIT_uint16;
+      case CPI_ANGLE_CAL_14: return CPIT_uint16;
+      case CPI_ANGLE_CAL_15: return CPIT_uint16;
+      case CPI_ANGLE_CAL_16: return CPIT_uint16;
+      case CPI_ANGLE_CAL_17: return CPIT_uint16;
+
+      case CPI_CANPacketDrops: return CPIT_uint32;
+      case CPI_CANPacketErrors: return CPIT_uint32;
+      case CPI_MainLoopTimeout: return CPIT_uint32;
+      case CPI_JointRelative: return CPIT_enum8;
+      case CPI_FanTemperatureThreshold: return CPIT_float32;
+      case CPI_FanMode: return CPIT_enum8;
+      case CPI_FanState: return CPIT_enum8;
+
+      case CPI_SafetyMode: return CPIT_enum8;
+      case CPI_JointRole: return CPIT_enum8;
+      case CPI_EndStopEnable: return CPIT_bool;
+      case CPI_EndStopStart: return CPIT_float32;
+      case CPI_EndStopStartBounce: return CPIT_float32;
+      case CPI_EndStopEnd: return CPIT_float32;
+      case CPI_EndStopEndBounce: return CPIT_float32;
+      case CPI_EndStopTargetBreakForce: return CPIT_float32;
+      case CPI_EndStopLimitBreakForce: return CPIT_float32;
+      case CPI_JointInertia: return CPIT_float32;
+
+      case CPI_FINAL: return CPIT_Invalid;
+    }
+
+    printf("Unexpected parameter index %d for type query",(int)paramIndex);
+    return CPIT_Unknown;
+  }
+
   // ---------------------------------------------------------
 
   //! Constructor

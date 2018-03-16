@@ -32,6 +32,8 @@ void PWMUpdateDrive(int phase,int power);
 
 void MotionStep(void);
 
+void SetMotorControlMode(enum PWMControlDynamicT controlMode);
+
 float hallToAngle(uint16_t *sensors);
 
 extern binary_semaphore_t g_adcInjectedDataReady;

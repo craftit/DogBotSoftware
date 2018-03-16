@@ -673,6 +673,11 @@
                <string>Position</string>
               </property>
              </item>
+             <item>
+              <property name="text">
+               <string>Fault</string>
+              </property>
+             </item>
             </widget>
            </item>
            <item row="4" column="0">
