@@ -7,6 +7,7 @@
 #include <string.h>
 #include "can_queue.hh"
 #include "flashops.hh"
+#include "pwm.h"
 
 void CANReportPacketSizeError(int msgType,int size)
 {
@@ -31,7 +32,7 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
     case CPT_NoOp:
       break;
     case CPT_EmergencyStop: { // Ping request
-      ChangeControlState(CS_EmergencyStop);
+      ChangeControlState(CS_EmergencyStop,SCS_UserRequest);
       if(g_canBridgeMode) {
         uint8_t pktType = CPT_EmergencyStop;
         USBSendPacket((uint8_t *) &pktType,sizeof(pktType));
@@ -168,6 +169,9 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
       CANSendAnnounceId();
     } break;
     case CPT_ServoReport:
+      if((rxmsg.data8[4] & 0x80) != 0) {
+        EmergencyStopReceivedSafeFlag(rxDeviceId);
+      }
       if(rxDeviceId == g_otherJointId &&
           g_otherJointId != 0 &&
           g_otherJointId != g_deviceId &&

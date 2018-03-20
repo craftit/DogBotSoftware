@@ -122,7 +122,8 @@ void SetupEndStops()
 {
   g_endStopPhaseStart = DemandToPhasePosition(g_endStopStart);
   g_endStopPhaseEnd = DemandToPhasePosition(g_endStopEnd);
-  g_endStopTargetAcceleration = g_endStopTargetBreakCurrent / g_jointInertia;
+  //g_endStopTargetAcceleration = g_endStopTargetBreakCurrent / g_jointInertia;
+  g_endStopTargetAcceleration = -1; // Disable acceleration based end-stops for the moment.
 }
 
 void EnterHomedState()
@@ -203,7 +204,12 @@ bool MotionOtherJointUpdate(int16_t position,int16_t torque,uint8_t mode)
 bool MotionReport(int16_t position,int16_t torque,PositionReferenceT posRef)
 {
   uint8_t mode = posRef & 0x3;
-
+  if(g_safetyMode == SM_MasterEmergencyStop) {
+    if(IsEmergencyStopButtonSetToSafe()) {
+      mode |= 1<<7;
+    }
+  }
+  EmergencyStopTick();
   // Report endstop switch.
   if(palReadPad(GPIOC, GPIOC_PIN8))
     mode |= 1 << 3;
@@ -328,7 +334,7 @@ enum FaultCodeT LoadSetup(void) {
   }
   StoredConf_Load(&g_storedConfig);
 
-  g_deviceId = g_storedConfig.deviceId;
+  //g_deviceId = g_storedConfig.deviceId; //!< This can cause Id conflicts, better to let controller give id again
   g_otherJointId = g_storedConfig.otherJointId;
   g_relativePositionGain = g_storedConfig.m_relativePositionGain;
   g_relativePositionOffset = g_storedConfig.m_relativePositionOffset;
@@ -337,7 +343,10 @@ enum FaultCodeT LoadSetup(void) {
   g_phaseResistance = g_storedConfig.m_phaseResistance;
   g_phaseInductance = g_storedConfig.m_phaseInductance;
   g_phaseOffsetVoltage = g_storedConfig.m_phaseOffsetVoltage;
-  g_velocityLimit = g_storedConfig.m_velocityLimit;
+
+  // g_velocityLimit = g_storedConfig.m_velocityLimit;
+  g_velocityLimit = 100.0; //!< Load a low default limit, it is up to the control software to raise it when ready
+
   g_absoluteMaxCurrent = g_storedConfig.m_absoluteMaxCurrent;
   g_homeIndexPosition = g_storedConfig.m_homeIndexPosition;
   g_minSupplyVoltage = g_storedConfig.m_minSupplyVoltage;
@@ -358,6 +367,7 @@ enum FaultCodeT LoadSetup(void) {
   g_endStopTargetBreakCurrent = g_storedConfig.m_endStopTargetBreakCurrent;
   g_endStopMaxBreakCurrent = g_storedConfig.m_endStopMaxBreakCurrent;
   g_jointInertia = g_storedConfig.m_jointInertia;
+  g_safetyMode = g_storedConfig.m_safetyMode;
 
   SetupEndStops();
 
@@ -400,6 +410,7 @@ enum FaultCodeT SaveSetup(void) {
   g_storedConfig.m_endStopTargetBreakCurrent = g_endStopTargetBreakCurrent;
   g_storedConfig.m_endStopMaxBreakCurrent = g_endStopMaxBreakCurrent;
   g_storedConfig.m_jointInertia = g_jointInertia;
+  g_storedConfig.m_safetyMode = g_safetyMode;
 
   if(!StoredConf_Save(&g_storedConfig)) {
     return FC_InternalStoreFailed;

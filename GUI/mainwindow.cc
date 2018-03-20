@@ -79,6 +79,7 @@ MainWindow::MainWindow(QWidget *parent) :
   startTimer(10);
 
   m_displayQuery.push_back(CPI_ControlState);
+  m_displayQuery.push_back(CPI_SafetyMode);
   m_displayQuery.push_back(CPI_FaultCode);
   m_displayQuery.push_back(CPI_HomedState);
   m_displayQuery.push_back(CPI_PositionRef);
@@ -105,7 +106,7 @@ MainWindow::MainWindow(QWidget *parent) :
   m_displayQuery.push_back(CPI_FanTemperatureThreshold);
   m_displayQuery.push_back(CPI_EndStopEnable);
   m_displayQuery.push_back(CPI_EndStopStart);
-  m_displayQuery.push_back(CPI_EndStopEnd);
+  m_displayQuery.push_back(CPI_EndStopFinal);
   m_displayQuery.push_back(CPI_EndStopTargetBreakForce);
   m_displayQuery.push_back(CPI_JointInertia);
 
@@ -206,6 +207,7 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     if(psp->m_header.m_deviceId == m_targetDeviceId) {
       emit setControlState(DogBotN::ControlStateToString(controlState));
     }
+    ret = false;
   } break;
   case CPI_FaultCode: {
     enum FaultCodeT faultCode = (enum FaultCodeT) psp->m_data.uint8[0];
@@ -366,7 +368,7 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     sprintf(buff,"\n %d Home: %f ",psp->m_header.m_deviceId,homePos);
     displayStr += buff;
   } break;
-  case CPI_EndStopEnd: {
+  case CPI_EndStopFinal: {
     double homePos = psp->m_data.float32[0] * 360.0 / (M_PI * 2.0);
     sprintf(buff,"\n %d EndStopEnd: %f ",psp->m_header.m_deviceId,homePos);
     displayStr += buff;
@@ -470,7 +472,7 @@ void MainWindow::LocalProcessParam(PacketParam8ByteC psp)
     float angleDeg = (psp.m_data.float32[0] * 360.0f / (M_PI * 2.0));
     ui->doubleSpinBoxEndStopStart->setValue(angleDeg);
   } break;
-  case CPI_EndStopEnd: {
+  case CPI_EndStopFinal: {
     float angleDeg = (psp.m_data.float32[0] * 360.0f / (M_PI * 2.0));
     ui->doubleSpinBoxEndStopEnd->setValue(angleDeg);
   } break;
@@ -480,7 +482,9 @@ void MainWindow::LocalProcessParam(PacketParam8ByteC psp)
   case CPI_JointInertia:
     ui->doubleSpinBoxJointInertia->setValue(psp.m_data.float32[0]);
     break;
-
+  case CPI_SafetyMode:
+    ui->comboBoxSafetyMode->setCurrentText(QString(DogBotN::SafetyModeToString((enum SafetyModeT) psp.m_data.uint8[0])));
+    break;
   default:
     break;
   }
@@ -910,17 +914,22 @@ void MainWindow::on_comboBoxControlState_activated(const QString &arg1)
   if(arg1 == "Auto Home") {
     controlState = CS_Home;
   }
-  if(arg1 == "Teach") {
-    controlState = CS_Teach;
+  if(arg1 == "Safe Stop") {
+    controlState = CS_SafeStop;
   }
-  if(arg1 == "Reset") {
+  if(arg1 == "Power Up") {
     controlState = CS_StartUp;
   }
   if(arg1 == "Diagnostic") {
     controlState = CS_Diagnostic;
   }
+  if(arg1 == "Boot Loader") {
+    controlState = CS_BootLoader;
+  }
   if(controlState != CS_Fault)  {
     m_coms->SendSetParam(m_targetDeviceId,CPI_ControlState,controlState);
+  } else {
+    std::cout << "Don't know how to deal with state " << arg1.toLocal8Bit().data() << std::endl;
   }
 }
 
@@ -1201,7 +1210,7 @@ void MainWindow::on_doubleSpinBoxEndStopStart_valueChanged(double arg1)
 void MainWindow::on_doubleSpinBoxEndStopEnd_valueChanged(double arg1)
 {
   float endStopAngleRad = (arg1 * (M_PI * 2.0) / 360.0f);
-  m_coms->SendSetParam(m_targetDeviceId,CPI_EndStopEnd,endStopAngleRad);
+  m_coms->SendSetParam(m_targetDeviceId,CPI_EndStopFinal,endStopAngleRad);
 }
 
 void MainWindow::on_checkBoxEndStopEnable_toggled(bool checked)
@@ -1245,7 +1254,7 @@ void MainWindow::on_pushButtonSetEndStopStart_clicked()
 
 void MainWindow::on_pushButtonSetEndStopEnd_clicked()
 {
-  SetValueToCurrentPosition(CPI_EndStopEnd);
+  SetValueToCurrentPosition(CPI_EndStopFinal);
 }
 
 void MainWindow::on_pushButtonSaveConfig_clicked()
@@ -1253,4 +1262,18 @@ void MainWindow::on_pushButtonSaveConfig_clicked()
   if(m_targetDeviceId == 0)
     return ;
   m_coms->SendStoreConfig(m_targetDeviceId);
+}
+
+void MainWindow::on_comboBoxSafetyMode_activated(const QString &arg1)
+{
+  enum SafetyModeT sm = SM_Unknown;
+  if(arg1 == "Unknown")
+    sm = SM_Unknown;
+  if(arg1 == "Global Emergency Stop")
+    sm = SM_GlobalEmergencyStop;
+  if(arg1 == "Master Emergency Stop")
+    sm = SM_MasterEmergencyStop;
+  if(arg1 == "Local Stop")
+    sm = SM_LocalStop;
+  m_coms->SendSetParam(m_targetDeviceId,CPI_SafetyMode,(uint8_t) sm);
 }

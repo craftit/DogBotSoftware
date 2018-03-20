@@ -400,7 +400,7 @@ static bool MotorCheckEndStop(void)
 {
   // Check virtual end stops.
 
-  if(g_endStopEnable && g_motionHomedState == MHS_Homed) {
+  if(g_endStopEnable && g_motionHomedState == MHS_Homed && g_endStopTargetAcceleration > 0) {
 
     float sign;
     float distanceToGo;
@@ -480,10 +480,11 @@ static void MotorControlLoop(void)
       case CM_Final:
         // Just turn everything off, this should mildly passively brake the motor
         PWMUpdateDrivePhase(
-            TIM_1_8_PERIOD_CLOCKS/2,
-            TIM_1_8_PERIOD_CLOCKS/2,
-            TIM_1_8_PERIOD_CLOCKS/2
+            0,
+            0,
+            0
             );
+        g_torqueAverage = 0;
         break;
       case CM_Brake:
         // Just turn everything off, this should passively brake the motor
@@ -493,6 +494,8 @@ static void MotorControlLoop(void)
             0,
             0
             );
+        // FIXME:- Measure currents and estimate the torque ??
+        g_torqueAverage = 0;
         break;
       case CM_Position: {
         float positionError = (targetPosition - g_currentPhasePosition);
@@ -868,6 +871,8 @@ enum FaultCodeT PWMSelfTest()
   g_vbus_voltage = ReadSupplyVoltage();
   if(g_vbus_voltage > g_maxSupplyVoltage)
     return FC_OverVoltage;
+  if(g_vbus_voltage < g_minSupplyVoltage)
+    return FC_UnderVoltage;
 
 #if CHECK_OVERCURRENT
   if(!palReadPad(GPIOB, GPIOB_PIN11)) { // Sensor over current fault

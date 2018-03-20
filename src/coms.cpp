@@ -141,7 +141,7 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
   case CPT_NoOp: // No-op
     break;
   case CPT_EmergencyStop:
-    ChangeControlState(CS_EmergencyStop);
+    ChangeControlState(CS_EmergencyStop,SCS_UserRequest);
     if(!CANEmergencyStop()) {
       USBSendError(g_deviceId,CET_CANTransmitFailed,CPT_EmergencyStop,0);
       // Retry ?

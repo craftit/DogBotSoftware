@@ -158,7 +158,8 @@ CPPSRC = \
   canbus.cpp \
   can_coms.cpp \
   parameters.cpp \
-  flashStubs.cpp
+  flashStubs.cpp \
+  emergency_stop.cpp
 
 
 # C sources to be compiled in ARM mode regardless of the global setting.

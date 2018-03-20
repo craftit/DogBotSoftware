@@ -27,7 +27,7 @@ enum FaultCodeT SaveSetup()
   return FC_Internal;
 }
 
-int ChangeControlState(enum ControlStateT newState)
+int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT /*change source*/)
 {
   switch(newState)
   {
@@ -49,4 +49,10 @@ bool MotionOtherJointUpdate(int16_t position,int16_t torque,uint8_t mode)
   (void) torque;
   (void) mode;
   return false;
+}
+
+
+void EmergencyStopReceivedSafeFlag(int /*fromDeviceId*/)
+{
+
 }

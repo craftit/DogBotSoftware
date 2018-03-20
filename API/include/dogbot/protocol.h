@@ -218,7 +218,7 @@ extern "C" {
     CPI_EndStopEnable    = 0x59,
     CPI_EndStopStart     = 0x5A,
     CPI_EndStopStartBounce = 0x5B,
-    CPI_EndStopEnd       = 0x5C,
+    CPI_EndStopFinal       = 0x5C,
     CPI_EndStopEndBounce = 0x5D,
     CPI_EndStopTargetBreakForce = 0x5E,
     CPI_EndStopLimitBreakForce = 0x5F,
@@ -255,8 +255,8 @@ extern "C" {
    */
 
   enum ControlStateT {
-    CS_StartUp       = 0, //!< Doing self test.
-    CS_Standby       = 1, //!< Waiting for main power to be applied, then go to Ready.
+    CS_StartUp       = 0, //!< Doing self test, then go to ready if safe to do so.
+    CS_SafeStop      = 1, //!< Apply breaks for 20 seconds, then go to low power mode
     CS_LowPower      = 2, //!< Reduced power consumption mode.
     CS_Ready         = 3, //!< Motor control loop running, ready for motion commands.
     CS_EmergencyStop = 4, //!< Motor in break state.
@@ -264,7 +264,7 @@ extern "C" {
     CS_FactoryCalibrate = 6, //!< Calibrating motor
     CS_Home          = 7, //!< Auto homing motor, NOT IMPLEMENTED
     CS_Fault         = 8, //!< Hardware or configuration fault detected.
-    CS_Teach         = 9, //!< Motor position monitored but no torque. NOT IMPLEMENTED
+    //CS_Teach         = 9, //!< Motor position monitored but no torque. NOT IMPLEMENTED
     CS_Diagnostic    = 10, //!< As CS_Ready, but with extra status reporting.
     CS_BootLoader    = 11, //!< Ready for firmware update
     CS_MotionCalibrate = 12 //!< Calibrating motion parameters of joint
@@ -275,8 +275,10 @@ extern "C" {
    */
 
   enum SafetyModeT {
-    SM_GlobalEmergencyStop = 0, /*!< If we enter fault condition send a global emergency stop. (default) */
-    SM_LocalStop = 1            /*!< Only stop the local servo and report problem to control software.   */
+    SM_Unknown = 0,             /*!< Current mode is unknown. */
+    SM_GlobalEmergencyStop = 1, /*!< If we enter fault condition send a global emergency stop. (default) */
+    SM_MasterEmergencyStop = 2, /*!< As GlobalEmergencyStop, but also monitor the emergency stop switch.  */
+    SM_LocalStop = 3            /*!< Only stop the local servo and report problem to control software.   */
   };
 
   /* Dynamics mode for the control loop.

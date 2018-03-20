@@ -18,6 +18,14 @@ void EnableSensorPower(bool enable);
 bool HasSensorPower(void);
 void EnableFanPower(bool enable);
 
+bool IsEmergencyStopButtonSetToSafe(void);
+void InitEmergencyStop(void);
+void ResetEmergencyStop(void);
+bool IsEmergencyStopButtonSetup(void);
+void EmergencyStopTick(void);
+bool EmergencyStopHaveReceivedSafeFlag(void);
+void EmergencyStopReceivedSafeFlag(int fromDeviceId);
+
 bool CheckMotorSetup(void);
 void SetupEndStops(void);
 

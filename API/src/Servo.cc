@@ -173,6 +173,10 @@ namespace DogBotN {
     m_updateQuery.push_back(CPI_homeIndexPosition);
     m_updateQuery.push_back(CPI_MaxCurrent);
 
+    m_updateQuery.push_back(CPI_EndStopEnable);
+    m_updateQuery.push_back(CPI_EndStopStart);
+    m_updateQuery.push_back(CPI_EndStopFinal);
+
 
   }
 
@@ -211,6 +215,11 @@ namespace DogBotN {
       m_enabled = conf.get("enabled",false).asBool();
       m_motorKv = conf.get("motorKv",260.0).asFloat();
       m_gearRatio = conf.get("gearRatio",21.0).asFloat();
+
+      m_endStopStart = conf.get("endStopStart",0).asFloat();
+      m_endStopFinal = conf.get("endStopFinal",0).asFloat();
+      m_endStopEnable = conf.get("endStopEnable",false).asBool();
+      m_homeOffset = conf.get("homeOffset",0).asFloat();
     }
 
     Json::Value motorCal = conf["setup"];
@@ -237,6 +246,14 @@ namespace DogBotN {
       ret["enabled"] = m_enabled;
       ret["motorKv"] = m_motorKv;
       ret["gearRatio"] = m_gearRatio;
+
+      ret["homeOffset"]  = m_homeOffset;
+
+      ret["endStopStart"] = m_endStopStart;
+      ret["endStopFinal"] = m_endStopFinal;
+      ret["endStopEnable"] = m_endStopEnable;
+
+      ret["safetyMode"] = m_safetyMode;
     }
 
     if(m_motorCal) {
@@ -352,6 +369,22 @@ namespace DogBotN {
     case CPI_ControlState: {
       enum ControlStateT controlState = (enum ControlStateT) pkt.m_data.uint8[0];
       ret = m_controlState != controlState;
+      if(ret) {
+        // If we've changed into a control state where motor position becomes unknown.
+        // reflect it in the stored state.
+        switch(m_controlState)
+        {
+          case CS_FactoryCalibrate:
+          case CS_LowPower:
+          case CS_BootLoader:
+            m_homedState = MHS_Lost;
+            m_controlDynamic = CM_Off;
+            m_position = 0.0;
+            m_torque = 0.0;
+            m_velocity = 0.0;
+            break;
+        }
+      }
       m_controlState = controlState;
     } break;
     case CPI_HomedState: {
@@ -389,10 +422,30 @@ namespace DogBotN {
       ret = newVal != m_motorResistance;
       m_motorResistance = newVal;
     } break;
+    case CPI_EndStopEnable: {
+      bool newVal = pkt.m_data.uint8[0] > 0;
+      ret = newVal != m_endStopEnable;
+      m_endStopEnable = newVal;
+    } break;
+    case CPI_EndStopStart: {
+      float newVal = pkt.m_data.float32[0];
+      ret = newVal != m_endStopStart;
+      m_endStopStart = newVal;
+    } break;
+    case CPI_EndStopFinal: {
+      float newVal = pkt.m_data.float32[0];
+      ret = newVal != m_endStopFinal;
+      m_endStopFinal = newVal;
+    } break;
     case CPI_PWMMode: {
       enum PWMControlDynamicT controlDynamic =  (enum PWMControlDynamicT) pkt.m_data.uint8[0];
       ret = controlDynamic != m_controlDynamic;
       m_controlDynamic = controlDynamic;
+    } break;
+    case CPI_homeIndexPosition: {
+      float newVal = pkt.m_data.float32[0];
+      ret = newVal != m_homeOffset;
+      m_homeOffset = newVal;
     } break;
     case CPI_USBPacketDrops: {
       m_log->error("Device {} {} USB Packet drops {} ",m_id,m_name,pkt.m_data.uint32[0]);
@@ -406,94 +459,11 @@ namespace DogBotN {
       m_log->error("Device {} {} Fault state {} ",m_id,m_name,pkt.m_data.uint32[0]);
       ret = false;
     } break;
-#if 0
-    case CPI_CalibrationOffset: {
-      float calAngleDeg =  (pkt.m_data.float32[0] * 360.0f / (M_PI * 2.0));
-      sprintf(buff,"%f",calAngleDeg);
-      displayStr += buff;
-      if(pkt.m_header.m_deviceId == m_targetDeviceId) {
-        emit setCalibrationAngle(calAngleDeg);
-      }
+    case CPI_SafetyMode: {
+      enum SafetyModeT safetyMode =  (enum SafetyModeT) pkt.m_data.uint8[0];
+      ret = safetyMode != m_safetyMode;
+      m_safetyMode = safetyMode;
     } break;
-    case CPI_OtherJoint: {
-      if(pkt.m_header.m_deviceId == m_targetDeviceId) {
-        uint8_t otherJointId = pkt.m_data.uint8[0];
-        setOtherJoint(otherJointId);
-      }
-    } break;
-    case CPI_PositionRef: {
-      if(pkt.m_header.m_deviceId == m_targetDeviceId) {
-        enum PositionReferenceT posRef = (enum PositionReferenceT) pkt.m_data.uint8[0];
-        switch(posRef)
-        {
-          case PR_Relative: emit setPositionRef("Relative"); break;
-          case PR_Absolute: emit setPositionRef("Absolute"); break;
-          case PR_OtherJointRelative: emit setPositionRef("RelativeOther"); break;
-          case PR_OtherJointAbsolute: emit setPositionRef("AbsoluteOther"); break;
-        }
-      }
-    } break;
-    case CPI_Indicator: {
-      if(pkt.m_header.m_deviceId == m_targetDeviceId) {
-        emit setIndicator(pkt.m_data.uint8[0] > 0);
-      }
-    } break;
-    case CPI_OtherJointGain:
-      if(pkt.m_header.m_deviceId == m_targetDeviceId) {
-        emit setOtherJointGain(pkt.m_data.float32[0]);
-      }
-      break;
-    case CPI_OtherJointOffset:
-      if(pkt.m_header.m_deviceId == m_targetDeviceId) {
-        emit setOtherJointOffset(pkt.m_data.float32[0] * 360.0 / (2.0 * M_PI));
-      }
-      break;
-    case CPI_MotorInductance:
-      sprintf(buff,"\n Inductance: %f ", pkt.m_data.float32[0]);
-      displayStr += buff;
-      break;
-    case CPI_MotorResistance:
-      sprintf(buff,"\n Resistance: %f ",pkt.m_data.float32[0]);
-      displayStr += buff;
-      break;
-    case CPI_MotorIGain:
-      if(pkt.m_header.m_deviceId == m_targetDeviceId) {
-        emit setMotorIGain(pkt.m_data.float32[0]);
-      }
-      sprintf(buff,"\n IGain: %f ",pkt.m_data.float32[0]);
-      displayStr += buff;
-      break;
-    case CPI_MotorPGain:
-      sprintf(buff,"\n PGain: %f ",pkt.m_data.float32[0]);
-      displayStr += buff;
-      break;
-    case CPI_PhaseVelocity:
-      if(pkt.m_header.m_deviceId == m_targetDeviceId) {
-        emit setMotorVelocity(pkt.m_data.float32[0]);
-      }
-      sprintf(buff,"\n Velocity: %f ",pkt.m_data.float32[0]);
-      displayStr += buff;
-      ret = false;
-      break;
-    case CPI_DemandPhaseVelocity:
-      if(pkt.m_header.m_deviceId == m_targetDeviceId) {
-        emit setDemandPhaseVelocity(pkt.m_data.float32[0]);
-      }
-      sprintf(buff,"\n DemandVelocity: %f ",pkt.m_data.float32[0]);
-      displayStr += buff;
-      ret = false;
-      break;
-    case CPI_DRV8305_01:
-    case CPI_DRV8305_02:
-    case CPI_DRV8305_03:
-    case CPI_DRV8305_04:
-    case CPI_DRV8305_05: {
-      int reg = (pkt.m_header.m_index - (int) CPI_DRV8305_01)+1;
-      sprintf(buff,"\n Reg %d contents: %04X ",reg,(int) pkt.m_data.uint16[0]);
-      displayStr += buff;
-
-     } break;
-#endif
     default:
       break;
     }
@@ -566,6 +536,18 @@ namespace DogBotN {
     if(faultCode != FC_Unknown) {
       if(timeSinceLastReport > comsTimeout) {
         m_faultCode = FC_Unknown;
+
+#if 0
+        // These are useful to see, as knowing the last known state for the driver can help diagnose faults.
+        // Change everything to default.
+        m_homedState = MHS_Lost;
+        m_positionRef = PR_Relative;
+        m_controlDynamic = CM_Fault;
+        m_driveTemperature = 0.0;
+        m_motorTemperature = 0.0;
+        m_supplyVoltage = 0.0;
+#endif
+
         ret = true;
         m_log->warn("Lost contact with servo {}  for {} seconds",m_id,timeSinceLastReport.count());
 
@@ -573,7 +555,7 @@ namespace DogBotN {
         m_velocity = 0;
       }
     } else {
-#if 0
+#if 1
       if(timeSinceLastReport < comsTimeout) {
         // Re-query servo status.
         if((m_faultCode == FC_Unknown) &&

@@ -10,7 +10,9 @@
 extern "C" {
 #endif
 
-extern int ChangeControlState(enum ControlStateT newState);
+enum StateChangeSourceT { SCS_UserRequest,SCS_Internal };
+
+extern int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT changeSource);
 extern void FaultDetected(enum FaultCodeT faultCode);
 
 extern uint16_t *ReadADCs(void);
@@ -18,6 +20,8 @@ extern float ReadSupplyVoltage(void); // Read supply voltage from ADC.
 extern float ReadDriveTemperature(void); // Read driver temp
 extern float ReadMotorTemperature(void); // Read driver temp
 extern float Read5VRailVoltage(void);
+
+extern void EmergencyStopReceivedSafeFlag(int fromDeviceId);
 
 
 extern unsigned g_mainLoopTimeoutCount;

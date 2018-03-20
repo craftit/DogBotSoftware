@@ -24,6 +24,19 @@ void EnableFanPower(bool enable)
     palClearPad(GPIOA, GPIOA_PIN7); // Turn on aux power
 }
 
+bool HasSensorPower()
+{
+  return palReadPad(GPIOB, GPIOB_PIN12) != 0;
+}
+
+void EnableSensorPower(bool enable)
+{
+  if(enable)
+    palSetPad(GPIOB, GPIOB_PIN12); // Turn off sensor power
+  else
+    palClearPad(GPIOB, GPIOB_PIN12); // Turn off sensor power
+}
+
 
 void SetMotorControlMode(PWMControlDynamicT controlMode)
 {
@@ -52,7 +65,18 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
         return false;
       if(data->uint8[0] >= (int) CM_Final)
         return false;
-      g_controlMode = (PWMControlDynamicT) data->uint8[0];
+      // Don't let the user change this when in an
+      // emergency or shutdown mode.
+      switch(g_controlState)
+      {
+        case CS_EmergencyStop:
+        case CS_SafeStop:
+          g_controlMode = CM_Brake;
+          break;
+        default:
+          g_controlMode = (PWMControlDynamicT) data->uint8[0];
+          break;
+      }
       break;
     case CPI_PWMFullReport:
       if(len != 1)
@@ -97,7 +121,7 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
       switch(newCal)
       {
         case MHS_Lost:
-          MotionResetCalibration(newCal);
+          MotionResetCalibration(MHS_Lost);
           break;
         case MHS_Measuring:
           MotionResetCalibration(MHS_Measuring);
@@ -127,7 +151,7 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
       if(len != 1)
         return false;
       enum ControlStateT newState = (enum ControlStateT) data->uint8[0];
-      if(!ChangeControlState(newState))
+      if(!ChangeControlState(newState,SCS_UserRequest))
         return false;
     } break;
     case CPI_FaultCode:
@@ -303,7 +327,27 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
     case CPI_SafetyMode: {
       if(len != 1)
         return false;
-      g_safetyMode = (enum SafetyModeT) data->uint8[0];
+      SafetyModeT sm = (enum SafetyModeT) data->uint8[0];
+      switch(g_controlState) {
+        default:
+          SendParamUpdate(index);
+          return false;
+        case CS_LowPower:
+          switch(sm) {
+            case SM_GlobalEmergencyStop:
+            case SM_MasterEmergencyStop:
+            case SM_LocalStop:
+            case SM_Unknown:
+              g_safetyMode = sm;
+              break;
+            default:
+              // If unrecognised, fall back to unknown
+              g_safetyMode = SM_Unknown;
+              SendParamUpdate(index);
+              return false;
+          }
+        break;
+      }
     } break;
 
     case CPI_EndStopEnable: {
@@ -324,7 +368,7 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
       SetupEndStops();
     } break;
 
-    case CPI_EndStopEnd:{
+    case CPI_EndStopFinal:{
       if(len != 4)
         return false;
       g_endStopEnd = data->float32[0];
@@ -379,7 +423,7 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       break;
     case CPI_FirmwareVersion:
       *len = 1;
-      data->uint8[0] = 3;
+      data->uint8[0] = 4;
       break;
     case CPI_PWMState:
       *len = 1;
@@ -627,7 +671,7 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       *len = 4;
       data->float32[0] = g_endStopStartBounce;
     } break;
-    case CPI_EndStopEnd:{
+    case CPI_EndStopFinal:{
       *len = 4;
       data->float32[0] = g_endStopEnd;
     } break;

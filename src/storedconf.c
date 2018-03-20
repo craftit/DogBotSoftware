@@ -81,7 +81,7 @@ bool StoredConf_Load(struct StoredConfigT *conf)
     conf->m_phaseResistance = 0.002;
     conf->m_phaseInductance = 1e-4;
     conf->m_phaseOffsetVoltage = 0.1;
-    conf->m_velocityLimit = 1000.0;
+    conf->m_velocityLimit = 100.0;
     conf->m_absoluteMaxCurrent = 20.0;
     conf->m_homeIndexPosition = 0.0;
     conf->m_minSupplyVoltage = 6.0;
@@ -96,6 +96,7 @@ bool StoredConf_Load(struct StoredConfigT *conf)
     conf->m_endStopMaxBreakCurrent = 0;
     conf->m_jointInertia = 0.0;
 
+    conf->m_safetyMode = SM_GlobalEmergencyStop;
   }
 
   return is_ok;

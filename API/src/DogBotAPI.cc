@@ -66,14 +66,13 @@ namespace DogBotN {
     case CS_EmergencyStop: return "Emergency Stop";
     case CS_FactoryCalibrate: return "Factory Calibrate";
     case CS_MotionCalibrate: return "Motion Calibrate";
-    case CS_Standby: return "Standby";
+    case CS_SafeStop: return "Safe Stop";
     case CS_LowPower: return "Low Power";
     case CS_Ready: return "Ready";
     case CS_Home: return "Auto Home";
     case CS_SelfTest: return "Self Test";
-    case CS_Teach: return "Teach";
     case CS_Fault: return "Fault";
-    case CS_StartUp: return "Startup";
+    case CS_StartUp: return "Power Up";
     case CS_Diagnostic: return "Diagnostic";
     case CS_BootLoader: return "Boot Loader";
     }
@@ -157,6 +156,20 @@ namespace DogBotN {
     return "Invalid";
   }
 
+
+  //! Convert coms safety mode to a string
+  const char *SafetyModeToString(SafetyModeT safetyMode)
+  {
+    switch(safetyMode)
+    {
+      case SM_Unknown: return "Unknown";
+      case SM_GlobalEmergencyStop: return "Global Emergency Stop";
+      case SM_MasterEmergencyStop: return "Master Emergency Stop";
+      case SM_LocalStop: return "Local Stop";
+    }
+    printf("Unexpected safety mode %d",(int)safetyMode);
+    return "Invalid";
+  }
 
   //! Convert an parameter index to a name
   const char *ComsParameterIndexToString(ComsParameterIndexT paramIndex)
@@ -244,7 +257,7 @@ namespace DogBotN {
       case CPI_EndStopEnable: return "EndStopEnable";
       case CPI_EndStopStart: return "EndStopStart";
       case CPI_EndStopStartBounce: return "EndStopStartBounce";
-      case CPI_EndStopEnd: return "EndStopEnd";
+      case CPI_EndStopFinal: return "EndStopEnd";
       case CPI_EndStopEndBounce: return "EndStopEndBounce";
       case CPI_EndStopTargetBreakForce: return "EndStopTargetBreakForce";
       case CPI_EndStopLimitBreakForce: return "EndStopLimitBreakForce";
@@ -343,7 +356,7 @@ namespace DogBotN {
       case CPI_EndStopEnable: return CPIT_bool;
       case CPI_EndStopStart: return CPIT_float32;
       case CPI_EndStopStartBounce: return CPIT_float32;
-      case CPI_EndStopEnd: return CPIT_float32;
+      case CPI_EndStopFinal: return CPIT_float32;
       case CPI_EndStopEndBounce: return CPIT_float32;
       case CPI_EndStopTargetBreakForce: return CPIT_float32;
       case CPI_EndStopLimitBreakForce: return CPIT_float32;

@@ -77,6 +77,7 @@ namespace DogBotN {
     float m_velocityIGain = 0;
     float m_motorInductance = 0;
     float m_motorResistance = 0;
+
   };
 
   //! Information about a single servo.
@@ -280,6 +281,11 @@ namespace DogBotN {
     float m_motorInductance = 0;
     float m_motorResistance = 0;
 
+    float m_homeOffset = 0;
+    float m_endStopStart = 0;
+    float m_endStopFinal = 0;
+    bool m_endStopEnable = false;
+    enum SafetyModeT m_safetyMode = SM_GlobalEmergencyStop;
     friend class DogBotAPIC;
   };
 

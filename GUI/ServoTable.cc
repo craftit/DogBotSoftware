@@ -237,6 +237,8 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
     case ColumnHomed:
       if(servo == 0)
         return QColor(Qt::white);
+      if(servo->FaultCode() == FC_Unknown)
+        return QColor(Qt::yellow);
       switch(servo->HomedState())
       {
       case MHS_Lost:
@@ -252,6 +254,8 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
     case ColumnDriveTemperature:
       if(servo == 0)
         return QColor(Qt::white);
+      if(servo->FaultCode() == FC_Unknown)
+        return QColor(Qt::yellow);
       if(servo->DriveTemperature() < 10.0)
         return QColor(Qt::yellow);
       if(servo->DriveTemperature() < 60.0)
@@ -262,6 +266,8 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
     case ColumnMotorTemperature:
       if(servo == 0)
         return QColor(Qt::white);
+      if(servo->FaultCode() == FC_Unknown)
+        return QColor(Qt::yellow);
       if(servo->MotorTemperature() < 10.0)
         return QColor(Qt::yellow);
       if(servo->MotorTemperature() < 40.0)
@@ -272,6 +278,8 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
     case ColumnSupplyVoltage:
       if(servo == 0)
         return QColor(Qt::white);
+      if(servo->FaultCode() == FC_Unknown)
+        return QColor(Qt::yellow);
       if(servo->SupplyVoltage() < 8.0)
         return QColor(Qt::red);
       if(servo->SupplyVoltage() < 11.0)
@@ -280,6 +288,13 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
         return QColor(Qt::red);
       return QColor(Qt::white);
     case ColumnIndex:
+    case ColumnAngle:
+    case ColumnSpeed:
+    case ColumnTorque:
+    case ColumnMode:
+    case ColumnDynamic:
+      if(servo->FaultCode() == FC_Unknown)
+        return QColor(Qt::yellow);
       return QColor(Qt::white);
     default:
       break;

@@ -16,6 +16,8 @@ int main(int argc,char **argv)
   std::string configFile;
   std::string firmwareFile;
   int targetDeviceId = 0;
+  int finalDeviceId = -1;
+
   bool dryRun = false;
   bool stayInBootloader = false;
   auto logger = spdlog::stdout_logger_mt("console");
@@ -32,7 +34,8 @@ int main(int argc,char **argv)
       ("d,device", "Device to use from communication. Typically 'local' for local server or 'usb' for direct connection ", cxxopts::value<std::string>(devFilename))
       ("f,firmware", "Firmware file ", cxxopts::value<std::string>(firmwareFile))
       ("t,target","Target device id", cxxopts::value<int>(targetDeviceId))
-      ("n,dryrun","Target device id", cxxopts::value<bool>(dryRun))
+      ("l,final","Final target device id, to program a range set this to the last device, and 'target' to the first. ", cxxopts::value<int>(finalDeviceId))
+      ("n,dryrun","Dry run", cxxopts::value<bool>(dryRun))
       ("e,noexit","Stay in boot-loader after update is complete.", cxxopts::value<bool>(stayInBootloader))
       ("h,help", "Print help")
     ;
@@ -66,9 +69,14 @@ int main(int argc,char **argv)
   if(dryRun)
     updater.SetDryRun();
   updater.SetExitBootloaderOnComplete(!stayInBootloader);
-  if(!updater.DoUpdate(targetDeviceId,firmwareFile)) {
-    logger->error("Firmware update failed");
-    return 1;
+  if(finalDeviceId < targetDeviceId)
+    finalDeviceId = targetDeviceId;
+  for(int devId = targetDeviceId;devId <= finalDeviceId;devId++) {
+    logger->info("Updating target {} ",devId);
+    if(!updater.DoUpdate(targetDeviceId,firmwareFile)) {
+      logger->error("Firmware update failed for target {} ",devId);
+      return 1;
+    }
   }
 
   logger->info("Firmware update completed ok.");

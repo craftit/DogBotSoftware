@@ -53,7 +53,7 @@ static THD_FUNCTION(Thread1, arg) {
         chThdSleepMilliseconds(5000);
       } break;
       case CS_LowPower:
-      case CS_Standby: {
+      case CS_SafeStop: {
         palSetPad(GPIOC, GPIOC_PIN4);       /* Green.  */
         chThdSleepMilliseconds(20);
         palClearPad(GPIOC, GPIOC_PIN4);     /* Green.  */
@@ -71,8 +71,7 @@ static THD_FUNCTION(Thread1, arg) {
         palClearPad(GPIOC, GPIOC_PIN4);     /* Green.  */
         chThdSleepMilliseconds(100);
       } break;
-      case CS_Ready:
-      case CS_Teach: {
+      case CS_Ready: {
         palSetPad(GPIOC, GPIOC_PIN4);       /* Green.  */
         chThdSleepMilliseconds(500);
         palClearPad(GPIOC, GPIOC_PIN4);     /* Green.  */
@@ -130,20 +129,6 @@ extern void InitADC(void);
 extern pid_t getpid(void);
 
 
-bool HasSensorPower()
-{
-  return palReadPad(GPIOB, GPIOB_PIN12);
-}
-
-void EnableSensorPower(bool enable)
-{
-  if(enable)
-    palSetPad(GPIOB, GPIOB_PIN12); // Turn off sensor power
-  else
-    palClearPad(GPIOB, GPIOB_PIN12); // Turn off sensor power
-}
-
-
 uint32_t g_faultState = 0;
 
 void FaultDetected(enum FaultCodeT faultCode)
@@ -154,69 +139,111 @@ void FaultDetected(enum FaultCodeT faultCode)
   int faultBit = 1<<((int) faultCode);
   // Have we already flagged this error?
   if((g_faultState & faultBit) != 0) {
-    ChangeControlState(CS_Fault);
+    ChangeControlState(CS_Fault,SCS_Internal);
     return ;
   }
   g_faultState |= faultBit;
   g_lastFaultCode = faultCode;
   SendParamUpdate(CPI_FaultCode);
-  ChangeControlState(CS_Fault);
+  ChangeControlState(CS_Fault,SCS_Internal);
 }
 
 float g_minSupplyVoltage = 6.0;
 
-int ChangeControlState(enum ControlStateT newState)
+int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT changeSource)
 {
   // No change?
   if(newState == g_controlState)
     return true;
-
 
   // Check transition is ok.
   switch(g_controlState)
   {
     case CS_Fault:
     case CS_EmergencyStop:
-      if(newState != CS_StartUp) {
+      if(newState != CS_StartUp &&
+          newState != CS_LowPower &&
+          newState != CS_EmergencyStop &&
+          newState != CS_BootLoader &&
+          newState != CS_Fault)
+      {
         SendParamUpdate(CPI_ControlState);
         return false;
       }
       break;
+    case CS_SafeStop:
+      if(newState != CS_LowPower &&
+          newState != CS_EmergencyStop &&
+          newState != CS_Fault )
+      {
+        SendParamUpdate(CPI_ControlState);
+        return false;
+      }
+      break;
+    case CS_LowPower:
+      if(newState != CS_BootLoader &&
+          newState != CS_FactoryCalibrate &&
+          newState != CS_EmergencyStop &&
+          newState != CS_SelfTest &&
+          newState != CS_StartUp  &&
+          newState != CS_Fault
+          )
+      {
+        SendParamUpdate(CPI_ControlState);
+        return false;
+      }
+      break;
+    case CS_FactoryCalibrate:
+      if( newState != CS_LowPower &&
+          newState != CS_EmergencyStop &&
+          newState != CS_SafeStop &&
+          newState != CS_Fault )
+      {
+        SendParamUpdate(CPI_ControlState);
+        return false;
+      }
+      break;
+    case CS_StartUp:
+    case CS_Ready:
+    case CS_SelfTest:
+    case CS_Home:
+    case CS_Diagnostic:
+    case CS_BootLoader:
+    case CS_MotionCalibrate:
     default:
       break;
   }
-
-  // Can only jump to boot loader from standby, low power or fault.
-  // Check state we're going to.
-  if(newState == CS_BootLoader &&
-      (g_controlState != CS_Standby &&
-          g_controlState != CS_LowPower &&
-          g_controlState != CS_Fault
-          )) {
-    SendParamUpdate(CPI_ControlState);
-    return false;
-  }
-
-  g_controlState = newState;
 
   switch(newState)
   {
     case CS_SelfTest:
     case CS_FactoryCalibrate:
+      if(g_controlState != CS_LowPower)
+        break;
+      g_controlState = newState;
       EnableSensorPower(true);
-      EnableFanPower(true); // Turn on the fan, as we won't be monitoring temperature while doing the calibration.
       PWMStop();
+      EnableFanPower(true); // Turn on the fan, as we won't be monitoring temperature while doing the calibration.
       SendParamUpdate(CPI_HomedState);
       break;
     case CS_StartUp:
-    case CS_Standby:
+      g_controlState = newState;
+      PWMStop();
+      SendParamUpdate(CPI_HomedState);
+      break;
     case CS_LowPower:
+      g_controlState = newState;
       PWMStop();
       EnableSensorPower(false);
       SendParamUpdate(CPI_HomedState);
       break;
-
+    case CS_SafeStop:
+      g_controlState = newState;
+      g_currentLimit = 0;
+      SetMotorControlMode(CM_Brake);
+      break;
     case CS_EmergencyStop:
+      g_controlState = newState;
       // Just put the breaks on.
       g_currentLimit = 0;
       SetMotorControlMode(CM_Brake);
@@ -224,21 +251,27 @@ int ChangeControlState(enum ControlStateT newState)
     case CS_MotionCalibrate:
     case CS_Diagnostic:
     case CS_Home:
+      if(g_controlState != CS_Ready)
+        break;
+      break;
     case CS_Ready:
-    case CS_Teach:
+      // This can only happen from startup
+      if(changeSource != SCS_Internal) {
+        break;
+      }
 #if 0
       if(!CheckMotorSetup()) {
         g_controlState = CS_LowPower;
         break;
       }
 #endif
+      g_controlState = newState;
 
       EnableSensorPower(true);
       if(PWMRun())
-        break;
-
+        break; // If we started the PWM ok, just exit.
       /* no break */
-    default:
+    default: // If we don't recognise the state, just go into fault mode.
     case CS_Fault: {
       g_controlState = CS_Fault;
       g_currentLimit = 0;
@@ -247,6 +280,7 @@ int ChangeControlState(enum ControlStateT newState)
       SendParamUpdate(CPI_HomedState);
     } break;
     case CS_BootLoader: {
+      g_controlState = newState;
       PWMStop();
       EnableSensorPower(false);
 
@@ -302,7 +336,7 @@ void SendBackgroundStateReport(void)
       SendParamUpdate(CPI_MotorTemp);
       break;
     case 3:
-      if(g_controlState != CS_LowPower  && g_controlState != CS_Standby) {
+      if(g_controlState != CS_LowPower) {
         SendParamUpdate(CPI_MotorTemp);
       }
       break;
@@ -352,17 +386,19 @@ void SendBackgroundStateReport(void)
   stateCount++;
 }
 
-bool g_doFactoryCal = false;
 
 void DoStartup(void)
 {
+  EnableSensorPower(true);
+  if(g_safetyMode == SM_MasterEmergencyStop)
+    ResetEmergencyStop();
+
   PWMStop();
   MotionResetCalibration(MHS_Measuring);
   g_lastFaultCode = FC_Ok; // Clear any errors
   g_faultState = 0;
   SendParamUpdate(CPI_FaultCode);
   SendParamUpdate(CPI_FaultState);
-
   {
     float sum = 0;
     for(int i = 0;i < 10;i++)
@@ -371,7 +407,7 @@ void DoStartup(void)
   }
 
   if(g_vbus_voltage < g_minSupplyVoltage) {
-    ChangeControlState(CS_Standby);
+    ChangeControlState(CS_LowPower,SCS_Internal);
     return ;
   }
 
@@ -397,14 +433,7 @@ void DoStartup(void)
     return ;
   }
 
-
-  if(g_doFactoryCal) {
-    g_doFactoryCal = false;
-    ChangeControlState(CS_FactoryCalibrate);
-    return ;
-  }
-
-  ChangeControlState(CS_Ready);
+  ChangeControlState(CS_Ready,SCS_Internal);
   return ;
 }
 
@@ -454,38 +483,61 @@ int main(void) {
 
   int cycleCount = 0;
 
-  /* Is button pressed ?  */
-  g_doFactoryCal = false;
 
   SendParamUpdate(CPI_ControlState);
 
   while(1) {
     switch(g_controlState)
     {
-      case CS_BootLoader:
       case CS_StartUp:
-        DoStartup();
+        SendBackgroundStateReport();
+        if(g_vbus_voltage < g_minSupplyVoltage) {
+          ChangeControlState(CS_LowPower,SCS_Internal);
+          break;
+        }
+        switch(g_safetyMode)
+        {
+        case SM_GlobalEmergencyStop:
+          if(!EmergencyStopHaveReceivedSafeFlag()) {
+            chThdSleepMilliseconds(100);
+            break;
+          }
+          // Check received state.
+          DoStartup();
+          break;
+        case SM_MasterEmergencyStop:
+          if(!IsEmergencyStopButtonSetToSafe()) {
+            chThdSleepMilliseconds(100);
+            break;
+          }
+          DoStartup();
+          break;
+        case SM_LocalStop:
+          DoStartup();
+          break;
+        case SM_Unknown:
+          ChangeControlState(CS_LowPower,SCS_Internal);
+          break;
+        }
         break;
       case CS_FactoryCalibrate:
+        if(g_vbus_voltage < g_minSupplyVoltage) {
+          FaultDetected(FC_UnderVoltage);
+          break;
+        }
         SetMotorControlMode(CM_Brake);
         SendBackgroundStateReport();
         faultCode = PWMMotorCal();
         if(faultCode != FC_Ok) {
           FaultDetected(faultCode);
-        }
-        SendBackgroundStateReport();
-        ChangeControlState(CS_StartUp);
-        break;
-      case CS_Standby:
-        chThdSleepMilliseconds(200);
-        if(g_vbus_voltage > (g_minSupplyVoltage + 0.1)) {
-          ChangeControlState(CS_StartUp);
           break;
         }
         SendBackgroundStateReport();
+        ChangeControlState(CS_LowPower,SCS_Internal);
         break;
       case CS_SelfTest:
         break;
+      case CS_BootLoader:
       case CS_LowPower:
       case CS_Fault:
         chThdSleepMilliseconds(200);
@@ -498,9 +550,12 @@ int main(void) {
         chThdSleepMilliseconds(100);
         SendBackgroundStateReport();
         break;
+      case CS_SafeStop:
+
+        // FIXME- Add a timer to change to LowPower
+        // no break
       case CS_MotionCalibrate:
       case CS_Home:
-      case CS_Teach:
       case CS_Diagnostic:
       case CS_Ready: {
         if(chBSemWaitTimeout(&g_reportSampleReady,1000) != MSG_OK) {
@@ -544,7 +599,9 @@ int main(void) {
 
     // Stuff we want to check all the time.
     g_driveTemperature +=  (ReadDriveTemperature() - g_driveTemperature) * 0.1;
-
+    if(g_driveTemperature > 80.0) {
+      FaultDetected(FC_DriverOverTemperature);
+    }
 #if 1
     // Check fan state.
     switch(g_fanMode) {
@@ -577,7 +634,7 @@ int main(void) {
 #endif
 
     // We can only read motor temperatures when sensors are enabled.
-    if(g_controlState != CS_LowPower  && g_controlState != CS_Standby) {
+    if(HasSensorPower()) {
       g_motorTemperature += (ReadMotorTemperature() - g_motorTemperature) * 0.1;
 
       if(g_motorTemperature > 52.0) {
@@ -589,14 +646,29 @@ int main(void) {
     if(g_vbus_voltage > g_maxSupplyVoltage) {
       FaultDetected(FC_OverVoltage);
     }
-    if(g_driveTemperature > 80.0) {
-      FaultDetected(FC_DriverOverTemperature);
-    }
-    if(g_controlState != CS_Fault) {
-      if(g_controlState != CS_LowPower &&
-         g_controlState != CS_Standby &&
-         g_vbus_voltage < g_minSupplyVoltage) {
-        ChangeControlState(CS_LowPower);
+    if(g_controlState != CS_LowPower) {
+      if(g_vbus_voltage < g_minSupplyVoltage) {
+        // What to do when we detect low power supply voltage
+        switch(g_controlState)
+        {
+          case CS_Ready:
+          case CS_Diagnostic:
+          case CS_Home:
+          case CS_MotionCalibrate:
+            ChangeControlState(CS_SafeStop,SCS_Internal);
+            break;
+          case CS_SelfTest:
+          case CS_FactoryCalibrate:
+          case CS_StartUp:
+            ChangeControlState(CS_LowPower,SCS_Internal);
+            break;
+          case CS_SafeStop:
+          case CS_BootLoader:
+          case CS_Fault:
+          case CS_EmergencyStop:
+          case CS_LowPower:
+            break;
+        }
       }
     }
   }
