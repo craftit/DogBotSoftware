@@ -205,7 +205,10 @@ bool MotionReport(int16_t position,int16_t torque,PositionReferenceT posRef)
 {
   uint8_t mode = posRef & 0x3;
   if(g_safetyMode == SM_MasterEmergencyStop) {
-    if(IsEmergencyStopButtonSetToSafe()) {
+    if(!IsEmergencyStopButtonSetToSafe()) {
+      ChangeControlState(CS_EmergencyStop,SCS_Internal);
+    } else {
+      // Set safe flag.
       mode |= 1<<7;
     }
   }

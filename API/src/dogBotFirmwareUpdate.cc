@@ -21,7 +21,7 @@ int main(int argc,char **argv)
   bool dryRun = false;
   bool stayInBootloader = false;
   auto logger = spdlog::stdout_logger_mt("console");
-
+  bool updateAll = false;
   try
   {
     cxxopts::Options options(argv[0], "DogBot hardware manager");
@@ -34,7 +34,7 @@ int main(int argc,char **argv)
       ("d,device", "Device to use from communication. Typically 'local' for local server or 'usb' for direct connection ", cxxopts::value<std::string>(devFilename))
       ("f,firmware", "Firmware file ", cxxopts::value<std::string>(firmwareFile))
       ("t,target","Target device id", cxxopts::value<int>(targetDeviceId))
-      ("l,final","Final target device id, to program a range set this to the last device, and 'target' to the first. ", cxxopts::value<int>(finalDeviceId))
+      ("a,all","Update all connected devices ", cxxopts::value<bool>(updateAll))
       ("n,dryrun","Dry run", cxxopts::value<bool>(dryRun))
       ("e,noexit","Stay in boot-loader after update is complete.", cxxopts::value<bool>(stayInBootloader))
       ("h,help", "Print help")
@@ -69,12 +69,41 @@ int main(int argc,char **argv)
   if(dryRun)
     updater.SetDryRun();
   updater.SetExitBootloaderOnComplete(!stayInBootloader);
-  if(finalDeviceId < targetDeviceId)
-    finalDeviceId = targetDeviceId;
-  for(int devId = targetDeviceId;devId <= finalDeviceId;devId++) {
-    logger->info("Updating target {} ",devId);
-    if(!updater.DoUpdate(targetDeviceId,firmwareFile)) {
-      logger->error("Firmware update failed for target {} ",devId);
+
+  if(updateAll) {
+    sleep(5); // Wait for device id's to be updated.
+    std::vector<std::shared_ptr<DogBotN::ServoC> > servos = dogbot.ListServos();
+    for(auto &a : servos) {
+      if(!a)
+        continue;
+      bool done = false;
+      if(targetDeviceId == a->Id())
+        continue; // Do the targeted device last
+      logger->info("Updating target {} ",a->Id());
+      for(int i = 0;i < 2;i++) {
+        if(updater.DoUpdate(a->Id(),firmwareFile)) {
+          done = true;
+          break;
+        }
+      }
+      if(!done) {
+        logger->error("Firmware update failed for target {} ",targetDeviceId);
+        break;
+      }
+    }
+  }
+
+  {
+    logger->info("Updating target {} ",targetDeviceId);
+    bool done = false;
+    for(int i = 0;i < 2;i++) {
+      if(updater.DoUpdate(targetDeviceId,firmwareFile)) {
+        done = true;
+        break;
+      }
+    }
+    if(!done) {
+      logger->error("Firmware update failed for target {} ",targetDeviceId);
       return 1;
     }
   }

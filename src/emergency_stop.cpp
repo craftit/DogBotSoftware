@@ -11,19 +11,21 @@ static int g_masterEmergencyStopDevice = 0;
 
 void InitEmergencyStop(void)
 {
-  palSetPadMode(GPIOC, GPIOC_PIN6,PAL_MODE_OUTPUT_PUSHPULL);
+
   g_currentOutputState = false;
-  palClearPad(GPIOC, GPIOC_PIN6);
   palSetPadMode(GPIOC, GPIOC_PIN7,PAL_MODE_INPUT_PULLUP);
+  palSetPadMode(GPIOC, GPIOC_PIN6,PAL_MODE_OUTPUT_PUSHPULL);
+  palClearPad(GPIOC, GPIOC_PIN6);
 
   g_emergencyButtonConfigured = true;
 }
 
 void ResetEmergencyStop(void)
 {
-  if(!g_emergencyButtonConfigured)
+  if(!g_emergencyButtonConfigured && g_safetyMode == SM_MasterEmergencyStop)
     InitEmergencyStop();
   g_masterEmergencyStopDevice = 0;
+  g_timeSinceLastComsOk = 0;
 }
 
 bool IsEmergencyStopButtonSetup(void)
@@ -34,8 +36,6 @@ bool IsEmergencyStopButtonSetup(void)
 
 bool IsEmergencyStopButtonSetToSafe(void)
 {
-  if(!g_emergencyButtonConfigured)
-    return false;
   bool ret = false;
   if(g_currentOutputState) {
     if(palReadPad(GPIOC, GPIOC_PIN7) != 0)
@@ -53,12 +53,15 @@ bool IsEmergencyStopButtonSetToSafe(void)
   return ret;
 }
 
+// This is called from the motor control loop at 100Hz
+
 void EmergencyStopTick(void)
 {
   if(g_safetyMode == SM_GlobalEmergencyStop) {
-    g_timeSinceLastComsOk--;
     if(g_timeSinceLastComsOk <= 0) {
       ChangeControlState(CS_EmergencyStop,SCS_Internal);
+    } else {
+      g_timeSinceLastComsOk--;
     }
   }
 }
@@ -76,6 +79,6 @@ void EmergencyStopReceivedSafeFlag(int fromDeviceId)
 
 bool EmergencyStopHaveReceivedSafeFlag()
 {
-  return (g_masterEmergencyStopDevice != 0);
+  return (g_masterEmergencyStopDevice > 0);
 }
 

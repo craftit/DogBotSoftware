@@ -223,6 +223,7 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
       m_controlMode = controlMode;
       emit setControlMode(DogBotN::ControlDynamicToString(controlMode));
     }
+    ret = false;
   } break;
   case CPI_OtherJoint: {
     if(psp->m_header.m_deviceId == m_targetDeviceId) {
@@ -483,6 +484,7 @@ void MainWindow::LocalProcessParam(PacketParam8ByteC psp)
     ui->doubleSpinBoxJointInertia->setValue(psp.m_data.float32[0]);
     break;
   case CPI_SafetyMode:
+    std::cout << "Setting safty mode to " << DogBotN::SafetyModeToString((enum SafetyModeT) psp.m_data.uint8[0]) << std::endl;
     ui->comboBoxSafetyMode->setCurrentText(QString(DogBotN::SafetyModeToString((enum SafetyModeT) psp.m_data.uint8[0])));
     break;
   default:
@@ -1276,4 +1278,9 @@ void MainWindow::on_comboBoxSafetyMode_activated(const QString &arg1)
   if(arg1 == "Local Stop")
     sm = SM_LocalStop;
   m_coms->SendSetParam(m_targetDeviceId,CPI_SafetyMode,(uint8_t) sm);
+}
+
+void MainWindow::on_pushButtonLowPower_clicked()
+{
+  m_dogBotAPI->LowPowerAll();
 }

@@ -28,6 +28,7 @@
 #include "shell/shell.h"
 
 unsigned g_mainLoopTimeoutCount = 0;
+unsigned g_emergencyStopTimer = 0;
 
 enum FanModeT g_fanMode = FM_Auto;
 enum SafetyModeT g_safetyMode = SM_GlobalEmergencyStop;
@@ -160,12 +161,11 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
   switch(g_controlState)
   {
     case CS_Fault:
+      // no break
     case CS_EmergencyStop:
-      if(newState != CS_StartUp &&
-          newState != CS_LowPower &&
-          newState != CS_EmergencyStop &&
-          newState != CS_BootLoader &&
-          newState != CS_Fault)
+      if(newState != CS_Fault &&
+         newState != CS_LowPower
+          )
       {
         SendParamUpdate(CPI_ControlState);
         return false;
@@ -227,6 +227,10 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
       SendParamUpdate(CPI_HomedState);
       break;
     case CS_StartUp:
+      if(g_controlState != CS_StartUp) {
+        ResetEmergencyStop();
+        g_emergencyStopTimer = 0;
+      }
       g_controlState = newState;
       PWMStop();
       SendParamUpdate(CPI_HomedState);
@@ -239,12 +243,6 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
       break;
     case CS_SafeStop:
       g_controlState = newState;
-      g_currentLimit = 0;
-      SetMotorControlMode(CM_Brake);
-      break;
-    case CS_EmergencyStop:
-      g_controlState = newState;
-      // Just put the breaks on.
       g_currentLimit = 0;
       SetMotorControlMode(CM_Brake);
       break;
@@ -272,13 +270,27 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
         break; // If we started the PWM ok, just exit.
       /* no break */
     default: // If we don't recognise the state, just go into fault mode.
-    case CS_Fault: {
-      g_controlState = CS_Fault;
+    case CS_Fault:
+      if(g_safetyMode == SM_LocalStop ||
+          g_controlState == CS_LowPower ||
+          g_controlState == CS_StartUp
+          )
+      {
+        g_controlState = CS_Fault;
+        g_currentLimit = 0;
+        PWMStop();
+        EnableSensorPower(false);
+        SendParamUpdate(CPI_HomedState);
+        break;
+      }
+      // In case of a fault on a moving robot, attempt breaking anyway.
+      // no break
+    case CS_EmergencyStop:
+      g_controlState = CS_EmergencyStop;
+      // Just put the breaks on.
       g_currentLimit = 0;
-      PWMStop();
-      EnableSensorPower(false);
-      SendParamUpdate(CPI_HomedState);
-    } break;
+      SetMotorControlMode(CM_Brake);
+      break;
     case CS_BootLoader: {
       g_controlState = newState;
       PWMStop();
@@ -390,8 +402,6 @@ void SendBackgroundStateReport(void)
 void DoStartup(void)
 {
   EnableSensorPower(true);
-  if(g_safetyMode == SM_MasterEmergencyStop)
-    ResetEmergencyStop();
 
   PWMStop();
   MotionResetCalibration(MHS_Measuring);
@@ -499,6 +509,7 @@ int main(void) {
         {
         case SM_GlobalEmergencyStop:
           if(!EmergencyStopHaveReceivedSafeFlag()) {
+            SendBackgroundStateReport();
             chThdSleepMilliseconds(100);
             break;
           }
@@ -507,6 +518,7 @@ int main(void) {
           break;
         case SM_MasterEmergencyStop:
           if(!IsEmergencyStopButtonSetToSafe()) {
+            SendBackgroundStateReport();
             chThdSleepMilliseconds(100);
             break;
           }
@@ -515,6 +527,7 @@ int main(void) {
         case SM_LocalStop:
           DoStartup();
           break;
+        default:
         case SM_Unknown:
           ChangeControlState(CS_LowPower,SCS_Internal);
           break;
@@ -543,13 +556,18 @@ int main(void) {
         chThdSleepMilliseconds(200);
         SendBackgroundStateReport();
         break;
-      case CS_EmergencyStop:
+      case CS_EmergencyStop: {
         // Just make sure the breaks are on.
         SetMotorControlMode(CM_Brake);
         g_currentLimit = 0;
+        // Broadcast messages for a while.
+        if(g_emergencyStopTimer < 10) {
+          CANEmergencyStop();
+          g_emergencyStopTimer++;
+        }
         chThdSleepMilliseconds(100);
         SendBackgroundStateReport();
-        break;
+      } break;
       case CS_SafeStop:
 
         // FIXME- Add a timer to change to LowPower

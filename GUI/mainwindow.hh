@@ -164,6 +164,8 @@ private slots:
 
   void on_comboBoxSafetyMode_activated(const QString &arg1);
 
+  void on_pushButtonLowPower_clicked();
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);

@@ -1120,6 +1120,12 @@ namespace DogBotN {
 
   }
 
+  //! Request all controllers go into low power mode
+  void DogBotAPIC::LowPowerAll()
+  {
+    m_coms->SendSetParam(0,CPI_ControlState,CS_LowPower);
+  }
+
   void DogBotAPIC::RefreshAll()
   {
     size_t deviceCount = 0;

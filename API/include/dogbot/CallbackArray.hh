@@ -124,7 +124,7 @@ namespace DogBotN {
     virtual void Remove(int id) override
     {
       assert(id >= 0);
-      assert(id < m_callbacks.size());
+      assert(id < (int) m_callbacks.size());
       std::lock_guard<std::mutex> lock(m_mutexAccess);
       m_callbacks[id] = FuncT();
     }

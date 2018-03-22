@@ -154,6 +154,7 @@ namespace DogBotN {
     // Things to query
     m_updateQuery.push_back(CPI_FaultCode);
     m_updateQuery.push_back(CPI_ControlState);
+    m_updateQuery.push_back(CPI_SafetyMode);
     m_updateQuery.push_back(CPI_Indicator);
 
     m_bootloaderQueryCount = m_updateQuery.size();
