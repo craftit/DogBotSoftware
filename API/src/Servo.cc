@@ -725,6 +725,7 @@ namespace DogBotN {
       return true;
     }
 
+    // Is controller ready ?
     if(m_controlState != CS_Ready) {
       m_log->error("Can't home {}, joint not in ready state.",Name());
       return false;
@@ -736,6 +737,7 @@ namespace DogBotN {
       return false;
     }
 
+    // Put joint into position mode.
     if(!m_coms->SetParam(m_id,CPI_PWMMode,(uint8_t) CM_Position)) {
       m_log->error("Can't home {}, failed to set control mode to position.",Name());
       return false;
