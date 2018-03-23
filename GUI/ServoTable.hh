@@ -32,7 +32,7 @@ public:
     ColumnDriveTemperature = 9,
     ColumnMotorTemperature = 10,
     ColumnSupplyVoltage = 11,
-    ColumnIndex = 12,
+    ColumnFlags = 12,
     ColumnNotes = 13,
     ColumnCount = 14
   };

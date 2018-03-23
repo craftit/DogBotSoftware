@@ -16,12 +16,100 @@
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
+     <widget class="QGroupBox" name="groupBox_9">
+      <property name="title">
+       <string>Selected Controller</string>
+      </property>
+      <layout class="QGridLayout" name="gridLayout_13">
+       <item row="0" column="0">
+        <widget class="QLabel" name="label_2">
+         <property name="text">
+          <string>Device id</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QSpinBox" name="spinDeviceId"/>
+       </item>
+       <item row="0" column="2">
+        <widget class="QComboBox" name="comboBoxGotoJoint">
+         <item>
+          <property name="text">
+           <string>Spare</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>front_right_pitch</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>front_right_knee</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>front_right_roll</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>front_left_pitch</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>front_left_knee</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>front_left_roll</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>back_right_pitch</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>back_right_knee</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>back_right_roll</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>back_left_pitch</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>back_left_knee</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>back_left_roll</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="enabled">
        <bool>true</bool>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>4</number>
       </property>
       <widget class="QWidget" name="tab_connect">
        <attribute name="title">
@@ -123,41 +211,20 @@
         <string>Overview</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout">
-        <item row="3" column="4">
-         <widget class="QPushButton" name="pushButtonOff">
-          <property name="text">
-           <string>Motors Off</string>
-          </property>
-         </widget>
-        </item>
-        <item row="3" column="6">
-         <widget class="QPushButton" name="pushButtonHold">
-          <property name="text">
-           <string>Hold Position</string>
-          </property>
-         </widget>
-        </item>
         <item row="3" column="0">
          <widget class="QPushButton" name="pushButtonResetAll">
           <property name="text">
-           <string>Reset All</string>
+           <string>Power On</string>
           </property>
          </widget>
         </item>
         <item row="1" column="0" colspan="7">
          <widget class="QTableView" name="tableViewServoList"/>
         </item>
-        <item row="3" column="3">
-         <widget class="QPushButton" name="pushButtonBrake">
+        <item row="3" column="6">
+         <widget class="QPushButton" name="pushButtonHold">
           <property name="text">
-           <string>Brake</string>
-          </property>
-         </widget>
-        </item>
-        <item row="3" column="2">
-         <widget class="QPushButton" name="pushButtonRefresh">
-          <property name="text">
-           <string>Refresh</string>
+           <string>Hold Position</string>
           </property>
          </widget>
         </item>
@@ -168,6 +235,27 @@
           </property>
          </widget>
         </item>
+        <item row="3" column="2">
+         <widget class="QPushButton" name="pushButtonRefresh">
+          <property name="text">
+           <string>Refresh</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="5">
+         <widget class="QPushButton" name="pushButtonOff">
+          <property name="text">
+           <string>Motors Off</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="3" colspan="2">
+         <widget class="QPushButton" name="pushButtonBrake">
+          <property name="text">
+           <string>Brake</string>
+          </property>
+         </widget>
+        </item>
        </layout>
       </widget>
       <widget class="QWidget" name="tab">
@@ -175,98 +263,7 @@
         <string>Motor Setup</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_15">
-        <item row="0" column="0">
-         <widget class="QGroupBox" name="groupBox_9">
-          <property name="title">
-           <string>Controller</string>
-          </property>
-          <layout class="QGridLayout" name="gridLayout_13">
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_2">
-             <property name="text">
-              <string>Device id</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QSpinBox" name="spinDeviceId"/>
-           </item>
-           <item row="0" column="2">
-            <widget class="QComboBox" name="comboBoxServoName">
-             <property name="editable">
-              <bool>true</bool>
-             </property>
-             <item>
-              <property name="text">
-               <string>spare</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>front_left_pitch</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>front_left_roll</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>front_left_knee</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>front_right_pitch</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>front_right_roll</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>front_right_knee</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>back_left_pitch</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>back_left_roll</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>back_left_knee</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>back_right_pitch</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>back_right_roll</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>back_right_knee</string>
-              </property>
-             </item>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item row="0" column="2" rowspan="2">
+        <item row="0" column="2" rowspan="3">
          <widget class="QGroupBox" name="groupBox_5">
           <property name="title">
            <string>State</string>
@@ -393,166 +390,14 @@
           </layout>
          </widget>
         </item>
-        <item row="1" column="0">
-         <widget class="QGroupBox" name="groupBox_10">
-          <property name="title">
-           <string>Mode</string>
-          </property>
-          <layout class="QGridLayout" name="gridLayout_14">
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_3">
-             <property name="text">
-              <string>State:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="0">
-            <widget class="QLabel" name="label_7">
-             <property name="text">
-              <string>Fault:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="1" colspan="2">
-            <widget class="QLineEdit" name="lineEditFault"/>
-           </item>
-           <item row="0" column="1" colspan="2">
-            <widget class="QComboBox" name="comboBoxControlState">
-             <item>
-              <property name="text">
-               <string>Low Power</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Ready</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Auto Home</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Factory Calibrate</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Motion Calibrate</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Diagnostic</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Emergency Stop</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Power Up</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Fault</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Boot Loader</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Safe Stop</string>
-              </property>
-             </item>
-            </widget>
-           </item>
-           <item row="5" column="0">
-            <widget class="QCheckBox" name="checkBoxIndicator">
-             <property name="text">
-              <string>Indicator</string>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="2">
-            <widget class="QComboBox" name="comboBoxFanState">
-             <item>
-              <property name="text">
-               <string>Off</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>On</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Auto</string>
-              </property>
-             </item>
-            </widget>
-           </item>
-           <item row="5" column="1">
-            <widget class="QLabel" name="label_12">
-             <property name="text">
-              <string>Fan:</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="0">
-            <widget class="QLabel" name="label_36">
-             <property name="text">
-              <string>Safety mode:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="1" colspan="2">
-            <widget class="QComboBox" name="comboBoxSafetyMode">
-             <item>
-              <property name="text">
-               <string>Unknown</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Global Emergency Stop</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Master Emergency Stop</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Local Stop</string>
-              </property>
-             </item>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item row="7" column="2">
+        <item row="8" column="2">
          <widget class="QPushButton" name="pushButtonSaveConfig">
           <property name="text">
            <string>Save Config</string>
           </property>
          </widget>
         </item>
-        <item row="6" column="2">
+        <item row="7" column="2">
          <widget class="QGroupBox" name="groupBox_7">
           <property name="title">
            <string>PID Parameters</string>
@@ -643,7 +488,7 @@
           </layout>
          </widget>
         </item>
-        <item row="2" column="0" rowspan="6">
+        <item row="3" column="0" rowspan="6">
          <widget class="QGroupBox" name="groupBox_8">
           <property name="title">
            <string>Motor Control</string>
@@ -761,10 +606,17 @@
              </property>
             </widget>
            </item>
+           <item row="1" column="1">
+            <widget class="QPushButton" name="pushButtonHomeJoint">
+             <property name="text">
+              <string>Home</string>
+             </property>
+            </widget>
+           </item>
           </layout>
          </widget>
         </item>
-        <item row="2" column="2">
+        <item row="3" column="2">
          <widget class="QGroupBox" name="groupBox_6">
           <property name="title">
            <string>Homing</string>
@@ -918,6 +770,158 @@
            </item>
            <item row="6" column="1">
             <widget class="QDoubleSpinBox" name="doubleSpinBoxJointInertia"/>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item row="0" column="0" rowspan="3">
+         <widget class="QGroupBox" name="groupBox_10">
+          <property name="title">
+           <string>Mode</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_14">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_3">
+             <property name="text">
+              <string>State:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="label_7">
+             <property name="text">
+              <string>Fault:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1" colspan="2">
+            <widget class="QLineEdit" name="lineEditFault"/>
+           </item>
+           <item row="0" column="1" colspan="2">
+            <widget class="QComboBox" name="comboBoxControlState">
+             <item>
+              <property name="text">
+               <string>Low Power</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Ready</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Auto Home</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Factory Calibrate</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Motion Calibrate</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Diagnostic</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Emergency Stop</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Power Up</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Fault</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Boot Loader</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Safe Stop</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+           <item row="5" column="0">
+            <widget class="QCheckBox" name="checkBoxIndicator">
+             <property name="text">
+              <string>Indicator</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="2">
+            <widget class="QComboBox" name="comboBoxFanState">
+             <item>
+              <property name="text">
+               <string>Off</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>On</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Auto</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+           <item row="5" column="1">
+            <widget class="QLabel" name="label_12">
+             <property name="text">
+              <string>Fan:</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="0">
+            <widget class="QLabel" name="label_36">
+             <property name="text">
+              <string>Safety mode:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="1" colspan="2">
+            <widget class="QComboBox" name="comboBoxSafetyMode">
+             <item>
+              <property name="text">
+               <string>Unknown</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Global Emergency Stop</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Master Emergency Stop</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Local Stop</string>
+              </property>
+             </item>
+            </widget>
            </item>
           </layout>
          </widget>
@@ -1211,6 +1215,16 @@
            <string>Relative Joint Positoins</string>
           </property>
           <layout class="QGridLayout" name="gridLayout_4">
+           <item row="2" column="1">
+            <widget class="QDoubleSpinBox" name="doubleSpinBoxJointRelOffset">
+             <property name="minimum">
+              <double>-360.000000000000000</double>
+             </property>
+             <property name="maximum">
+              <double>360.000000000000000</double>
+             </property>
+            </widget>
+           </item>
            <item row="1" column="0">
             <widget class="QLabel" name="label_16">
              <property name="text">
@@ -1238,16 +1252,6 @@
              </property>
             </widget>
            </item>
-           <item row="2" column="1">
-            <widget class="QDoubleSpinBox" name="doubleSpinBoxJointRelOffset">
-             <property name="minimum">
-              <double>-360.000000000000000</double>
-             </property>
-             <property name="maximum">
-              <double>360.000000000000000</double>
-             </property>
-            </widget>
-           </item>
            <item row="3" column="0">
             <widget class="QLabel" name="label_6">
              <property name="text">
@@ -1268,19 +1272,6 @@
           </layout>
          </widget>
         </item>
-        <item row="0" column="1">
-         <spacer name="horizontalSpacer_3">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
         <item row="1" column="0">
          <spacer name="verticalSpacer_3">
           <property name="orientation">
@@ -1293,6 +1284,94 @@
            </size>
           </property>
          </spacer>
+        </item>
+        <item row="0" column="1">
+         <widget class="QGroupBox" name="groupBox_11">
+          <property name="title">
+           <string>Controller Setup</string>
+          </property>
+          <layout class="QHBoxLayout" name="horizontalLayout">
+           <item>
+            <widget class="QLabel" name="label_37">
+             <property name="text">
+              <string>Assign</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QComboBox" name="comboBoxServoName">
+             <property name="editable">
+              <bool>true</bool>
+             </property>
+             <item>
+              <property name="text">
+               <string>spare</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>front_left_pitch</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>front_left_roll</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>front_left_knee</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>front_right_pitch</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>front_right_roll</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>front_right_knee</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>back_left_pitch</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>back_left_roll</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>back_left_knee</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>back_right_pitch</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>back_right_roll</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>back_right_knee</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+          </layout>
+         </widget>
         </item>
        </layout>
       </widget>

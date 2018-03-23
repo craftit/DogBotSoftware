@@ -86,6 +86,7 @@ namespace DogBotN {
    : public JointC
   {
   public:
+    typedef std::function<void (TimePointT theTime,double position,double velocity,double torque,PositionReferenceT posRef)> PositionRefUpdateFuncT;
 
     // Construct from coms link and deviceId
     ServoC(const std::shared_ptr<ComsC> &coms,int deviceId);
@@ -196,7 +197,26 @@ namespace DogBotN {
     //! Update coms device
     virtual void UpdateComs(const std::shared_ptr<ComsC> &coms) override;
 
+    //! Home a point position. This will block until homing is complete.
+    //! Returns true if homing succeeded.
+    bool HomeJoint();
+
+    //! Move to position and wait until it gets there or stalls.
+    //! timeout is in seconds.
+    bool MoveWait(float position,float torqueLimit,enum PositionReferenceT positionRef,double timeOut = 3.0);
+
+    //! Add a update callback for motor position
+    CallbackHandleC AddPositionRefUpdateCallback(const PositionRefUpdateFuncT &callback)
+    { return m_positionRefCallbacks.Add(callback); }
+
   protected:
+    //! Move joint until we see an index state change.
+    //! This always works in relative coordinates.
+    bool MoveUntilIndexChange(float position,float torqueLimit,bool currentIndex,double timeOut = 3.0);
+
+    //! Demand a position for the servo, torque limit is in Newton-meters
+    bool DemandPosition(float position,float torqueLimit,enum PositionReferenceT positionRef);
+
     //! Initialise timeouts and setup
     void Init();
 
@@ -225,6 +245,8 @@ namespace DogBotN {
 
 
     mutable std::mutex m_mutexAdmin;
+
+    CallbackArrayC<PositionRefUpdateFuncT> m_positionRefCallbacks;
 
     uint32_t m_uid1 = 0;
     uint32_t m_uid2 = 0;

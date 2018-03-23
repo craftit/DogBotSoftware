@@ -48,19 +48,24 @@ namespace DogBotN
       m_log->warn("Exit lock already locked, multiple threads attempting to open coms ?");
       return false;
     }
+    std::string zmqAddr = portAddr;
+    // If nothing set use the default.
+    if(portAddr.empty()) {
+      zmqAddr = "tcp://127.0.0.1:7200";
+    }
     if(m_terminate)
       return false;
     try {
       {
         std::lock_guard<std::mutex> lock(m_accessTx);
         m_client = std::make_shared<zmq::socket_t>(g_zmqContext,ZMQ_PUSH);
-        m_client->connect ("tcp://127.0.0.1:7200");
+        m_client->connect (zmqAddr.c_str());
         m_client->setsockopt(ZMQ_SNDTIMEO,500);
       }
 
       m_threadRecieve = std::move(std::thread { [this]{ RunRecieve(); } });
     } catch(zmq::error_t &err) {
-      m_log->error("Caught exception in opening port '%s'  Error: %d '%s' ",portAddr.c_str(),err.num(),err.what());
+      m_log->error("Caught exception in opening port '{}'  Error: {} '{}' ",zmqAddr.c_str(),err.num(),err.what());
       return false;
     }
     return true;

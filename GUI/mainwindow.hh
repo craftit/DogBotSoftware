@@ -166,6 +166,10 @@ private slots:
 
   void on_pushButtonLowPower_clicked();
 
+  void on_comboBoxGotoJoint_activated(const QString &arg1);
+
+  void on_pushButtonHomeJoint_clicked();
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);

@@ -59,9 +59,15 @@ namespace DogBotN
   bool ComsProxyC::Open(const std::string &portAddr)
   {
     std::shared_ptr<ComsC> coms;
+    auto colonAt = portAddr.find(':');
+    std::string prefix;
+    if(colonAt != std::string::npos) {
+      prefix = portAddr.substr(0,colonAt);
+    }
+    std::cerr << "Got prefix '" << prefix << "' " << std::endl;
     if(std::string("usb") == portAddr) {
       coms = std::make_shared<ComsUSBC>();
-    } else if(std::string("local") == portAddr) {
+    } else if(std::string("local") == portAddr || prefix == "tcp" || prefix == "udp") {
       coms = std::make_shared<ComsZMQClientC>();
     } else {
       coms = std::make_shared<ComsSerialC>();

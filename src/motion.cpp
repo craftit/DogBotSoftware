@@ -21,7 +21,7 @@ float g_measuredIndexPosition[g_positionIndexCount]; // Measured position
 float g_homeIndexPosition = 0;
 
 enum MotionHomedStateT g_motionHomedState = MHS_Lost;
-enum PositionReferenceT g_motionPositionReference = PR_Relative;
+enum PositionReferenceT g_motionPositionReference = PR_Absolute;
 enum ControlStateT g_controlState = CS_StartUp;
 enum FaultCodeT g_lastFaultCode = FC_Ok;
 enum JointRelativeT g_motionJointRelative = JR_Isolated;

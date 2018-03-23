@@ -439,8 +439,19 @@ namespace DogBotN {
   bool DogBotAPIC::Connect(const std::string &name)
   {
     m_deviceName = name;
-    if(name == "local") {
-      m_coms = std::make_shared<ComsZMQClientC>("tcp://127.0.0.1");
+
+    auto colonAt = name.find(':');
+    std::string prefix;
+    if(colonAt != std::string::npos) {
+      prefix = name.substr(0,colonAt);
+    }
+    std::cerr << "Got prefix '" << prefix << "' " << std::endl;
+    if(prefix == "tcp" || prefix == "udp") {
+      m_coms = std::make_shared<ComsZMQClientC>(name);
+      if(m_deviceManagerMode == DMM_Auto)
+        m_deviceManagerMode = DMM_ClientOnly;
+    } else  if(name == "local") {
+      m_coms = std::make_shared<ComsZMQClientC>("tcp://127.0.0.1:7200");
       if(m_deviceManagerMode == DMM_Auto)
         m_deviceManagerMode = DMM_ClientOnly;
     } else if(name == "usb") {

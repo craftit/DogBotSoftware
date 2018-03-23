@@ -146,8 +146,8 @@ QVariant ServoTable::headerData(int section, Qt::Orientation orientation, int ro
       return tr("Motor Temp.");
     case ColumnSupplyVoltage:
       return tr("Supply");
-    case ColumnIndex:
-      return tr("Index");
+    case ColumnFlags:
+      return tr("Flags");
     case ColumnNotes:
       return tr("Notes");
     default:
@@ -214,9 +214,20 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
       if(servo != 0)
         return servo->SupplyVoltage();
       return "";
-    case ColumnIndex:
-      if(servo != 0)
-        return servo->IndexState();
+    case ColumnFlags:
+      if(servo != 0) {
+        QString ret;
+        uint8_t val =  servo->IndexState();
+        if(val & 8) {
+          ret += "1";
+        } else {
+          ret += "0";
+        }
+        if(val & 128) {
+          ret += " ES";
+        }
+        return ret;
+      }
       return "";
     case ColumnNotes:
       return joint->Notes().c_str();
@@ -287,7 +298,7 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
       if(servo->SupplyVoltage() > 40.0)
         return QColor(Qt::red);
       return QColor(Qt::white);
-    case ColumnIndex:
+    case ColumnFlags:
     case ColumnAngle:
     case ColumnSpeed:
     case ColumnTorque:

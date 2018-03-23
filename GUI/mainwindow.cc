@@ -876,6 +876,11 @@ void MainWindow::on_pushButtonTim1_clicked()
 void MainWindow::on_spinDeviceId_valueChanged(int arg1)
 {
   m_targetDeviceId = arg1;
+
+  std::shared_ptr<DogBotN::ServoC> servo = m_dogBotAPI->GetServoById(m_targetDeviceId);
+  if(servo) {
+    ui->comboBoxGotoJoint->setCurrentText(servo->Name().c_str());
+  }
   m_updatePositionFromController = true;
   QueryAll();
 }
@@ -1110,9 +1115,12 @@ void MainWindow::on_pushButtonHold_clicked()
 
 void MainWindow::on_comboBoxServoName_activated(const QString &arg1)
 {
+#if 0
   std::shared_ptr<DogBotN::ServoC> servo = m_dogBotAPI->GetServoById(m_targetDeviceId);
-  if(servo)
+  if(servo) {
     servo->SetName(arg1.toLatin1().data());
+  }
+#endif
 }
 
 void MainWindow::on_actionSaveConfig_triggered()
@@ -1283,4 +1291,42 @@ void MainWindow::on_comboBoxSafetyMode_activated(const QString &arg1)
 void MainWindow::on_pushButtonLowPower_clicked()
 {
   m_dogBotAPI->LowPowerAll();
+}
+
+
+void MainWindow::on_comboBoxGotoJoint_activated(const QString &arg1)
+{
+  std::shared_ptr<DogBotN::JointC> jnt = m_dogBotAPI->GetJointByName(arg1.toLatin1().data());
+  if(jnt) {
+    std::shared_ptr<DogBotN::ServoC> servoPtr = std::dynamic_pointer_cast<DogBotN::ServoC>(jnt);
+    if(servoPtr) {
+      m_targetDeviceId = servoPtr->Id();
+      ui->spinDeviceId->setValue(m_targetDeviceId);
+      m_updatePositionFromController = true;
+      QueryAll();
+    }
+  }
+}
+
+void MainWindow::on_pushButtonHomeJoint_clicked()
+{
+  std::shared_ptr<DogBotN::ServoC> servoPtr = m_dogBotAPI->GetServoById(m_targetDeviceId);
+  if(!servoPtr) {
+    std::cerr << "Joint not found. " << std::endl;
+    return ;
+  }
+  static std::mutex access;
+  if(!access.try_lock()) {
+    std::cerr << "Homing operation already running " << std::endl;
+    return ;
+  }
+  access.unlock();
+
+  std::thread run = std::thread([servoPtr,&access](){
+    std::cerr << "Homing joint " << servoPtr->Name() << std::endl;
+    std::lock_guard<std::mutex> lock(access);
+    servoPtr->HomeJoint();
+    std::cerr << "Homing joint " << servoPtr->Name() << " done." << std::endl;
+  });
+  run.detach();
 }

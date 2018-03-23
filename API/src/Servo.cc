@@ -313,8 +313,16 @@ namespace DogBotN {
       // End block, and unlock m_mutexState.
     }
 
-    for(auto &a : m_positionCallbacks.Calls()) {
-      if(a) a(timeNow,m_position,m_velocity,m_torque);
+    // Call things that are position reference aware
+    for(auto &a : m_positionRefCallbacks.Calls()) {
+      if(a) a(timeNow,m_position,m_velocity,m_torque,m_positionRef);
+    }
+
+    if(m_positionRef == PR_Absolute) {
+      // Only pass absolute positions back to user code.
+      for(auto &a : m_positionCallbacks.Calls()) {
+        if(a) a(timeNow,m_position,m_velocity,m_torque);
+      }
     }
 
 
@@ -571,7 +579,7 @@ namespace DogBotN {
 
     // Go through updating things, and avoiding flooding the bus.
     if(m_toQuery < (int) m_updateQuery.size() && m_coms && m_coms->IsReady()) {
-      // Don't query everything in bootloader mode.
+      // Don't query everything in boot-loader mode.
       if(m_controlState != CS_BootLoader || m_toQuery < m_bootloaderQueryCount) {
         m_coms->SendQueryParam(m_id,m_updateQuery[m_toQuery]);
         m_toQuery++;
@@ -590,12 +598,20 @@ namespace DogBotN {
     return true;
   }
 
+  //! Demand a position for the servo, torque limit is in Newton-meters
+  bool ServoC::DemandPosition(float position,float torqueLimit,enum PositionReferenceT positionRef)
+  {
+    float currentLimit = torqueLimit / m_servoKt;
+    m_coms->SendMoveWithEffort(m_id,position,currentLimit,positionRef);
+    return true;
+  }
+
   //! Demand a position for the servo
   bool ServoC::DemandPosition(float position,float torqueLimit)
   {
-    float currentLimit = torqueLimit / m_servoKt;
-    m_coms->SendMoveWithEffort(m_id,position,currentLimit,m_positionRef);
-    return true;
+    // FIXME:- It is not clear this function should ever be used to send relative positions as the calling code
+    // may not be aware of the possibility.
+    return DemandPosition(position,torqueLimit,m_positionRef);
   }
 
   void ServoC::QueryRefresh()
@@ -603,5 +619,151 @@ namespace DogBotN {
     m_queryCycle = 0;
   }
 
+  //! Home a point position. This will block until homing is complete.
+
+  bool ServoC::HomeJoint()
+  {
+    if(m_homedState == MHS_Homed) {
+      m_log->info("Joint {} already homed.",Name());
+      return true;
+    }
+
+    if(m_controlState != CS_Ready) {
+      m_log->error("Can't home {}, joint not in ready state.",Name());
+      return false;
+    }
+
+    // Set joint velocity limit to something nice and slow.
+    if(!m_coms->SetParam(m_id,CPI_VelocityLimit,100.0f)) {
+      m_log->error("Can't home {}, failed to set velocity limit.",Name());
+      return false;
+    }
+
+    float currentPosition = m_position;
+
+    MoveWait(currentPosition + M_PI/6.0,1.0,PR_Relative,3.0);
+    MoveWait(currentPosition - M_PI/6.0,1.0,PR_Relative,3.0);
+    MoveWait(currentPosition + M_PI/6.0,1.0,PR_Relative,3.0);
+    MoveWait(currentPosition - M_PI/6.0,1.0,PR_Relative,3.0);
+
+    if(m_homedState == MHS_Homed) {
+      MoveWait(0,1.0,PR_Absolute,3.0);
+      return true;
+    }
+
+    // Leave it where it was.
+    MoveWait(currentPosition,1.0,PR_Relative,3.0);
+
+    return true;
+  }
+
+  //! Move joint until we see an index state change.
+  bool ServoC::MoveUntilIndexChange(float targetPosition,float torqueLimit,bool currentIndex,double timeOut)
+  {
+    if(m_controlState != CS_Ready) {
+      m_log->error("Move until index change for {} failed, joint not in ready state.",Name());
+      return false;
+    }
+    std::timed_mutex done;
+    done.lock();
+
+    TimePointT startTime = TimePointT::clock::now();
+    if(!DemandPosition(targetPosition,torqueLimit,PR_Relative))
+      return false;
+
+    bool hasStalled = false;
+
+    CallbackHandleC cb = AddPositionRefUpdateCallback(
+        [this,targetPosition,torqueLimit,currentIndex,&hasStalled,&done,&startTime]
+         (TimePointT theTime,double position,double velocity,double torque,enum PositionReferenceT positionRef)
+        {
+          if(positionRef != PR_Relative) {
+            m_log->info("Not in relative mode. ");
+            done.unlock();
+            return ;
+          }
+
+          // At target position ?
+          if(fabs(position - targetPosition) < (M_PI/64.0)) {
+            m_log->info("Got to position {} . ",targetPosition);
+            done.unlock();
+            return ;
+          }
+          // Stalled ?
+          double timeSinceStart =  (theTime - startTime).count();
+          if(fabs(velocity) < (M_PI/64.0) && torque >= (torqueLimit * 0.95) && timeSinceStart > 0.5){
+            m_log->info("Stalled at {}. ",position);
+            hasStalled = true;
+            done.unlock();
+            return ;
+          }
+
+        }
+    );
+    using Ms = std::chrono::milliseconds;
+
+    if(!done.try_lock_for(Ms((int) (1000 * timeOut)))) {
+      m_log->warn("Timed out going to position. ");
+      return false;
+    }
+    cb.Remove();
+    return !hasStalled;
+  }
+
+
+  //! Move to position and wait until it gets there or stalls.
+  bool ServoC::MoveWait(float targetPosition,float torqueLimit,enum PositionReferenceT targetPositionRef,double timeOut)
+  {
+    if(m_controlState != CS_Ready) {
+      m_log->error("Move wait for {} failed, joint not in ready state.",Name());
+      return false;
+    }
+    std::timed_mutex done;
+    done.lock();
+
+    TimePointT startTime = TimePointT::clock::now();
+    if(!DemandPosition(targetPosition,torqueLimit,targetPositionRef))
+      return false;
+
+    bool hasFailed = false;
+
+    CallbackHandleC cb = AddPositionRefUpdateCallback(
+        [this,targetPosition,torqueLimit,targetPositionRef,&hasFailed,&done,&startTime]
+         (TimePointT theTime,double position,double velocity,double torque,enum PositionReferenceT positionRef)
+        {
+          if(targetPositionRef != positionRef) {
+            m_log->info("Position reference changed, giving up. ");
+            hasFailed = true;
+            done.unlock();
+            return ;
+          }
+
+          // At target position ?
+          if(fabs(position - targetPosition) < (M_PI/64.0)) {
+            m_log->info("Got to position {} . ",targetPosition);
+            done.unlock();
+            return ;
+          }
+          // Stalled ?
+          double timeSinceStart =  (theTime - startTime).count();
+          if(fabs(velocity) < (M_PI/64.0) && torque >= (torqueLimit * 0.95) && timeSinceStart > 0.5){
+            m_log->info("Stalled at {}. ",position);
+            hasFailed = true;
+            done.unlock();
+            return ;
+          }
+
+        }
+    );
+    using Ms = std::chrono::milliseconds;
+
+    if(!done.try_lock_for(Ms((int) (1000 * timeOut)))) {
+      m_log->warn("Timed out going to position. ");
+      cb.Remove();
+      return false;
+    }
+    cb.Remove();
+    return !hasFailed;
+  }
 
 }
