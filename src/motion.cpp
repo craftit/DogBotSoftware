@@ -55,7 +55,8 @@ static int HomeIndexUpdateOffset(bool newState,bool velocityPositive)
 void MotionUpdateIndex(int num,bool state,float position,float velocity)
 {
   if(g_motionHomedState != MHS_Lost) {
-
+    // FIXME:- Check we're moving with a velocity greater than
+    // a given value to avoid triggering off noise.
     int entry = HomeIndexUpdateOffset(state,velocity > 0);
     if(!g_haveIndexPositionSample[entry]) {
       g_haveIndexPositionSample[entry] = true;

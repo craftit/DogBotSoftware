@@ -1330,3 +1330,21 @@ void MainWindow::on_pushButtonHomeJoint_clicked()
   });
   run.detach();
 }
+
+void MainWindow::on_pushButtonHomeAll_clicked()
+{
+  static std::mutex access;
+  if(!access.try_lock()) {
+    std::cerr << "Homing operation already running " << std::endl;
+    return ;
+  }
+  access.unlock();
+
+  std::thread run = std::thread([this,&access](){
+    std::cerr << "Homing all " << std::endl;
+    std::lock_guard<std::mutex> lock(access);
+    m_dogBotAPI->HomeAll();
+    std::cerr << "Homing all done." << std::endl;
+  });
+  run.detach();
+}

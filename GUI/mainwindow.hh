@@ -170,6 +170,8 @@ private slots:
 
   void on_pushButtonHomeJoint_clicked();
 
+  void on_pushButtonHomeAll_clicked();
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);

@@ -24,12 +24,14 @@ namespace DogBotN {
   {
 
     std::shared_ptr<zmq::socket_t>  zserver = std::make_shared<zmq::socket_t>(g_zmqContext,ZMQ_PULL);
-    zserver->bind ("tcp://*:7200");
+    std::string addrServer = addr + ":7200";
+    zserver->bind (addrServer.c_str());
     zserver->setsockopt(ZMQ_RCVTIMEO,500);
 
     // Publish state messages
     std::shared_ptr<zmq::socket_t> zpub = std::make_shared<zmq::socket_t>(g_zmqContext,ZMQ_PUB);
-    zpub->bind ("tcp://*:7201");
+    std::string addrPub = addr + ":7201";
+    zpub->bind (addrPub.c_str());
     zpub->setsockopt(ZMQ_SNDTIMEO,500);
 
     m_genericHandlerId = m_coms->SetGenericHandler([this,zpub](const uint8_t *data,int len) mutable

@@ -10,6 +10,8 @@
 
 namespace DogBotN {
 
+  enum JointMoveStatusT { JMS_Done, JMS_Stalled, JMS_TimeOut, JMS_IncorrectMode, JMS_Error };
+
   class DogBotAPIC;
   class ComsC;
 

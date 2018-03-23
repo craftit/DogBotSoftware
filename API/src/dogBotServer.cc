@@ -16,7 +16,7 @@ int main(int argc,char **argv)
   std::string devFilename = "usb";
   std::string configFile;
   std::string logFile;
-
+  std::string zmqAddress = "tcp://*";
   bool managerMode = true;
   auto logger = spdlog::stdout_logger_mt("console");
 
@@ -32,6 +32,7 @@ int main(int argc,char **argv)
       ("c,config", "Configuration file", cxxopts::value<std::string>(configFile))
       ("d,device", "Device to use from communication ", cxxopts::value<std::string>(devFilename))
       ("l,log"   , "File to use for communication log ", cxxopts::value<std::string>(logFile))
+      ("n,net"   , "Address to offer service on ", cxxopts::value<std::string>(zmqAddress))
       ("h,help", "Print help")
     ;
 
@@ -74,7 +75,7 @@ int main(int argc,char **argv)
 
   logger->info("Setup and ready. ");
 
-  server.Run("*.*.*.*");
+  server.Run(zmqAddress);
 
   return 0;
 }

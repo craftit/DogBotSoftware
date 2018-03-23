@@ -306,6 +306,7 @@ namespace DogBotN {
         m_velocity = 0; // Set it to zero until we have up to date information.
       }
       m_positionRef = (enum PositionReferenceT) (report.m_mode & 0x3);
+      m_homeIndexState = (report.m_mode & 0x8) != 0;
       m_position = newPosition;
       m_torque =  ComsC::TorqueReport2Current(report.m_torque) * m_servoKt;
       m_reportedMode = report.m_mode;
@@ -345,6 +346,8 @@ namespace DogBotN {
   }
 
   //! Handle parameter update.
+  //! Returns true if a value has changed.
+
   bool ServoC::HandlePacketReportParam(const PacketParam8ByteC &pkt)
   {
     char buff[64];
@@ -472,6 +475,11 @@ namespace DogBotN {
       enum SafetyModeT safetyMode =  (enum SafetyModeT) pkt.m_data.uint8[0];
       ret = safetyMode != m_safetyMode;
       m_safetyMode = safetyMode;
+    } break;
+    case CPI_IndexSensor: {
+      bool homeIndexState = pkt.m_data.uint8[0] != 0;
+      ret = homeIndexState != m_homeIndexState;
+      m_homeIndexState = homeIndexState;
     } break;
     default:
       break;
@@ -619,10 +627,99 @@ namespace DogBotN {
     m_queryCycle = 0;
   }
 
+
+  static float Deg2Rad(float deg)
+  { return deg * M_PI/ 180; }
+
+  static float Rad2Deg(float rad)
+  { return rad * 180/M_PI; }
+
+
+  class HomeStateC
+  {
+  public:
+
+    float m_indexPositions[4] = { nanf(""),nanf(""),nanf(""),nanf("") };
+    float m_indexOffsets[4] = { nanf(""),nanf(""),nanf(""),nanf("") };
+
+    float m_minIndexBound = Deg2Rad(-360);
+    float m_maxIndexBound = Deg2Rad(360);
+
+    float m_torqueLimit = 1.0;
+    float m_timeOut = 2.0;
+    float m_currentPosition = 0;
+
+    const float m_indexAngleWidth = Deg2Rad(28); // This is a conservative estimate, it is actually a little less.
+    const float m_hysterisisWidth = Deg2Rad(5);
+
+    float m_minRange = -Deg2Rad(-360);
+    float m_maxRange = +Deg2Rad( 360);
+
+    float m_homeOffset = nanf("");
+    float m_homeOffsetError = Deg2Rad(360); // Could be anywhere
+
+    //! Called if the index position is active.
+    void InitialPosition(float position,bool indexActive)
+    {
+      if(indexActive) {
+        m_minIndexBound = position - Deg2Rad(180);
+        m_maxIndexBound = position + Deg2Rad(180);
+      } else {
+        m_minIndexBound = position - m_indexAngleWidth;
+        m_maxIndexBound = position + m_indexAngleWidth;
+        m_homeOffset = position;
+        m_homeOffsetError = m_indexAngleWidth;
+      }
+    }
+
+    static int HomeIndexUpdateOffset(bool newState,bool velocityPositive)
+    {
+      return (newState ? 1 : 0) + ((velocityPositive ? 2 : 0));
+    }
+
+    void IndexStateChange(bool newIndexState,float position,float velocity)
+    {
+      int offset = HomeIndexUpdateOffset(newIndexState,velocity > 0);
+      m_indexPositions[offset] = position;
+
+      float sc = 0;
+      float ss = 0;
+      float count = 0;
+      // Update home position estimate.
+      for(int i = 0;i < 4;i++) {
+        if(isnanf(m_indexPositions[i]))
+          continue;
+        sc += cos(m_indexPositions[i]-m_indexOffsets[i]);
+        ss += sin(m_indexPositions[i]-m_indexOffsets[i]);
+        count++;
+      }
+      m_homeOffset = atan2(ss,sc);
+      // FIXME:- Compute the actual noise on the position.
+      m_homeOffsetError = Deg2Rad(8.0/count); // Hopefully less than this.
+    }
+
+    void InitOffsets()
+    {
+      // Build table of estimated transition positions.
+      m_indexOffsets[HomeIndexUpdateOffset(false,false)] =  m_indexAngleWidth/2.0 - m_hysterisisWidth;
+      m_indexOffsets[HomeIndexUpdateOffset(false,true)]  = -m_indexAngleWidth/2.0 + m_hysterisisWidth;;
+      m_indexOffsets[HomeIndexUpdateOffset(true,false)]  = -m_indexAngleWidth/2.0;
+      m_indexOffsets[HomeIndexUpdateOffset(true,true)]   =  m_indexAngleWidth/2.0;
+    }
+
+    HomeStateC()
+    {
+      InitOffsets();
+    }
+
+};
+
   //! Home a point position. This will block until homing is complete.
 
-  bool ServoC::HomeJoint()
+  bool ServoC::HomeJoint(bool restorePosition)
   {
+    m_log->info("HomeJoint called.");
+
     if(m_homedState == MHS_Homed) {
       m_log->info("Joint {} already homed.",Name());
       return true;
@@ -639,53 +736,204 @@ namespace DogBotN {
       return false;
     }
 
-    float currentPosition = m_position;
+    if(!m_coms->SetParam(m_id,CPI_PWMMode,(uint8_t) CM_Position)) {
+      m_log->error("Can't home {}, failed to set control mode to position.",Name());
+      return false;
+    }
 
-    MoveWait(currentPosition + M_PI/6.0,1.0,PR_Relative,3.0);
-    MoveWait(currentPosition - M_PI/6.0,1.0,PR_Relative,3.0);
-    MoveWait(currentPosition + M_PI/6.0,1.0,PR_Relative,3.0);
-    MoveWait(currentPosition - M_PI/6.0,1.0,PR_Relative,3.0);
+    TimePointT tick;
+    float position,torque,velocity;
+    PositionReferenceT positionRef;
+    bool homeIndexState;
+    {
+      std::lock_guard<std::mutex> lock(m_mutexState);
+      tick = m_timeEpoch + m_tick * m_tickDuration;
+      position = m_position;
+      torque = m_torque;
+      velocity = m_velocity;
+      positionRef = m_positionRef;
+      homeIndexState = m_homeIndexState;
+    }
 
-    if(m_homedState == MHS_Homed) {
-      MoveWait(0,1.0,PR_Absolute,3.0);
+    float torqueLimit = 1.0; // Limit on torque to use while homing
+    float timeOut = 30.0;
+
+    HomeStateC homeState;
+
+    // Already homed?
+    if(positionRef == PR_Absolute) {
+      m_log->info("Joint {} is reporting positions in absolute coordinates, it must be already homed.",Name());
       return true;
     }
 
-    // Leave it where it was.
-    MoveWait(currentPosition,1.0,PR_Relative,3.0);
+    // If the index sensor is already active then we have some idea where we are.
+    homeState.InitialPosition(position,homeIndexState);
 
-    return true;
+    m_log->info("Initial position {}, bounds from {} to {} ",Rad2Deg(position),Rad2Deg(homeState.m_minIndexBound),Rad2Deg(homeState.m_maxIndexBound));
+
+    float changedAt = 0;
+    float targetPosition = homeState.m_maxIndexBound;
+    bool positiveVelocity = targetPosition > position;
+    DemandPosition(targetPosition,torqueLimit,PR_Relative);
+    TimePointT startTime = TimePointT::clock::now();
+
+    bool indexStateChanged = false;
+    bool currentIndexState = homeIndexState;
+    std::timed_mutex done;
+    done.lock();
+
+    int cycles = 0;
+    bool homed = false;
+
+
+    CallbackHandleC cb = AddPositionRefUpdateCallback(
+        [this,torqueLimit,&done,&homed,&homeState,&currentIndexState,&targetPosition,&positiveVelocity,&cycles,&startTime]
+         (TimePointT theTime,double position,double velocity,double torque,enum PositionReferenceT positionRef)
+        {
+          if(cycles > 4) { // Have we aborted?
+            return ;
+          }
+          if(positionRef != PR_Relative || m_homedState == MHS_Homed) {
+            homed = true;
+            done.unlock();
+            return ;
+          }
+          if(currentIndexState != m_homeIndexState) {
+            currentIndexState = m_homeIndexState;
+            homeState.IndexStateChange(currentIndexState,position,velocity);
+
+            // If it is true, it is time to change directions.
+            if(currentIndexState) {
+              cycles++;
+              if(cycles > 4) {
+                m_log->warn("Too many homing cycles, aborting.");
+                done.unlock();
+                return ;
+              }
+              if(positiveVelocity) {
+                targetPosition = position - homeState.m_indexAngleWidth;
+                positiveVelocity = false;
+                DemandPosition(targetPosition,torqueLimit,PR_Relative);
+                startTime = TimePointT::clock::now();
+              } else {
+                targetPosition = position + homeState.m_indexAngleWidth;
+                positiveVelocity = true;
+                DemandPosition(targetPosition,torqueLimit,PR_Relative);
+                startTime = TimePointT::clock::now();
+              }
+              // Done for the moment.
+              return ;
+            }
+          }
+
+          // Stalled ?
+          bool doReverse = false;
+          double timeSinceStart =  (theTime - startTime).count();
+          if(fabs(velocity) < 2.0 &&
+              fabs(torque) >= (torqueLimit * 0.95) &&
+              timeSinceStart > 0.5)
+          {
+            m_log->info("Stalled at {} target {} Torque: {} Time: {}. ",Rad2Deg(position),Rad2Deg(targetPosition),torque,timeSinceStart);
+            doReverse = true;
+          } else {
+            // Have we reach our destination ?
+            if(fabs(position - targetPosition) < (M_PI/64.0)) {
+              m_log->info("Got to position {} . ",Rad2Deg(targetPosition));
+              doReverse = true;
+            }
+          }
+
+          // At target position ?
+          if(doReverse) {
+            // Turn around and go the other way.
+
+            cycles++;
+            if(cycles > 4) {
+              m_log->warn("Too many homing cycles, aborting.");
+              done.unlock();
+              return ;
+            }
+            if(positiveVelocity) {
+              targetPosition = homeState.m_minIndexBound;
+              m_log->info("Reverse (-ve) to position {} . ",Rad2Deg(targetPosition));
+              positiveVelocity = false;
+              DemandPosition(targetPosition,torqueLimit,PR_Relative);
+              startTime = TimePointT::clock::now();
+            } else {
+              targetPosition = homeState.m_maxIndexBound;
+              m_log->info("Reverse (+ve) to position {} . ",Rad2Deg(targetPosition));
+              positiveVelocity = true;
+              DemandPosition(targetPosition,torqueLimit,PR_Relative);
+              startTime = TimePointT::clock::now();
+            }
+
+            return ;
+          }
+
+        }
+    );
+
+    using Ms = std::chrono::milliseconds;
+
+    if(!done.try_lock_for(Ms((int) (1000 * timeOut)))) {
+      m_log->warn("Timed out going to position. ");
+      //return false;
+    }
+    cb.Remove();
+    if(restorePosition) {
+      // Got back to where we started.
+      m_log->info("Returning to original position {}. ",Rad2Deg(position));
+      DemandPosition(position,torqueLimit,PR_Relative);
+    }
+
+    return homed;
   }
 
   //! Move joint until we see an index state change.
-  bool ServoC::MoveUntilIndexChange(float targetPosition,float torqueLimit,bool currentIndex,double timeOut)
+  JointMoveStatusT ServoC::MoveUntilIndexChange(
+      float targetPosition,
+      float torqueLimit,
+      bool currentIndexState,
+      float &changedAt,
+      bool &indexChanged,
+      double timeOut
+      )
   {
     if(m_controlState != CS_Ready) {
       m_log->error("Move until index change for {} failed, joint not in ready state.",Name());
-      return false;
+      return JMS_IncorrectMode;
     }
     std::timed_mutex done;
     done.lock();
 
     TimePointT startTime = TimePointT::clock::now();
     if(!DemandPosition(targetPosition,torqueLimit,PR_Relative))
-      return false;
+      return JMS_Error;
 
-    bool hasStalled = false;
+    JointMoveStatusT ret = JMS_Error;
+    indexChanged = false;
 
     CallbackHandleC cb = AddPositionRefUpdateCallback(
-        [this,targetPosition,torqueLimit,currentIndex,&hasStalled,&done,&startTime]
+        [this,targetPosition,torqueLimit,currentIndexState,&ret,&done,startTime,&changedAt,&indexChanged]
          (TimePointT theTime,double position,double velocity,double torque,enum PositionReferenceT positionRef)
         {
           if(positionRef != PR_Relative) {
             m_log->info("Not in relative mode. ");
+            ret = JMS_IncorrectMode;
             done.unlock();
             return ;
           }
-
+          if(currentIndexState != m_homeIndexState) {
+            ret = JMS_Done;
+            indexChanged = true;
+            changedAt = position;
+            done.unlock();
+            return ;
+          }
           // At target position ?
           if(fabs(position - targetPosition) < (M_PI/64.0)) {
             m_log->info("Got to position {} . ",targetPosition);
+            ret = JMS_Done;
             done.unlock();
             return ;
           }
@@ -693,7 +941,7 @@ namespace DogBotN {
           double timeSinceStart =  (theTime - startTime).count();
           if(fabs(velocity) < (M_PI/64.0) && torque >= (torqueLimit * 0.95) && timeSinceStart > 0.5){
             m_log->info("Stalled at {}. ",position);
-            hasStalled = true;
+            ret = JMS_Stalled;
             done.unlock();
             return ;
           }
@@ -704,36 +952,36 @@ namespace DogBotN {
 
     if(!done.try_lock_for(Ms((int) (1000 * timeOut)))) {
       m_log->warn("Timed out going to position. ");
-      return false;
+      return JMS_TimeOut;
     }
     cb.Remove();
-    return !hasStalled;
+    return ret;
   }
 
 
   //! Move to position and wait until it gets there or stalls.
-  bool ServoC::MoveWait(float targetPosition,float torqueLimit,enum PositionReferenceT targetPositionRef,double timeOut)
+  JointMoveStatusT ServoC::MoveWait(float targetPosition,float torqueLimit,enum PositionReferenceT targetPositionRef,double timeOut)
   {
     if(m_controlState != CS_Ready) {
       m_log->error("Move wait for {} failed, joint not in ready state.",Name());
-      return false;
+      return JMS_IncorrectMode;
     }
     std::timed_mutex done;
     done.lock();
 
     TimePointT startTime = TimePointT::clock::now();
     if(!DemandPosition(targetPosition,torqueLimit,targetPositionRef))
-      return false;
+      return JMS_Error;
 
-    bool hasFailed = false;
+    JointMoveStatusT ret = JMS_Error;
 
     CallbackHandleC cb = AddPositionRefUpdateCallback(
-        [this,targetPosition,torqueLimit,targetPositionRef,&hasFailed,&done,&startTime]
+        [this,targetPosition,torqueLimit,targetPositionRef,&ret,&done,&startTime]
          (TimePointT theTime,double position,double velocity,double torque,enum PositionReferenceT positionRef)
         {
           if(targetPositionRef != positionRef) {
             m_log->info("Position reference changed, giving up. ");
-            hasFailed = true;
+            ret = JMS_IncorrectMode;
             done.unlock();
             return ;
           }
@@ -741,6 +989,7 @@ namespace DogBotN {
           // At target position ?
           if(fabs(position - targetPosition) < (M_PI/64.0)) {
             m_log->info("Got to position {} . ",targetPosition);
+            ret = JMS_Done;
             done.unlock();
             return ;
           }
@@ -748,7 +997,7 @@ namespace DogBotN {
           double timeSinceStart =  (theTime - startTime).count();
           if(fabs(velocity) < (M_PI/64.0) && torque >= (torqueLimit * 0.95) && timeSinceStart > 0.5){
             m_log->info("Stalled at {}. ",position);
-            hasFailed = true;
+            ret = JMS_Stalled;
             done.unlock();
             return ;
           }
@@ -760,10 +1009,10 @@ namespace DogBotN {
     if(!done.try_lock_for(Ms((int) (1000 * timeOut)))) {
       m_log->warn("Timed out going to position. ");
       cb.Remove();
-      return false;
+      return JMS_TimeOut;
     }
     cb.Remove();
-    return !hasFailed;
+    return ret;
   }
 
 }

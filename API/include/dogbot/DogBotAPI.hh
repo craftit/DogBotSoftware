@@ -110,6 +110,9 @@ namespace DogBotN {
     //! return true if started ok. It will return false if API has already been initialised.
     bool Init();
 
+    //! Home whole robot;
+    bool HomeAll();
+
     //! Tell all servos to hold the current position
     void DemandHoldPosition();
 
@@ -150,6 +153,7 @@ namespace DogBotN {
     // Called with device id and update type.
     CallbackHandleC AddServoStatusHandler(const std::function<void (JointC *,ServoUpdateTypeT)> &callback)
     { return m_jointStatusCallbacks.Add(callback); }
+
 
   protected:
     //! Read calibration from a device.

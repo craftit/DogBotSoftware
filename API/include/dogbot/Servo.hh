@@ -199,11 +199,11 @@ namespace DogBotN {
 
     //! Home a point position. This will block until homing is complete.
     //! Returns true if homing succeeded.
-    bool HomeJoint();
+    bool HomeJoint(bool restorePosition = true);
 
     //! Move to position and wait until it gets there or stalls.
     //! timeout is in seconds.
-    bool MoveWait(float position,float torqueLimit,enum PositionReferenceT positionRef,double timeOut = 3.0);
+    JointMoveStatusT MoveWait(float position,float torqueLimit,enum PositionReferenceT positionRef,double timeOut = 3.0);
 
     //! Add a update callback for motor position
     CallbackHandleC AddPositionRefUpdateCallback(const PositionRefUpdateFuncT &callback)
@@ -212,7 +212,14 @@ namespace DogBotN {
   protected:
     //! Move joint until we see an index state change.
     //! This always works in relative coordinates.
-    bool MoveUntilIndexChange(float position,float torqueLimit,bool currentIndex,double timeOut = 3.0);
+    JointMoveStatusT MoveUntilIndexChange(
+        float targetPosition,
+        float torqueLimit,
+        bool currentIndexState,
+        float &changedAt,
+        bool &indexChanged,
+        double timeOut = 3.0
+        );
 
     //! Demand a position for the servo, torque limit is in Newton-meters
     bool DemandPosition(float position,float torqueLimit,enum PositionReferenceT positionRef);
@@ -236,6 +243,7 @@ namespace DogBotN {
     bool HandlePacketAnnounce(const PacketDeviceIdC &pkt,bool isManager);
 
     //! Handle parameter update.
+    //! Returns true if a value has changed.
     bool HandlePacketReportParam(const PacketParam8ByteC &pkt);
 
     //! Tick from main loop
@@ -267,6 +275,7 @@ namespace DogBotN {
     MotionHomedStateT m_homedState = MHS_Lost;
     ControlStateT m_controlState = CS_StartUp;
     PWMControlDynamicT m_controlDynamic = CM_Off;
+    bool m_homeIndexState = false;
     mutable std::mutex m_mutexState;
 
     TimePointT m_timeEpoch;

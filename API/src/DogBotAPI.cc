@@ -451,7 +451,7 @@ namespace DogBotN {
       if(m_deviceManagerMode == DMM_Auto)
         m_deviceManagerMode = DMM_ClientOnly;
     } else  if(name == "local") {
-      m_coms = std::make_shared<ComsZMQClientC>("tcp://127.0.0.1:7200");
+      m_coms = std::make_shared<ComsZMQClientC>("tcp://127.0.0.1");
       if(m_deviceManagerMode == DMM_Auto)
         m_deviceManagerMode = DMM_ClientOnly;
     } else if(name == "usb") {
@@ -615,6 +615,61 @@ namespace DogBotN {
     m_started = true;
 
     m_threadMonitor = std::move(std::thread { [this]{ RunMonitor(); } });
+
+    return true;
+  }
+
+  //! Home whole robot;
+  bool DogBotAPIC::HomeAll()
+  {
+
+    std::vector<std::string> legNames;
+    legNames.push_back("front_left_");
+    legNames.push_back("front_right_");
+    legNames.push_back("back_left_");
+    legNames.push_back("back_right_");
+
+    // Home roll
+    for(int i = 0;i < legNames.size();i++) {
+      std::string jointName = legNames[i] + "roll";
+      std::shared_ptr<ServoC> jnt = std::dynamic_pointer_cast<ServoC>(GetJointByName(jointName));
+      if(!jnt) {
+        m_log->error("Failed to find joint {} ",jointName);
+        return false;
+      }
+      if(!jnt->HomeJoint(false)) {
+        return false;
+      }
+      jnt->DemandPosition(0,1.0,PR_Absolute);
+    }
+
+    // Home knees.
+    for(int i = 0;i < legNames.size();i++) {
+      std::string jointName = legNames[i] + "knee";
+      std::shared_ptr<ServoC> jnt = std::dynamic_pointer_cast<ServoC>(GetJointByName(jointName));
+      if(!jnt) {
+        m_log->error("Failed to find joint {} ",jointName);
+        return false;
+      }
+      if(!jnt->HomeJoint(false)) {
+        return false;
+      }
+      jnt->DemandPosition(0,1.0,PR_Absolute);
+    }
+
+    // Home pitch
+    for(int i = 0;i < legNames.size();i++) {
+      std::string jointName = legNames[i] + "pitch";
+      std::shared_ptr<ServoC> jnt = std::dynamic_pointer_cast<ServoC>(GetJointByName(jointName));
+      if(!jnt) {
+        m_log->error("Failed to find joint {} ",jointName);
+        return false;
+      }
+      if(!jnt->HomeJoint(false)) {
+        return false;
+      }
+      jnt->DemandPosition(0,1.0,PR_Absolute);
+    }
 
     return true;
   }

@@ -48,11 +48,12 @@ namespace DogBotN
       m_log->warn("Exit lock already locked, multiple threads attempting to open coms ?");
       return false;
     }
-    std::string zmqAddr = portAddr;
+    if(portAddr == "local")
+      m_rootAddress = "tcp://127.0.01";
+    else
+      m_rootAddress = portAddr;
     // If nothing set use the default.
-    if(portAddr.empty()) {
-      zmqAddr = "tcp://127.0.0.1:7200";
-    }
+    std::string zmqAddr = m_rootAddress + ":7200";
     if(m_terminate)
       return false;
     try {
@@ -79,7 +80,8 @@ namespace DogBotN
     m_log->debug("Running receiver. ");
 
     std::shared_ptr<zmq::socket_t> sub = std::make_shared<zmq::socket_t>(g_zmqContext,ZMQ_SUB);
-    sub->connect ("tcp://127.0.0.1:7201");
+    std::string zmqSubAddr = m_rootAddress + ":7201";
+    sub->connect (zmqSubAddr.c_str());
     sub->setsockopt(ZMQ_SUBSCRIBE,0,0);
     sub->setsockopt(ZMQ_RCVTIMEO,500);
     try {

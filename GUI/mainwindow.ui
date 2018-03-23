@@ -109,7 +109,7 @@
        <bool>true</bool>
       </property>
       <property name="currentIndex">
-       <number>4</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="tab_connect">
        <attribute name="title">
@@ -235,13 +235,6 @@
           </property>
          </widget>
         </item>
-        <item row="3" column="2">
-         <widget class="QPushButton" name="pushButtonRefresh">
-          <property name="text">
-           <string>Refresh</string>
-          </property>
-         </widget>
-        </item>
         <item row="3" column="5">
          <widget class="QPushButton" name="pushButtonOff">
           <property name="text">
@@ -249,10 +242,24 @@
           </property>
          </widget>
         </item>
-        <item row="3" column="3" colspan="2">
+        <item row="3" column="4">
          <widget class="QPushButton" name="pushButtonBrake">
           <property name="text">
            <string>Brake</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="2">
+         <widget class="QPushButton" name="pushButtonRefresh">
+          <property name="text">
+           <string>Refresh</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="3">
+         <widget class="QPushButton" name="pushButtonHomeAll">
+          <property name="text">
+           <string>Home All</string>
           </property>
          </widget>
         </item>
