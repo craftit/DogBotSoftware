@@ -87,6 +87,10 @@ namespace DogBotN {
     //! Destructor to wait for shutdown
     ~DogBotAPIC();
 
+    //! Find the default configuration file.
+    //! Returns an empty string if one wasn't found
+    static std::string DefaultConfigFile();
+
     //! Connect to a named device
     //! Normally 'usb' or 'local'
     bool Connect(const std::string &name);

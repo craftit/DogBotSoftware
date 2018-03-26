@@ -12,8 +12,8 @@ namespace DogBotN {
   // l2 = Lower leg length
 
   // Coordinates:
-  //  x = forward/back
-  //  y = sideways
+  //  x = sideways
+  //  y = forward/back
   //  z = Height above ground
   //
   // Angles:
@@ -51,12 +51,6 @@ namespace DogBotN {
     //! Get the servo configuration as JSON
     Json::Value ConfigAsJSON() const;
 
-    //! Compute the joint angles given a location.
-    bool Inverse(const float (&position)[3],float (&angles)[3]) const;
-
-    //! Forward kinematics for the leg.
-    bool Forward(const float (&angles)[3],float (&position)[3]) const;
-
     //! 4 bar linkage angle forward.
     //! Servo to achieved joint angle
     //! theta - Servo position
@@ -79,6 +73,15 @@ namespace DogBotN {
     //! theta - Servo position
     //! psi - Joint angle
     float LinkageSpeedRatio(float theta,float psi) const;
+
+    //! Inverse kinematics for the leg.
+    //! Compute joint angles needed to get to a 3d position in a leg coordinate system
+    //! Return true if position is reachable
+    bool Inverse(float at[3],float (&angles)[3]) const;
+
+    //! Forward kinematics for the leg
+    //! Compute the position of the foot relative to the top of the leg from the joint angles.
+    bool Forward(float angles[3],float (&at)[3]) const;
 
   protected:
     std::string m_name; // Leg name

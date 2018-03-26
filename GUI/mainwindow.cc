@@ -705,6 +705,17 @@ void MainWindow::on_pushButtonConnect_clicked()
     ui->tabWidget->setTabEnabled(3,true);
     ui->tabWidget->tabBar()->show();
     ui->tabWidget->setCurrentIndex(1);
+
+    {
+      std::string defaultConfig = DogBotN::DogBotAPIC::DefaultConfigFile();
+      if(!defaultConfig.empty()) {
+        m_dogBotAPI->Log().info("Loading configuration file '{}' ",defaultConfig);
+        m_dogBotAPI->LoadConfig(defaultConfig);
+      } else {
+        m_dogBotAPI->Log().info("No default configuration found ");
+      }
+    }
+
     QueryAll();
   } else {
     std::cerr << "Failed to connect. " << std::endl;

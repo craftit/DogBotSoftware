@@ -75,7 +75,7 @@ bool StoredConf_Load(struct StoredConfigT *conf)
     }
     conf->deviceId = 0;
     conf->otherJointId = 0;
-    conf->m_motionPositionReference = 0;
+    conf->m_motionPositionReference = PR_Absolute;
     conf->m_relativePositionGain = 1.0;
     conf->m_relativePositionOffset = 0.0;
     conf->m_phaseResistance = 0.002;

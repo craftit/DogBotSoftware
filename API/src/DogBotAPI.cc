@@ -14,6 +14,10 @@
 #include <exception>
 #include <stdexcept>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/unistd.h>
+
 namespace DogBotN {
 
   //! Convert a fault code to a string
@@ -688,6 +692,25 @@ namespace DogBotN {
   }
 
 
+  static bool FileExists(const std::string &filename)
+  {
+    struct stat sb;
+    return stat(filename.c_str(),&sb) ==  0;
+  }
+
+
+  //! Find the default configuration file
+  std::string DogBotAPIC::DefaultConfigFile()
+  {
+    std::string devFilename = "local";
+    std::string homeDir = getenv("HOME");
+    std::string defaultConfig = homeDir + "/.config/dogbot/robot.json";
+
+    if(!FileExists(defaultConfig))
+      return "";
+
+    return defaultConfig;
+  }
 
   //! Load a configuration file
   bool DogBotAPIC::LoadConfig(const std::string &configFile)

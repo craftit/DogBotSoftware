@@ -583,7 +583,7 @@ static void MotorControlLoop(void)
           ps->m_curr[i] = g_currentADCValue[i];
         for(int i = 0;i < 3;i++)
           ps->m_hall[i] = g_hall[i];
-        ps->m_angle = g_phaseAngle * 65535.0 / (2.0 * M_PI);
+        ps->m_angle = g_phaseAngle * 32767.0 / (2.0 * M_PI);
         USBPostPacket(pkt);
       }
     }

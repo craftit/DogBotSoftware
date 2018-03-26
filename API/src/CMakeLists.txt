@@ -80,6 +80,10 @@ add_executable (dogBotFirmwareUpdate dogBotFirmwareUpdate.cc)
 
 target_link_libraries (dogBotFirmwareUpdate LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT})
 
+add_executable (dumpLegCoordinates dumpLegCoordinates.cc)
+
+target_link_libraries (dumpLegCoordinates LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT})
+
 
 # 'make install' to the correct locations (provided by GNUInstallDirs).
 

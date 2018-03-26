@@ -55,7 +55,7 @@ namespace DogBotN {
 
 
   //! Compute the joint angles given a location.
-  bool LegKinematicsC::Inverse(const float (&at)[3],float (&angles)[3]) const
+  bool LegKinematicsC::Inverse(float at[3],float (&angles)[3]) const
   {
     float x = at[0];
     float y = -at[1];
@@ -70,7 +70,6 @@ namespace DogBotN {
       float zr = z;
 
       z = sin(ta) * xr + cos(ta) * zr - m_zoff;
-      //RavlDebug("x:%f z:%f ",x,z);
     }
 
 
@@ -99,9 +98,9 @@ namespace DogBotN {
   }
 
   //! Forward kinematics for the leg.
-  bool LegKinematicsC::Forward(const float (&angles)[3],float (&at)[3]) const
+  bool LegKinematicsC::Forward(float angles[3],float (&at)[3]) const
   {
-    float kneeAngle = Linkage4BarForward(angles[2]);
+    float kneeAngle = Linkage4BarForward(angles[2]); //-angles[1]
 
     float y = m_l1 * sin(angles[1]) + m_l2 * sin(angles[1] + kneeAngle);
     float z = m_l1 * cos(angles[1]) + m_l2 * cos(angles[1] + kneeAngle);

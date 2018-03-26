@@ -192,27 +192,55 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
       if(servo != 0)
         return DogBotN::HomedStateToString(servo->HomedState());
       return "";
-    case ColumnAngle:
-      return joint->Position() * 360.0 / (M_PI * 2.0);
-    case ColumnSpeed:
-      return joint->Velocity();
-    case ColumnTorque:
-      return joint->Torque();
+    case ColumnAngle: {
+      double posDeg =  joint->Position() * 180.0 / M_PI;
+      QString value;
+      value.setNum(posDeg,'f',2);
+      if(servo != 0) {
+        if(servo->PositionReference() != PR_Absolute) {
+          return QString("(") + value + ")";
+        } else {
+          // If we're not homed and the last reported position
+          // was absolute we don't know where we are.
+          if(servo->HomedState() != MHS_Homed)
+            return "";
+        }
+      }
+      return value;
+    }
+    case ColumnSpeed: {
+      QString numStr;
+      numStr.setNum(joint->Velocity(),'f',2);
+      return numStr;
+    }
+    case ColumnTorque: {
+      QString numStr;
+      numStr.setNum(joint->Torque(),'f',2);
+      return numStr;
+    }
     case ColumnDriveTemperature:
-      if(servo != 0)
-        return servo->DriveTemperature();
+      if(servo != 0) {
+        QString numStr;
+        numStr.setNum(servo->DriveTemperature(),'f',1);
+        return numStr;
+      }
       return "";
     case ColumnMotorTemperature:
       if(servo != 0) {
         float motorTemp = servo->MotorTemperature();
         if(motorTemp < 10)
           return 0;
-        return motorTemp;
+        QString numStr;
+        numStr.setNum(servo->MotorTemperature(),'f',1);
+        return numStr;
       }
       return "";
     case ColumnSupplyVoltage:
-      if(servo != 0)
-        return servo->SupplyVoltage();
+      if(servo != 0) {
+        QString numStr;
+        numStr.setNum(servo->SupplyVoltage(),'f',1);
+        return numStr;
+      }
       return "";
     case ColumnFlags:
       if(servo != 0) {

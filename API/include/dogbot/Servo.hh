@@ -155,6 +155,10 @@ namespace DogBotN {
     //! Demand a position for the servo, torque limit is in Newton-meters
     bool DemandPosition(float position,float torqueLimit) override;
 
+    //! Access the type of last position received.
+    enum PositionReferenceT PositionReference() const
+    { return m_positionRef; }
+
     //! Last fault code received
     FaultCodeT FaultCode() const
     { return m_faultCode; }

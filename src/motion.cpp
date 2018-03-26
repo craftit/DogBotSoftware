@@ -107,12 +107,12 @@ float g_otherPhaseOffset = 0; // Last reported position of other joint.
 
 static float DemandToPhasePosition(int16_t position)
 {
-  return (((float) position) * g_actuatorRatio * M_PI * 4.0/ 65535.0);
+  return (((float) position) * g_actuatorRatio * M_PI * 4.0/ 32767.0);
 }
 
 static int16_t PhasePositionToDemand(float angle)
 {
-  return (angle * 65535.0) / (g_actuatorRatio * M_PI * 4.0);
+  return (angle * 32767.0) / (g_actuatorRatio * M_PI * 4.0);
 }
 
 
@@ -263,7 +263,7 @@ bool MotionCalZero()
 void MotionStep()
 {
 #if 1
-  int16_t torque = g_torqueAverage * (65535.0/g_absoluteMaxCurrent);
+  int16_t torque = g_torqueAverage * (32767.0/g_absoluteMaxCurrent);
 
   // Should we
   switch(g_motionHomedState)

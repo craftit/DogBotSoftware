@@ -14,7 +14,7 @@
 int main(int argc,char **argv)
 {
   std::string devFilename = "usb";
-  std::string configFile;
+  std::string configFile = DogBotN::DogBotAPIC::DefaultConfigFile();
   std::string logFile;
   std::string zmqAddress = "tcp://*";
   bool managerMode = true;
