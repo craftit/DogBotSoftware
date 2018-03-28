@@ -20,6 +20,9 @@ namespace DogBotN {
     //! Constructor
     JointRelativeC(std::shared_ptr<JointC> &jointDrive,std::shared_ptr<JointC> &jointRef);
 
+    //! Destructor
+    ~JointRelativeC();
+
     //! Type of joint
     virtual std::string JointType() const override;
 
@@ -44,6 +47,9 @@ namespace DogBotN {
     //! Demand a position for the servo
     virtual bool DemandPosition(float position,float torqueLimit) override;
 
+    //! Add a update callback for motor position
+    virtual CallbackHandleC AddPositionUpdateCallback(const PositionUpdateFuncT &callback);
+
   protected:
     virtual bool Raw2Simple(
         float refPosition,float refVelocity,float refTorque,
@@ -57,6 +63,8 @@ namespace DogBotN {
          double &drivePosition,double &driveTorque
     ) const;
 
+
+    CallbackHandleC m_driveCallback;
 
     float m_refGain = 1.0;
     float m_refOffset = 0.0;

@@ -45,6 +45,7 @@ ADD_LIBRARY (DogBotAPI STATIC
         ZMQContext.cc
         CallbackArray.cc
         FirmwareUpdate.cc
+        Util.cc
 )
 
 set_target_properties(DogBotAPI PROPERTIES VERSION ${PROJECT_VERSION})
@@ -83,6 +84,10 @@ target_link_libraries (dogBotFirmwareUpdate LINK_PUBLIC DogBotAPI ${CMAKE_THREAD
 add_executable (dumpLegCoordinates dumpLegCoordinates.cc)
 
 target_link_libraries (dumpLegCoordinates LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT})
+
+add_executable (dogBotExerciser dogBotExerciser.cc)
+
+target_link_libraries (dogBotExerciser LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT})
 
 
 # 'make install' to the correct locations (provided by GNUInstallDirs).

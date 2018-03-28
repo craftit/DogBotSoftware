@@ -1,5 +1,6 @@
 
 #include "dogbot/Servo.hh"
+#include "dogbot/Util.hh"
 #include <string>
 
 namespace DogBotN {
@@ -628,12 +629,6 @@ namespace DogBotN {
   }
 
 
-  static float Deg2Rad(float deg)
-  { return deg * M_PI/ 180; }
-
-  static float Rad2Deg(float rad)
-  { return rad * 180/M_PI; }
-
 
   class HomeStateC
   {
@@ -960,61 +955,5 @@ namespace DogBotN {
     return ret;
   }
 
-
-  //! Move to position and wait until it gets there or stalls.
-  JointMoveStatusT ServoC::MoveWait(float targetPosition,float torqueLimit,enum PositionReferenceT targetPositionRef,double timeOut)
-  {
-    if(m_controlState != CS_Ready) {
-      m_log->error("Move wait for {} failed, joint not in ready state.",Name());
-      return JMS_IncorrectMode;
-    }
-    std::timed_mutex done;
-    done.lock();
-
-    TimePointT startTime = TimePointT::clock::now();
-    if(!DemandPosition(targetPosition,torqueLimit,targetPositionRef))
-      return JMS_Error;
-
-    JointMoveStatusT ret = JMS_Error;
-
-    CallbackHandleC cb = AddPositionRefUpdateCallback(
-        [this,targetPosition,torqueLimit,targetPositionRef,&ret,&done,&startTime]
-         (TimePointT theTime,double position,double velocity,double torque,enum PositionReferenceT positionRef)
-        {
-          if(targetPositionRef != positionRef) {
-            m_log->info("Position reference changed, giving up. ");
-            ret = JMS_IncorrectMode;
-            done.unlock();
-            return ;
-          }
-
-          // At target position ?
-          if(fabs(position - targetPosition) < (M_PI/64.0)) {
-            m_log->info("Got to position {} . ",targetPosition);
-            ret = JMS_Done;
-            done.unlock();
-            return ;
-          }
-          // Stalled ?
-          double timeSinceStart =  (theTime - startTime).count();
-          if(fabs(velocity) < (M_PI/64.0) && torque >= (torqueLimit * 0.95) && timeSinceStart > 0.5){
-            m_log->info("Stalled at {}. ",position);
-            ret = JMS_Stalled;
-            done.unlock();
-            return ;
-          }
-
-        }
-    );
-    using Ms = std::chrono::milliseconds;
-
-    if(!done.try_lock_for(Ms((int) (1000 * timeOut)))) {
-      m_log->warn("Timed out going to position. ");
-      cb.Remove();
-      return JMS_TimeOut;
-    }
-    cb.Remove();
-    return ret;
-  }
 
 }

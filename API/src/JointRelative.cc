@@ -15,6 +15,12 @@ namespace DogBotN {
       m_jointRef(jointRef)
   {}
 
+  //! Destructor
+  JointRelativeC::~JointRelativeC()
+  {
+    m_driveCallback.Remove();
+  }
+
   //! Type of joint
   std::string JointRelativeC::JointType() const
   {
@@ -145,6 +151,48 @@ namespace DogBotN {
   {
     return m_jointDrive->DemandTorque(torque);
   }
+
+  //! Add a update callback for motor position
+
+  CallbackHandleC JointRelativeC::AddPositionUpdateCallback(const PositionUpdateFuncT &callback)
+  {
+    assert(m_jointDrive);
+    {
+      std::lock_guard<std::mutex> lock(m_mutexJointAdmin);
+      if(!m_driveCallback.IsActive()) {
+        m_driveCallback = m_jointDrive->AddPositionUpdateCallback(
+            [this](TimePointT theTime,double drivePosition,double driveVelocity,double driveTorque) mutable
+            {
+              double refPosition = 0;
+              double refVelocity = 0;
+              double refTorque = 0;
+              double position;
+              double velocity;
+              double torque;
+              if(!m_jointRef->GetStateAt(theTime,refPosition,refVelocity,refTorque)) {
+                return ;
+              }
+
+              if(!Raw2Simple(refPosition,refVelocity,refTorque,
+                         drivePosition,driveVelocity,driveTorque,
+                         position,velocity,torque
+                         )) {
+                // Report error?
+                return ;
+              }
+              m_position = position;
+              m_velocity = velocity;
+              m_torque = torque;
+              for(auto &a : m_positionCallbacks.Calls()) {
+                if(a) a(theTime,m_position,m_velocity,m_torque);
+              }
+            }
+        );
+      }
+    }
+    return JointC::AddPositionUpdateCallback(callback);
+  }
+
 
   //! Demand a position for the servo
   bool JointRelativeC::DemandPosition(float position,float torqueLimit)

@@ -1,6 +1,8 @@
 
 #include "dogbot/Joint.hh"
+#include "dogbot/Util.hh"
 #include <string>
+#include <math.h>
 
 namespace DogBotN {
 
@@ -103,6 +105,63 @@ namespace DogBotN {
   void JointC::UpdateComs(const std::shared_ptr<ComsC> &coms)
   {
   }
+
+  //! Add a update callback for motor position
+  CallbackHandleC JointC::AddPositionUpdateCallback(const PositionUpdateFuncT &callback)
+  { return m_positionCallbacks.Add(callback); }
+
+  //! Add notification callback if a parameter changes.
+  CallbackHandleC JointC::AddParameterUpdateCallback(const ParameterUpdateFuncT &func)
+  { return m_parameterCallbacks.Add(func); }
+
+
+  //! Move to position and wait until it gets there or stalls.
+  JointMoveStatusT JointC::MoveWait(float targetPosition,float torqueLimit,double timeOut)
+  {
+    std::timed_mutex done;
+    done.lock();
+
+    TimePointT startTime = TimePointT::clock::now();
+    if(!DemandPosition(targetPosition,torqueLimit))
+      return JMS_Error;
+
+    float tolerance = Deg2Rad(2.0);
+
+    JointMoveStatusT ret = JMS_Error;
+
+    CallbackHandleC cb = AddPositionUpdateCallback(
+        [this,targetPosition,torqueLimit,&ret,&done,&startTime,tolerance]
+         (TimePointT theTime,double position,double velocity,double torque)
+        {
+          // At target position ?
+          if(fabs(position - targetPosition) < tolerance) {
+            //m_log->info("Got to position {} . ",targetPosition);
+            ret = JMS_Done;
+            done.unlock();
+            return ;
+          }
+          // Stalled ?
+          double timeSinceStart =  (theTime - startTime).count();
+          if(fabs(velocity) < (M_PI/64.0) && torque >= (torqueLimit * 0.95) && timeSinceStart > 0.5){
+            //m_log->info("Stalled at {}. ",position);
+            ret = JMS_Stalled;
+            done.unlock();
+            return ;
+          }
+
+        }
+    );
+    using Ms = std::chrono::milliseconds;
+
+    if(!done.try_lock_for(Ms((int) (1000 * timeOut)))) {
+//      m_log->warn("Timed out going to position. ");
+      cb.Remove();
+      return JMS_TimeOut;
+    }
+    cb.Remove();
+    return ret;
+  }
+
 
 
 }

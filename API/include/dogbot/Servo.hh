@@ -205,10 +205,6 @@ namespace DogBotN {
     //! Returns true if homing succeeded.
     bool HomeJoint(bool restorePosition = true);
 
-    //! Move to position and wait until it gets there or stalls.
-    //! timeout is in seconds.
-    JointMoveStatusT MoveWait(float position,float torqueLimit,enum PositionReferenceT positionRef,double timeOut = 3.0);
-
     //! Add a update callback for motor position
     CallbackHandleC AddPositionRefUpdateCallback(const PositionRefUpdateFuncT &callback)
     { return m_positionRefCallbacks.Add(callback); }

@@ -70,12 +70,10 @@ namespace DogBotN {
     virtual bool DemandPosition(float position,float torqueLimit);
 
     //! Add a update callback for motor position
-    CallbackHandleC AddPositionUpdateCallback(const PositionUpdateFuncT &callback)
-    { return m_positionCallbacks.Add(callback); }
+    virtual CallbackHandleC AddPositionUpdateCallback(const PositionUpdateFuncT &callback);
 
     //! Add notification callback if a parameter changes.
-    CallbackHandleC AddParameterUpdateCallback(const ParameterUpdateFuncT &func)
-    { return m_parameterCallbacks.Add(func); }
+    virtual CallbackHandleC AddParameterUpdateCallback(const ParameterUpdateFuncT &func);
 
     //! Last reported position
     float Position() const
@@ -95,6 +93,11 @@ namespace DogBotN {
 
     //! Update coms device
     virtual void UpdateComs(const std::shared_ptr<ComsC> &coms);
+
+    //! Move to position and wait until it gets there or stalls.
+    //! timeout is in seconds.
+    JointMoveStatusT MoveWait(float position,float torqueLimit,double timeOut = 3.0);
+
   protected:
     CallbackArrayC<PositionUpdateFuncT> m_positionCallbacks;
     CallbackArrayC<ParameterUpdateFuncT> m_parameterCallbacks;
