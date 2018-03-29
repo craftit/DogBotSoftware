@@ -17,8 +17,8 @@ namespace DogBotN {
     //! Initialise controller
     bool Init();
 
-    //! Goto a position
-    //! Returns true position is reachable
+    //! Goto a position in the leg coordinate frame
+    //! Returns true if the requested position is reachable
     bool Goto(float x,float y,float z,float torque);
 
   protected:

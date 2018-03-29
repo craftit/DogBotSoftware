@@ -110,7 +110,7 @@ INSTALL(TARGETS DogBotAPI
 # This makes the project importable from the install directory
 # Put config file in per-project dir (name MUST match), can also
 # just go into 'cmake'.
-install(EXPORT DogBotAPIConfig DESTINATION share/dogbot/cmake)
+install(EXPORT DogBotAPIConfig DESTINATION lib/cmake/DogBotAPI)
 
 # This makes the project importable from the build directory
 export(TARGETS DogBotAPI FILE DogBotAPIConfig.cmake)
