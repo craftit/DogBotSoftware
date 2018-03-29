@@ -2,6 +2,7 @@
 #include "dogbot/Joint.hh"
 #include "dogbot/Util.hh"
 #include <string>
+#include <iostream>
 #include <math.h>
 
 namespace DogBotN {
@@ -98,7 +99,22 @@ namespace DogBotN {
   //! Demand a position for the servo
   bool JointC::DemandPosition(float position,float torqueLimit)
   {
-    return false;
+    m_demandPosition = position;
+    m_demandTorqueLimit = torqueLimit;
+    for(auto &a : m_demandCallbacks.Calls()) {
+      if(a) a(position,torqueLimit);
+    }
+    return true;
+  }
+
+  //! Get current demand
+  bool JointC::GetDemand(double &position,double &torqueLimit)
+  {
+    if(isnanf(position) || isnanf(torqueLimit))
+      return false;
+    position = m_demandPosition;
+    torqueLimit = m_demandTorqueLimit;
+    return true;
   }
 
   //! Update coms device
@@ -109,6 +125,11 @@ namespace DogBotN {
   //! Add a update callback for motor position
   CallbackHandleC JointC::AddPositionUpdateCallback(const PositionUpdateFuncT &callback)
   { return m_positionCallbacks.Add(callback); }
+
+  //! Add a callback when the motor target position is updated
+  CallbackHandleC JointC::AddDemandUpdateCallback(const DemandUpdateFuncT &callback)
+  { return m_demandCallbacks.Add(callback); }
+
 
   //! Add notification callback if a parameter changes.
   CallbackHandleC JointC::AddParameterUpdateCallback(const ParameterUpdateFuncT &func)
@@ -122,8 +143,10 @@ namespace DogBotN {
     done.lock();
 
     TimePointT startTime = TimePointT::clock::now();
-    if(!DemandPosition(targetPosition,torqueLimit))
+    if(!DemandPosition(targetPosition,torqueLimit)) {
+      m_log->info("Failed to set {} to demand position {} . ",Name(),targetPosition);
       return JMS_Error;
+    }
 
     float tolerance = Deg2Rad(2.0);
 
@@ -135,7 +158,7 @@ namespace DogBotN {
         {
           // At target position ?
           if(fabs(position - targetPosition) < tolerance) {
-            //m_log->info("Got to position {} . ",targetPosition);
+            m_log->info("Got {} to position {} . ",Name(),targetPosition);
             ret = JMS_Done;
             done.unlock();
             return ;
@@ -143,7 +166,8 @@ namespace DogBotN {
           // Stalled ?
           double timeSinceStart =  (theTime - startTime).count();
           if(fabs(velocity) < (M_PI/64.0) && torque >= (torqueLimit * 0.95) && timeSinceStart > 0.5){
-            //m_log->info("Stalled at {}. ",position);
+            m_log->info("Stalled {} at {}. ",Name(),position);
+
             ret = JMS_Stalled;
             done.unlock();
             return ;
@@ -154,7 +178,7 @@ namespace DogBotN {
     using Ms = std::chrono::milliseconds;
 
     if(!done.try_lock_for(Ms((int) (1000 * timeOut)))) {
-//      m_log->warn("Timed out going to position. ");
+      m_log->info("Timeout {} going to {}. ",Name(),targetPosition);
       cb.Remove();
       return JMS_TimeOut;
     }

@@ -2,6 +2,7 @@
 #include <string>
 #include "dogbot/JointRelative.hh"
 #include "dogbot/DogBotAPI.hh"
+#include "dogbot/Util.hh"
 
 namespace DogBotN {
 
@@ -65,6 +66,11 @@ namespace DogBotN {
         api.Log().error("Failed to find servo '{}' ",jointRefName);
         return false;
       }
+      m_demandCallback.Remove();
+      m_demandCallback = m_jointRef->AddDemandUpdateCallback(
+          [this](double position,double torqueLimit) mutable
+          { UpdateDemand(); }
+      );
     }
     std::string jointDriveName = value.get("jointDrive","").asString();
     if(!jointDriveName.empty()) {
@@ -193,19 +199,19 @@ namespace DogBotN {
     return JointC::AddPositionUpdateCallback(callback);
   }
 
-
-  //! Demand a position for the servo
-  bool JointRelativeC::DemandPosition(float position,float torqueLimit)
+  //! Send an updated demand position
+  bool JointRelativeC::UpdateDemand()
   {
-    m_demandPosition = position;
-    m_demandTorqueLimit = torqueLimit;
-
     double refPosition = 0;
     double refVelocity = 0;
     double refTorque = 0;
 
-    TimePointT tick = TimePointT::clock::now();
-    if(!m_jointRef->GetStateAt(tick,refPosition,refVelocity,refTorque)) {
+    // Is there any demand set ?
+    if(isnanf(m_demandPosition) || isnanf(m_demandTorqueLimit))
+      return false;
+
+    //! Do we have a demand from the reference joint ?
+    if(!m_jointRef->GetDemand(refPosition,refTorque)) {
       return false;
     }
 
@@ -213,17 +219,30 @@ namespace DogBotN {
     double driveTorqueLimit = 0;
     if(!Simple2Raw(
         refPosition,refTorque,
-        position,torqueLimit,
+        m_demandPosition,m_demandTorqueLimit,
         drivePosition,driveTorqueLimit)) {
       return false;
     }
+    //driveTorqueLimit = Max(1.0,fabs(driveTorqueLimit));
+    driveTorqueLimit = m_demandTorqueLimit;
 
-    m_demandPosition = position;
-    m_demandTorqueLimit = torqueLimit;
+    m_log->info("Setting demand angle for {} to {} with torque {} ",m_jointDrive->Name(),Rad2Deg(drivePosition),driveTorqueLimit);
 
-    m_jointDrive->DemandPosition(drivePosition,driveTorqueLimit);
-
+    // Only send on if something has changed.
+    if(drivePosition != m_lastDrivePosition || driveTorqueLimit != m_lastDriveTorque) {
+      m_lastDrivePosition = drivePosition;
+      m_lastDriveTorque = driveTorqueLimit;
+      return m_jointDrive->DemandPosition(drivePosition,driveTorqueLimit);
+    }
     return true;
+  }
+
+
+  //! Demand a position for the servo
+  bool JointRelativeC::DemandPosition(float position,float torqueLimit)
+  {
+    JointC::DemandPosition(position,torqueLimit);
+    return UpdateDemand();
   }
 
 }

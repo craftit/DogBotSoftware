@@ -34,6 +34,12 @@ namespace DogBotN {
     m_linkB = value.get("LinkB",m_linkB).asFloat();
     m_linkH = value.get("LinkH",m_linkH).asFloat();
 
+    m_jointDirections[0] = value.get("dirRoll",m_jointDirections[0]).asFloat();
+    m_jointDirections[1] = value.get("dirPitch",m_jointDirections[1]).asFloat();
+    m_jointDirections[2] = value.get("dirKnee",m_jointDirections[2]).asFloat();
+
+    m_alternateSolution = value.get("alternateSolution",false).asBool();
+
     return true;
   }
 
@@ -49,6 +55,12 @@ namespace DogBotN {
     ret["LinkA"] = m_linkA;
     ret["LinkB"] = m_linkB;
     ret["LinkH"] = m_linkH;
+
+    ret["dirRoll"] = m_jointDirections[0];
+    ret["dirPitch"] = m_jointDirections[1];
+    ret["dirKnee"] = m_jointDirections[2];
+
+    ret["alternateSolution"] = m_alternateSolution;
 
     return ret;
   }
@@ -89,10 +101,17 @@ namespace DogBotN {
 
     float kneeTarget = M_PI - acos(ac2);
 
+#if 0
     float servoAngle = 0;
     if(!Linkage4BarBack(kneeTarget,servoAngle))
       return false;
     angles[2] = servoAngle;
+#else
+    angles[2] = kneeTarget;
+#endif
+
+    for(int i = 0;i < 3;i++)
+      angles[i] *= m_jointDirections[i];
 
     return true;
   }
@@ -100,7 +119,14 @@ namespace DogBotN {
   //! Forward kinematics for the leg.
   bool LegKinematicsC::Forward(float angles[3],float (&at)[3]) const
   {
-    float kneeAngle = Linkage4BarForward(angles[2]); //-angles[1]
+    for(int i = 0;i < 3;i++)
+      angles[i] *= m_jointDirections[i];
+
+#if 0
+    float kneeAngle = Linkage4BarForward(angles[2]);
+#else
+    float kneeAngle = angles[2];
+#endif
 
     float y = m_l1 * sin(angles[1]) + m_l2 * sin(angles[1] + kneeAngle);
     float z = m_l1 * cos(angles[1]) + m_l2 * cos(angles[1] + kneeAngle);

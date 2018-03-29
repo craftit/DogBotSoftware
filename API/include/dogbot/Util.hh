@@ -8,6 +8,17 @@ namespace DogBotN {
 
   //! Convert radians to degrees
   float Rad2Deg(float deg);
+
+  //! Return the minimum of two values.
+  template<typename ValueT>
+  inline ValueT Min(ValueT v1,ValueT v2)
+  { return v1 > v2 ? v2 : v1; }
+
+  //! Return the minimum of two values.
+  template<typename ValueT>
+  inline ValueT Max(ValueT v1,ValueT v2)
+  { return v1 > v2 ? v1 : v2; }
+
 }
 
 #endif

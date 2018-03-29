@@ -7,6 +7,7 @@
 
 #include "dogbot/DogBotAPI.hh"
 #include "dogbot/Util.hh"
+#include "dogbot/LegController.hh"
 #include "cxxopts.hpp"
 
 // This provides a network interface for controlling the servos via ZMQ.
@@ -21,7 +22,10 @@ int main(int argc,char **argv)
 
   auto logger = spdlog::stdout_logger_mt("console");
   bool dumpPose = false;
+  bool cycle = false;
   float torque = 1.0;
+  float range = 45.0;
+  float angle = 0;
   try
   {
     cxxopts::Options options(argv[0], "DogBot hardware manager");
@@ -34,8 +38,11 @@ int main(int argc,char **argv)
       ("d,device", "Device to use from communication. Typically 'local' for local server or 'usb' for direct connection ", cxxopts::value<std::string>(devFilename))
       ("t,torque","Torque to use", cxxopts::value<float>(torque))
       ("j,joint","Joint name", cxxopts::value<std::string>(jointName))
+      ("r,range","Motion range", cxxopts::value<float>(range))
+      ("a,angle","Centre angle", cxxopts::value<float>(angle))
       ("p,pose","Joint name", cxxopts::value<bool>(dumpPose))
       ("l,load","Load pose", cxxopts::value<std::string>(loadPoseFile))
+      ("g,cycle","Cycle up and down",cxxopts::value<bool>(cycle))
       ("h,help", "Print help")
     ;
 
@@ -58,7 +65,7 @@ int main(int argc,char **argv)
   logger->info("Using config file: '{}'",configFile);
   logger->info("Using communication type: '{}'",devFilename);
 
-  DogBotN::DogBotAPIC dogbot(
+  std::shared_ptr<DogBotN::DogBotAPIC> dogbot = std::make_shared<DogBotN::DogBotAPIC>(
       devFilename,
       configFile,
       logger
@@ -68,14 +75,15 @@ int main(int argc,char **argv)
   sleep(1);
 
   if(dumpPose) {
-    std::vector<std::shared_ptr<DogBotN::ServoC> > list = dogbot.ListServos();
-    std::cout << "{" << std::endl;
+    std::vector<std::shared_ptr<DogBotN::ServoC> > list = dogbot->ListServos();
+
+    Json::Value poseJSON;
     for(auto &a : list) {
-      if(!a)
+      if(!a || a->Name() == "spare")
         continue;
-      std::cout << " \"" << a->Name() << "\":" << DogBotN::Rad2Deg(a->Position()) << "," << std::endl;
+      poseJSON[a->Name()] =  DogBotN::Rad2Deg(a->Position());
     }
-    std::cout << "}" << std::endl;
+    std::cout << poseJSON << std::endl;
     return 1;
   }
 
@@ -91,7 +99,7 @@ int main(int argc,char **argv)
     std::vector<std::shared_ptr<DogBotN::JointC> > jnts;
     std::vector<float> position;
     for(auto iter = poseJSON.begin();iter != poseJSON.end();++iter) {
-      std::shared_ptr<DogBotN::JointC> jnt = dogbot.GetJointByName(iter.key().asString());
+      std::shared_ptr<DogBotN::JointC> jnt = dogbot->GetJointByName(iter.key().asString());
       if(!jnt) {
         logger->error("Failed to find joint {} ",iter.key().asString());
         return 1;
@@ -107,19 +115,45 @@ int main(int argc,char **argv)
     return 0;
   }
 
-  std::shared_ptr<DogBotN::JointC> joint = dogbot.GetJointByName(jointName);
+  std::shared_ptr<DogBotN::JointC> joint = dogbot->GetJointByName(jointName);
   if(!joint) {
     logger->error("Failed to find joint {} ",jointName);
     return 1;
   }
 
+  if(cycle) {
+
+    // Lift the speed limit a bit
+    dogbot->Connection()->SetParam(0,CPI_VelocityLimit,(float) 300.0);
+
+    std::shared_ptr<DogBotN::LegControllerC> legs[4];
+    legs[0] = std::make_shared<DogBotN::LegControllerC>(dogbot,"front_right");
+    legs[1] = std::make_shared<DogBotN::LegControllerC>(dogbot,"front_left");
+    legs[2] = std::make_shared<DogBotN::LegControllerC>(dogbot,"back_right");
+    legs[3] = std::make_shared<DogBotN::LegControllerC>(dogbot,"back_left");
+
+    while(1) {
+      for(int i = 0;i < 360;i++) {
+        // 0.35 to 0.7
+        float z = cos(DogBotN::Deg2Rad(i)) * 0.17 +0.525;
+
+        for(int i = 0;i < 4;i++) {
+          legs[i]->Goto(0,0,z,torque);
+        }
+        usleep(5000);
+      }
+    }
+
+  }
+
+
   enum DogBotN::JointMoveStatusT moveStatus;
   while(true)
   {
-    if((moveStatus = joint->MoveWait(DogBotN::Deg2Rad(-22.5),torque)) != DogBotN::JMS_Done) {
+    if((moveStatus = joint->MoveWait(DogBotN::Deg2Rad(angle-range/2),torque)) != DogBotN::JMS_Done) {
       logger->warn("Move failed. {} ",(int) moveStatus);
     }
-    if((moveStatus =joint->MoveWait(DogBotN::Deg2Rad(22.5),torque))!= DogBotN::JMS_Done) {
+    if((moveStatus =joint->MoveWait(DogBotN::Deg2Rad(angle+range/2),torque))!= DogBotN::JMS_Done) {
       logger->warn("Move failed. {} ",(int) moveStatus);
     }
   }

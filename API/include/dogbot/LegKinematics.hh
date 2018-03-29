@@ -83,8 +83,14 @@ namespace DogBotN {
     //! Compute the position of the foot relative to the top of the leg from the joint angles.
     bool Forward(float angles[3],float (&at)[3]) const;
 
+    //! Use alternate solution ?
+    bool UseAlternateSolution() const
+    { return m_alternateSolution; }
+
   protected:
     std::string m_name; // Leg name
+
+    float m_jointDirections[3] = { 1.0, 1.0, 1.0 };
 
     float m_l1 = 0.361; // Upper leg length
     float m_l2 = 0.31;  // Lower leg length
@@ -93,6 +99,9 @@ namespace DogBotN {
     float m_linkA = 0.032; // Hip CAD: 0.032
     float m_linkB = 0.04;  // Knee CAD: 0.04
     float m_linkH = 0.363; // Push rod 0.363
+
+    bool m_alternateSolution = false;
+
   };
 
 }

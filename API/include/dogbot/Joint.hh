@@ -7,6 +7,7 @@
 #include <jsoncpp/json/json.h>
 #include "dogbot/CallbackArray.hh"
 #include "dogbot/protocol.h"
+#include <spdlog/spdlog.h>
 
 namespace DogBotN {
 
@@ -24,6 +25,8 @@ namespace DogBotN {
     typedef std::chrono::time_point<std::chrono::steady_clock,std::chrono::duration< double > > TimePointT;
 
     typedef std::function<void (TimePointT theTime,double position,double velocity,double torque)> PositionUpdateFuncT;
+
+    typedef std::function<void (double position,double torque)> DemandUpdateFuncT;
 
     typedef std::function<void (ComsParameterIndexT parameter)> ParameterUpdateFuncT;
 
@@ -72,8 +75,14 @@ namespace DogBotN {
     //! Add a update callback for motor position
     virtual CallbackHandleC AddPositionUpdateCallback(const PositionUpdateFuncT &callback);
 
+    //! Add a callback when the motor target position is updated
+    virtual CallbackHandleC AddDemandUpdateCallback(const DemandUpdateFuncT &callback);
+
     //! Add notification callback if a parameter changes.
     virtual CallbackHandleC AddParameterUpdateCallback(const ParameterUpdateFuncT &func);
+
+    //! Get current demand
+    virtual bool GetDemand(double &position,double &torqueLimit);
 
     //! Last reported position
     float Position() const
@@ -100,13 +109,20 @@ namespace DogBotN {
 
   protected:
     CallbackArrayC<PositionUpdateFuncT> m_positionCallbacks;
+    CallbackArrayC<DemandUpdateFuncT> m_demandCallbacks;
     CallbackArrayC<ParameterUpdateFuncT> m_parameterCallbacks;
 
     mutable std::mutex m_mutexJointAdmin;
 
+    std::shared_ptr<spdlog::logger> m_log = spdlog::get("console");
+
     std::string m_name;
     std::string m_notes;
     bool m_export = false;
+
+    float m_demandPosition = nan("");
+    float m_demandTorqueLimit = nan("");
+
     float m_position = 0; // Radians
     float m_velocity = 0; // Radians per second
     float m_torque = 0;   // Newton meters

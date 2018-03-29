@@ -51,6 +51,9 @@ namespace DogBotN {
     virtual CallbackHandleC AddPositionUpdateCallback(const PositionUpdateFuncT &callback);
 
   protected:
+    //! Send an updated demand position
+    bool UpdateDemand();
+
     virtual bool Raw2Simple(
         float refPosition,float refVelocity,float refTorque,
         float drivePosition,float driveVelocity,float driveTorque,
@@ -65,15 +68,17 @@ namespace DogBotN {
 
 
     CallbackHandleC m_driveCallback;
+    CallbackHandleC m_demandCallback;
 
     float m_refGain = 1.0;
     float m_refOffset = 0.0;
 
+    double m_lastDrivePosition = 0;
+    double m_lastDriveTorque = 0;
+
     std::shared_ptr<JointC> m_jointDrive;  //!< Joint we're driving
     std::shared_ptr<JointC> m_jointRef;    //!< Joint we're using for the reference position
 
-    float m_demandPosition = 0;
-    float m_demandTorqueLimit = 0;
   };
 
 }

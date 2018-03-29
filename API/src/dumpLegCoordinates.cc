@@ -5,6 +5,7 @@
 #include <getopt.h>
 
 #include "dogbot/DogBotAPI.hh"
+#include "dogbot/Util.hh"
 #include "cxxopts.hpp"
 
 // This provides a network interface for controlling the servos via ZMQ.
@@ -14,16 +15,13 @@ int main(int argc,char **argv)
   std::string devFilename = "local";
   std::string configFile = DogBotN::DogBotAPIC::DefaultConfigFile();
   std::string legName = "front_right";
-  std::string firmwareFile;
 
+  float at[3] = { 0,0,0.6 };
 
-  int targetDeviceId = 0;
-  int finalDeviceId = -1;
+  float torqueLimit = 1.0;
 
   bool dryRun = false;
-  bool stayInBootloader = false;
   auto logger = spdlog::stdout_logger_mt("console");
-  bool updateAll = false;
   try
   {
     cxxopts::Options options(argv[0], "DogBot hardware manager");
@@ -34,8 +32,11 @@ int main(int argc,char **argv)
     options.add_options()
       ("c,config", "Configuration file", cxxopts::value<std::string>(configFile))
       ("d,device", "Device to use from communication. Typically 'local' for local server or 'usb' for direct connection ", cxxopts::value<std::string>(devFilename))
-      ("f,firmware", "Firmware file ", cxxopts::value<std::string>(firmwareFile))
-      ("t,target","Target device id", cxxopts::value<int>(targetDeviceId))
+      ("t,torque","Torque", cxxopts::value<float>(torqueLimit))
+      ("l,leg","leg", cxxopts::value<std::string>(legName))
+      ("x","x", cxxopts::value<float>(at[0]))
+      ("y","y", cxxopts::value<float>(at[1]))
+      ("z","z", cxxopts::value<float>(at[2]))
       ("h,help", "Print help")
     ;
 
@@ -64,6 +65,7 @@ int main(int argc,char **argv)
       logger
       );
 
+  sleep(1);
   std::shared_ptr<DogBotN::LegKinematicsC> leg = dogbot.LegKinematicsByName(legName);
   if(!leg) {
     logger->error("Failed to find leg '{}' ",legName);
@@ -72,7 +74,7 @@ int main(int argc,char **argv)
   std::vector<std::string> legJointNames;
   legJointNames.push_back(legName + "_roll");
   legJointNames.push_back(legName + "_pitch");
-  legJointNames.push_back(legName + "_knee");
+  legJointNames.push_back("virtual_" + legName + "_knee");
 
   std::shared_ptr<DogBotN::JointC> joints[3];
 
@@ -84,9 +86,22 @@ int main(int argc,char **argv)
     }
   }
 
+  float angles[3];
+  if(leg->Inverse(at,angles)) {
+    logger->info("Setting angles to {} {} {}  for  {} {} {} ",
+                 DogBotN::Rad2Deg(angles[0]),DogBotN::Rad2Deg(angles[1]),DogBotN::Rad2Deg(angles[2]),
+                 at[0],at[1],at[2]);
+    joints[0]->DemandPosition(angles[0],torqueLimit);
+    joints[1]->DemandPosition(angles[1],torqueLimit);
+    joints[2]->DemandPosition(angles[2],torqueLimit);
+
+  } else {
+    logger->warn("Failed to find solution.");
+  }
+
+
   while(true)
   {
-    float angles[3];
 
     for(int i = 0;i < 3;i++) {
       DogBotN::JointC::TimePointT tick;
@@ -98,7 +113,9 @@ int main(int argc,char **argv)
     float at[3];
     leg->Forward(angles,at);
 
-    logger->info("{} at {} {} {} ",legName,at[0],at[1],at[2]);
+    logger->info("{} Angles {} {} {}, Position {} {} {}  ",
+                 legName,
+                 DogBotN::Rad2Deg(angles[0]),DogBotN::Rad2Deg(angles[1]),DogBotN::Rad2Deg(angles[2]),at[0],at[1],at[2]);
 
     sleep(1);
   }

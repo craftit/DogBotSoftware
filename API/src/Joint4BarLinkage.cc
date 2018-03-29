@@ -28,7 +28,7 @@ namespace DogBotN {
 
     // Theta = Knee Servo
     // Psi = Knee joint
-    float psi = m_legKinematics->Linkage4BarForward(theta);
+    float psi = m_legKinematics->Linkage4BarForward(theta,m_legKinematics->UseAlternateSolution());
     float ratio = m_legKinematics->LinkageSpeedRatio(theta,psi);
 
     position = psi;
@@ -45,8 +45,10 @@ namespace DogBotN {
   ) const
   {
     float theta;
-    if(!m_legKinematics->Linkage4BarBack(position,theta))
+    if(!m_legKinematics->Linkage4BarBack(position,theta,m_legKinematics->UseAlternateSolution())) {
+      m_log->error("No solution for angle {} for joint {} ",position,Name());
       return false;
+    }
     float ratio = m_legKinematics->LinkageSpeedRatio(theta,position);
 
     drivePosition = theta + (refPosition * m_refGain + m_refOffset);

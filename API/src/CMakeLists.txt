@@ -46,6 +46,7 @@ ADD_LIBRARY (DogBotAPI STATIC
         CallbackArray.cc
         FirmwareUpdate.cc
         Util.cc
+        LegController.cc
 )
 
 set_target_properties(DogBotAPI PROPERTIES VERSION ${PROJECT_VERSION})

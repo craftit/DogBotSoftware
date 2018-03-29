@@ -499,6 +499,8 @@ namespace DogBotN {
   bool ServoC::GetState(TimePointT &tick,double &position,double &velocity,double &torque) const
   {
     std::lock_guard<std::mutex> lock(m_mutexState);
+    if(m_positionRef != PR_Absolute)
+      return false;
     tick = m_timeEpoch + m_tick * m_tickDuration;
     position = m_position;
     torque = m_torque;
@@ -510,6 +512,8 @@ namespace DogBotN {
   bool ServoC::GetStateAt(TimePointT theTime,double &position,double &velocity,double &torque) const
   {
     std::lock_guard<std::mutex> lock(m_mutexState);
+    if(m_positionRef != PR_Absolute)
+      return false;
     TimePointT lastTick = m_timeEpoch + m_tick * m_tickDuration;
     auto timeDiff = theTime - lastTick;
     if(fabs(timeDiff.count()) < m_tickDuration.count() * 5) {
@@ -618,8 +622,11 @@ namespace DogBotN {
   //! Demand a position for the servo
   bool ServoC::DemandPosition(float position,float torqueLimit)
   {
-    // FIXME:- It is not clear this function should ever be used to send relative positions as the calling code
-    // may not be aware of the possibility.
+    if(m_positionRef != PR_Absolute) {
+      m_log->warn("Joint not yet homed, ignoring move request. ");
+      return false;
+    }
+    JointC::DemandPosition(position,torqueLimit);
     return DemandPosition(position,torqueLimit,m_positionRef);
   }
 
