@@ -203,6 +203,7 @@
 			"name" : "virtual_front_left_knee",
 			"notes" : "",
 			"refGain" : -1,
+			"gain": -1,
 			"refOffset" : 0,
 			"type" : "4bar"
 		},
@@ -214,6 +215,7 @@
 			"notes" : "",
 			"refGain" : -1,
 			"refOffset" : 0,
+                        "gain": -1,
 			"type" : "4bar"
 		},
 		{
@@ -224,6 +226,7 @@
 			"notes" : "",
 			"refGain" : -1,
 			"refOffset" : 0,
+                        "gain": -1,
 			"type" : "4bar"
 		},
 		{
@@ -234,6 +237,7 @@
 			"notes" : "",
 			"refGain" : -1,
 			"refOffset" : 0,
+                        "gain": -1,
 			"type" : "4bar"
 		}
 	],

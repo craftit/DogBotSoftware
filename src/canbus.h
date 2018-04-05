@@ -18,9 +18,12 @@ bool CANSetAddress(CANTxFrame *txmsg,int nodeId,int packetType);
 // Send an emergency stop
 bool CANEmergencyStop(void);
 
+bool CANSyncTime(void);
+
 bool CANPing(
     enum ComsPacketTypeT pktType, // Must be either ping or pong
-    uint8_t deviceId
+    uint8_t deviceId,
+    uint16_t payload
     );
 
 bool CANSendCalZero(
@@ -38,7 +41,8 @@ bool CANSendServoReport(
     uint8_t deviceId,
     int16_t position,
     int16_t torque,
-    uint8_t state
+    uint8_t state,
+    uint8_t timeStamp
     );
 
 

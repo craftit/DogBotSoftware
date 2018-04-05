@@ -120,15 +120,15 @@ extern enum PWMControlDynamicT g_controlMode;
 extern enum JointRoleT g_jointRole;
 extern enum SafetyModeT g_safetyMode;
 extern bool g_endStopEnable;
-extern float g_endStopStart;
+extern float g_endStopMin;
 extern float g_endStopStartBounce;
-extern float g_endStopEnd;
+extern float g_endStopMax;
 extern float g_endStopEndBounce;
 extern float g_endStopTargetBreakCurrent;
 extern float g_endStopMaxBreakCurrent;
 extern float g_jointInertia;
-extern float g_endStopPhaseStart;
-extern float g_endStopPhaseEnd;
+extern float g_endStopPhaseMin;
+extern float g_endStopPhaseMax;
 extern float g_endStopTargetAcceleration;
 
 #ifdef __cplusplus

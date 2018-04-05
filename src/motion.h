@@ -12,15 +12,17 @@ extern "C" {
 
   void MotionResetCalibration(enum MotionHomedStateT defaultCalibrationState);
 
-  void MotionUpdateIndex(int num,bool state,float position,float velocity);
+  void MotionUpdateIndex(bool state,float position,float velocity);
 
   bool MotionSetPosition(uint8_t mode,int16_t position,uint16_t torqueLimit);
 
-  bool MotionReport(int16_t position,int16_t torque,enum PositionReferenceT posRef);
+  bool MotionReport(int16_t position,int16_t torque,enum PositionReferenceT posRef,uint8_t timeStamp);
 
-  bool MotionOtherJointUpdate(int16_t position,int16_t torque,uint8_t mode);
+  bool MotionOtherJointUpdate(int16_t position,int16_t torque,uint8_t mode,uint8_t timestamp);
 
   bool MotionCalZero(void);
+
+  bool MotionSyncTime(void);
 
   extern enum MotionHomedStateT g_motionHomedState;
   extern enum PositionReferenceT g_motionPositionReference;

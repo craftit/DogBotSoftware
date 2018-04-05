@@ -34,7 +34,7 @@ namespace DogBotN {
       double &position,double &velocity,double &torque
   ) const
   {
-    position = drivePosition - (refPosition * m_refGain + m_refOffset);
+    position = (drivePosition - (refPosition * m_refGain + m_refOffset)) * m_gain;
     velocity = driveVelocity - refVelocity;
     torque = driveTorque;
     return true;
@@ -46,7 +46,7 @@ namespace DogBotN {
        double &drivePosition,double &driveTorque
   ) const
   {
-    drivePosition = position + (refPosition * m_refGain + m_refOffset);
+    drivePosition = (position + (refPosition * m_refGain + m_refOffset)) / m_gain;
     driveTorque = torque;
     return true;
   }

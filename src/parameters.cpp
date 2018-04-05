@@ -353,12 +353,15 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
     case CPI_EndStopEnable: {
       if(len != 1)
         return false;
-      g_endStopEnable = data->uint8[0] != 0;
+      bool newValue = data->uint8[0] != 0;
+      if(newValue)
+        SetupEndStops();
+      g_endStopEnable = newValue;
     } break;
     case CPI_EndStopStart: {
       if(len != 4)
         return false;
-      g_endStopStart = data->float32[0];
+      g_endStopMin = data->float32[0];
       SetupEndStops();
     } break;
     case CPI_EndStopStartBounce:{
@@ -371,7 +374,7 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
     case CPI_EndStopFinal:{
       if(len != 4)
         return false;
-      g_endStopEnd = data->float32[0];
+      g_endStopMax = data->float32[0];
       SetupEndStops();
     } break;
     case CPI_EndStopEndBounce:{
@@ -398,7 +401,8 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
       g_jointInertia = data->float32[0];
       SetupEndStops();
     } break;
-
+    case CPI_EndStopPhaseAngles:
+      return false;
     case CPI_FINAL:
       return false;
     default:
@@ -665,7 +669,7 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
     } break;
     case CPI_EndStopStart: {
       *len = 4;
-      data->float32[0] = g_endStopStart;
+      data->float32[0] = g_endStopMin;
     } break;
     case CPI_EndStopStartBounce:{
       *len = 4;
@@ -673,7 +677,7 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
     } break;
     case CPI_EndStopFinal:{
       *len = 4;
-      data->float32[0] = g_endStopEnd;
+      data->float32[0] = g_endStopMax;
     } break;
     case CPI_EndStopEndBounce:{
       *len = 4;
@@ -694,6 +698,11 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
     case CPI_MotorOffsetVoltage:{
       *len = 4;
       data->float32[0] = g_phaseOffsetVoltage;
+    } break;
+    case CPI_EndStopPhaseAngles: {
+      *len = 8;
+      data->float32[0] = g_endStopPhaseMin;
+      data->float32[1] = g_endStopPhaseMax;
     } break;
     case CPI_FINAL:
     default: return false;

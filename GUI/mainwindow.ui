@@ -715,6 +715,12 @@
              <property name="maximum">
               <double>10.000000000000000</double>
              </property>
+             <property name="singleStep">
+              <double>0.100000000000000</double>
+             </property>
+             <property name="value">
+              <double>0.000000000000000</double>
+             </property>
             </widget>
            </item>
            <item row="2" column="1">
@@ -1084,9 +1090,6 @@
            <string>Queries</string>
           </property>
           <layout class="QGridLayout" name="gridLayout_6">
-           <item row="0" column="0" rowspan="17">
-            <widget class="QTextEdit" name="textEditLog"/>
-           </item>
            <item row="0" column="1">
             <widget class="QPushButton" name="pushButtonPing">
              <property name="text">
@@ -1199,12 +1202,22 @@
              </property>
             </widget>
            </item>
-           <item row="16" column="1">
+           <item row="17" column="1">
             <widget class="QPushButton" name="pushButtonTim1">
              <property name="text">
               <string>Tim1</string>
              </property>
             </widget>
+           </item>
+           <item row="16" column="1">
+            <widget class="QPushButton" name="pushButtonPhaseEndStops">
+             <property name="text">
+              <string>Phase EndStops</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0" rowspan="18">
+            <widget class="QTextEdit" name="textEditLog"/>
            </item>
           </layout>
          </widget>

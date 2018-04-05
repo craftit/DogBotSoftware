@@ -21,7 +21,6 @@ enum FaultCodeT LoadSetup()
   return FC_Internal;
 }
 
-
 enum FaultCodeT SaveSetup()
 {
   return FC_Internal;
@@ -43,14 +42,19 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT /*cha
 
 uint8_t g_otherJointId = 0xff;
 
-bool MotionOtherJointUpdate(int16_t position,int16_t torque,uint8_t mode)
+bool MotionOtherJointUpdate(int16_t position,int16_t torque,uint8_t mode,uint8_t timestamp)
 {
   (void) position;
   (void) torque;
   (void) mode;
+  (void) timestamp;
   return false;
 }
 
+bool MotionSyncTime(void)
+{
+  return false;
+}
 
 void EmergencyStopReceivedSafeFlag(int /*fromDeviceId*/)
 {

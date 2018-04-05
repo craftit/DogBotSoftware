@@ -227,14 +227,14 @@ float g_demandPhaseVelocity = 0;
 float g_demandTorque = 0;
 
 bool g_endStopEnable = false;
-float g_endStopStart = 0;
+float g_endStopMin = 0;
 float g_endStopStartBounce = 0; // How far we can go beyond the end-stop before we flag a fault.
-float g_endStopEnd = 0;
+float g_endStopMax = 0;
 float g_endStopEndBounce = 0;
 float g_endStopTargetBreakCurrent = 3;
 float g_endStopMaxBreakCurrent = 6;
-float g_endStopPhaseStart = 0;
-float g_endStopPhaseEnd = 0;
+float g_endStopPhaseMin = 0;
+float g_endStopPhaseMax = 0;
 float g_endStopTargetAcceleration = 0;
 float g_jointInertia = 0; // Estimate of inertia of joint
 
@@ -269,13 +269,13 @@ bool CheckMotorSetup(void)
 {
 
   if(g_endStopEnable) {
-    if(g_endStopEnd <= g_endStopStart) {
+    if(g_endStopMax <= g_endStopMin) {
       return false;
     }
-    if(g_endStopStartBounce > g_endStopStart) {
+    if(g_endStopStartBounce > g_endStopMin) {
       return false;
     }
-    if(g_endStopEndBounce < g_endStopEnd) {
+    if(g_endStopEndBounce < g_endStopMax) {
       return false;
     }
     if(g_jointInertia <= 0) {
@@ -400,34 +400,25 @@ static bool MotorCheckEndStop(void)
 {
   // Check virtual end stops.
 
-  if(g_endStopEnable && g_motionHomedState == MHS_Homed && g_endStopTargetAcceleration > 0) {
+  // If we're not homed or endStops are disabled then do nothing.
+  if(!g_endStopEnable || g_motionHomedState != MHS_Homed) {
+    return true;
+  }
 
-    float sign;
-    float distanceToGo;
-    // Establish current direction.
-    if(g_currentPhaseVelocity < 0) {
-      distanceToGo = g_currentPhasePosition - g_endStopPhaseStart;
-      sign = -1.0;
-    } else {
-      distanceToGo = g_endStopPhaseEnd - g_currentPhasePosition;
-      sign = 1.0;
-    }
-
-#if 1
-    // Compare stopping distance with our distance from the endstop in the current direction of travel
-    float timeToStop = sign * g_currentPhaseVelocity / g_endStopTargetAcceleration;
-    float distance = g_endStopTargetAcceleration * timeToStop * timeToStop * 0.5;
-    if(distance < distanceToGo) {
-      SetCurrent(sign * g_endStopTargetBreakCurrent);
+  if(g_currentPhaseVelocity < 0) {
+    if(g_currentPhasePosition < g_endStopPhaseMin) {
+      float current = g_endStopTargetBreakCurrent;
+      // Set current directly to bypass limit
+      FOC_current(g_phaseAngle,0,current);
       return false;
     }
-#else
-    float v2 = g_currentPhaseVelocity * g_currentPhaseVelocity;
-    if(v2 > (2 * g_endStopTargetAcceleration * distanceToGo)) {
-      SetCurrent(sign * g_endStopTargetBreakCurrent);
+  } else {
+    if(g_currentPhasePosition > g_endStopPhaseMax) {
+      float current = g_endStopTargetBreakCurrent;
+      // Set current directly to bypass limit
+      FOC_current(g_phaseAngle,0,-current);
       return false;
     }
-#endif
   }
   return true;
 }
@@ -554,7 +545,7 @@ static void MotorControlLoop(void)
       bool es3 = palReadPad(GPIOC, GPIOC_PIN8);
       if(es3 != g_lastLimitState) {
         g_lastLimitState = es3;
-        MotionUpdateIndex(0,es3,g_currentPhasePosition,g_currentPhaseVelocity);
+        MotionUpdateIndex(es3,g_currentPhasePosition,g_currentPhaseVelocity);
       }
     }
 
@@ -897,31 +888,36 @@ enum FaultCodeT PWMSelfTest()
     return FC_Internal; // Not sure what is going on.
   }
 
+  int errCode = FC_Ok;
   // Check hall sensors.
+  for(int i = 0;i < 3;i++) {
+    // If pins are floating, pull them into a fixed state.
 
-  // If pins are floating, pull them into a fixed state.
+    palSetPadMode(GPIOC,GPIOC_PIN0,PAL_MODE_INPUT_PULLUP);
+    palSetPadMode(GPIOC,GPIOC_PIN1,PAL_MODE_INPUT_PULLUP);
+    palSetPadMode(GPIOC,GPIOC_PIN2,PAL_MODE_INPUT_PULLUP);
 
-  palSetPadMode(GPIOC,GPIOC_PIN0,PAL_MODE_INPUT_PULLUP);
-  palSetPadMode(GPIOC,GPIOC_PIN1,PAL_MODE_INPUT_PULLUP);
-  palSetPadMode(GPIOC,GPIOC_PIN2,PAL_MODE_INPUT_PULLUP);
+    chThdSleepMilliseconds(100);
 
-  chThdSleepMilliseconds(100);
+    // Change them back to analog inputs.
 
-  // Change them back to analog inputs.
+    palSetPadMode(GPIOC,GPIOC_PIN0,PAL_MODE_INPUT_ANALOG);
+    palSetPadMode(GPIOC,GPIOC_PIN1,PAL_MODE_INPUT_ANALOG);
+    palSetPadMode(GPIOC,GPIOC_PIN2,PAL_MODE_INPUT_ANALOG);
 
-  palSetPadMode(GPIOC,GPIOC_PIN0,PAL_MODE_INPUT_ANALOG);
-  palSetPadMode(GPIOC,GPIOC_PIN1,PAL_MODE_INPUT_ANALOG);
-  palSetPadMode(GPIOC,GPIOC_PIN2,PAL_MODE_INPUT_ANALOG);
+    // Wait for next measurement
 
-  // Wait for next measurement
-
-  if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
-    return FC_Internal; // Not sure what is going on.
+    if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
+      return FC_Internal; // Not sure what is going on.
+    }
+    if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
+      return FC_Internal; // Not sure what is going on.
+    }
+    errCode = CheckHallInRange();
+    if(errCode == FC_Ok)
+      break;
+    // Retry 3 times, the failure may be caused by noise.
   }
-  if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
-    return FC_Internal; // Not sure what is going on.
-  }
-  int errCode = CheckHallInRange();
   if(errCode != FC_Ok)
     return errCode;
 

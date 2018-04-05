@@ -32,7 +32,7 @@ extern "C" {
     CPT_SaveSetup     = 14, // Save setup to eeprom
     CPT_LoadSetup     = 15, // Load setup from eeprom
     CPT_CalZero       = 16, // Set current position as calibrated zero.
-    CPT_Sync          = 17, // Sync data stream
+    CPT_Sync          = 17, // Sync data stream, useful for finding packet boundaries when using over a byte serial channel.
     CPT_PWMState      = 18, // PWM State. Packet holding internal controller data.
     CPT_BridgeMode    = 19, // Enable bridge mode
     CPT_FlashCmdReset   = 20, // Status from a flash command
@@ -92,7 +92,8 @@ extern "C" {
     FC_InternalCAN = 17,
     FC_FanOverCurrent = 18,
     FC_MotorOverTemperature = 19,
-    FC_SensorOverCurrent = 20
+    FC_SensorOverCurrent = 20,
+    FC_InvalidCommand = 21 //!< Triggered if we're asked to do something that isn't supported.
   };
 
   /* An identifier for the role of a device
@@ -223,6 +224,7 @@ extern "C" {
     CPI_EndStopTargetBreakForce = 0x5E,
     CPI_EndStopLimitBreakForce = 0x5F,
     CPI_JointInertia     = 0x60,
+    CPI_EndStopPhaseAngles = 0x61,
 
     CPI_FINAL           = 0xff
   };
@@ -348,6 +350,7 @@ extern "C" {
   struct PacketPingPongC {
     uint8_t m_packetType;
     uint8_t m_deviceId;
+    uint16_t m_payload; // Generally used to id the packet.
   } __attribute__((packed));
 
 
@@ -392,7 +395,7 @@ extern "C" {
   } __attribute__((packed));
 
   struct PacketServoC {
-    uint8_t m_packetType; // CPT_ServoAbs / CPT_ServoRel
+    uint8_t m_packetType; // CPT_Servo
     uint8_t m_deviceId;
     uint8_t m_mode;       //
     int16_t m_position;   // Or velocity.
@@ -400,7 +403,7 @@ extern "C" {
   } __attribute__((packed));
 
   struct PacketServoReportC {
-    uint8_t m_packetType; // CPT_ServoAbs / CPT_ServoRel
+    uint8_t m_packetType; // CPT_ServoReport
     uint8_t m_deviceId;
     uint8_t m_mode;
     uint8_t m_timestamp;

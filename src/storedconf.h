@@ -27,9 +27,9 @@ struct StoredConfigT {
 
   enum JointRoleT m_jointRole;
   bool m_endStopEnable;
-  float m_endStopStart;
+  float m_endStopMin;
   float m_endStopStartBounce;
-  float m_endStopEnd;
+  float m_endStopMax;
   float m_endStopEndBounce;
   float m_endStopTargetBreakCurrent;
   float m_endStopMaxBreakCurrent;

@@ -3,6 +3,7 @@
 #include "dogbot/DogBotAPI.hh"
 #include "dogbot/ComsSerial.hh"
 #include "dogbot/ComsProxy.hh"
+#include "dogbot/Util.hh"
 #include <iostream>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -122,8 +123,8 @@ void MainWindow::timerEvent(QTimerEvent *)
     m_toQuery++;
   }
 
-  //std::cout << "Setting " << m_servoAngle * 360.0 / (2.0* M_PI) << std::endl;
-  ui->doubleSpinBoxPostion->setValue(m_servoAngle * 360.0 / (2.0* M_PI));
+  //std::cout << "Setting " << DogBotN::Rad2Deg(m_servoAngle) << std::endl;
+  ui->doubleSpinBoxPostion->setValue(DogBotN::Rad2Deg(m_servoAngle));
   ui->doubleSpinBoxTorque_2->setValue(m_servoTorque);
 
   std::string posRefStr = "unknown";
@@ -195,7 +196,7 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     }
   } break;
   case CPI_CalibrationOffset: {
-    float calAngleDeg =  (psp->m_data.float32[0] * 360.0f / (M_PI * 2.0));
+    float calAngleDeg = DogBotN::Rad2Deg(psp->m_data.float32[0]);
     sprintf(buff,"%f",calAngleDeg);
     displayStr += buff;
     if(psp->m_header.m_deviceId == m_targetDeviceId) {
@@ -256,7 +257,7 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     break;
   case CPI_OtherJointOffset:
     if(psp->m_header.m_deviceId == m_targetDeviceId) {
-      emit setOtherJointOffset(psp->m_data.float32[0] * 360.0 / (2.0 * M_PI));
+      emit setOtherJointOffset(DogBotN::Rad2Deg(psp->m_data.float32[0]));
     }
     break;
   case CPI_MotorInductance:
@@ -362,7 +363,7 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     break;
   }
   case CPI_homeIndexPosition: {
-    double homePos = psp->m_data.float32[0] * 360.0 / (M_PI * 2.0);
+    double homePos = DogBotN::Rad2Deg(psp->m_data.float32[0]);
     if(psp->m_header.m_deviceId == m_targetDeviceId) {
       emit setHomeIndexOffset(homePos);
     }
@@ -370,12 +371,12 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     displayStr += buff;
   } break;
   case CPI_EndStopFinal: {
-    double homePos = psp->m_data.float32[0] * 360.0 / (M_PI * 2.0);
+    double homePos = DogBotN::Rad2Deg(psp->m_data.float32[0]);
     sprintf(buff,"\n %d EndStopEnd: %f ",psp->m_header.m_deviceId,homePos);
     displayStr += buff;
   } break;
   case CPI_EndStopStart: {
-    double homePos = psp->m_data.float32[0] * 360.0 / (M_PI * 2.0);
+    double homePos = DogBotN::Rad2Deg(psp->m_data.float32[0]);
     sprintf(buff,"\n %d EndStopStart: %f ",psp->m_header.m_deviceId,homePos);
     displayStr += buff;
   } break;
@@ -448,6 +449,14 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     sprintf(buff,"\n %d Main loop timeouts: %d ",psp->m_header.m_deviceId,psp->m_data.uint32[0]);
     displayStr += buff;
   } break;
+  case CPI_EndStopPhaseAngles: {
+    sprintf(buff,"\n %d End stop phase angles %f to %f ",
+            psp->m_header.m_deviceId,
+            DogBotN::Rad2Deg(psp->m_data.float32[0])/(21*7.0f),
+            DogBotN::Rad2Deg(psp->m_data.float32[1])/(21*7.0f)
+        );
+    displayStr += buff;
+  } break;
   default:
     break;
   }
@@ -470,11 +479,11 @@ void MainWindow::LocalProcessParam(PacketParam8ByteC psp)
     ui->checkBoxEndStopEnable->setChecked(psp.m_data.uint8[0] > 0);
     break;
   case CPI_EndStopStart: {
-    float angleDeg = (psp.m_data.float32[0] * 360.0f / (M_PI * 2.0));
+    float angleDeg = DogBotN::Rad2Deg(psp.m_data.float32[0]);
     ui->doubleSpinBoxEndStopStart->setValue(angleDeg);
   } break;
   case CPI_EndStopFinal: {
-    float angleDeg = (psp.m_data.float32[0] * 360.0f / (M_PI * 2.0));
+    float angleDeg = DogBotN::Rad2Deg(psp.m_data.float32[0]);
     ui->doubleSpinBoxEndStopEnd->setValue(angleDeg);
   } break;
   case CPI_EndStopLimitBreakForce:
@@ -1006,13 +1015,13 @@ void MainWindow::on_doubleSpinBoxJointRelGain_valueChanged(double arg1)
 
 void MainWindow::on_doubleSpinBoxJointRelOffset_valueChanged(double arg1)
 {
-  m_coms->SendSetParam(m_targetDeviceId,CPI_OtherJointOffset,(float) (arg1 * M_PI * 2.0 / 360.0f));
+  m_coms->SendSetParam(m_targetDeviceId,CPI_OtherJointOffset,DogBotN::Deg2Rad(arg1));
 }
 
 void MainWindow::on_doubleSpinBoxDemandPosition_editingFinished()
 {
   double demandAngleDeg = ui->doubleSpinBoxDemandPosition->value();
-  double newPosition = (demandAngleDeg * 2.0 * M_PI) / 360.0;
+  double newPosition = DogBotN::Deg2Rad(demandAngleDeg);
   m_position = newPosition;
   std::cout << "Sending move. Pos: " << m_position << " Torque:" << m_torque << " Ref:" << (int) g_positionReference << std::endl << std::flush;
   m_coms->SendMoveWithEffort(m_targetDeviceId,m_position,m_torque,g_positionReference);
@@ -1035,7 +1044,7 @@ void MainWindow::on_doubleSpinBoxDemandPosition_valueChanged(double arg1)
 
 void MainWindow::on_doubleSpinBoxCalibrationOffset_editingFinished()
 {
-  float calAngleRad =(ui->doubleSpinBoxCalibrationOffset->value() * (M_PI * 2.0) / 360.0f);
+  float calAngleRad = DogBotN::Deg2Rad(ui->doubleSpinBoxCalibrationOffset->value());
   m_coms->SendSetParam(m_targetDeviceId,CPI_CalibrationOffset,calAngleRad);
 
 }
@@ -1099,8 +1108,7 @@ void MainWindow::on_pushButtonEmergencyStop_clicked()
 
 void MainWindow::on_doubleSpinBoxHomeIndexOffset_valueChanged(double arg1)
 {
-  float homeAngleRad = (arg1 * (M_PI * 2.0) / 360.0f);
-  m_coms->SendSetParam(m_targetDeviceId,CPI_homeIndexPosition,homeAngleRad);
+  m_coms->SendSetParam(m_targetDeviceId,CPI_homeIndexPosition,DogBotN::Deg2Rad(arg1));
 }
 
 void MainWindow::on_pushButtonQueryHomed_clicked()
@@ -1224,14 +1232,12 @@ void MainWindow::on_lineEditFanTempThreshold_editingFinished()
 
 void MainWindow::on_doubleSpinBoxEndStopStart_valueChanged(double arg1)
 {
-  float endStopAngleRad = (arg1 * (M_PI * 2.0) / 360.0f);
-  m_coms->SendSetParam(m_targetDeviceId,CPI_EndStopStart,endStopAngleRad);
+  m_coms->SendSetParam(m_targetDeviceId,CPI_EndStopStart,DogBotN::Deg2Rad(arg1));
 }
 
 void MainWindow::on_doubleSpinBoxEndStopEnd_valueChanged(double arg1)
 {
-  float endStopAngleRad = (arg1 * (M_PI * 2.0) / 360.0f);
-  m_coms->SendSetParam(m_targetDeviceId,CPI_EndStopFinal,endStopAngleRad);
+  m_coms->SendSetParam(m_targetDeviceId,CPI_EndStopFinal,DogBotN::Deg2Rad(arg1));
 }
 
 void MainWindow::on_checkBoxEndStopEnable_toggled(bool checked)
@@ -1358,4 +1364,14 @@ void MainWindow::on_pushButtonHomeAll_clicked()
     std::cerr << "Homing all done." << std::endl;
   });
   run.detach();
+}
+
+void MainWindow::on_pushButtonPhaseEndStops_clicked()
+{
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_EndStopPhaseAngles);
+}
+
+void MainWindow::on_doubleSpinBoxEndStopForce_valueChanged(double arg1)
+{
+  m_coms->SetParam(m_targetDeviceId,CPI_EndStopLimitBreakForce,(float) arg1);
 }

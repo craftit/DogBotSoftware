@@ -759,9 +759,9 @@ namespace DogBotN {
       homeIndexState = m_homeIndexState;
     }
 
-    float torqueLimit = 1.0; // Limit on torque to use while homing
-    float timeOut = 30.0;
-
+    float torqueLimit = 1.5; // Limit on torque to use while homing
+    float timeOut = 40.0;
+    int maxCycles = 5;
     HomeStateC homeState;
 
     // Already homed?
@@ -791,10 +791,10 @@ namespace DogBotN {
 
 
     CallbackHandleC cb = AddPositionRefUpdateCallback(
-        [this,torqueLimit,&done,&homed,&homeState,&currentIndexState,&targetPosition,&positiveVelocity,&cycles,&startTime]
+        [this,torqueLimit,&done,&homed,&homeState,&currentIndexState,&targetPosition,&positiveVelocity,&cycles,&startTime,maxCycles]
          (TimePointT theTime,double position,double velocity,double torque,enum PositionReferenceT positionRef)
         {
-          if(cycles > 4) { // Have we aborted?
+          if(cycles > maxCycles) { // Have we aborted?
             return ;
           }
           if(positionRef != PR_Relative || m_homedState == MHS_Homed) {
@@ -809,7 +809,7 @@ namespace DogBotN {
             // If it is true, it is time to change directions.
             if(currentIndexState) {
               cycles++;
-              if(cycles > 4) {
+              if(cycles > maxCycles) {
                 m_log->warn("Too many homing cycles, aborting.");
                 done.unlock();
                 return ;
@@ -852,7 +852,7 @@ namespace DogBotN {
             // Turn around and go the other way.
 
             cycles++;
-            if(cycles > 4) {
+            if(cycles > maxCycles) {
               m_log->warn("Too many homing cycles, aborting.");
               done.unlock();
               return ;

@@ -10,8 +10,6 @@ float g_homeAngleOffset = 0;      // Offset from phase position to actuator posi
 float g_motorPhase2RotationRatio = 7.0;
 float g_actuatorRatio = g_motorPhase2RotationRatio * 21.0; // Gear ratio
 
-float g_endStopMin = 0;    // Minimum angle
-float g_endStopMax = M_PI*2; // Maximum angle
 float g_absoluteMaxCurrent = 20.0; // Maximum torque allowed
 float g_uncalibratedCurrentLimit = 4.0; // Maximum torque allowed in un-calibrated mode.
 
@@ -20,9 +18,11 @@ bool g_haveIndexPositionSample[g_positionIndexCount];
 float g_measuredIndexPosition[g_positionIndexCount]; // Measured position
 float g_homeIndexPosition = 0;
 
+uint8_t g_motionTime = 0;
+
 enum MotionHomedStateT g_motionHomedState = MHS_Lost;
 enum PositionReferenceT g_motionPositionReference = PR_Absolute;
-enum ControlStateT g_controlState = CS_StartUp;
+enum ControlStateT g_controlState = CS_LowPower;
 enum FaultCodeT g_lastFaultCode = FC_Ok;
 enum JointRelativeT g_motionJointRelative = JR_Isolated;
 
@@ -32,6 +32,12 @@ bool g_newCalibrationData = false;
 uint8_t g_otherJointId = 0;
 float g_relativePositionGain = 1.0;
 float g_relativePositionOffset = 0.0;
+
+bool MotionSyncTime(void)
+{
+  g_motionTime = 0;
+  return true;
+}
 
 
 void MotionResetCalibration(enum MotionHomedStateT defaultCalibrationState) {
@@ -52,18 +58,19 @@ static int HomeIndexUpdateOffset(bool newState,bool velocityPositive)
   return (newState ? 1 : 0) + ((velocityPositive ? 2 : 0));
 }
 
-void MotionUpdateIndex(int num,bool state,float position,float velocity)
+void MotionUpdateIndex(bool state,float position,float velocity)
 {
-  if(g_motionHomedState != MHS_Lost) {
-    // FIXME:- Check we're moving with a velocity greater than
-    // a given value to avoid triggering off noise.
-    int entry = HomeIndexUpdateOffset(state,velocity > 0);
-    if(!g_haveIndexPositionSample[entry]) {
-      g_haveIndexPositionSample[entry] = true;
-    }
-    g_newCalibrationData = true;
-    g_measuredIndexPosition[entry] = position;
+  if(g_motionHomedState == MHS_Lost)
+    return ;
+
+  // FIXME:- Check we're moving with a velocity greater than
+  // a given value to avoid triggering off noise.
+  int entry = HomeIndexUpdateOffset(state,velocity > 0);
+  if(!g_haveIndexPositionSample[entry]) {
+    g_haveIndexPositionSample[entry] = true;
   }
+  g_newCalibrationData = true;
+  g_measuredIndexPosition[entry] = position;
 }
 
 bool MotionEstimateOffset(float &value)
@@ -121,10 +128,16 @@ static int16_t PhasePositionToDemand(float angle)
 
 void SetupEndStops()
 {
-  g_endStopPhaseStart = DemandToPhasePosition(g_endStopStart);
-  g_endStopPhaseEnd = DemandToPhasePosition(g_endStopEnd);
+  if(g_motionHomedState != MHS_Homed) {
+    g_endStopPhaseMin = 0;
+    g_endStopPhaseMax = 0;
+    g_endStopTargetAcceleration = -1; // Disable acceleration based end-stops for the moment.
+    return ;
+  }
+  g_endStopPhaseMin = g_endStopMin * g_actuatorRatio + g_homeAngleOffset;
+  g_endStopPhaseMax = g_endStopMax * g_actuatorRatio + g_homeAngleOffset;
   //g_endStopTargetAcceleration = g_endStopTargetBreakCurrent / g_jointInertia;
-  g_endStopTargetAcceleration = -1; // Disable acceleration based end-stops for the moment.
+  g_endStopTargetAcceleration = g_jointInertia;
 }
 
 void EnterHomedState()
@@ -138,29 +151,20 @@ void EnterHomedState()
 
 bool UpdateRequestedPosition()
 {
-  float posf = DemandToPhasePosition(g_requestedJointPosition);
-
   enum PWMControlDynamicT mode = static_cast<enum PWMControlDynamicT>(g_requestedJointMode >> 2);
   switch(mode)
   {
-    default:
     case CM_Position:
       {
+        float positionAsPhaseAngle = DemandToPhasePosition(g_requestedJointPosition);
+
         if((g_requestedJointMode & 0x1) != 0) { // Calibrated position ?
+          // Yes we're dealing with a calibrated position request,
+          // this can only be processed if we're homed.
           if(g_motionHomedState != MHS_Homed) return false;
-
-          // Check end stops.
-          if(g_endStopEnable) {
-            if(posf < g_endStopStart)
-              posf = g_endStopStart;
-            if(posf > g_endStopEnd)
-              posf = g_endStopEnd;
-          }
-
-          posf += g_homeAngleOffset;
+          positionAsPhaseAngle += g_homeAngleOffset;
         }
-
-        if((g_motionPositionReference & 0x2) != 0) { // relative position ?
+        if((g_motionPositionReference & 0x2) != 0) { // Relative position to another joint?
           // If we want a calibrated position and the other joint is uncalibrated then
           // give up.
           if((g_otherJointMode & 0x1) == 0
@@ -169,14 +173,28 @@ bool UpdateRequestedPosition()
           }
           g_otherPhaseOffset = DemandToPhasePosition(g_otherJointPosition)
               * g_relativePositionGain + g_relativePositionOffset;
-          posf += g_otherPhaseOffset;
+          positionAsPhaseAngle += g_otherPhaseOffset;
         }
-        g_demandPhasePosition = posf;
+
+        // Check the demand position doesn't leave the soft end stops. The soft end stops are only
+        // relative to the local homed position.
+        if(g_motionHomedState == MHS_Homed && g_endStopEnable) {
+          // Check end stops.
+          if(positionAsPhaseAngle < g_endStopPhaseMin)
+            positionAsPhaseAngle = g_endStopPhaseMin;
+          if(positionAsPhaseAngle > g_endStopPhaseMax)
+            positionAsPhaseAngle = g_endStopPhaseMax;
+        }
+
+        g_demandPhasePosition = positionAsPhaseAngle;
       }
       break;
     case CM_Velocity:
+      // Uck!
       g_demandPhaseVelocity = PhasePositionToDemand(g_requestedJointPosition);
       break;
+    default:
+      FaultDetected(FC_InvalidCommand);
       break;
   }
   return true;
@@ -192,8 +210,12 @@ bool MotionSetPosition(uint8_t mode,int16_t position,uint16_t torqueLimit)
   return UpdateRequestedPosition();
 }
 
-bool MotionOtherJointUpdate(int16_t position,int16_t torque,uint8_t mode)
+bool MotionOtherJointUpdate(int16_t position,int16_t torque,uint8_t mode,uint8_t timestamp)
 {
+  // The following are not used at the moment.
+  (void) timestamp;
+  (void) torque;
+
   g_otherJointPosition = position;
   g_otherJointMode = mode;
   if((g_motionPositionReference & 0x2) != 0)
@@ -202,7 +224,7 @@ bool MotionOtherJointUpdate(int16_t position,int16_t torque,uint8_t mode)
 }
 
 
-bool MotionReport(int16_t position,int16_t torque,PositionReferenceT posRef)
+bool MotionReport(int16_t position,int16_t torque,PositionReferenceT posRef,uint8_t timestamp)
 {
   uint8_t mode = posRef & 0x3;
   if(g_safetyMode == SM_MasterEmergencyStop) {
@@ -213,7 +235,6 @@ bool MotionReport(int16_t position,int16_t torque,PositionReferenceT posRef)
       mode |= 1<<7;
     }
   }
-  EmergencyStopTick();
   // Report endstop switch.
   if(palReadPad(GPIOC, GPIOC_PIN8))
     mode |= 1 << 3;
@@ -225,10 +246,11 @@ bool MotionReport(int16_t position,int16_t torque,PositionReferenceT posRef)
     servo.m_mode = mode;
     servo.m_position = position;
     servo.m_torque = torque;
+    servo.m_timestamp = timestamp;
     USBSendPacket(reinterpret_cast<uint8_t *>(&servo),sizeof(PacketServoReportC));
   }
   if(g_deviceId != 0) {
-    CANSendServoReport(g_deviceId,position,torque,mode);
+    CANSendServoReport(g_deviceId,position,torque,mode,timestamp);
   }
   return true;
 }
@@ -264,6 +286,9 @@ void MotionStep()
 {
 #if 1
   int16_t torque = g_torqueAverage * (32767.0/g_absoluteMaxCurrent);
+
+  g_motionTime++;
+  EmergencyStopTick();
 
   // Should we
   switch(g_motionHomedState)
@@ -318,13 +343,13 @@ void MotionStep()
       if(g_motionJointRelative == JR_Offset)
         position -= g_otherPhaseOffset;
       int16_t reportPosition = PhasePositionToDemand(position);
-      MotionReport(reportPosition,torque,posRef);
+      MotionReport(reportPosition,torque,posRef,g_motionTime);
     } break;
     case PR_Relative: {
       if(g_motionJointRelative == JR_Offset)
         position -= g_otherPhaseOffset;
       uint16_t reportPosition = PhasePositionToDemand(position);
-      MotionReport(reportPosition,torque,posRef);
+      MotionReport(reportPosition,torque,posRef,g_motionTime);
     } break;
   }
 #endif
@@ -364,9 +389,9 @@ enum FaultCodeT LoadSetup(void) {
 
   g_jointRole = g_storedConfig.m_jointRole;
   g_endStopEnable = g_storedConfig.m_endStopEnable;
-  g_endStopStart = g_storedConfig.m_endStopStart;
+  g_endStopMin = g_storedConfig.m_endStopMin;
   g_endStopStartBounce = g_storedConfig.m_endStopStartBounce;
-  g_endStopEnd = g_storedConfig.m_endStopEnd;
+  g_endStopMax = g_storedConfig.m_endStopMax;
   g_endStopEndBounce = g_storedConfig.m_endStopEndBounce;
   g_endStopTargetBreakCurrent = g_storedConfig.m_endStopTargetBreakCurrent;
   g_endStopMaxBreakCurrent = g_storedConfig.m_endStopMaxBreakCurrent;
@@ -407,9 +432,9 @@ enum FaultCodeT SaveSetup(void) {
 
   g_storedConfig.m_jointRole = g_jointRole;
   g_storedConfig.m_endStopEnable = g_endStopEnable;
-  g_storedConfig.m_endStopStart = g_endStopStart;
+  g_storedConfig.m_endStopMin = g_endStopMin;
   g_storedConfig.m_endStopStartBounce = g_endStopStartBounce;
-  g_storedConfig.m_endStopEnd = g_endStopEnd;
+  g_storedConfig.m_endStopMax = g_endStopMax;
   g_storedConfig.m_endStopEndBounce = g_endStopEndBounce;
   g_storedConfig.m_endStopTargetBreakCurrent = g_endStopTargetBreakCurrent;
   g_storedConfig.m_endStopMaxBreakCurrent = g_endStopMaxBreakCurrent;

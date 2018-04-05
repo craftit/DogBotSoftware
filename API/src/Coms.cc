@@ -329,11 +329,12 @@ namespace DogBotN
 
 
   //! Send a move command
-  void ComsC::SendPing(int deviceId)
+  void ComsC::SendPing(int deviceId,int payload)
   {
     PacketPingPongC pkt;
     pkt.m_packetType = CPT_Ping;
     pkt.m_deviceId = deviceId;
+    pkt.m_payload = payload;
     SendPacket((uint8_t *)&pkt,sizeof(pkt));
   }
 

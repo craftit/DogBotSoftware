@@ -159,7 +159,7 @@ namespace DogBotN {
     void SendSync();
 
     //! Send a ping
-    void SendPing(int deviceId);
+    void SendPing(int deviceId,int payload = 0);
 
     //! Send an enable bridge mode
     void SendEnableBridge(bool enable);

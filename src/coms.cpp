@@ -26,11 +26,12 @@ bool USBSendSync(void)
   return USBSendPacket(buff,at);
 }
 
-bool USBSendPing(uint8_t deviceId)
+bool USBSendPing(uint8_t deviceId,uint16_t payload)
 {
   PacketPingPongC pkt;
   pkt.m_packetType = CPT_Ping;
   pkt.m_deviceId = deviceId;
+  pkt.m_payload = payload;
   return USBSendPacket((uint8_t *) &pkt,sizeof(struct PacketPingPongC));
 }
 
@@ -155,15 +156,16 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
     const PacketPingPongC *pkt = (const PacketPingPongC *) m_data;
     if(pkt->m_deviceId == g_deviceId || pkt->m_deviceId == 0) {
       // If it is for this node, just reply
-      PacketPingPongC pkt;
-      pkt.m_packetType = CPT_Pong;
-      pkt.m_deviceId = g_deviceId;
-      USBSendPacket((uint8_t *) &pkt,sizeof(struct PacketPingPongC));
+      PacketPingPongC replyPkt;
+      replyPkt.m_packetType = CPT_Pong;
+      replyPkt.m_deviceId = g_deviceId;
+      replyPkt.m_payload = pkt->m_payload;
+      USBSendPacket((uint8_t *) &replyPkt,sizeof(struct PacketPingPongC));
     }
     if((pkt->m_deviceId != g_deviceId || pkt->m_deviceId == 0) && g_deviceId != 0) {
       // In bridge mode forward this to the CAN bus
       if(g_canBridgeMode) {
-        CANPing(CPT_Ping,pkt->m_deviceId);
+        CANPing(CPT_Ping,pkt->m_deviceId,pkt->m_payload);
       }
     }
   } break;
@@ -176,7 +178,7 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
     g_canBridgeMode = psp->m_enable;
   } break;
   case CPT_Pong: break; // Ping reply.
-  case CPT_Sync: break; // Sync.
+  case CPT_Sync: // Sync communications.
   case CPT_Error: break; // Error.
   case CPT_ReportParam: break;
   case CPT_PWMState: break; // Error.
@@ -321,10 +323,13 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
 
   } break;
   case CPT_SyncTime:
-    // Unsupported yet.
-    USBSendError(g_deviceId,CET_UnknownPacketType,m_data[0],m_packetLen);
+    if(g_canBridgeMode) {
+      MotionSyncTime();
+      if(!CANSyncTime()) {
+        USBSendError(g_deviceId,CET_CANTransmitFailed,CPT_SyncTime,0);
+      }
+    }
     break;
-
   case CPT_FlashCmdReset: { // Status from a flash command
     if(m_packetLen != sizeof(struct PacketFlashResetC)) {
       USBSendError(g_deviceId,CET_UnexpectedPacketSize,cpt,m_packetLen);

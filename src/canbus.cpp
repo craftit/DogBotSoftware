@@ -65,7 +65,8 @@ bool CANSendServoReport(
     uint8_t deviceId,
     int16_t position,
     int16_t torque,
-    uint8_t state
+    uint8_t state,
+    uint8_t timeStamp
     )
 {
   CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
@@ -77,6 +78,7 @@ bool CANSendServoReport(
   txmsg->data16[0] = position;
   txmsg->data16[1] = torque;
   txmsg->data8[4] = state;
+  txmsg->data8[5] = timeStamp;
   return g_txCANQueue.PostFullPacket(txmsg);
 }
 
@@ -114,9 +116,22 @@ bool CANEmergencyStop()
   return g_txCANQueue.PostFullPacket(txmsg);
 }
 
+bool CANSyncTime()
+{
+  CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
+  if(txmsg == 0)
+    return false;
+  enum ComsPacketTypeT pktType = CPT_SyncTime;
+  CANSetAddress(txmsg,0,pktType);
+  txmsg->RTR = CAN_RTR_DATA;
+  txmsg->DLC = 0;
+  return g_txCANQueue.PostFullPacket(txmsg);
+}
+
 bool CANPing(
     enum ComsPacketTypeT pktType, // Must be either ping or pong
-    uint8_t deviceId
+    uint8_t deviceId,
+    uint16_t payload
     )
 {
   if(pktType != CPT_Pong && pktType != CPT_Ping)
@@ -127,7 +142,8 @@ bool CANPing(
     return false;
   CANSetAddress(txmsg,deviceId,pktType);
   txmsg->RTR = CAN_RTR_DATA;
-  txmsg->DLC = 0;
+  txmsg->DLC = 2;
+  txmsg->data16[0] = payload;
   return g_txCANQueue.PostFullPacket(txmsg);
 }
 

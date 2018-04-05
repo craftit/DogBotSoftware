@@ -172,6 +172,10 @@ private slots:
 
   void on_pushButtonHomeAll_clicked();
 
+  void on_pushButtonPhaseEndStops_clicked();
+
+  void on_doubleSpinBoxEndStopForce_valueChanged(double arg1);
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);

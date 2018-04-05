@@ -45,6 +45,7 @@ namespace DogBotN {
     case FC_FanOverCurrent:return "Fan over current";
     case FC_MotorOverTemperature: return "Motor Over Temperature";
     case FC_SensorOverCurrent:return "Sensor over current";
+    case FC_InvalidCommand:return "Invalid command";
     }
 
     printf("Invalid fault code %d \n", (int) faultCode);

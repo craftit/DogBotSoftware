@@ -40,11 +40,14 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
     } break;
     case CPT_Ping: { // Ping request
       if(g_deviceId == rxDeviceId || rxDeviceId == 0) {
-        if(rxmsg.DLC != 0) {
+        if(rxmsg.DLC == 0) {
+          // Compatibility method.
+          CANPing(CPT_Pong,g_deviceId,0);
+        } else  if(rxmsg.DLC == 2) {
+          CANPing(CPT_Pong,g_deviceId,rxmsg.data16[0]);
+        } else {
           CANReportPacketSizeError(msgType,rxmsg.DLC);
-          break;
         }
-        CANPing(CPT_Pong,g_deviceId);
       }
     } break;
     case CPT_Pong: {
@@ -56,6 +59,7 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
         struct PacketPingPongC pkt;
         pkt.m_packetType = CPT_Pong;
         pkt.m_deviceId = rxDeviceId;
+        pkt.m_payload = rxmsg.data16[0];
         USBSendPacket((uint8_t *) &pkt,sizeof(struct PacketPingPongC));
       }
     } break;
@@ -175,11 +179,11 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
       if(rxDeviceId == g_otherJointId &&
           g_otherJointId != 0 &&
           g_otherJointId != g_deviceId &&
-          rxmsg.DLC == 5) {
-        MotionOtherJointUpdate(rxmsg.data16[0],rxmsg.data16[1],rxmsg.data8[4]);
+          rxmsg.DLC == 6) {
+        MotionOtherJointUpdate(rxmsg.data16[0],rxmsg.data16[1],rxmsg.data8[4],rxmsg.data8[5]);
       }
       if(g_canBridgeMode) {
-        if(rxmsg.DLC != 5) {
+        if(rxmsg.DLC != 6) {
           USBSendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_ServoReport,rxmsg.DLC);
           break;
         }
@@ -189,6 +193,7 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
         pkt.m_position = rxmsg.data16[0];
         pkt.m_torque = rxmsg.data16[1];
         pkt.m_mode = rxmsg.data8[4];
+        pkt.m_timestamp = rxmsg.data8[5];
         USBSendPacket((uint8_t *) &pkt,sizeof(struct PacketServoReportC));
       }
       break;
@@ -245,8 +250,7 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
       CANSendError(CET_InternalError,CPT_BridgeMode,0);
     } break;
     case CPT_SyncTime: {
-      // Not implemented yet.
-      CANSendError(CET_NotImplemented,CPT_SyncTime,0);
+      MotionSyncTime();
     } break;
     case CPT_FlashCmdResult: // Status from a flash command
       if(g_canBridgeMode) {
