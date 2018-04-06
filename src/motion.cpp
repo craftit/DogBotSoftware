@@ -193,6 +193,10 @@ bool UpdateRequestedPosition()
       // Uck!
       g_demandPhaseVelocity = PhasePositionToDemand(g_requestedJointPosition);
       break;
+    case CM_Torque:
+      g_demandTorque = (((float)g_requestedJointPosition) * g_absoluteMaxCurrent) / 32767.0f;
+      //g_
+      break;
     default:
       FaultDetected(FC_InvalidCommand);
       break;
@@ -204,7 +208,16 @@ bool UpdateRequestedPosition()
 bool MotionSetPosition(uint8_t mode,int16_t position,uint16_t torqueLimit)
 {
   g_requestedJointMode = mode;
-  g_currentLimit = ((float) torqueLimit) * g_absoluteMaxCurrent / (65536.0);
+  float newCurrentLimit = ((float) torqueLimit) * g_absoluteMaxCurrent / (65536.0);
+
+  // If we're not homed put a limit on the maximum current we'll accept.
+  if(g_motionHomedState != MHS_Homed) {
+    if(newCurrentLimit > g_uncalibratedCurrentLimit) {
+      newCurrentLimit = g_uncalibratedCurrentLimit;
+    }
+  }
+
+  g_currentLimit = newCurrentLimit;
   g_requestedJointPosition = position;
 
   return UpdateRequestedPosition();
@@ -226,18 +239,31 @@ bool MotionOtherJointUpdate(int16_t position,int16_t torque,uint8_t mode,uint8_t
 
 bool MotionReport(int16_t position,int16_t torque,PositionReferenceT posRef,uint8_t timestamp)
 {
-  uint8_t mode = posRef & 0x3;
+  uint8_t mode = posRef & DOGBOT_SERVOREPORTMODE_POSITIONREF;
   if(g_safetyMode == SM_MasterEmergencyStop) {
     if(!IsEmergencyStopButtonSetToSafe()) {
       ChangeControlState(CS_EmergencyStop,SCS_Internal);
     } else {
       // Set safe flag.
-      mode |= 1<<7;
+      mode |= DOGBOT_SERVOREPORTMODE_EMERGENCYSTOP;
     }
   }
+  if(g_hitLimitVelocity) {
+    g_hitLimitVelocity = false;
+    mode |= DOGBOT_SERVOREPORTMODE_LIMITVELOCITY;
+  }
+  if(g_hitLimitTorque) {
+    g_hitLimitTorque = false;
+    mode |= DOGBOT_SERVOREPORTMODE_LIMITTORQUE;
+  }
+  if(g_hitLimitPosition) {
+    g_hitLimitPosition = false;
+    mode |= DOGBOT_SERVOREPORTMODE_LIMITPOSITION;
+  }
+
   // Report endstop switch.
   if(palReadPad(GPIOC, GPIOC_PIN8))
-    mode |= 1 << 3;
+    mode |= DOGBOT_SERVOREPORTMODE_INDEXSENSOR;
 
   if(g_canBridgeMode) {
     PacketServoReportC servo;

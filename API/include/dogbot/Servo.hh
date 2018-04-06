@@ -210,6 +210,10 @@ namespace DogBotN {
     { return m_positionRefCallbacks.Add(callback); }
 
   protected:
+    //! Convert a report value to a torque
+    float TorqueReport2Current(int16_t val)
+    { return ((float) val * m_maxCurrent)/ 32767.0; }
+
     //! Move joint until we see an index state change.
     //! This always works in relative coordinates.
     JointMoveStatusT MoveUntilIndexChange(
@@ -304,6 +308,7 @@ namespace DogBotN {
     float m_motorKv = 260; //! < Motor speed constant
     float m_gearRatio = 21.0; //!< Gearbox ratio
     float m_servoKt = 0;   //! < Servo torque constant
+    float m_maxCurrent = 20.0;
     float m_velocityLimit = 0;
     float m_currentLimit = 0;
     float m_positionPGain = 0;

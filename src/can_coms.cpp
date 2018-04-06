@@ -52,7 +52,7 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
     } break;
     case CPT_Pong: {
       if(g_canBridgeMode) {
-        if(rxmsg.DLC != 0) {
+        if(rxmsg.DLC != 2) {
           CANReportPacketSizeError(msgType,rxmsg.DLC);
           break;
         }
@@ -203,7 +203,7 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
           CANReportPacketSizeError(msgType,rxmsg.DLC);
           break;
         }
-        uint16_t position = rxmsg.data16[0];
+        int16_t position = (int16_t) rxmsg.data16[0];
         uint16_t torque = rxmsg.data16[1];
         uint8_t mode = rxmsg.data8[4];
         MotionSetPosition(mode,position,torque);

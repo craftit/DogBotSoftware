@@ -309,7 +309,7 @@ namespace DogBotN {
       m_positionRef = (enum PositionReferenceT) (report.m_mode & 0x3);
       m_homeIndexState = (report.m_mode & 0x8) != 0;
       m_position = newPosition;
-      m_torque =  ComsC::TorqueReport2Current(report.m_torque) * m_servoKt;
+      m_torque =  TorqueReport2Current(report.m_torque) * m_servoKt;
       m_reportedMode = report.m_mode;
 
       // End block, and unlock m_mutexState.
@@ -482,6 +482,11 @@ namespace DogBotN {
       ret = homeIndexState != m_homeIndexState;
       m_homeIndexState = homeIndexState;
     } break;
+    case CPI_MaxCurrent: {
+      float maxCurrent = pkt.m_data.float32[0];
+      ret = (maxCurrent != m_maxCurrent);
+      m_maxCurrent = maxCurrent;
+    } break;
     default:
       break;
     }
@@ -606,7 +611,7 @@ namespace DogBotN {
   //! Update torque for the servo.
   bool ServoC::DemandTorque(float torque)
   {
-    float current = torque / m_servoKt;
+    float current = torque / (m_maxCurrent* m_servoKt);
     m_coms->SendTorque(m_id,current);
     return true;
   }
@@ -614,7 +619,7 @@ namespace DogBotN {
   //! Demand a position for the servo, torque limit is in Newton-meters
   bool ServoC::DemandPosition(float position,float torqueLimit,enum PositionReferenceT positionRef)
   {
-    float currentLimit = torqueLimit / m_servoKt;
+    float currentLimit = torqueLimit / (m_maxCurrent* m_servoKt);
     m_coms->SendMoveWithEffort(m_id,position,currentLimit,positionRef);
     return true;
   }
@@ -759,7 +764,7 @@ namespace DogBotN {
       homeIndexState = m_homeIndexState;
     }
 
-    float torqueLimit = 1.5; // Limit on torque to use while homing
+    float torqueLimit = 3; // Limit on torque to use while homing
     float timeOut = 40.0;
     int maxCycles = 5;
     HomeStateC homeState;

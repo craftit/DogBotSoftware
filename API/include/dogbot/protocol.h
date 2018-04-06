@@ -402,6 +402,13 @@ extern "C" {
     uint16_t m_torqueLimit;
   } __attribute__((packed));
 
+#define DOGBOT_SERVOREPORTMODE_EMERGENCYSTOP (1u<<7)
+#define DOGBOT_SERVOREPORTMODE_LIMITVELOCITY (1u<<6)
+#define DOGBOT_SERVOREPORTMODE_LIMITTORQUE   (1u<<5)
+#define DOGBOT_SERVOREPORTMODE_LIMITPOSITION (1u<<4)
+#define DOGBOT_SERVOREPORTMODE_INDEXSENSOR   (1u<<3)
+#define DOGBOT_SERVOREPORTMODE_POSITIONREF   (0x3u)
+
   struct PacketServoReportC {
     uint8_t m_packetType; // CPT_ServoReport
     uint8_t m_deviceId;

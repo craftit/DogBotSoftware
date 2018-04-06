@@ -92,7 +92,7 @@ bool StoredConf_Load(struct StoredConfigT *conf)
     conf->m_endStopStartBounce = 0;
     conf->m_endStopMax = 0;
     conf->m_endStopEndBounce = 0;
-    conf->m_endStopTargetBreakCurrent = 0;
+    conf->m_endStopTargetBreakCurrent = 3.0;
     conf->m_endStopMaxBreakCurrent = 0;
     conf->m_jointInertia = 0.0;
 

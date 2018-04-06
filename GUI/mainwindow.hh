@@ -246,6 +246,7 @@ private:
 
   float m_servoAngle = 0;
   float m_servoTorque = 0;
+  float m_maxCurrent = 20.0;
   enum PositionReferenceT m_servoRef = PR_Relative;
   enum PWMControlDynamicT m_controlMode = CM_Off;
   ServoTable *m_servoTable = 0;

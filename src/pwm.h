@@ -56,6 +56,10 @@ extern uint16_t g_hall[3];
 extern int g_adcInjCount;
 extern int g_pwmTimeoutCount ;
 
+extern bool g_hitLimitVelocity;
+extern bool g_hitLimitTorque;
+extern bool g_hitLimitPosition;
+
 extern volatile bool g_pwmRun;
 extern bool g_pwmThreadRunning;
 extern bool g_pwmFullReport; //! If true generate messages detailing PWM state.

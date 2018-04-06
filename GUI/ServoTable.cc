@@ -245,14 +245,24 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
     case ColumnFlags:
       if(servo != 0) {
         QString ret;
-        uint8_t val =  servo->IndexState();
-        if(val & 8) {
-          ret += "1";
+        uint8_t val = servo->IndexState();
+
+        if(val & DOGBOT_SERVOREPORTMODE_INDEXSENSOR) {
+          ret += "I1";
         } else {
-          ret += "0";
+          ret += "I0";
         }
-        if(val & 128) {
+        if(val & DOGBOT_SERVOREPORTMODE_EMERGENCYSTOP) {
           ret += " ES";
+        }
+        if(val & DOGBOT_SERVOREPORTMODE_LIMITVELOCITY) {
+          ret += " VL";
+        }
+        if(val & DOGBOT_SERVOREPORTMODE_LIMITTORQUE) {
+          ret += " TL";
+        }
+        if(val & DOGBOT_SERVOREPORTMODE_LIMITPOSITION) {
+          ret += " PL";
         }
         return ret;
       }
@@ -326,10 +336,19 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
       if(servo->SupplyVoltage() > 40.0)
         return QColor(Qt::red);
       return QColor(Qt::white);
+    case ColumnTorque:
+      // Have we hit a limit ?
+      if(servo->IndexState() &
+         (DOGBOT_SERVOREPORTMODE_LIMITVELOCITY |
+          DOGBOT_SERVOREPORTMODE_LIMITTORQUE |
+          DOGBOT_SERVOREPORTMODE_LIMITPOSITION))
+         return QColor(Qt::red);
+      if(servo->FaultCode() == FC_Unknown)
+        return QColor(Qt::yellow);
+      return QColor(Qt::white);
     case ColumnFlags:
     case ColumnAngle:
     case ColumnSpeed:
-    case ColumnTorque:
     case ColumnMode:
     case ColumnDynamic:
       if(servo->FaultCode() == FC_Unknown)

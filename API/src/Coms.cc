@@ -261,8 +261,8 @@ namespace DogBotN
     servoPkt.m_deviceId = deviceId;
     servoPkt.m_position = pos * 32767.0 / (4.0 * M_PI);
     if(effort < 0) effort = 0;
-    if(effort > 10.0) effort = 10.0;
-    servoPkt.m_torqueLimit = effort * 65535.0 / (10.0);
+    if(effort > 1.0) effort = 1.0;
+    servoPkt.m_torqueLimit = effort * 65535.0;
     servoPkt.m_mode = ((int) posRef) | (((int) CM_Position) << 2);
 
     SendPacket((uint8_t *)&servoPkt,sizeof servoPkt);
@@ -277,8 +277,8 @@ namespace DogBotN
     servoPkt.m_deviceId = deviceId;
     servoPkt.m_position = velocity * 32767.0 / (4.0 * M_PI);
     if(effort < 0) effort = 0;
-    if(effort > 10.0) effort = 10.0;
-    servoPkt.m_torqueLimit = effort * 65535.0 / (10.0);
+    if(effort > 1.0) effort = 1.0;
+    servoPkt.m_torqueLimit = effort * 65535.0;
     servoPkt.m_mode = (((int) CM_Velocity) << 2);
 
     SendPacket((uint8_t *)&servoPkt,sizeof servoPkt);
@@ -290,10 +290,11 @@ namespace DogBotN
     struct PacketServoC servoPkt;
     servoPkt.m_packetType = CPT_Servo;
     servoPkt.m_deviceId = deviceId;
-    if(torque > 10) torque = 10;
-    if(torque < -10) torque = -10;
-    servoPkt.m_position = torque * 32767.0 / (10.0);
+    if(torque > 1) torque = 1;
+    if(torque < -1) torque = -1;
+    servoPkt.m_position = torque * 32767.0;
     servoPkt.m_mode = (((int) CM_Torque) << 2);
+    servoPkt.m_torqueLimit = 65535;
 
     SendPacket((uint8_t *)&servoPkt,sizeof servoPkt);
 

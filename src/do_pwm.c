@@ -60,6 +60,10 @@ bool g_pwmFullReport = false;
 bool g_motorControlLoopReady = true;
 bool g_lastLimitState = false;
 
+bool g_hitLimitVelocity = false;
+bool g_hitLimitTorque = false;
+bool g_hitLimitPosition = false;
+
 float g_current_control_integral_d = 0;
 float g_current_control_integral_q = 0;
 
@@ -112,8 +116,9 @@ void ShuntCalibration(void)
   float ampGain = 40.0; // V/V gain
   float shuntResistance = 0.001;
 
-  // 90% of half the range of possible values.
-  g_maxCurrentSense = (3.3 * 0.5 * 0.9) / (ampGain/shuntResistance);
+  // 95% of half the range of possible values.
+  g_maxCurrentSense = (3.3 * 0.5 * 0.95) / (ampGain/shuntResistance);
+  SendParamUpdate(CPI_MaxCurrent);
 
   Drv8503SetRegister(DRV8503_REG_SHUNT_AMPLIFIER_CONTROL,
       DRV8503_DC_CAL_CH1 |
@@ -385,18 +390,28 @@ static void ComputeState(void)
 static void SetCurrent(float current)
 {
 
-  if(current > g_currentLimit)
+  if(current > g_currentLimit) {
+    g_hitLimitTorque = true;
     current = g_currentLimit;
-  if(current < -g_currentLimit)
+  }
+  if(current < -g_currentLimit) {
+    g_hitLimitTorque = true;
     current = -g_currentLimit;
+  }
 
   //g_torqueAverage = (g_torqueAverage * 30.0 + torque)/31.0;
   FOC_current(g_phaseAngle,0,current);
 }
 
+static float max(float v1,float v2)
+{ return v1 > v2 ? v1 : v2; }
+
+static float min(float v1,float v2)
+{ return v1 < v2 ? v1 : v2; }
+
 // Check endstop limits, return true if everything is ok.
 
-static bool MotorCheckEndStop(void)
+static bool MotorCheckEndStop(float demandCurrent)
 {
   // Check virtual end stops.
 
@@ -405,18 +420,24 @@ static bool MotorCheckEndStop(void)
     return true;
   }
 
-  if(g_currentPhaseVelocity < 0) {
-    if(g_currentPhasePosition < g_endStopPhaseMin) {
-      float current = g_endStopTargetBreakCurrent;
-      // Set current directly to bypass limit
-      FOC_current(g_phaseAngle,0,current);
+  // We could do something fancy here, but it is better to keep it simple to reduce the chance of unexpected behaviour.
+  if(g_currentPhasePosition < g_endStopPhaseMin) {
+    g_hitLimitPosition = true;
+    if(g_currentPhaseVelocity < 0) {
+      if(demandCurrent > g_currentLimit)  // If we're using the demand, respect the currentLimit
+        demandCurrent = g_currentLimit;
+      // Set current directly to bypass limits, if limit is less than the breaking current.
+      FOC_current(g_phaseAngle,0,max(g_endStopTargetBreakCurrent,demandCurrent));
       return false;
     }
-  } else {
-    if(g_currentPhasePosition > g_endStopPhaseMax) {
-      float current = g_endStopTargetBreakCurrent;
-      // Set current directly to bypass limit
-      FOC_current(g_phaseAngle,0,-current);
+  }
+  if(g_currentPhasePosition > g_endStopPhaseMax) {
+    g_hitLimitPosition = true;
+    if(g_currentPhaseVelocity > 0) {
+      if(demandCurrent < -g_currentLimit) // If we're using the demand, respect the currentLimit
+        demandCurrent = -g_currentLimit;
+      // Set current directly to bypass limits, if limit is less than the breaking current.
+      FOC_current(g_phaseAngle,0,min(-g_endStopTargetBreakCurrent,demandCurrent));
       return false;
     }
   }
@@ -440,7 +461,7 @@ static void MotorControlLoop(void)
 
     ComputeState();
 
-    if(!palReadPad(GPIOC, GPIOC_PIN15)) { // Fault pin
+    if(!palReadPad(GPIOC, GPIOC_PIN15)) { // Check the fault pin
       faultTimer++;
       if(faultTimer > 1) {
         SetMotorControlMode(CM_Brake);
@@ -492,20 +513,17 @@ static void MotorControlLoop(void)
         float positionError = (targetPosition - g_currentPhasePosition);
         float targetVelocity =  positionError * g_positionGain;
 
+        g_demandPhaseVelocity = targetVelocity;
+      }
+      // no break
+      case CM_Velocity: {
+        float targetVelocity = g_demandPhaseVelocity;
         if(targetVelocity > g_velocityLimit)
           targetVelocity = g_velocityLimit;
         if(targetVelocity < -g_velocityLimit)
           targetVelocity = -g_velocityLimit;
 
-        g_demandPhaseVelocity = targetVelocity;
-      }
-      // no break
-      case CM_Velocity: {
-
-        if(!MotorCheckEndStop())
-          break;
-
-        float err = g_demandPhaseVelocity - g_currentPhaseVelocity;
+        float err = targetVelocity - g_currentPhaseVelocity;
 
         // Add a small deadzone.  This reduces noise and small oscillations
         // coupled through from the sensors
@@ -530,13 +548,54 @@ static void MotorControlLoop(void)
 
         demandCurrent = err * g_velocityPGain + g_velocityISum;
 
+        if(!MotorCheckEndStop(demandCurrent))
+          break;
+
         SetCurrent(demandCurrent);
 
       } break;
       case CM_Torque: {
-        if(!MotorCheckEndStop())
+        if(!MotorCheckEndStop(demandCurrent))
           break;
-        SetCurrent(demandCurrent);
+
+        if(demandCurrent > g_currentLimit) {
+          g_hitLimitTorque = true;
+          demandCurrent = g_currentLimit;
+        }
+        if(demandCurrent < -g_currentLimit) {
+          g_hitLimitTorque = true;
+          demandCurrent = -g_currentLimit;
+        }
+
+        // Enforce the the velocity limit.
+        if(g_currentPhaseVelocity > g_velocityLimit) {
+          g_hitLimitVelocity = true;
+          float breakingForce = (1.0 - (g_currentPhaseVelocity / g_velocityLimit)) * g_endStopTargetBreakCurrent;
+          if(breakingForce > g_endStopTargetBreakCurrent)
+            breakingForce = g_endStopTargetBreakCurrent;
+          // If the user is requesting more current to slow down don't argue
+          if(demandCurrent > breakingForce) {
+            breakingForce =  demandCurrent;
+          }
+          // Set current directly to bypass any limits set by user
+          FOC_current(g_phaseAngle,0,breakingForce);
+          break;
+        }
+        if(g_currentPhaseVelocity < -g_velocityLimit) {
+          g_hitLimitVelocity = true;
+          float breakingForce = (1.0 + (g_currentPhaseVelocity / g_velocityLimit)) * g_endStopTargetBreakCurrent;
+          if(breakingForce < -g_endStopTargetBreakCurrent)
+            breakingForce = -g_endStopTargetBreakCurrent;
+          // If the user is requesting more current to slow down don't argue
+          if(demandCurrent < breakingForce) {
+            breakingForce =  demandCurrent;
+          }
+          // Set current directly to bypass any limits set by user
+          FOC_current(g_phaseAngle,0,breakingForce);
+          break;
+        }
+
+        FOC_current(g_phaseAngle,0,demandCurrent);
       } break;
     }
 

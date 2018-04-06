@@ -457,6 +457,13 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
         );
     displayStr += buff;
   } break;
+  case CPI_MaxCurrent: {
+    if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      m_maxCurrent = psp->m_data.float32[0];
+    }
+    sprintf(buff,"\n Device %d, Max Current %f ",psp->m_header.m_deviceId,psp->m_data.float32[0]);
+    displayStr += buff;
+  } break;
   default:
     break;
   }
@@ -496,6 +503,9 @@ void MainWindow::LocalProcessParam(PacketParam8ByteC psp)
     std::cout << "Setting safty mode to " << DogBotN::SafetyModeToString((enum SafetyModeT) psp.m_data.uint8[0]) << std::endl;
     ui->comboBoxSafetyMode->setCurrentText(QString(DogBotN::SafetyModeToString((enum SafetyModeT) psp.m_data.uint8[0])));
     break;
+  case CPI_MaxCurrent: {
+    ui->lineEditMaxCurrent->setText(QString::number(psp.m_data.float32[0]));
+  } break;
   default:
     break;
   }
@@ -641,7 +651,7 @@ void MainWindow::SetupComs()
     const PacketServoReportC *pkt = (const PacketServoReportC *) data;
     if(pkt->m_deviceId == m_targetDeviceId) {
       m_servoAngle = m_coms->PositionReport2Angle(pkt->m_position);
-      m_servoTorque = m_coms->TorqueReport2Current(pkt->m_torque);
+      m_servoTorque = ((float) pkt->m_torque * m_maxCurrent / 32767.0);
       m_servoRef = (enum PositionReferenceT) (pkt->m_mode & 0x3);
 
       if(m_updatePositionFromController) {
@@ -808,6 +818,11 @@ void MainWindow::on_sliderPosition_sliderMoved(int position)
     std::cout << "Sending velocity. Pos: " << velocity << " Torque:" << m_torque << " Ref:" << (int) g_positionReference << std::endl << std::flush;
     m_coms->SendVelocityWithEffort(m_targetDeviceId,velocity,m_torque);
   } break;
+  case CM_Torque: {
+    float current = position * 3.0/ 360.0;
+    std::cout << "Sending torque " << current << std::endl;
+    m_coms->SendTorque(m_targetDeviceId,current);
+  } break;
   default:
     break;
   }
@@ -817,11 +832,12 @@ void MainWindow::on_sliderPosition_sliderMoved(int position)
 void MainWindow::on_sliderTorque_sliderMoved(int torque)
 {
   m_torque = torque / 10.0;
-  std::cout << "Sending move. Pos: " << m_position << " Torque:" << m_torque << " Ref:" << (int) g_positionReference << std::endl << std::flush;
   switch(m_controlMode)
   {
   case CM_Position:
+    std::cout << "Sending move. Pos: " << m_position << " Torque:" << m_torque << " Ref:" << (int) g_positionReference << std::endl << std::flush;
     m_coms->SendMoveWithEffort(m_targetDeviceId,m_position,m_torque,g_positionReference);
+    break;
   default:
     break;
   }
@@ -1021,11 +1037,33 @@ void MainWindow::on_doubleSpinBoxJointRelOffset_valueChanged(double arg1)
 void MainWindow::on_doubleSpinBoxDemandPosition_editingFinished()
 {
   double demandAngleDeg = ui->doubleSpinBoxDemandPosition->value();
-  double newPosition = DogBotN::Deg2Rad(demandAngleDeg);
-  m_position = newPosition;
-  std::cout << "Sending move. Pos: " << m_position << " Torque:" << m_torque << " Ref:" << (int) g_positionReference << std::endl << std::flush;
-  m_coms->SendMoveWithEffort(m_targetDeviceId,m_position,m_torque,g_positionReference);
-  ui->sliderPosition->setValue(demandAngleDeg);
+
+  switch(m_controlMode)
+  {
+  case CM_Position:
+  {
+    double newPosition = DogBotN::Deg2Rad(demandAngleDeg);
+    m_position = newPosition;
+    std::cout << "Sending move. Pos: " << m_position << " Torque:" << m_torque << " Ref:" << (int) g_positionReference << std::endl << std::flush;
+    m_coms->SendMoveWithEffort(m_targetDeviceId,m_position,m_torque/m_maxCurrent,g_positionReference);
+    ui->sliderPosition->setValue(demandAngleDeg);
+  } break;
+  case CM_Velocity:
+  {
+  } break;
+  case CM_Torque: {
+    float current = demandAngleDeg;
+    std::cout << "Sending torque " << current << std::endl;
+    if(current > 1)
+      current = 1;
+    if(current < -1)
+      current = -1;
+    m_coms->SendTorque(m_targetDeviceId,current);
+  } break;
+  default:
+    break;
+  }
+
 }
 
 void MainWindow::on_doubleSpinBoxTorqueLimit_editingFinished()
