@@ -120,7 +120,7 @@ namespace DogBotN {
     void Open(struct libusb_device_handle *handle);
 
     //! Remove transfer from active list.
-    void TransferComplete(USBTransferDataC *data);
+    void TransferComplete(USBTransferDataC *data,int typeId);
 
     std::vector<USBTransferDataC *> m_outDataFree;
     std::vector<USBTransferDataC *> m_activeTransfers;

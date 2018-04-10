@@ -319,11 +319,11 @@ namespace DogBotN
   }
 
   //! Remove transfer from active list.
-  void ComsUSBC::TransferComplete(USBTransferDataC *data)
+  void ComsUSBC::TransferComplete(USBTransferDataC *data,int typeId)
   {
     auto at = std::find(m_activeTransfers.begin(),m_activeTransfers.end(),data);
     if(at == m_activeTransfers.end()) {
-      m_log->error("Transfer not found, can't be completed.");
+      m_log->error("Transfer {} not found, can't be completed ({}) .",(void *) data,typeId);
       return ;
     }
     *at = *(m_activeTransfers.end()-1);
@@ -336,7 +336,8 @@ namespace DogBotN
   {
     if(!data->IsForUSBDevice(m_handle)) {
       m_log->info("Dropping in transfer from old device. ");
-      TransferComplete(data);
+      std::lock_guard<std::mutex> lock(m_accessTx);
+      TransferComplete(data,1);
       delete data;
       return ;
     }
@@ -399,7 +400,10 @@ namespace DogBotN
 
   void ComsUSBC::ProcessOutTransferIso(USBTransferDataC *data)
   {
-    TransferComplete(data);
+    {
+      std::lock_guard<std::mutex> lock(m_accessTx);
+      TransferComplete(data,2);
+    }
     // If not open, just drop the packet.
     if(!data->IsForUSBDevice(m_handle)) {
       m_log->info("Dropping in transfer from old device. ");
@@ -538,9 +542,11 @@ namespace DogBotN
     int rc = libusb_submit_transfer(txBuffer->Transfer());
     if(rc != LIBUSB_SUCCESS) {
       m_log->error("Got error setting up output iso transfer. {} ",libusb_error_name(rc));
-      TransferComplete(txBuffer);
+      std::lock_guard<std::mutex> lock(m_accessTx);
+      TransferComplete(txBuffer,3);
       m_outDataFree.push_back(txBuffer);
     } else {
+      std::lock_guard<std::mutex> lock(m_accessTx);
       m_activeTransfers.push_back(txBuffer);
       ONDEBUG(m_log->info("Output iso transfer setup ok. "));
     }
