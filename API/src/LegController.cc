@@ -53,26 +53,23 @@ namespace DogBotN {
   {
     float at[3] = {x,y,z};
     float angles[3];
-    if(!m_kinematics->Inverse(at,angles)) {
-      m_log->warn("Failed to find solution.");
-      return false;
-    }
 
     if(!m_useVirtualKnee) {
-      float theta = 0,position = angles[2];
-
-      if(!m_kinematics->Linkage4BarBack(position ,theta,m_kinematics->UseAlternateSolution())) {
-        m_log->error("No solution for angle {} for leg {} ",position,m_legName);
+      if(!m_kinematics->InverseDirect(at,angles)) {
+        m_log->warn("Failed to find solution.");
         return false;
       }
-      //float ratio = m_kinematics->LinkageSpeedRatio(theta,position);
-      //driveTorque = torque / ratio + refTorque/m_refGain;
-      angles[2] = theta + (angles[1] * -1);
+    } else {
+      if(!m_kinematics->InverseVirtual(at,angles)) {
+        m_log->warn("Failed to find solution.");
+        return false;
+      }
     }
 
     m_log->info("Setting angles to {} {} {}  for  {} {} {}  UseVirt:{} ",
                    DogBotN::Rad2Deg(angles[0]),DogBotN::Rad2Deg(angles[1]),DogBotN::Rad2Deg(angles[2]),
                    at[0],at[1],at[2],m_useVirtualKnee);
+
 
     // FIXME:- If move fails what should we do ?
 
@@ -82,6 +79,7 @@ namespace DogBotN {
       return false;
     if(!m_joints[2]->DemandPosition(angles[2],torque))
       return false;
+
 
     return true;
   }

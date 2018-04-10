@@ -67,7 +67,7 @@ namespace DogBotN {
 
 
   //! Compute the joint angles given a location.
-  bool LegKinematicsC::Inverse(float at[3],float (&angles)[3]) const
+  bool LegKinematicsC::InverseVirtual(float at[3],float (&angles)[3]) const
   {
     float x = at[0];
     float y = -at[1];
@@ -117,7 +117,7 @@ namespace DogBotN {
   }
 
   //! Forward kinematics for the leg.
-  bool LegKinematicsC::Forward(float angles[3],float (&at)[3]) const
+  bool LegKinematicsC::ForwardVirtual(float angles[3],float (&at)[3]) const
   {
     for(int i = 0;i < 3;i++)
       angles[i] *= m_jointDirections[i];
@@ -138,6 +138,41 @@ namespace DogBotN {
 
     return true;
   }
+
+  //! Inverse kinematics for the leg
+  //! Compute joint angles needed to get to a 3d position in a leg coordinate system
+  //! Return true if position is reachable
+  bool LegKinematicsC::InverseDirect(float at[3],float (&angles)[3]) const
+  {
+    if(!InverseVirtual(at,angles))
+      return false;
+
+    // Allow for 4 bar linkage
+    float theta = 0;
+    if(!Linkage4BarBack(angles[2] ,theta,UseAlternateSolution())) {
+      return false;
+    }
+    angles[2] = theta - angles[1];
+
+    return true;
+  }
+
+  //! Forward kinematics for the leg
+  //! Compute the position of the foot relative to the top of the leg from the joint angles.
+  bool LegKinematicsC::ForwardDirect(float angles[3],float (&at)[3]) const
+  {
+    float theta = angles[2] + angles[1];
+
+    // Theta = Knee Servo
+    // Psi = Knee joint
+    float psi = Linkage4BarForward(theta,UseAlternateSolution());
+    float anglesVirtual[3] = {angles[0],angles[1],psi};
+
+    if(!ForwardVirtual(anglesVirtual,at))
+      return false;
+    return false;
+  }
+
 
   //! 4 bar linkage angle backward,
   // Returns true if angle exists.

@@ -74,14 +74,23 @@ namespace DogBotN {
     //! psi - Joint angle
     float LinkageSpeedRatio(float theta,float psi) const;
 
-    //! Inverse kinematics for the leg.
+    //! Inverse kinematics for the leg using a virtual joint for the knee
     //! Compute joint angles needed to get to a 3d position in a leg coordinate system
     //! Return true if position is reachable
-    bool Inverse(float at[3],float (&angles)[3]) const;
+    bool InverseVirtual(float at[3],float (&angles)[3]) const;
+
+    //! Forward kinematics for the leg using a virtual joint for the knee
+    //! Compute the position of the foot relative to the top of the leg from the joint angles.
+    bool ForwardVirtual(float angles[3],float (&at)[3]) const;
+
+    //! Inverse kinematics for the leg
+    //! Compute joint angles needed to get to a 3d position in a leg coordinate system
+    //! Return true if position is reachable
+    bool InverseDirect(float at[3],float (&angles)[3]) const;
 
     //! Forward kinematics for the leg
     //! Compute the position of the foot relative to the top of the leg from the joint angles.
-    bool Forward(float angles[3],float (&at)[3]) const;
+    bool ForwardDirect(float angles[3],float (&at)[3]) const;
 
     //! Use alternate solution ?
     bool UseAlternateSolution() const

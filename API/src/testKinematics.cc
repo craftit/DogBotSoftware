@@ -33,13 +33,13 @@ int main() {
     float angles[3];
     float target[3] = {0.15,0.1,0.3};
 
-    if(!legKinamtics.Inverse(target,angles)) {
+    if(!legKinamtics.InverseVirtual(target,angles)) {
       std::cerr << "Failed." << std::endl;
       return 1;
     }
     std::cout << " Angles:" << DogBotN::Rad2Deg(angles[0]) << " " << DogBotN::Rad2Deg(angles[1]) << " " << DogBotN::Rad2Deg(angles[2]) << " " << std::endl;
 
-    if(!legKinamtics.Forward(angles,pos)) {
+    if(!legKinamtics.ForwardVirtual(angles,pos)) {
       std::cerr << "Forward kinematics failed." << std::endl;
       return 1;
     }
@@ -51,7 +51,7 @@ int main() {
   {
     std::cout << "Zero:" << std::endl;
     float angles[3] = {0,M_PI/2.0,M_PI/2};
-    if(!legKinamtics.Forward(angles,pos)) {
+    if(!legKinamtics.ForwardVirtual(angles,pos)) {
       std::cerr << "Forward kinematics failed." << std::endl;
       return 1;
     }
@@ -60,7 +60,7 @@ int main() {
   }
   {
     float angles2[3] = {0,0,0};
-    if(!legKinamtics.Forward(angles2,pos)) {
+    if(!legKinamtics.ForwardVirtual(angles2,pos)) {
       std::cerr << "Forward kinematics failed." << std::endl;
       return 1;
     }

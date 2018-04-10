@@ -87,7 +87,7 @@ int main(int argc,char **argv)
   }
 
   float angles[3];
-  if(leg->Inverse(at,angles)) {
+  if(leg->InverseVirtual(at,angles)) {
     logger->info("Setting angles to {} {} {}  for  {} {} {} ",
                  DogBotN::Rad2Deg(angles[0]),DogBotN::Rad2Deg(angles[1]),DogBotN::Rad2Deg(angles[2]),
                  at[0],at[1],at[2]);
@@ -111,7 +111,7 @@ int main(int argc,char **argv)
     }
 
     float at[3];
-    leg->Forward(angles,at);
+    leg->ForwardVirtual(angles,at);
 
     logger->info("{} Angles {} {} {}, Position {} {} {}  ",
                  legName,
