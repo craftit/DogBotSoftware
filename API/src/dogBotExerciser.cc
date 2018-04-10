@@ -26,6 +26,8 @@ int main(int argc,char **argv)
   float torque = 1.0;
   float range = 45.0;
   float angle = 0;
+  int delay = 5000;
+  bool useVirtualJoint = false;
   try
   {
     cxxopts::Options options(argv[0], "DogBot hardware manager");
@@ -43,6 +45,8 @@ int main(int argc,char **argv)
       ("p,pose","Joint name", cxxopts::value<bool>(dumpPose))
       ("l,load","Load pose", cxxopts::value<std::string>(loadPoseFile))
       ("g,cycle","Cycle up and down",cxxopts::value<bool>(cycle))
+      ("v,virtual-joint","Use virtual joint",cxxopts::value<bool>(useVirtualJoint))
+      ("o,delay","Delay in cycle, default is 5000",cxxopts::value<int>(delay))
       ("h,help", "Print help")
     ;
 
@@ -127,10 +131,10 @@ int main(int argc,char **argv)
     dogbot->Connection()->SetParam(0,CPI_VelocityLimit,(float) 300.0);
 
     std::shared_ptr<DogBotN::LegControllerC> legs[4];
-    legs[0] = std::make_shared<DogBotN::LegControllerC>(dogbot,"front_right");
-    legs[1] = std::make_shared<DogBotN::LegControllerC>(dogbot,"front_left");
-    legs[2] = std::make_shared<DogBotN::LegControllerC>(dogbot,"back_right");
-    legs[3] = std::make_shared<DogBotN::LegControllerC>(dogbot,"back_left");
+    legs[3] = std::make_shared<DogBotN::LegControllerC>(dogbot,"front_right",useVirtualJoint);
+    legs[2] = std::make_shared<DogBotN::LegControllerC>(dogbot,"front_left",useVirtualJoint);
+    legs[1] = std::make_shared<DogBotN::LegControllerC>(dogbot,"back_right",useVirtualJoint);
+    legs[0] = std::make_shared<DogBotN::LegControllerC>(dogbot,"back_left",useVirtualJoint);
 
     while(1) {
       for(int i = 0;i < 360;i++) {
@@ -140,7 +144,7 @@ int main(int argc,char **argv)
         for(int i = 0;i < 4;i++) {
           legs[i]->Goto(0,0,z,torque);
         }
-        usleep(5000);
+        usleep(delay);
       }
     }
 

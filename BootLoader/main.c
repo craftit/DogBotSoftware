@@ -76,13 +76,13 @@ int main(void) {
       palTogglePad(GPIOC, GPIOC_PIN5);       /* Yellow led. */
       palTogglePad(GPIOC, GPIOC_PIN4);       /* Green led. */
       chThdSleepMilliseconds(100);
-#if 0
+
       if(g_deviceId != 0 && !sentBootloaderMode) {
-        /* Let the world know we're in bootloader mode. */
+        /* Make sure the world knows we're in bootloader mode. */
         SendParamUpdate(CPI_ControlState);
         sentBootloaderMode = true;
       }
-#endif
+
       // Just send this regularly so the controller knows we're alive
       SendParamUpdate(CPI_ControlState);
     }

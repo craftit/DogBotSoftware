@@ -298,6 +298,7 @@ bool MotionCalZero()
   if(!g_pwmRun)
     return false;
 
+
   // Make sure we don't fly off somewhere.
   g_requestedJointMode = 0;
   g_requestedJointPosition = g_currentPhasePosition;

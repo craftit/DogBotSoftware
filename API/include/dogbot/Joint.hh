@@ -120,7 +120,6 @@ namespace DogBotN {
     std::string m_notes;
     bool m_export = false;
 
-    float m_gain = 1.0;
     float m_demandPosition = nan("");
     float m_demandTorqueLimit = nan("");
 

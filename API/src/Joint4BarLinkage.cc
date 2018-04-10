@@ -31,7 +31,7 @@ namespace DogBotN {
     float psi = m_legKinematics->Linkage4BarForward(theta,m_legKinematics->UseAlternateSolution());
     float ratio = m_legKinematics->LinkageSpeedRatio(theta,psi);
 
-    position = psi * m_gain;
+    position = psi;
     velocity = (driveVelocity - refVelocity * m_refGain) / ratio;
     // FIXME:- This and its inverse really needs checking!
     torque = (driveTorque - refTorque / m_refGain) * ratio;
@@ -45,7 +45,7 @@ namespace DogBotN {
   ) const
   {
     float theta;
-    if(!m_legKinematics->Linkage4BarBack(position / m_gain,theta,m_legKinematics->UseAlternateSolution())) {
+    if(!m_legKinematics->Linkage4BarBack(position,theta,m_legKinematics->UseAlternateSolution())) {
       m_log->error("No solution for angle {} for joint {} ",position,Name());
       return false;
     }

@@ -3,7 +3,7 @@
 
 #include "hal.h"
 
-#define CAN_QUEUE_SIZE 32
+#define CAN_QUEUE_SIZE 64
 
 /* TX/RX Data buffer management. */
 

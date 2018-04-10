@@ -133,6 +133,17 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_FanMode:
     case CPI_FanTemperatureThreshold:
     case CPI_FanState:
+    case CPI_SafetyMode:
+    case CPI_JointRole:
+    case CPI_EndStopEnable:
+    case CPI_EndStopStart:
+    case CPI_EndStopStartBounce:
+    case CPI_EndStopFinal:
+    case CPI_EndStopEndBounce:
+    case CPI_EndStopTargetBreakForce:
+    case CPI_EndStopLimitBreakForce:
+    case CPI_JointInertia:
+    case CPI_EndStopPhaseAngles:
     case CPI_FINAL:
       return false;
 //    default:

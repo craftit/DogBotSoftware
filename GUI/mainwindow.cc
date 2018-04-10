@@ -479,6 +479,10 @@ void MainWindow::LocalProcessParam(PacketParam8ByteC psp)
 {
   switch ((enum ComsParameterIndexT) psp.m_header.m_index)
   {
+  case CPI_ControlState:
+    //enum ControlStateT controlState = (enum ControlStateT) psp.m_data.uint8[0];
+
+    break;
   case CPI_Indicator:
     ui->checkBoxIndicator->setChecked(psp.m_data.uint8[0] > 0);
     break;

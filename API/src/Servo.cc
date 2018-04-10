@@ -387,6 +387,7 @@ namespace DogBotN {
         // reflect it in the stored state.
         switch(m_controlState)
         {
+          case CS_StartUp:
           case CS_FactoryCalibrate:
           case CS_LowPower:
           case CS_BootLoader:

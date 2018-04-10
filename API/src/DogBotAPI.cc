@@ -634,46 +634,84 @@ namespace DogBotN {
     legNames.push_back("back_left_");
     legNames.push_back("back_right_");
 
-    // Home roll
-    for(int i = 0;i < legNames.size();i++) {
-      std::string jointName = legNames[i] + "roll";
-      std::shared_ptr<ServoC> jnt = std::dynamic_pointer_cast<ServoC>(GetJointByName(jointName));
-      if(!jnt) {
-        m_log->error("Failed to find joint {} ",jointName);
-        return false;
+    bool allOk = true;
+    {
+      std::vector<std::thread> threads;
+
+      // Home roll
+      for(int i = 0;i < legNames.size();i++) {
+        std::string jointName = legNames[i] + "roll";
+        std::shared_ptr<ServoC> jnt = std::dynamic_pointer_cast<ServoC>(GetJointByName(jointName));
+        if(!jnt) {
+          m_log->error("Failed to find joint {} ",jointName);
+          return false;
+        }
+        threads.push_back(std::thread([jnt,&allOk](){
+          if(!jnt->HomeJoint(false)) {
+            allOk = false;
+            return false;
+          }
+          jnt->DemandPosition(0,2.0,PR_Absolute);
+        }));
       }
-      if(!jnt->HomeJoint(false)) {
-        return false;
+      for(auto &thr: threads) {
+        if(thr.joinable())
+          thr.join();
       }
-      jnt->DemandPosition(0,1.0,PR_Absolute);
+      if(!allOk)
+        return false;
     }
 
-    // Home knees.
-    for(int i = 0;i < legNames.size();i++) {
-      std::string jointName = legNames[i] + "knee";
-      std::shared_ptr<ServoC> jnt = std::dynamic_pointer_cast<ServoC>(GetJointByName(jointName));
-      if(!jnt) {
-        m_log->error("Failed to find joint {} ",jointName);
-        return false;
+    {
+      std::vector<std::thread> threads;
+      // Home knees.
+      for(int i = 0;i < legNames.size();i++) {
+        std::string jointName = legNames[i] + "knee";
+        std::shared_ptr<ServoC> jnt = std::dynamic_pointer_cast<ServoC>(GetJointByName(jointName));
+        if(!jnt) {
+          m_log->error("Failed to find joint {} ",jointName);
+          return false;
+        }
+        threads.push_back(std::thread([jnt,&allOk](){
+          if(!jnt->HomeJoint(false)) {
+            allOk = false;
+            return false;
+          }
+          jnt->DemandPosition(0,2.0,PR_Absolute);
+        }));
       }
-      if(!jnt->HomeJoint(false)) {
-        return false;
+      for(auto &thr: threads) {
+        if(thr.joinable())
+          thr.join();
       }
-      jnt->DemandPosition(0,1.0,PR_Absolute);
+      if(!allOk)
+        return false;
     }
 
-    // Home pitch
-    for(int i = 0;i < legNames.size();i++) {
-      std::string jointName = legNames[i] + "pitch";
-      std::shared_ptr<ServoC> jnt = std::dynamic_pointer_cast<ServoC>(GetJointByName(jointName));
-      if(!jnt) {
-        m_log->error("Failed to find joint {} ",jointName);
-        return false;
+    {
+      std::vector<std::thread> threads;
+      // Home pitch
+      for(int i = 0;i < legNames.size();i++) {
+        std::string jointName = legNames[i] + "pitch";
+        std::shared_ptr<ServoC> jnt = std::dynamic_pointer_cast<ServoC>(GetJointByName(jointName));
+        if(!jnt) {
+          m_log->error("Failed to find joint {} ",jointName);
+          return false;
+        }
+        threads.push_back(std::thread([jnt,&allOk](){
+          if(!jnt->HomeJoint(false)) {
+            allOk = false;
+            return false;
+          }
+          jnt->DemandPosition(0,2.0,PR_Absolute);
+        }));
       }
-      if(!jnt->HomeJoint(false)) {
-        return false;
+      for(auto &thr: threads) {
+        if(thr.joinable())
+          thr.join();
       }
-      jnt->DemandPosition(0,1.0,PR_Absolute);
+      if(!allOk)
+        return false;
     }
 
     return true;

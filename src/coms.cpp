@@ -145,7 +145,8 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
     ChangeControlState(CS_EmergencyStop,SCS_UserRequest);
     if(!CANEmergencyStop()) {
       USBSendError(g_deviceId,CET_CANTransmitFailed,CPT_EmergencyStop,0);
-      // Retry ?
+      // It would be nice to retry, but we don't know where this is called
+      // from and if a delay is safe.
     }
     break;
   case CPT_Ping: { // Ping.
@@ -165,7 +166,9 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
     if((pkt->m_deviceId != g_deviceId || pkt->m_deviceId == 0) && g_deviceId != 0) {
       // In bridge mode forward this to the CAN bus
       if(g_canBridgeMode) {
-        CANPing(CPT_Ping,pkt->m_deviceId,pkt->m_payload);
+        if(!CANPing(CPT_Ping,pkt->m_deviceId,pkt->m_payload)) {
+          USBSendError(g_deviceId,CET_CANTransmitFailed,CPT_Ping,pkt->m_deviceId);
+        }
       }
     }
   } break;
@@ -231,7 +234,9 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
       MotionSetPosition(ps->m_mode,ps->m_position,ps->m_torqueLimit);
     } else {
       if(g_canBridgeMode && g_deviceId != 0) {
-        CANSendServo(ps->m_deviceId,ps->m_position,ps->m_torqueLimit,ps->m_mode);
+        if(!CANSendServo(ps->m_deviceId,ps->m_position,ps->m_torqueLimit,ps->m_mode)) {
+          USBSendError(g_deviceId,CET_CANTransmitFailed,CPT_Servo,ps->m_deviceId);
+        }
       }
     }
   } break;
@@ -273,7 +278,9 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
       }
     } else {
       if(g_canBridgeMode) {
-        CANSendSetDevice(pkt->m_deviceId,pkt->m_uid[0],pkt->m_uid[1]);
+        if(!CANSendSetDevice(pkt->m_deviceId,pkt->m_uid[0],pkt->m_uid[1])) {
+          USBSendError(g_deviceId,CET_CANTransmitFailed,CPT_SetDeviceId,pkt->m_deviceId);
+        }
       }
     }
   } break;
@@ -341,7 +348,9 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
     }
     if(g_canBridgeMode) {
       if(psp->m_deviceId != g_deviceId || psp->m_deviceId == 0) {
-        CANSendBootLoaderReset(psp->m_deviceId,psp->m_enable > 0);
+        if(!CANSendBootLoaderReset(psp->m_deviceId,psp->m_enable > 0)) {
+          USBSendError(g_deviceId,CET_CANTransmitFailed,CPT_FlashCmdReset,psp->m_deviceId);
+        }
       }
     }
   } break;
@@ -354,7 +363,9 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
     struct PacketFlashResultC *psp = (struct PacketFlashResultC *) m_data;
     if(g_canBridgeMode) {
       if(psp->m_deviceId != g_deviceId || psp->m_deviceId == 0) {
-        CANSendBootLoaderResult(psp->m_deviceId,psp->m_rxSequence,(enum BootLoaderStateT) psp->m_state,(enum FlashOperationStatusT) psp->m_result);
+        if(!CANSendBootLoaderResult(psp->m_deviceId,psp->m_rxSequence,(enum BootLoaderStateT) psp->m_state,(enum FlashOperationStatusT) psp->m_result)) {
+          USBSendError(g_deviceId,CET_CANTransmitFailed,CPT_FlashCmdResult,psp->m_deviceId);
+        }
       }
     }
   } break;
@@ -366,7 +377,9 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
     auto *psp = (struct PacketFlashChecksumResultC *) m_data;
     if(g_canBridgeMode) {
       if(psp->m_deviceId != g_deviceId || psp->m_deviceId == 0) {
-        CANSendBootLoaderCheckSumResult(psp->m_deviceId,psp->m_sequenceNumber,psp->m_sum);
+        if(!CANSendBootLoaderCheckSumResult(psp->m_deviceId,psp->m_sequenceNumber,psp->m_sum)) {
+          USBSendError(g_deviceId,CET_CANTransmitFailed,CPT_FlashChecksumResult,psp->m_deviceId);
+        }
       }
     }
   } break;
@@ -381,7 +394,9 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
     }
     if(g_canBridgeMode) {
       if(psp->m_deviceId != g_deviceId || psp->m_deviceId == 0) {
-        CANSendBootLoaderErase(psp->m_deviceId,psp->m_sequenceNumber,psp->m_addr);
+        if(!CANSendBootLoaderErase(psp->m_deviceId,psp->m_sequenceNumber,psp->m_addr)) {
+          USBSendError(g_deviceId,CET_CANTransmitFailed,CPT_FlashEraseSector,psp->m_deviceId);
+        }
       }
     }
   } break;
@@ -396,7 +411,9 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
     }
     if(g_canBridgeMode) {
       if(psp->m_deviceId != g_deviceId || psp->m_deviceId == 0) {
-        CANSendBootLoaderCheckSum(psp->m_deviceId,psp->m_sequenceNumber,psp->m_addr,psp->m_len);
+        if(!CANSendBootLoaderCheckSum(psp->m_deviceId,psp->m_sequenceNumber,psp->m_addr,psp->m_len)) {
+          USBSendError(g_deviceId,CET_CANTransmitFailed,CPT_FlashChecksum,psp->m_deviceId);
+        }
       }
     }
   } break;
@@ -412,7 +429,9 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
     }
     if(g_canBridgeMode) {
       if(psp->m_deviceId != g_deviceId || psp->m_deviceId == 0) {
-        CANSendBootLoaderData(psp->m_deviceId,psp->m_sequenceNumber,&psp->m_data[0],len);
+        if(!CANSendBootLoaderData(psp->m_deviceId,psp->m_sequenceNumber,&psp->m_data[0],len)) {
+          USBSendError(g_deviceId,CET_CANTransmitFailed,CPT_FlashData,psp->m_deviceId);
+        }
       }
     }
   } break;
@@ -427,7 +446,9 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
     }
     if(g_canBridgeMode) {
       if(psp->m_deviceId != g_deviceId || psp->m_deviceId == 0) {
-        CANSendBootLoaderWrite(psp->m_deviceId,psp->m_sequenceNumber,psp->m_addr,psp->m_len);
+        if(!CANSendBootLoaderWrite(psp->m_deviceId,psp->m_sequenceNumber,psp->m_addr,psp->m_len)) {
+          USBSendError(g_deviceId,CET_CANTransmitFailed,CPT_FlashWrite,psp->m_deviceId);
+        }
       }
     }
 
@@ -443,7 +464,9 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
     }
     if(g_canBridgeMode) {
       if(psp->m_deviceId != g_deviceId || psp->m_deviceId == 0) {
-        CANSendBootLoaderRead(psp->m_deviceId,psp->m_sequenceNumber,psp->m_addr,psp->m_len);
+        if(!CANSendBootLoaderRead(psp->m_deviceId,psp->m_sequenceNumber,psp->m_addr,psp->m_len)) {
+          USBSendError(g_deviceId,CET_CANTransmitFailed,CPT_FlashRead,psp->m_deviceId);
+        }
       }
     }
   } break;

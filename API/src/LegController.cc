@@ -7,13 +7,17 @@ namespace DogBotN {
 
   //! Class to manage the positioning of a single leg.
 
-  LegControllerC::LegControllerC(std::shared_ptr<DogBotAPIC> &api,const std::string &legName)
-   : m_legName(legName),
+  LegControllerC::LegControllerC(std::shared_ptr<DogBotAPIC> &api,const std::string &legName,bool useVirtualKnee)
+   : m_useVirtualKnee(useVirtualKnee),
+     m_legName(legName),
      m_api(api)
   {
     Init();
   }
 
+  //! Destructor
+  LegControllerC::~LegControllerC()
+  {}
 
   bool LegControllerC::Init()
   {
@@ -26,7 +30,11 @@ namespace DogBotN {
     m_legJointNames.clear();
     m_legJointNames.push_back(m_legName + "_roll");
     m_legJointNames.push_back(m_legName + "_pitch");
-    m_legJointNames.push_back("virtual_" + m_legName + "_knee");
+    if(m_useVirtualKnee) {
+      m_legJointNames.push_back("virtual_" + m_legName + "_knee");
+    } else {
+      m_legJointNames.push_back(m_legName + "_knee");
+    }
 
     for(int i = 0;i < 3;i++) {
       m_joints[i] = m_api->GetJointByName(m_legJointNames[i]);
@@ -50,9 +58,21 @@ namespace DogBotN {
       return false;
     }
 
-    m_log->info("Setting angles to {} {} {}  for  {} {} {} ",
+    if(!m_useVirtualKnee) {
+      float theta = 0,position = angles[2];
+
+      if(!m_kinematics->Linkage4BarBack(position ,theta,m_kinematics->UseAlternateSolution())) {
+        m_log->error("No solution for angle {} for leg {} ",position,m_legName);
+        return false;
+      }
+      //float ratio = m_kinematics->LinkageSpeedRatio(theta,position);
+      //driveTorque = torque / ratio + refTorque/m_refGain;
+      angles[2] = theta + (angles[1] * -1);
+    }
+
+    m_log->info("Setting angles to {} {} {}  for  {} {} {}  UseVirt:{} ",
                    DogBotN::Rad2Deg(angles[0]),DogBotN::Rad2Deg(angles[1]),DogBotN::Rad2Deg(angles[2]),
-                   at[0],at[1],at[2]);
+                   at[0],at[1],at[2],m_useVirtualKnee);
 
     // FIXME:- If move fails what should we do ?
 

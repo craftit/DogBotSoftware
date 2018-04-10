@@ -28,7 +28,6 @@ namespace DogBotN {
     std::lock_guard<std::mutex> lock(m_mutexJointAdmin);
     m_name = conf.get("name","?").asString();
     m_notes = conf.get("notes","").asString();
-    m_gain = conf.get("gain",m_gain).asFloat();
     return true;
   }
 
@@ -41,7 +40,6 @@ namespace DogBotN {
     ret["name"] = m_name;
     ret["notes"] = m_notes;
     ret["type"] = JointType();
-    ret["gain"] = m_gain;
     return ret;
   }
 

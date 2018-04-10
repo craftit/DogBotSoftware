@@ -301,10 +301,12 @@ namespace DogBotN
         }
       }
 
+      const int numTxBuffers = 6;
+
       m_outDataFree.empty();
-      m_outDataFree.reserve(4);
+      m_outDataFree.reserve(numTxBuffers);
       // Setup some OUT transfers.
-      for(int i = 0;i < 4;i++) {
+      for(int i = 0;i < numTxBuffers;i++) {
         USBTransferDataC *a = new USBTransferDataC();
         a->SetupIso(this,handle,UTD_OUT);
         m_outDataFree.push_back(a);
