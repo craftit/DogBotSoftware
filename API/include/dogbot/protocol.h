@@ -369,9 +369,12 @@ extern "C" {
 
   union BufferTypeT
   {
-    uint8_t  uint8[8];
+    uint8_t  int8[8];
+    int8_t   uint8[8];
     uint16_t uint16[4];
+    int16_t  int16[4];
     uint32_t uint32[2];
+    int32_t  int32[2];
     float float32[2];
   };
 

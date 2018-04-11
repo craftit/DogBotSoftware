@@ -197,6 +197,9 @@ namespace DogBotN {
     static float PositionReport2Angle(int16_t val)
     { return val * M_PI * 4.0/ 32767.0; }
 
+    //! Convert a report value to a torque
+    static float TorqueReport2Fraction(int16_t val)
+    { return ((float) val)/ 32767.0; }
 
   protected:
     //! Send packet
