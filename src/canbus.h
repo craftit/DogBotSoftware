@@ -40,6 +40,7 @@ bool CANSendServo(
 bool CANSendServoReport(
     uint8_t deviceId,
     int16_t position,
+    int16_t velocity,
     int16_t torque,
     uint8_t state,
     uint8_t timeStamp

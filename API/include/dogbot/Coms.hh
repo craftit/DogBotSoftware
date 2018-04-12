@@ -195,7 +195,11 @@ namespace DogBotN {
 
     //! Convert a report value to an angle in radians
     static float PositionReport2Angle(int16_t val)
-    { return val * M_PI * 4.0/ 32767.0; }
+    { return (float) val * DOGBOT_SERVOREPORT_POSITIONRANGE / 32767.0; }
+
+    //! Convert a report value to an angle in radians
+    static float VelocityReport2Angle(int16_t val)
+    { return (float) val * DOGBOT_SERVOREPORT_VELOCITYRANGE / 32767.0; }
 
     //! Convert a report value to a torque
     static float TorqueReport2Fraction(int16_t val)

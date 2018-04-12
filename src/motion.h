@@ -16,7 +16,7 @@ extern "C" {
 
   bool MotionSetPosition(uint8_t mode,int16_t position,uint16_t torqueLimit);
 
-  bool MotionReport(int16_t position,int16_t torque,enum PositionReferenceT posRef,uint8_t timeStamp);
+  bool MotionReport(int16_t position,int16_t velocity,int16_t torque,enum PositionReferenceT posRef,uint8_t timeStamp);
 
   bool MotionOtherJointUpdate(int16_t position,int16_t torque,uint8_t mode,uint8_t timestamp);
 

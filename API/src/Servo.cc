@@ -276,6 +276,11 @@ namespace DogBotN {
   {
     auto timeNow = std::chrono::steady_clock::now();
 
+    float newPosition = ComsC::PositionReport2Angle(report.m_position);
+    float newVelocity = ComsC::VelocityReport2Angle(report.m_velocity);
+
+    //m_log->info("Velocity: {}  {} -> {} ",Name().c_str(),report.m_velocity,newVelocity);
+
     {
       std::lock_guard<std::mutex> lock(m_mutexState);
 
@@ -296,16 +301,17 @@ namespace DogBotN {
 
       m_tick += tickDiff;
 
-      float newPosition = ComsC::PositionReport2Angle(report.m_position);
-
+#if 1
+      m_velocity = newVelocity;
+#else
       // FIXME:- Check the position reference frame.
-
       // Generate an estimate of the speed.
       if(inSync) {
         m_velocity = (newPosition - m_position) /  (m_tickDuration.count() * (float) tickDiff);
       } else {
         m_velocity = 0; // Set it to zero until we have up to date information.
       }
+#endif
       m_positionRef = (enum PositionReferenceT) (report.m_mode & 0x3);
       m_homeIndexState = (report.m_mode & 0x8) != 0;
       m_position = newPosition;

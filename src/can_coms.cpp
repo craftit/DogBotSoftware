@@ -188,11 +188,11 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
       if(rxDeviceId == g_otherJointId &&
           g_otherJointId != 0 &&
           g_otherJointId != g_deviceId &&
-          rxmsg.DLC == 6) {
+          rxmsg.DLC == 8) {
         MotionOtherJointUpdate(rxmsg.data16[0],rxmsg.data16[1],rxmsg.data8[4],rxmsg.data8[5]);
       }
       if(g_canBridgeMode) {
-        if(rxmsg.DLC != 6) {
+        if(rxmsg.DLC != 8) {
           USBSendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_ServoReport,rxmsg.DLC);
           break;
         }
@@ -203,6 +203,7 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
         pkt.m_torque = rxmsg.data16[1];
         pkt.m_mode = rxmsg.data8[4];
         pkt.m_timestamp = rxmsg.data8[5];
+        pkt.m_velocity = rxmsg.data16[3];
         USBSendPacket((uint8_t *) &pkt,sizeof(struct PacketServoReportC));
       }
       break;
@@ -213,9 +214,9 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
           break;
         }
         int16_t position = (int16_t) rxmsg.data16[0];
-        uint16_t torque = rxmsg.data16[1];
+        uint16_t torqueLimit = rxmsg.data16[1];
         uint8_t mode = rxmsg.data8[4];
-        MotionSetPosition(mode,position,torque);
+        MotionSetPosition(mode,position,torqueLimit);
       }
     } break;
     case CPT_SaveSetup: {

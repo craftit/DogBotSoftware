@@ -64,6 +64,7 @@ bool CANSendCalZero(
 bool CANSendServoReport(
     uint8_t deviceId,
     int16_t position,
+    int16_t velocity,
     int16_t torque,
     uint8_t state,
     uint8_t timeStamp
@@ -74,11 +75,12 @@ bool CANSendServoReport(
     return false;
   CANSetAddress(txmsg,deviceId,CPT_ServoReport);
   txmsg->RTR = CAN_RTR_DATA;
-  txmsg->DLC = 6;
+  txmsg->DLC = 8;
   txmsg->data16[0] = position;
   txmsg->data16[1] = torque;
   txmsg->data8[4] = state;
   txmsg->data8[5] = timeStamp;
+  txmsg->data16[3] = velocity;
   return g_txCANQueue.PostFullPacket(txmsg);
 }
 

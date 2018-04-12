@@ -427,7 +427,7 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       break;
     case CPI_FirmwareVersion:
       *len = 1;
-      data->uint8[0] = 4;
+      data->uint8[0] = DOGBOT_FIRMWARE_VERSION;
       break;
     case CPI_PWMState:
       *len = 1;

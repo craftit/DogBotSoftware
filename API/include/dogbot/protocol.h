@@ -9,6 +9,8 @@
 extern "C" {
 #endif
 
+#define DOGBOT_FIRMWARE_VERSION 5
+
   /* Message packet types, see end of file for structs transmitted for each message type.
    * These messages are ordered by decreasing priority.
    */
@@ -412,6 +414,9 @@ extern "C" {
 #define DOGBOT_SERVOREPORTMODE_INDEXSENSOR   (1u<<3)
 #define DOGBOT_SERVOREPORTMODE_POSITIONREF   (0x3u)
 
+#define DOGBOT_SERVOREPORT_POSITIONRANGE (M_PI * 4.0)
+#define DOGBOT_SERVOREPORT_VELOCITYRANGE (M_PI * 8.0)
+
   struct PacketServoReportC {
     uint8_t m_packetType; // CPT_ServoReport
     uint8_t m_deviceId;
@@ -419,6 +424,7 @@ extern "C" {
     uint8_t m_timestamp;
     int16_t m_position;
     int16_t m_torque;
+    int16_t m_velocity;
   } __attribute__((packed));
 
   struct PacketDeviceIdC {
@@ -438,6 +444,20 @@ extern "C" {
   }  __attribute__((packed));
 
 
+  enum StateChangeSourceT {
+    SCS_UserRequest = 0,
+    SCS_Internal = 1,
+    SCS_Unknown = 2,
+    SCS_Fault = 3,
+    SCS_EStopLostComs = 4,
+    SCS_EStopSwitch = 5
+  };
+
+  struct PacketEmergencyStopC {
+    uint8_t m_packetType;
+    uint8_t m_deviceId; //!< Device that issued it.
+    uint8_t m_cause;    //!< Reason why it was issued, as StateChangeSourceT
+  } __attribute__((packed));
 
   enum FlashOperationStatusT
   {
@@ -525,20 +545,6 @@ extern "C" {
     uint16_t m_len;
   };
 
-  enum StateChangeSourceT {
-    SCS_UserRequest = 0,
-    SCS_Internal = 1,
-    SCS_Unknown = 2,
-    SCS_Fault = 3,
-    SCS_EStopLostComs = 4,
-    SCS_EStopSwitch = 5
-  };
-
-  struct PacketEmergencyStopC {
-    uint8_t m_packetType;
-    uint8_t m_deviceId; //!< Device that issued it.
-    uint8_t m_cause;    //!< Reason why it was issued, as StateChangeSourceT
-  };
 
 
 #ifdef __cplusplus

@@ -112,14 +112,19 @@ uint8_t g_otherJointMode = 0;
 int16_t g_otherJointPosition = 0;
 float g_otherPhaseOffset = 0; // Last reported position of other joint.
 
-static float DemandToPhasePosition(int16_t position)
+static float DemandInt16ToPhasePosition(int16_t position)
 {
-  return (((float) position) * g_actuatorRatio * M_PI * 4.0/ 32767.0);
+  return (((float) position) * g_actuatorRatio * DOGBOT_SERVOREPORT_POSITIONRANGE/ 32767.0);
 }
 
-static int16_t PhasePositionToDemand(float angle)
+static int16_t PhasePositionToDemandInt16(float angle)
 {
-  return (angle * 32767.0) / (g_actuatorRatio * M_PI * 4.0);
+  return (angle * 32767.0) / (g_actuatorRatio * DOGBOT_SERVOREPORT_POSITIONRANGE);
+}
+
+static int16_t PhaseVelocityToInt16(float angle)
+{
+  return (angle * 32767.0) / (g_actuatorRatio * DOGBOT_SERVOREPORT_VELOCITYRANGE);
 }
 
 
@@ -156,7 +161,7 @@ bool UpdateRequestedPosition()
   {
     case CM_Position:
       {
-        float positionAsPhaseAngle = DemandToPhasePosition(g_requestedJointPosition);
+        float positionAsPhaseAngle = DemandInt16ToPhasePosition(g_requestedJointPosition);
 
         if((g_requestedJointMode & 0x1) != 0) { // Calibrated position ?
           // Yes we're dealing with a calibrated position request,
@@ -171,7 +176,7 @@ bool UpdateRequestedPosition()
               && (g_motionPositionReference & 0x1) != 0) {
             return false;
           }
-          g_otherPhaseOffset = DemandToPhasePosition(g_otherJointPosition)
+          g_otherPhaseOffset = DemandInt16ToPhasePosition(g_otherJointPosition)
               * g_relativePositionGain + g_relativePositionOffset;
           positionAsPhaseAngle += g_otherPhaseOffset;
         }
@@ -191,7 +196,7 @@ bool UpdateRequestedPosition()
       break;
     case CM_Velocity:
       // Uck!
-      g_demandPhaseVelocity = PhasePositionToDemand(g_requestedJointPosition);
+      g_demandPhaseVelocity = PhasePositionToDemandInt16(g_requestedJointPosition);
       break;
     case CM_Torque:
       g_demandTorque = (((float)g_requestedJointPosition) * g_absoluteMaxCurrent) / 32767.0f;
@@ -237,7 +242,7 @@ bool MotionOtherJointUpdate(int16_t position,int16_t torque,uint8_t mode,uint8_t
 }
 
 
-bool MotionReport(int16_t position,int16_t torque,PositionReferenceT posRef,uint8_t timestamp)
+bool MotionReport(int16_t position,int16_t velocity,int16_t torque,PositionReferenceT posRef,uint8_t timestamp)
 {
   uint8_t mode = posRef & DOGBOT_SERVOREPORTMODE_POSITIONREF;
   if(g_safetyMode == SM_MasterEmergencyStop) {
@@ -270,13 +275,14 @@ bool MotionReport(int16_t position,int16_t torque,PositionReferenceT posRef,uint
     servo.m_packetType = CPT_ServoReport;
     servo.m_deviceId = g_deviceId;
     servo.m_mode = mode;
+    servo.m_timestamp = timestamp;
     servo.m_position = position;
     servo.m_torque = torque;
-    servo.m_timestamp = timestamp;
+    servo.m_velocity = velocity;
     USBSendPacket(reinterpret_cast<uint8_t *>(&servo),sizeof(PacketServoReportC));
   }
   if(g_deviceId != 0) {
-    CANSendServoReport(g_deviceId,position,torque,mode,timestamp);
+    CANSendServoReport(g_deviceId,position,velocity,torque,mode,timestamp);
   }
   return true;
 }
@@ -354,6 +360,7 @@ void MotionStep()
   }
 
   float position = g_currentPhasePosition;
+  int16_t reportVelocity = PhaseVelocityToInt16(g_currentPhaseVelocity);
 
   enum PositionReferenceT posRef = g_motionPositionReference;
 
@@ -369,14 +376,14 @@ void MotionStep()
       }
       if(g_motionJointRelative == JR_Offset)
         position -= g_otherPhaseOffset;
-      int16_t reportPosition = PhasePositionToDemand(position);
-      MotionReport(reportPosition,torque,posRef,g_motionTime);
+      int16_t reportPosition = PhasePositionToDemandInt16(position);
+      MotionReport(reportPosition,reportVelocity,torque,posRef,g_motionTime);
     } break;
     case PR_Relative: {
       if(g_motionJointRelative == JR_Offset)
         position -= g_otherPhaseOffset;
-      uint16_t reportPosition = PhasePositionToDemand(position);
-      MotionReport(reportPosition,torque,posRef,g_motionTime);
+      uint16_t reportPosition = PhasePositionToDemandInt16(position);
+      MotionReport(reportPosition,reportVelocity,torque,posRef,g_motionTime);
     } break;
   }
 #endif
