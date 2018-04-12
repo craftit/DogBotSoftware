@@ -161,6 +161,21 @@ namespace DogBotN {
     return "Invalid";
   }
 
+  //! Convert a state change source to a string
+  const char *ComsStateChangeSource(enum StateChangeSourceT changeSource)
+  {
+    switch(changeSource) {
+      case SCS_UserRequest: return "UserRequest";
+      case SCS_Internal: return "Internal";
+      case SCS_Unknown:  return "Unknown";
+      case SCS_Fault:   return "Fault";
+      case SCS_EStopLostComs: return "EStopLostComs";
+      case SCS_EStopSwitch: return "EStopSwitch";
+    }
+    printf("Unexpected state change source %d",(int)changeSource);
+    return "Invalid";
+  }
+
 
   //! Convert coms safety mode to a string
   const char *SafetyModeToString(SafetyModeT safetyMode)
@@ -273,6 +288,7 @@ namespace DogBotN {
     printf("Unexpected parameter index %d",(int)paramIndex);
     return "Invalid";
   }
+
 
   //! Get type information for parameters
   enum ComsParameterIndexTypeT ComsParameterIndexToType(ComsParameterIndexT paramIndex)

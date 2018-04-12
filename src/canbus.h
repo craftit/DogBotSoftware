@@ -16,7 +16,7 @@ int InitCAN(void);
 bool CANSetAddress(CANTxFrame *txmsg,int nodeId,int packetType);
 
 // Send an emergency stop
-bool CANEmergencyStop(void);
+bool CANEmergencyStop(uint8_t deviceId,enum StateChangeSourceT eStopSource);
 
 bool CANSyncTime(void);
 

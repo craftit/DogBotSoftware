@@ -141,14 +141,21 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
   {
   case CPT_NoOp: // No-op
     break;
-  case CPT_EmergencyStop:
-    ChangeControlState(CS_EmergencyStop,SCS_UserRequest);
-    if(!CANEmergencyStop()) {
-      USBSendError(g_deviceId,CET_CANTransmitFailed,CPT_EmergencyStop,0);
-      // It would be nice to retry, but we don't know where this is called
-      // from and if a delay is safe.
-    }
-    break;
+  case CPT_EmergencyStop: {
+      enum StateChangeSourceT cause = SCS_Unknown;
+      uint8_t sourceDeviceId = 0;
+      if(m_packetLen == sizeof(PacketEmergencyStopC)) {
+        const PacketEmergencyStopC *pkt = (const PacketEmergencyStopC *) m_data;
+        sourceDeviceId = pkt->m_deviceId;
+        cause = (enum StateChangeSourceT) pkt->m_cause;
+      }
+      ChangeControlState(CS_EmergencyStop,cause);
+      if(!CANEmergencyStop(sourceDeviceId,cause)) {
+        USBSendError(g_deviceId,CET_CANTransmitFailed,CPT_EmergencyStop,0);
+        // It would be nice to retry, but we don't know where this is called
+        // from and if a delay is safe.
+      }
+    } break;
   case CPT_Ping: { // Ping.
     if(m_packetLen != sizeof(struct PacketPingPongC)) {
       USBSendError(g_deviceId,CET_UnexpectedPacketSize,CPT_Ping,m_data[0]);

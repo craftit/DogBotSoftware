@@ -32,10 +32,19 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
     case CPT_NoOp:
       break;
     case CPT_EmergencyStop: { // Ping request
-      ChangeControlState(CS_EmergencyStop,SCS_UserRequest);
+      enum StateChangeSourceT changeSource = SCS_Unknown;
+      uint8_t changeDevice = 0;
+      if(rxmsg.DLC == 2) {
+        changeSource = (enum StateChangeSourceT) rxmsg.data8[0];
+        changeDevice = rxmsg.data8[1];
+      }
+      ChangeControlState(CS_EmergencyStop,changeSource);
       if(g_canBridgeMode) {
-        uint8_t pktType = CPT_EmergencyStop;
-        USBSendPacket((uint8_t *) &pktType,sizeof(pktType));
+        struct PacketEmergencyStopC pkt;
+        pkt.m_packetType = CPT_EmergencyStop;
+        pkt.m_deviceId = changeSource;
+        pkt.m_cause = changeDevice;
+        USBSendPacket((uint8_t *) &pkt,sizeof(pkt));
       }
     } break;
     case CPT_Ping: { // Ping request

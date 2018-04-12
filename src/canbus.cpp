@@ -103,7 +103,7 @@ bool CANSendServo(
 }
 
 // Send an emergency stop
-bool CANEmergencyStop()
+bool CANEmergencyStop(uint8_t deviceId,enum StateChangeSourceT eStopCause)
 {
   CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
   if(txmsg == 0)
@@ -112,7 +112,9 @@ bool CANEmergencyStop()
   enum ComsPacketTypeT pktType = CPT_EmergencyStop;
   CANSetAddress(txmsg,0,pktType);
   txmsg->RTR = CAN_RTR_DATA;
-  txmsg->DLC = 0;
+  txmsg->DLC = 2;
+  txmsg->data8[0] = deviceId;
+  txmsg->data8[1] = eStopCause;
   return g_txCANQueue.PostFullPacket(txmsg);
 }
 

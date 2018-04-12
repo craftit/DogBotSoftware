@@ -27,6 +27,9 @@ namespace DogBotN {
   //! Convert coms packet type to a string
   const char *ComsPacketTypeToString(ComsPacketTypeT packetType);
 
+  //! Convert a state change source to a string
+  const char *ComsStateChangeSource(enum StateChangeSourceT changeSource);
+
   //! Convert coms safety mode to a string
   const char *SafetyModeToString(SafetyModeT safetyMode);
 

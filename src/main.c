@@ -140,16 +140,17 @@ void FaultDetected(enum FaultCodeT faultCode)
   int faultBit = 1<<((int) faultCode);
   // Have we already flagged this error?
   if((g_faultState & faultBit) != 0) {
-    ChangeControlState(CS_Fault,SCS_Internal);
+    ChangeControlState(CS_Fault,SCS_Fault);
     return ;
   }
   g_faultState |= faultBit;
   g_lastFaultCode = faultCode;
   SendParamUpdate(CPI_FaultCode);
-  ChangeControlState(CS_Fault,SCS_Internal);
+  ChangeControlState(CS_Fault,SCS_Fault);
 }
 
 float g_minSupplyVoltage = 6.0;
+enum StateChangeSourceT g_stateChangeCause = SCS_Internal;
 
 int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT changeSource)
 {
@@ -214,12 +215,14 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
       break;
   }
 
+
   switch(newState)
   {
     case CS_SelfTest:
     case CS_FactoryCalibrate:
       if(g_controlState != CS_LowPower)
         break;
+      g_stateChangeCause = changeSource;
       g_controlState = newState;
       EnableSensorPower(true);
       PWMStop();
@@ -231,18 +234,21 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
         ResetEmergencyStop();
         g_emergencyStopTimer = 0;
       }
+      g_stateChangeCause = changeSource;
       g_controlState = newState;
       PWMStop();
       SendParamUpdate(CPI_HomedState);
       break;
     case CS_LowPower:
       g_controlState = newState;
+      g_stateChangeCause = changeSource;
       PWMStop();
       EnableSensorPower(false);
       SendParamUpdate(CPI_HomedState);
       break;
     case CS_SafeStop:
       g_controlState = newState;
+      g_stateChangeCause = changeSource;
       g_currentLimit = 0;
       SetMotorControlMode(CM_Brake);
       break;
@@ -254,7 +260,7 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
       break;
     case CS_Ready:
       // This can only happen from startup
-      if(changeSource != SCS_Internal) {
+      if(changeSource == SCS_UserRequest) {
         break;
       }
 #if 0
@@ -263,6 +269,7 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
         break;
       }
 #endif
+      g_stateChangeCause = changeSource;
       g_controlState = newState;
 
       EnableSensorPower(true);
@@ -276,6 +283,7 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
           g_controlState == CS_StartUp
           )
       {
+        g_stateChangeCause = changeSource;
         g_controlState = CS_Fault;
         g_currentLimit = 0;
         PWMStop();
@@ -286,12 +294,14 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
       // In case of a fault on a moving robot, attempt breaking anyway.
       // no break
     case CS_EmergencyStop:
+      g_stateChangeCause = changeSource;
       g_controlState = CS_EmergencyStop;
       // Just put the breaks on.
       g_currentLimit = 0;
       SetMotorControlMode(CM_Brake);
       break;
     case CS_BootLoader: {
+      g_stateChangeCause = changeSource;
       g_controlState = newState;
       PWMStop();
       EnableSensorPower(false);
@@ -562,7 +572,7 @@ int main(void) {
         g_currentLimit = 0;
         // Broadcast messages for a while.
         if(g_emergencyStopTimer < 10) {
-          CANEmergencyStop();
+          CANEmergencyStop(g_deviceId,g_stateChangeCause);
           g_emergencyStopTimer++;
         }
         chThdSleepMilliseconds(100);

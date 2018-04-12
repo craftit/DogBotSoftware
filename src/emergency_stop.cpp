@@ -59,7 +59,7 @@ void EmergencyStopTick(void)
 {
   if(g_safetyMode == SM_GlobalEmergencyStop) {
     if(g_timeSinceLastComsOk <= 0) {
-      ChangeControlState(CS_EmergencyStop,SCS_Internal);
+      ChangeControlState(CS_EmergencyStop,SCS_EStopLostComs);
     } else {
       g_timeSinceLastComsOk--;
     }

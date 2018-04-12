@@ -10,7 +10,6 @@
 extern "C" {
 #endif
 
-enum StateChangeSourceT { SCS_UserRequest,SCS_Internal };
 
 extern int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT changeSource);
 extern void FaultDetected(enum FaultCodeT faultCode);
@@ -22,7 +21,6 @@ extern float ReadMotorTemperature(void); // Read driver temp
 extern float Read5VRailVoltage(void);
 
 extern void EmergencyStopReceivedSafeFlag(int fromDeviceId);
-
 
 extern unsigned g_mainLoopTimeoutCount;
 extern enum FanModeT g_fanMode;

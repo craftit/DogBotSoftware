@@ -525,6 +525,21 @@ extern "C" {
     uint16_t m_len;
   };
 
+  enum StateChangeSourceT {
+    SCS_UserRequest = 0,
+    SCS_Internal = 1,
+    SCS_Unknown = 2,
+    SCS_Fault = 3,
+    SCS_EStopLostComs = 4,
+    SCS_EStopSwitch = 5
+  };
+
+  struct PacketEmergencyStopC {
+    uint8_t m_packetType;
+    uint8_t m_deviceId; //!< Device that issued it.
+    uint8_t m_cause;    //!< Reason why it was issued, as StateChangeSourceT
+  };
+
 
 #ifdef __cplusplus
 }

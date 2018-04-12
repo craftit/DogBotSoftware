@@ -242,7 +242,7 @@ bool MotionReport(int16_t position,int16_t torque,PositionReferenceT posRef,uint
   uint8_t mode = posRef & DOGBOT_SERVOREPORTMODE_POSITIONREF;
   if(g_safetyMode == SM_MasterEmergencyStop) {
     if(!IsEmergencyStopButtonSetToSafe()) {
-      ChangeControlState(CS_EmergencyStop,SCS_Internal);
+      ChangeControlState(CS_EmergencyStop,SCS_EStopSwitch);
     } else {
       // Set safe flag.
       mode |= DOGBOT_SERVOREPORTMODE_EMERGENCYSTOP;
