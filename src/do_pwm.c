@@ -387,20 +387,25 @@ static void ComputeState(void)
   UpdateCurrentMeasurementsFromADCValues();
 }
 
-static void SetCurrent(float current)
-{
 
+
+static bool SetCurrent(float current)
+{
+  bool ret = false;
   if(current > g_currentLimit) {
     g_hitLimitTorque = true;
+    ret = true;
     current = g_currentLimit;
   }
   if(current < -g_currentLimit) {
     g_hitLimitTorque = true;
+    ret = true;
     current = -g_currentLimit;
   }
 
   //g_torqueAverage = (g_torqueAverage * 30.0 + torque)/31.0;
   FOC_current(g_phaseAngle,0,current);
+  return ret;
 }
 
 static float max(float v1,float v2)
@@ -540,18 +545,21 @@ static void MotorControlLoop(void)
             err -= deadZone;
         }
 
-        g_velocityISum += err * CURRENT_MEAS_PERIOD * g_velocityIGain;
-        if(g_velocityISum > g_velocityLimit)
-          g_velocityISum = g_velocityLimit;
-        if(g_velocityISum < -g_velocityLimit)
-          g_velocityISum = -g_velocityLimit;
-
         demandCurrent = err * g_velocityPGain + g_velocityISum;
 
         if(!MotorCheckEndStop(demandCurrent))
           break;
 
-        SetCurrent(demandCurrent);
+        if(!SetCurrent(demandCurrent)) {
+          // We're not saturating, so do the integration.
+          g_velocityISum += err * CURRENT_MEAS_PERIOD * g_velocityIGain;
+          if(g_velocityISum > g_velocityLimit)
+            g_velocityISum = g_velocityLimit;
+          if(g_velocityISum < -g_velocityLimit)
+            g_velocityISum = -g_velocityLimit;
+        } else {
+          g_velocityISum *= 0.99f;
+        }
 
       } break;
       case CM_Torque: {
