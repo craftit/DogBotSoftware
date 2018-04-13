@@ -53,7 +53,7 @@ int g_phaseAngles[g_calibrationPointCount][3];
 float g_phaseDistance[g_calibrationPointCount];
 
 bool g_pwmThreadRunning = false;
-volatile bool g_pwmRun = true;
+volatile bool g_pwmRun = false;
 
 int g_pwmTimeoutCount = 0 ;
 bool g_pwmFullReport = false;
@@ -523,6 +523,8 @@ static void MotorControlLoop(void)
       // no break
       case CM_Velocity: {
         float targetVelocity = g_demandPhaseVelocity;
+
+        // Apply velocity limits
         if(targetVelocity > g_velocityLimit)
           targetVelocity = g_velocityLimit;
         if(targetVelocity < -g_velocityLimit)
@@ -547,17 +549,15 @@ static void MotorControlLoop(void)
 
         demandCurrent = err * g_velocityPGain + g_velocityISum;
 
+        // Do this before integration so we don't fight it.
         if(!MotorCheckEndStop(demandCurrent))
           break;
 
         if(!SetCurrent(demandCurrent)) {
           // We're not saturating, so do the integration.
           g_velocityISum += err * CURRENT_MEAS_PERIOD * g_velocityIGain;
-          if(g_velocityISum > g_velocityLimit)
-            g_velocityISum = g_velocityLimit;
-          if(g_velocityISum < -g_velocityLimit)
-            g_velocityISum = -g_velocityLimit;
         } else {
+          // Control is saturating, so just slowly unwind things until it isn't.
           g_velocityISum *= 0.99f;
         }
 

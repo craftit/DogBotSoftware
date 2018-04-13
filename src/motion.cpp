@@ -300,10 +300,9 @@ void CalibrationCheckFailed() {
 
 bool MotionCalZero()
 {
-  // Can only calibrate if pwm loop is running and we are updating our position.
+  // Can only calibrate if pwm loop is running.
   if(!g_pwmRun)
     return false;
-
 
   // Make sure we don't fly off somewhere.
   g_requestedJointMode = 0;
