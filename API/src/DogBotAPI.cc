@@ -390,6 +390,18 @@ namespace DogBotN {
     return CPIT_Unknown;
   }
 
+  //! Convert an parameter index to a name
+  const char *ComsPositionRefrenceToString(enum PositionReferenceT referenceType)
+  {
+    switch(referenceType)
+    {
+      case PR_Relative: return "Relative";
+      case PR_Absolute: return "Absolute";
+    }
+    printf("Unexpected position reference %d ",(int)referenceType);
+    return "Invalid";
+  }
+
   // ---------------------------------------------------------
 
   //! Constructor

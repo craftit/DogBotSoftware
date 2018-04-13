@@ -34,6 +34,9 @@ namespace DogBotN {
     m_linkB = value.get("LinkB",m_linkB).asFloat();
     m_linkH = value.get("LinkH",m_linkH).asFloat();
 
+    m_footDrop = value.get("FootDrop",m_footDrop).asFloat();
+    m_footSphereRadius = value.get("FootSphereRadius",m_footSphereRadius).asFloat();
+
     m_jointDirections[0] = value.get("dirRoll",m_jointDirections[0]).asFloat();
     m_jointDirections[1] = value.get("dirPitch",m_jointDirections[1]).asFloat();
     m_jointDirections[2] = value.get("dirKnee",m_jointDirections[2]).asFloat();
@@ -59,6 +62,9 @@ namespace DogBotN {
     ret["dirRoll"] = m_jointDirections[0];
     ret["dirPitch"] = m_jointDirections[1];
     ret["dirKnee"] = m_jointDirections[2];
+
+    ret["FootDrop"] = m_footDrop;
+    ret["FootSphereRadius"] = m_footSphereRadius;
 
     ret["alternateSolution"] = m_alternateSolution;
 
@@ -131,10 +137,10 @@ namespace DogBotN {
     float y = m_l1 * sin(angles[1]) + m_l2 * sin(angles[1] + kneeAngle);
     float z = m_l1 * cos(angles[1]) + m_l2 * cos(angles[1] + kneeAngle);
 
-    float xr = 0;
-    at[0] = cos(angles[0]) * xr + sin(angles[0]) * (m_zoff + z);
+    //float xr = 0;
+    at[0] = sin(angles[0]) * (m_zoff + z); //  + cos(angles[0]) * xr
     at[1] = y;
-    at[2] = sin(angles[0]) * xr + cos(angles[0]) * (m_zoff + z);
+    at[2] = cos(angles[0]) * (m_zoff + z); // + sin(angles[0]) * xr
 
     return true;
   }

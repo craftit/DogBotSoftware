@@ -36,6 +36,9 @@ namespace DogBotN {
   //! Convert an parameter index to a name
   const char *ComsParameterIndexToString(ComsParameterIndexT paramIndex);
 
+  //! Convert an parameter index to a name
+  const char *ComsPositionRefrenceToString(enum PositionReferenceT referenceType);
+
   //! Get type information for parameters
   enum ComsParameterIndexTypeT ComsParameterIndexToType(ComsParameterIndexT paramIndex);
 

@@ -2,6 +2,7 @@
 #define DOGBOT_LEGKINEMATICS_HEADER 1
 
 #include <jsoncpp/json/json.h>
+#include <cassert>
 
 namespace DogBotN {
 
@@ -96,18 +97,59 @@ namespace DogBotN {
     bool UseAlternateSolution() const
     { return m_alternateSolution; }
 
+    // ! Access joint directions
+    float JointDirection(int jnt) const
+    {
+      assert(jnt >= 0 && jnt < 3);
+      return m_jointDirections[jnt];
+    }
+
+    //! Length of upper leg
+    float LengthUpperLeg() const
+    { return m_l1; }
+
+    //! Length of lower leg
+    float LengthLowerLeg() const
+    { return m_l2; }
+
+    //! Offset from roll axis of rotation
+    float LengthZDrop() const
+    { return m_zoff; }
+
+    //! Length of centre of hip cam
+    float LengthLinkHip() const
+    { return m_linkA; }
+
+    //! Length of centre of knee cam
+    float LengthLinkKnee() const
+    { return m_linkB; }
+
+    //! Length of push rod
+    float LengthPushRod() const
+    { return m_linkH; }
+
+    //! Distance bellow the pivot of the centre of the foot
+    float LengthFootDrop() const
+    { return m_footDrop; }
+
+    //! Radius of foot sphere
+    float FootSphereRadius() const
+    { return m_footSphereRadius; }
   protected:
     std::string m_name; // Leg name
 
     float m_jointDirections[3] = { 1.0, 1.0, 1.0 };
 
     float m_l1 = 0.361; // Upper leg length
-    float m_l2 = 0.31;  // Lower leg length
+    float m_l2 = 0.29;  // Lower leg length
     float m_zoff = 0.08;// Vertical offset from central axis
 
     float m_linkA = 0.032; // Hip CAD: 0.032
     float m_linkB = 0.04;  // Knee CAD: 0.04
     float m_linkH = 0.363; // Push rod 0.363
+
+    float m_footDrop = 0.025; // Distance of centre of foot bellow
+    float m_footSphereRadius = 0.05; // Radius of foot sphere
 
     bool m_alternateSolution = false;
 
