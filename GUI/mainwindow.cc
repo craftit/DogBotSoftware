@@ -110,6 +110,8 @@ MainWindow::MainWindow(QWidget *parent) :
   m_displayQuery.push_back(CPI_EndStopFinal);
   m_displayQuery.push_back(CPI_EndStopTargetBreakForce);
   m_displayQuery.push_back(CPI_JointInertia);
+  m_displayQuery.push_back(CPI_PWMFrequency);
+  m_displayQuery.push_back(CPI_ServoReportFrequency);
 
   // Update default position
   ui->sliderTorque->setSliderPosition(m_torque*10.0);
@@ -510,6 +512,13 @@ void MainWindow::LocalProcessParam(PacketParam8ByteC psp)
   case CPI_MaxCurrent: {
     ui->lineEditMaxCurrent->setText(QString::number(psp.m_data.float32[0]));
   } break;
+  case CPI_PWMFrequency: {
+    ui->lineEditPWMFrequency->setText(QString::number(psp.m_data.float32[0]));
+  } break;
+  case CPI_ServoReportFrequency: {
+    ui->lineEditServoReportFrequency->setText(QString::number(psp.m_data.float32[0]));
+  } break;
+
   default:
     break;
   }
@@ -1416,4 +1425,21 @@ void MainWindow::on_pushButtonPhaseEndStops_clicked()
 void MainWindow::on_doubleSpinBoxEndStopForce_valueChanged(double arg1)
 {
   m_coms->SetParam(m_targetDeviceId,CPI_EndStopLimitBreakForce,(float) arg1);
+}
+
+void MainWindow::on_lineEditServoReportFrequency_textEdited(const QString &arg1)
+{
+  if(m_targetDeviceId == 0) {
+    std::cerr << "No device set. " << std::endl;
+    return ;
+  }
+  float newValue = arg1.toFloat();
+  if(newValue > 0) {
+    std::cerr << "Setting report frequency to " << newValue << std::endl;
+    m_coms->SendSetParam(m_targetDeviceId,CPI_ServoReportFrequency,(float) newValue);
+  } else {
+    std::cerr << "Query old value. " << std::endl;
+    // Replace with the old value.
+    m_coms->SendQueryParam(m_targetDeviceId,CPI_ServoReportFrequency);
+  }
 }

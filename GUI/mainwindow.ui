@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>910</width>
-    <height>817</height>
+    <height>818</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -109,7 +109,7 @@
        <bool>true</bool>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="tab_connect">
        <attribute name="title">
@@ -956,19 +956,6 @@
         <string>Diagnostics</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_8">
-        <item row="1" column="1">
-         <spacer name="verticalSpacer_5">
-          <property name="orientation">
-           <enum>Qt::Vertical</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>20</width>
-            <height>40</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
         <item row="0" column="1">
          <widget class="QGroupBox" name="groupBox">
           <property name="title">
@@ -998,103 +985,60 @@
            <string>Debug Values</string>
           </property>
           <layout class="QGridLayout" name="gridLayout_7">
-           <item row="7" column="2">
-            <widget class="QLineEdit" name="lineEditCANError"/>
+           <item row="4" column="2">
+            <widget class="QLineEdit" name="lineEditPWMFrequency"/>
            </item>
-           <item row="5" column="2">
-            <widget class="QLineEdit" name="lineEditUSBError"/>
+           <item row="6" column="2">
+            <widget class="QLineEdit" name="lineEditFanTempThreshold"/>
            </item>
-           <item row="0" column="2">
+           <item row="1" column="2">
             <widget class="QLineEdit" name="lineEditHallReadings"/>
            </item>
-           <item row="1" column="0" colspan="2">
+           <item row="3" column="0" colspan="2">
             <widget class="QLabel" name="label_32">
              <property name="text">
               <string>Fault Map:</string>
              </property>
             </widget>
            </item>
-           <item row="1" column="2">
+           <item row="3" column="2">
             <widget class="QLineEdit" name="lineEditFaultMap"/>
            </item>
-           <item row="4" column="2">
-            <widget class="QLineEdit" name="lineEditUSBDrop"/>
-           </item>
-           <item row="0" column="0">
+           <item row="1" column="0">
             <widget class="QLabel" name="label_29">
              <property name="text">
               <string>Hall:</string>
              </property>
             </widget>
            </item>
-           <item row="6" column="2">
-            <widget class="QLineEdit" name="lineEditCANDrop"/>
-           </item>
-           <item row="4" column="0" colspan="2">
-            <widget class="QLabel" name="label_30">
-             <property name="text">
-              <string>USB Drop:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="0" colspan="2">
-            <widget class="QLabel" name="label_31">
-             <property name="text">
-              <string>USB Error:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="2">
-            <widget class="QLineEdit" name="lineEditMainLoopTimeout"/>
-           </item>
            <item row="6" column="0">
-            <widget class="QLabel" name="label_9">
-             <property name="text">
-              <string>CAN Drop:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="7" column="0">
-            <widget class="QLabel" name="label_10">
-             <property name="text">
-              <string>CAN Error:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="0">
-            <widget class="QLabel" name="label_11">
-             <property name="text">
-              <string>Loop Timeout:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="2">
-            <widget class="QLineEdit" name="lineEditFanTempThreshold"/>
-           </item>
-           <item row="2" column="0">
             <widget class="QLabel" name="label_8">
              <property name="text">
               <string>Fan Temp Limit</string>
              </property>
             </widget>
            </item>
+           <item row="5" column="2">
+            <widget class="QLineEdit" name="lineEditServoReportFrequency"/>
+           </item>
+           <item row="4" column="0">
+            <widget class="QLabel" name="label_38">
+             <property name="text">
+              <string>PWM Frequency:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="0">
+            <widget class="QLabel" name="label_39">
+             <property name="text">
+              <string>Report Frequency:</string>
+             </property>
+            </widget>
+           </item>
           </layout>
          </widget>
         </item>
-        <item row="3" column="1">
-         <spacer name="verticalSpacer_4">
-          <property name="orientation">
-           <enum>Qt::Vertical</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>20</width>
-            <height>40</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item row="0" column="0" rowspan="4">
+        <item row="0" column="0" rowspan="7">
          <widget class="QGroupBox" name="groupBox_3">
           <property name="title">
            <string>Queries</string>
@@ -1231,6 +1175,78 @@
            </item>
           </layout>
          </widget>
+        </item>
+        <item row="4" column="1" rowspan="3">
+         <widget class="QGroupBox" name="groupBox_12">
+          <property name="title">
+           <string>Error Counts</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_16">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_11">
+             <property name="text">
+              <string>Loop Timeout:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QLineEdit" name="lineEditMainLoopTimeout"/>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_30">
+             <property name="text">
+              <string>USB Drop:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QLineEdit" name="lineEditUSBDrop"/>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_31">
+             <property name="text">
+              <string>USB Error:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QLineEdit" name="lineEditUSBError"/>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="label_9">
+             <property name="text">
+              <string>CAN Drop:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1">
+            <widget class="QLineEdit" name="lineEditCANDrop"/>
+           </item>
+           <item row="4" column="0">
+            <widget class="QLabel" name="label_10">
+             <property name="text">
+              <string>CAN Error:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="1">
+            <widget class="QLineEdit" name="lineEditCANError"/>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <spacer name="verticalSpacer_4">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
         </item>
        </layout>
       </widget>

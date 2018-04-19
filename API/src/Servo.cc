@@ -122,7 +122,8 @@ namespace DogBotN {
      m_id(deviceId),
      m_coms(coms)
   {
-    m_name = std::to_string(pktAnnounce.m_uid[0]) + "-" + std::to_string(pktAnnounce.m_uid[1]);
+    m_serialNumber =  std::to_string(pktAnnounce.m_uid[0]) + "-" + std::to_string(pktAnnounce.m_uid[1]);
+    m_name = m_serialNumber;
     Init();
   }
 
@@ -162,6 +163,7 @@ namespace DogBotN {
 
     m_updateQuery.push_back(CPI_HomedState);
     m_updateQuery.push_back(CPI_PositionRef);
+    m_updateQuery.push_back(CPI_ServoReportFrequency);
     m_updateQuery.push_back(CPI_PWMMode);
     m_updateQuery.push_back(CPI_CalibrationOffset);
     m_updateQuery.push_back(CPI_OtherJoint);
@@ -493,6 +495,14 @@ namespace DogBotN {
       float maxCurrent = pkt.m_data.float32[0];
       ret = (maxCurrent != m_maxCurrent);
       m_maxCurrent = maxCurrent;
+    } break;
+    case CPI_ServoReportFrequency: {
+      float newFrequency = pkt.m_data.float32[0];
+      ret = (newFrequency != m_servoReportFrequency);
+      m_servoReportFrequency = newFrequency;
+      if(ret) {
+        m_tickDuration = std::chrono::duration<double>(1.0/m_servoReportFrequency);
+      }
     } break;
     default:
       break;

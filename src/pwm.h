@@ -25,7 +25,8 @@ bool IsEmergencyStopButtonSetup(void);
 void EmergencyStopTick(void);
 bool EmergencyStopHaveReceivedSafeFlag(void);
 void EmergencyStopReceivedSafeFlag(int fromDeviceId);
-
+bool SetServoReportRate(float rate);
+float GetServoReportRate(void);
 bool CheckMotorSetup(void);
 void SetupEndStops(void);
 
@@ -47,7 +48,7 @@ float hallToAngle(uint16_t *sensors);
 extern binary_semaphore_t g_adcInjectedDataReady;
 extern binary_semaphore_t g_reportSampleReady;  //! ~100Hz report loop
 
-extern int g_motorReportSampleRate;
+extern int g_motorReportSampleCount;
 
 extern uint32_t g_faultState;
 extern int16_t g_currentADCValue[3];
@@ -63,6 +64,8 @@ extern bool g_hitLimitPosition;
 extern volatile bool g_pwmRun;
 extern bool g_pwmThreadRunning;
 extern bool g_pwmFullReport; //! If true generate messages detailing PWM state.
+
+extern float g_PWMFrequency;
 
 extern float g_maxSupplyVoltage;
 extern float g_maxOperatingTemperature;

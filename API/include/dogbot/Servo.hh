@@ -305,6 +305,7 @@ namespace DogBotN {
     unsigned m_reportedMode = 0;
 
     // Current parameters
+    float m_servoReportFrequency = 100.0;
     float m_motorKv = 260; //! < Motor speed constant
     float m_gearRatio = 21.0; //!< Gearbox ratio
     float m_servoKt = 0;   //! < Servo torque constant
@@ -320,6 +321,7 @@ namespace DogBotN {
     float m_homeOffset = 0;
     float m_endStopStart = 0;
     float m_endStopFinal = 0;
+
     bool m_endStopEnable = false;
     enum SafetyModeT m_safetyMode = SM_GlobalEmergencyStop;
     friend class DogBotAPIC;

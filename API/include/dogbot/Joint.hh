@@ -42,6 +42,9 @@ namespace DogBotN {
     //! Access notes.
     std::string Notes() const;
 
+    //! Access serial number if set.
+    std::string SerialNumber() const;
+
     //! Type of joint
     virtual std::string JointType() const;
 
@@ -118,6 +121,7 @@ namespace DogBotN {
 
     std::string m_name;
     std::string m_notes;
+    std::string m_serialNumber;
     bool m_export = false;
 
     float m_demandPosition = nan("");

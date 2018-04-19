@@ -403,6 +403,14 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
     } break;
     case CPI_EndStopPhaseAngles:
       return false;
+    case CPI_ServoReportFrequency:
+      if(len != 4)
+        return false;
+      SetServoReportRate(data->float32[0]);
+      return true;
+    case CPI_PWMFrequency:
+      // Setting the PWM frequency is not supported at the moment.
+      return false;
     case CPI_FINAL:
       return false;
     default:
@@ -703,6 +711,14 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       *len = 8;
       data->float32[0] = g_endStopPhaseMin;
       data->float32[1] = g_endStopPhaseMax;
+    } break;
+    case CPI_ServoReportFrequency: {
+      *len = 4;
+      data->float32[0] = GetServoReportRate();
+    } break;
+    case CPI_PWMFrequency: {
+      *len = 4;
+      data->float32[0] = g_PWMFrequency;
     } break;
     case CPI_FINAL:
     default: return false;

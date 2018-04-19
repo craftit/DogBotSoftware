@@ -27,14 +27,15 @@ float g_phaseInductance = 1e-9;
 
 #define TIM_1_8_CLOCK_HZ (SYSTEM_CORE_CLOCK/4)
 //#define TIM_1_8_PERIOD_CLOCKS (2100)   // 20 KHz
-#define TIM_1_8_PERIOD_CLOCKS (2333)   // 18 KHz
+#define TIM_1_8_PERIOD_CLOCKS (2333)    // 18 KHz
 //#define TIM_1_8_PERIOD_CLOCKS (2625)  // 16 KHz
 //#define TIM_1_8_PERIOD_CLOCKS (4095)  // 10 KHz
 #define CURRENT_MEAS_PERIOD ((float)(TIM_1_8_PERIOD_CLOCKS)/(float)TIM_1_8_CLOCK_HZ)
 
-int g_motorReportSampleRate = 1.0 / (100.0 * CURRENT_MEAS_PERIOD);  // The target rate is 100Hz
+int g_motorReportSampleCount = (1.0 / (100.0 * CURRENT_MEAS_PERIOD)) + 0.5f;  // The target rate is 100Hz
+float g_PWMFrequency = 1.0/CURRENT_MEAS_PERIOD;
 
-BSEMAPHORE_DECL(g_reportSampleReady,0); // 100Hz report loop
+BSEMAPHORE_DECL(g_reportSampleReady,0); // Synchronise motion report loop (Normally 100Hz )
 
 float g_shuntADCValue2Amps = 0.0;
 float g_vbus_voltage = 12.0;
@@ -74,8 +75,24 @@ void PWMUpdateDrivePhase(int pa,int pb,int pc);
 
 void SetupMotorCurrentPID(void);
 
-static float sqrf(float v)
-{ return v * v; }
+// Set the report rate.
+// It must be a integer multiple of
+bool SetServoReportRate(float rate)
+{
+  float newValue = (1.0f/(rate * CURRENT_MEAS_PERIOD));
+  if(newValue < 1 || newValue > ((int32_t)1<<30))
+    return false;
+  g_motorReportSampleCount = newValue + 0.5f; // Round to nearest integer value.
+  return true;
+}
+
+// Compute the current report rate.
+
+float GetServoReportRate(void)
+{
+  return 1.0f/((float) g_motorReportSampleCount * CURRENT_MEAS_PERIOD);
+}
+
 
 int CheckHallInRange(void) {
   // Are sensor readings outside the expected range ?
@@ -144,7 +161,7 @@ void ShuntCalibration(void)
 
   // Sample values.
 
-  int samples = 32;
+  int samples = 64;
   for(int i = 0;i < samples;i++) {
     chBSemWait(&g_adcInjectedDataReady);
     for(int j = 0;j < 3;j++)
@@ -164,6 +181,28 @@ void ShuntCalibration(void)
 float g_Ierr_d = 0;
 float g_Ierr_q = 0;
 
+// Monitor currents when we're not driving the motor directly, normally during breaking
+
+static bool Monitor_FOC_Current(float phaseAngle)
+{
+  // Clarke transform
+  float Ialpha = -g_current[1] - g_current[2];
+  float Ibeta = one_by_sqrt3 * (g_current[1] - g_current[2]);
+
+  // Park transform
+  float c = arm_cos_f32(phaseAngle);
+  float s = arm_sin_f32(phaseAngle);
+  g_Id = c*Ialpha + s*Ibeta;
+  g_Iq = c*Ibeta  - s*Ialpha;
+
+  g_torqueAverage += (g_Iq - g_torqueAverage)* CURRENT_MEAS_PERIOD * g_motorReportSampleCount;
+
+  g_Ierr_d = 0;
+  g_Ierr_q = 0;
+
+  return true;
+}
+
 // The following function is based on that from the ODrive project.
 
 static bool FOC_current(float phaseAngle,float Id_des, float Iq_des) {
@@ -179,7 +218,7 @@ static bool FOC_current(float phaseAngle,float Id_des, float Iq_des) {
   g_Id = c*Ialpha + s*Ibeta;
   g_Iq = c*Ibeta  - s*Ialpha;
 
-  g_torqueAverage = (g_torqueAverage * 30.0 - g_Iq)/31.0;
+  g_torqueAverage += (g_Iq - g_torqueAverage)* CURRENT_MEAS_PERIOD * g_motorReportSampleCount;
 
   // Current error
   g_Ierr_d = Id_des - g_Id;
@@ -216,7 +255,7 @@ static bool FOC_current(float phaseAngle,float Id_des, float Iq_des) {
   g_current_Ibus = mod_d * g_Id + mod_q * g_Iq;
 
   // Dead time compensation.
-
+  // TBD
 
   // Inverse park transform
   float mod_alpha = c*mod_d - s*mod_q;
@@ -486,16 +525,27 @@ static void MotorControlLoop(void)
     switch(g_controlMode)
     {
       case CM_Off: // Maybe turn off the MOSFETS ?
+        // FIXME:- This doesn't actually turn the MOSFETs off, but the switching losses
+        // stop too much breaking.
+
+        // Zero out and drift in motor current readings.
+        if(fabs(g_currentPhaseVelocity) < 15) {
+          for(int i = 0;i < 3;i++) {
+            g_currentZeroOffset[i] = (((float) g_currentADCValue[i] * g_shuntADCValue2Amps) - g_currentZeroOffset[i]) * 0.005;
+          }
+        }
+
         PWMUpdateDrivePhase(
             TIM_1_8_PERIOD_CLOCKS/2,
             TIM_1_8_PERIOD_CLOCKS/2,
             TIM_1_8_PERIOD_CLOCKS/2
             );
-        g_torqueAverage = 0;
+        // Monitor the currents but don't drive them
+        Monitor_FOC_Current(g_phaseAngle);
         break;
       case CM_Fault:
       case CM_Final:
-        // Just turn everything off, this should mildly passively brake the motor
+        // Just turn on the low side MOSFETs, this should passively brake the motor
         PWMUpdateDrivePhase(
             0,
             0,
@@ -504,15 +554,15 @@ static void MotorControlLoop(void)
         g_torqueAverage = 0;
         break;
       case CM_Brake:
-        // Just turn everything off, this should passively brake the motor
+        // Just turn on the low side MOSFETs, this should passively brake the motor
         // as there are no switching losses this applies more breaking force.
         PWMUpdateDrivePhase(
             0,
             0,
             0
             );
-        // FIXME:- Measure currents and estimate the torque ??
-        g_torqueAverage = 0;
+        // Monitor the currents but don't drive them
+        Monitor_FOC_Current(g_phaseAngle);
         break;
       case CM_Position: {
         float positionError = (targetPosition - g_currentPhasePosition);
@@ -532,7 +582,7 @@ static void MotorControlLoop(void)
 
         float err = targetVelocity - g_currentPhaseVelocity;
 
-        // Add a small deadzone.  This reduces noise and small oscillations
+        // Add a small dead zone.  This reduces noise and small oscillations
         // coupled through from the sensors
         const float deadZone = M_PI/8.0f;
         if(err < 0) {
@@ -618,7 +668,7 @@ static void MotorControlLoop(void)
 
 
     // Flag motion control update if needed.
-    if(++loopCount >= g_motorReportSampleRate) {
+    if(++loopCount >= g_motorReportSampleCount) {
       loopCount = 0;
       chBSemSignal(&g_reportSampleReady);
     }
@@ -1082,6 +1132,7 @@ void SetupMotorCurrentPID()
 #endif
 }
 
+//static float sqrf(float v) { return v * v; }
 
 enum FaultCodeT PWMMotorCalResistance()
 {

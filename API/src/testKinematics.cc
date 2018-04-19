@@ -73,13 +73,14 @@ int main() {
     float psi = legKinamtics.Linkage4BarForward(theta);
     float back = 0;
     float back2 = 0;
-    bool ok = legKinamtics.Linkage4BarBack(psi,back);
+    bool ok = legKinamtics.Linkage4BarBack(psi,back,false);
     legKinamtics.Linkage4BarBack(psi,back2,true);
     float ratio1 = legKinamtics.LinkageSpeedRatio(back,psi);
     float ratio2 = legKinamtics.LinkageSpeedRatio(back2,psi);
     float diff1 = Diff(legKinamtics,back);
     float diff2 = Diff(legKinamtics,back2);
-    std::cout << i << " Fwd:" << rad2deg(psi) << " Inv:" << rad2deg(back) << " (" << ratio1 << " " << diff1 << ") " << rad2deg(back2) << " (" << ratio2 << " " << diff2 << ") " << "  [" << ok << "]" << std::endl;
+    std::cout << i << " Fwd:" << rad2deg(psi) << " Inv:" << rad2deg(back)  << " (" << ratio1 << " " << diff1 << ") "
+                                                         << rad2deg(back2) << " (" << ratio2 << " " << diff2 << ") " << "  [" << ok << "]" << std::endl;
   }
 
   return 0;

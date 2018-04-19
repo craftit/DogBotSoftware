@@ -282,6 +282,7 @@ namespace DogBotN {
       case CPI_EndStopTargetBreakForce: return "EndStopTargetBreakForce";
       case CPI_EndStopLimitBreakForce: return "EndStopLimitBreakForce";
       case CPI_JointInertia: return "JointInertia";
+      case CPI_ServoReportFrequency: return "ServoReportRate";
 
       case CPI_FINAL: return "FINAL";
     }
@@ -382,7 +383,7 @@ namespace DogBotN {
       case CPI_EndStopTargetBreakForce: return CPIT_float32;
       case CPI_EndStopLimitBreakForce: return CPIT_float32;
       case CPI_JointInertia: return CPIT_float32;
-
+      case CPI_ServoReportFrequency: return CPIT_float32;
       case CPI_FINAL: return CPIT_Invalid;
     }
 

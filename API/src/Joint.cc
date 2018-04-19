@@ -28,6 +28,7 @@ namespace DogBotN {
     std::lock_guard<std::mutex> lock(m_mutexJointAdmin);
     m_name = conf.get("name","?").asString();
     m_notes = conf.get("notes","").asString();
+    m_serialNumber = conf.get("serial_number",m_serialNumber).asString();
     return true;
   }
 
@@ -39,6 +40,7 @@ namespace DogBotN {
     std::lock_guard<std::mutex> lock(m_mutexJointAdmin);
     ret["name"] = m_name;
     ret["notes"] = m_notes;
+    ret["serial_number"] = m_serialNumber;
     ret["type"] = JointType();
     return ret;
   }
@@ -48,6 +50,13 @@ namespace DogBotN {
   {
     std::lock_guard<std::mutex> lock(m_mutexJointAdmin);
     return m_name;
+  }
+
+  //! Access serial number if set.
+  std::string JointC::SerialNumber() const
+  {
+    std::lock_guard<std::mutex> lock(m_mutexJointAdmin);
+    return m_serialNumber;
   }
 
   //! Set name of servo

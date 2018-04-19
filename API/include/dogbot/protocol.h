@@ -228,6 +228,9 @@ extern "C" {
     CPI_JointInertia     = 0x60,
     CPI_EndStopPhaseAngles = 0x61,
 
+    CPI_ServoReportFrequency   = 0x62,
+    CPI_PWMFrequency      = 0x63,
+
     CPI_FINAL           = 0xff
   };
 

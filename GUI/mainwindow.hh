@@ -176,6 +176,8 @@ private slots:
 
   void on_doubleSpinBoxEndStopForce_valueChanged(double arg1);
 
+  void on_lineEditServoReportFrequency_textEdited(const QString &arg1);
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);
