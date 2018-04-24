@@ -264,7 +264,7 @@ extern "C" {
   enum ControlStateT {
     CS_StartUp       = 0, //!< Doing self test, then go to ready if safe to do so.
     CS_SafeStop      = 1, //!< Apply breaks for 20 seconds, then go to low power mode
-    CS_LowPower      = 2, //!< Reduced power consumption mode.
+    CS_Standby      = 2, //!< Reduced power consumption mode.
     CS_Ready         = 3, //!< Motor control loop running, ready for motion commands.
     CS_EmergencyStop = 4, //!< Motor in break state.
     CS_SelfTest      = 5, //!< Doing a self test.

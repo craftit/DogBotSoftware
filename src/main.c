@@ -53,7 +53,7 @@ static THD_FUNCTION(Thread1, arg) {
         palClearPad(GPIOC, GPIOC_PIN4);     /* Green.  */
         chThdSleepMilliseconds(5000);
       } break;
-      case CS_LowPower:
+      case CS_Standby:
       case CS_SafeStop: {
         palSetPad(GPIOC, GPIOC_PIN4);       /* Green.  */
         chThdSleepMilliseconds(20);
@@ -165,7 +165,7 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
       // no break
     case CS_EmergencyStop:
       if(newState != CS_Fault &&
-         newState != CS_LowPower
+         newState != CS_Standby
           )
       {
         SendParamUpdate(CPI_ControlState);
@@ -173,7 +173,7 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
       }
       break;
     case CS_SafeStop:
-      if(newState != CS_LowPower &&
+      if(newState != CS_Standby &&
           newState != CS_EmergencyStop &&
           newState != CS_Fault )
       {
@@ -181,7 +181,7 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
         return false;
       }
       break;
-    case CS_LowPower:
+    case CS_Standby:
       if(newState != CS_BootLoader &&
           newState != CS_FactoryCalibrate &&
           newState != CS_EmergencyStop &&
@@ -195,7 +195,7 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
       }
       break;
     case CS_FactoryCalibrate:
-      if( newState != CS_LowPower &&
+      if( newState != CS_Standby &&
           newState != CS_EmergencyStop &&
           newState != CS_SafeStop &&
           newState != CS_Fault )
@@ -220,7 +220,7 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
   {
     case CS_SelfTest:
     case CS_FactoryCalibrate:
-      if(g_controlState != CS_LowPower)
+      if(g_controlState != CS_Standby)
         break;
       g_stateChangeCause = changeSource;
       g_controlState = newState;
@@ -239,7 +239,7 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
       PWMStop();
       SendParamUpdate(CPI_HomedState);
       break;
-    case CS_LowPower:
+    case CS_Standby:
       g_controlState = newState;
       g_stateChangeCause = changeSource;
       PWMStop();
@@ -265,7 +265,7 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
       }
 #if 0
       if(!CheckMotorSetup()) {
-        g_controlState = CS_LowPower;
+        g_controlState = CS_Standby;
         break;
       }
 #endif
@@ -279,7 +279,7 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
     default: // If we don't recognise the state, just go into fault mode.
     case CS_Fault:
       if(g_safetyMode == SM_LocalStop ||
-          g_controlState == CS_LowPower ||
+          g_controlState == CS_Standby ||
           g_controlState == CS_StartUp
           )
       {
@@ -358,7 +358,7 @@ void SendBackgroundStateReport(void)
       SendParamUpdate(CPI_MotorTemp);
       break;
     case 3:
-      if(g_controlState != CS_LowPower) {
+      if(g_controlState != CS_Standby) {
         SendParamUpdate(CPI_MotorTemp);
       }
       break;
@@ -427,7 +427,7 @@ void DoStartup(void)
   }
 
   if(g_vbus_voltage < g_minSupplyVoltage) {
-    ChangeControlState(CS_LowPower,SCS_Internal);
+    ChangeControlState(CS_Standby,SCS_Internal);
     return ;
   }
 
@@ -512,7 +512,7 @@ int main(void) {
       case CS_StartUp:
         SendBackgroundStateReport();
         if(g_vbus_voltage < g_minSupplyVoltage) {
-          ChangeControlState(CS_LowPower,SCS_Internal);
+          ChangeControlState(CS_Standby,SCS_Internal);
           break;
         }
         switch(g_safetyMode)
@@ -539,7 +539,7 @@ int main(void) {
           break;
         default:
         case SM_Unknown:
-          ChangeControlState(CS_LowPower,SCS_Internal);
+          ChangeControlState(CS_Standby,SCS_Internal);
           break;
         }
         break;
@@ -556,12 +556,12 @@ int main(void) {
           break;
         }
         SendBackgroundStateReport();
-        ChangeControlState(CS_LowPower,SCS_Internal);
+        ChangeControlState(CS_Standby,SCS_Internal);
         break;
       case CS_SelfTest:
         break;
       case CS_BootLoader:
-      case CS_LowPower:
+      case CS_Standby:
       case CS_Fault:
         chThdSleepMilliseconds(200);
         SendBackgroundStateReport();
@@ -674,7 +674,7 @@ int main(void) {
     if(g_vbus_voltage > g_maxSupplyVoltage) {
       FaultDetected(FC_OverVoltage);
     }
-    if(g_controlState != CS_LowPower) {
+    if(g_controlState != CS_Standby) {
       if(g_vbus_voltage < g_minSupplyVoltage) {
         // What to do when we detect low power supply voltage
         switch(g_controlState)
@@ -688,13 +688,13 @@ int main(void) {
           case CS_SelfTest:
           case CS_FactoryCalibrate:
           case CS_StartUp:
-            ChangeControlState(CS_LowPower,SCS_Internal);
+            ChangeControlState(CS_Standby,SCS_Internal);
             break;
           case CS_SafeStop:
           case CS_BootLoader:
           case CS_Fault:
           case CS_EmergencyStop:
-          case CS_LowPower:
+          case CS_Standby:
             break;
         }
       }

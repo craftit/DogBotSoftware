@@ -2,6 +2,7 @@
 #include "dogbot/LegKinematics.hh"
 #include <math.h>
 #include <assert.h>
+#include <iostream>
 
 namespace DogBotN {
 
@@ -43,6 +44,26 @@ namespace DogBotN {
 
     m_alternateSolution = value.get("alternateSolution",false).asBool();
 
+    // Generate some default leg positions.
+
+    if(m_name == "front_left") {
+      m_legOrigin[0] = -m_bodyWidth/2.0;
+      m_legOrigin[1] = m_bodyLength/2.0;
+      m_legOrigin[2] = 0;
+    } else if(m_name == "front_right") {
+      m_legOrigin[0] = m_bodyWidth/2.0;
+      m_legOrigin[1] = m_bodyLength/2.0;
+      m_legOrigin[2] = 0;
+    } else if(m_name == "back_left") {
+      m_legOrigin[0] = -m_bodyWidth/2.0;
+      m_legOrigin[1] = -m_bodyLength/2.0;
+      m_legOrigin[2] = 0;
+    } else if(m_name == "back_right") {
+      m_legOrigin[0] = m_bodyWidth/2.0;
+      m_legOrigin[1] = -m_bodyLength/2.0;
+      m_legOrigin[2] = 0;
+    }
+    std::cout << " Name:" << m_name << "  Origin:" << m_legOrigin[0] << " " << m_legOrigin[1] << " " << m_legOrigin[2] << " " << std::endl;
     return true;
   }
 

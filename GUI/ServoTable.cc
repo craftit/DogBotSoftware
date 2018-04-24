@@ -329,9 +329,9 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
         return QColor(Qt::white);
       if(servo->FaultCode() == FC_Unknown)
         return QColor(Qt::yellow);
-      if(servo->SupplyVoltage() < 8.0)
+      if(servo->SupplyVoltage() < 30.0)
         return QColor(Qt::red);
-      if(servo->SupplyVoltage() < 11.0)
+      if(servo->SupplyVoltage() < 30.6)
         return QColor(Qt::yellow);
       if(servo->SupplyVoltage() > 40.0)
         return QColor(Qt::red);

@@ -49,7 +49,7 @@ int main(void) {
     if (RCC->CSR & RCC_CSR_SFTRSTF) { // Software reset ?
       g_controlState = CS_BootLoader;
     } else {
-      g_controlState = CS_LowPower;
+      g_controlState = CS_Standby;
     }
   }
   /*!< Remove reset flags */

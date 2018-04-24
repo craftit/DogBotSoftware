@@ -12,6 +12,9 @@ namespace DogBotN {
   class LegControllerC
   {
   public:
+    LegControllerC()
+    {}
+
     LegControllerC(std::shared_ptr<DogBotAPIC> &api,const std::string &legName,bool useVirtualKnee = false);
 
     //! Destructor

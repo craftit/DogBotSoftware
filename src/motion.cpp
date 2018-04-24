@@ -22,7 +22,7 @@ uint8_t g_motionTime = 0;
 
 enum MotionHomedStateT g_motionHomedState = MHS_Lost;
 enum PositionReferenceT g_motionPositionReference = PR_Absolute;
-enum ControlStateT g_controlState = CS_LowPower;
+enum ControlStateT g_controlState = CS_Standby;
 enum FaultCodeT g_lastFaultCode = FC_Ok;
 enum JointRelativeT g_motionJointRelative = JR_Isolated;
 

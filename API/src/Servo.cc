@@ -397,7 +397,7 @@ namespace DogBotN {
         {
           case CS_StartUp:
           case CS_FactoryCalibrate:
-          case CS_LowPower:
+          case CS_Standby:
           case CS_BootLoader:
             m_homedState = MHS_Lost;
             m_controlDynamic = CM_Off;

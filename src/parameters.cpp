@@ -332,7 +332,7 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
         default:
           SendParamUpdate(index);
           return false;
-        case CS_LowPower:
+        case CS_Standby:
           switch(sm) {
             case SM_GlobalEmergencyStop:
             case SM_MasterEmergencyStop:

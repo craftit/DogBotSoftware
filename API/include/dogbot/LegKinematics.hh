@@ -135,9 +135,19 @@ namespace DogBotN {
     //! Radius of foot sphere
     float FootSphereRadius() const
     { return m_footSphereRadius; }
+
+    //! Leg origin.
+    float LegOrigin(int coordinate) const
+    { return m_legOrigin[coordinate]; }
+
   protected:
     std::string m_name; // Leg name
 
+    // These are used to compute the leg positions, though they don't really belong here.
+    float m_bodyWidth = 0.304;
+    float m_bodyLength = 0.556;
+
+    float m_legOrigin[3] = {0,0,0};
     float m_jointDirections[3] = { 1.0, 1.0, 1.0 };
 
     float m_l1 = 0.361; // Upper leg length

@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/Logo">
+        <file alias="DogBot">DogBot.png</file>
+    </qresource>
+</RCC>

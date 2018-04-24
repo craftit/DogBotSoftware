@@ -67,11 +67,14 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_CANPacketErrors:
       g_canErrorCount = 0;
       break;
-    case CPI_ControlState:
+    case CPI_ControlState: {
       if(len != 1)
         return false;
-      g_controlState = (enum ControlStateT) dataBuff->uint8[0];
-      break;
+      enum ControlStateT newState = (enum ControlStateT) dataBuff->uint8[0];
+      if(newState == CS_Standby ||
+          newState == CS_BootLoader)
+        g_controlState = newState;
+    } break;
     case CPI_MainLoopTimeout:
     case CPI_FirmwareVersion:
     case CPI_PWMState:
@@ -144,6 +147,8 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_EndStopLimitBreakForce:
     case CPI_JointInertia:
     case CPI_EndStopPhaseAngles:
+    case CPI_ServoReportFrequency:
+    case CPI_PWMFrequency:
     case CPI_FINAL:
       return false;
 //    default:
@@ -282,6 +287,8 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
     case CPI_FanMode:
     case CPI_FanTemperatureThreshold:
     case CPI_FanState:
+    case CPI_ServoReportFrequency:
+    case CPI_PWMFrequency:
     default:
       return false;
   }

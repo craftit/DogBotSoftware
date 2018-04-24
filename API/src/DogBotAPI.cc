@@ -72,7 +72,7 @@ namespace DogBotN {
     case CS_FactoryCalibrate: return "Factory Calibrate";
     case CS_MotionCalibrate: return "Motion Calibrate";
     case CS_SafeStop: return "Safe Stop";
-    case CS_LowPower: return "Low Power";
+    case CS_Standby: return "Standby";
     case CS_Ready: return "Ready";
     case CS_Home: return "Auto Home";
     case CS_SelfTest: return "Self Test";
@@ -1266,7 +1266,7 @@ namespace DogBotN {
       if(!servo || servo->Id() == 0)
         continue;
       m_coms->SendSetParam(servo->Id(),CPI_PWMMode,CM_Position);
-      servo->DemandPosition(servo->Position(),servo->DefaultPositionTorque());
+      servo->DemandPosition(servo->Position(),servo->DefaultPositionTorque(),servo->PositionReference());
     }
     // Make sure
   }
@@ -1280,7 +1280,7 @@ namespace DogBotN {
   //! Request all controllers go into low power mode
   void DogBotAPIC::LowPowerAll()
   {
-    m_coms->SendSetParam(0,CPI_ControlState,CS_LowPower);
+    m_coms->SendSetParam(0,CPI_ControlState,CS_Standby);
   }
 
   void DogBotAPIC::RefreshAll()
