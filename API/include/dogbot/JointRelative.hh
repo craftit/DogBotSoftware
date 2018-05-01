@@ -48,7 +48,7 @@ namespace DogBotN {
     virtual bool DemandPosition(float position,float torqueLimit) override;
 
     //! Add a update callback for motor position
-    virtual CallbackHandleC AddPositionUpdateCallback(const PositionUpdateFuncT &callback);
+    virtual CallbackHandleC AddPositionUpdateCallback(const PositionUpdateFuncT &callback) override;
 
   protected:
     //! Send an updated demand position

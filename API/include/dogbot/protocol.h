@@ -254,7 +254,8 @@ extern "C" {
     CPIT_int32,
     CPIT_uint32,
     CPIT_uint32_2,
-    CPIT_float32
+    CPIT_float32,
+    CPIT_float32_2
   };
 
   /* Control state.

@@ -117,7 +117,7 @@ namespace DogBotN {
   //! Get current demand
   bool JointC::GetDemand(double &position,double &torqueLimit)
   {
-    if(isnanf(position) || isnanf(torqueLimit))
+    if(isnan(position) || isnan(torqueLimit))
       return false;
     position = m_demandPosition;
     torqueLimit = m_demandTorqueLimit;

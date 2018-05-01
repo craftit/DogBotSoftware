@@ -405,6 +405,8 @@ namespace DogBotN {
             m_torque = 0.0;
             m_velocity = 0.0;
             break;
+          default:
+            break;
         }
       }
       m_controlState = controlState;
@@ -711,7 +713,7 @@ namespace DogBotN {
       float count = 0;
       // Update home position estimate.
       for(int i = 0;i < 4;i++) {
-        if(isnanf(m_indexPositions[i]))
+        if(isnan(m_indexPositions[i]))
           continue;
         sc += cos(m_indexPositions[i]-m_indexOffsets[i]);
         ss += sin(m_indexPositions[i]-m_indexOffsets[i]);

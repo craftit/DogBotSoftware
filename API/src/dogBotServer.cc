@@ -24,10 +24,14 @@ int main(int argc,char **argv)
   struct sched_param params;
   params.sched_priority = 50;
 
+  // This should
+#if defined(__APPLE__)
+#elif defined(__linux__)
   int ret;
   if((ret = sched_setscheduler(0,SCHED_RR,&params)) < 0) {
     logger->warn("Failed to set priority. Error:{} ",strerror(errno));
   }
+#endif
 
   try
   {
