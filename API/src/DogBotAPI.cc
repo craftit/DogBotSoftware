@@ -157,6 +157,7 @@ namespace DogBotN {
       case CPT_FlashData: return "FlashData";
       case CPT_FlashWrite: return "FlashWrite";
       case CPT_FlashRead: return "FlashRead";
+      case CPT_Final:return "!!Final!!";
     }
     printf("Unexpected packet type %d",(int)packetType);
     return "Invalid";
@@ -284,6 +285,8 @@ namespace DogBotN {
       case CPI_EndStopLimitBreakForce: return "EndStopLimitBreakForce";
       case CPI_JointInertia: return "JointInertia";
       case CPI_ServoReportFrequency: return "ServoReportRate";
+      case CPI_PWMFrequency: return "PWMFrequency";
+      case CPI_EndStopPhaseAngles: return "EndStopPhaseAngles";
 
       case CPI_FINAL: return "FINAL";
     }
@@ -385,6 +388,8 @@ namespace DogBotN {
       case CPI_EndStopLimitBreakForce: return CPIT_float32;
       case CPI_JointInertia: return CPIT_float32;
       case CPI_ServoReportFrequency: return CPIT_float32;
+      case CPI_PWMFrequency: return CPIT_float32;
+      case CPI_EndStopPhaseAngles: return CPIT_float32_2;
       case CPI_FINAL: return CPIT_Invalid;
     }
 
@@ -481,7 +486,7 @@ namespace DogBotN {
       prefix = name.substr(0,colonAt);
     }
     bool doOpen = true;
-    std::cerr << "Got prefix '" << prefix << "' " << std::endl;
+    //std::cerr << "Got prefix '" << prefix << "' " << std::endl;
     if(prefix == "tcp" || prefix == "udp") {
       m_coms = std::make_shared<ComsZMQClientC>(name);
       if(m_deviceManagerMode == DMM_Auto)
