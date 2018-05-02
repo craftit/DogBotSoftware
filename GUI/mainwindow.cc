@@ -961,7 +961,7 @@ void MainWindow::on_comboBoxControlState_activated(const QString &arg1)
   if(arg1 == "Motion Calibrate") {
     controlState = CS_MotionCalibrate;
   }
-  if(arg1 == "Low Power") {
+  if(arg1 == "Standby") {
     controlState = CS_Standby;
   }
   if(arg1 == "Ready") {

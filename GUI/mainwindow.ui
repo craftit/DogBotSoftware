@@ -109,7 +109,7 @@
        <bool>true</bool>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="tab_connect">
        <attribute name="title">
@@ -842,7 +842,7 @@
             <widget class="QComboBox" name="comboBoxControlState">
              <item>
               <property name="text">
-               <string>Low Power</string>
+               <string>Standby</string>
               </property>
              </item>
              <item>
