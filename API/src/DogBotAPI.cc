@@ -4,6 +4,7 @@
 #include "dogbot/ComsSerial.hh"
 #include "dogbot/ComsZMQClient.hh"
 #include "dogbot/ComsUSB.hh"
+#include "dogbot/ComsProxy.hh"
 #include "dogbot/Joint4BarLinkage.hh"
 #include "dogbot/JointRelative.hh"
 #include <fstream>
@@ -479,6 +480,7 @@ namespace DogBotN {
     if(colonAt != std::string::npos) {
       prefix = name.substr(0,colonAt);
     }
+    bool doOpen = true;
     std::cerr << "Got prefix '" << prefix << "' " << std::endl;
     if(prefix == "tcp" || prefix == "udp") {
       m_coms = std::make_shared<ComsZMQClientC>(name);
@@ -488,6 +490,11 @@ namespace DogBotN {
       m_coms = std::make_shared<ComsZMQClientC>("tcp://127.0.0.1");
       if(m_deviceManagerMode == DMM_Auto)
         m_deviceManagerMode = DMM_ClientOnly;
+    } else if(name == "none") {
+      m_coms = std::make_shared<ComsProxyC>();
+      if(m_deviceManagerMode == DMM_Auto)
+        m_deviceManagerMode = DMM_ClientOnly;
+      doOpen = false;
     } else if(name == "usb") {
       m_coms = std::make_shared<ComsUSBC>();
       if(m_deviceManagerMode == DMM_Auto)
@@ -498,8 +505,10 @@ namespace DogBotN {
         m_deviceManagerMode = DMM_DeviceManager;
     }
     m_coms->SetLogger(m_log);
-    if(!m_coms->Open(name.c_str()))
-      return false;
+    if(doOpen) {
+      if(!m_coms->Open(name.c_str()))
+        return false;
+    }
     {
       std::lock_guard<std::mutex> lock(m_mutexDevices);
       for(auto &a : m_devices)
