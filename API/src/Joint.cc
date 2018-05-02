@@ -3,7 +3,7 @@
 #include "dogbot/Util.hh"
 #include <string>
 #include <iostream>
-#include <math.h>
+#include <cmath>
 
 namespace DogBotN {
 
@@ -117,7 +117,7 @@ namespace DogBotN {
   //! Get current demand
   bool JointC::GetDemand(double &position,double &torqueLimit)
   {
-    if(isnan(position) || isnan(torqueLimit))
+    if(std::isnan(position) || std::isnan(torqueLimit))
       return false;
     position = m_demandPosition;
     torqueLimit = m_demandTorqueLimit;

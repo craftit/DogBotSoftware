@@ -207,7 +207,7 @@ namespace DogBotN {
     double refTorque = 0;
 
     // Is there any demand set ?
-    if(isnan(m_demandPosition) || isnan(m_demandTorqueLimit))
+    if(std::isnan(m_demandPosition) || std::isnan(m_demandTorqueLimit))
       return false;
 
     //! Do we have a demand from the reference joint ?

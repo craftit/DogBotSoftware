@@ -1,7 +1,10 @@
 
+#define _BSD_SOURCE 1
+
 #include "dogbot/Servo.hh"
 #include "dogbot/Util.hh"
 #include <string>
+#include <cmath>
 
 namespace DogBotN {
 
@@ -713,7 +716,7 @@ namespace DogBotN {
       float count = 0;
       // Update home position estimate.
       for(int i = 0;i < 4;i++) {
-        if(isnan(m_indexPositions[i]))
+        if(std::isnan(m_indexPositions[i]))
           continue;
         sc += cos(m_indexPositions[i]-m_indexOffsets[i]);
         ss += sin(m_indexPositions[i]-m_indexOffsets[i]);
