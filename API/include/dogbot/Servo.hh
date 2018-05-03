@@ -306,9 +306,9 @@ namespace DogBotN {
 
     // Current parameters
     float m_servoReportFrequency = 100.0;
-    float m_motorKv = 260; //! < Motor speed constant
+    float m_motorKv = 260;    //! < Motor speed constant
     float m_gearRatio = 21.0; //!< Gearbox ratio
-    float m_servoKt = 0;   //! < Servo torque constant
+    float m_servoKt = 0;      //!< Servo torque constant
     float m_maxCurrent = 20.0;
     float m_velocityLimit = 0;
     float m_currentLimit = 0;

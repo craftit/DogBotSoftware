@@ -164,6 +164,11 @@ namespace DogBotN {
     CallbackHandleC AddServoStatusHandler(const std::function<void (JointC *,ServoUpdateTypeT)> &callback)
     { return m_jointStatusCallbacks.Add(callback); }
 
+    //! Access an ordered list of leg names
+    static const std::vector<std::string> &LegNames();
+
+    //! Access names of leg joints.
+    static const std::vector<std::string> &LegJointNames();
 
   protected:
     //! Read calibration from a device.

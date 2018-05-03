@@ -96,9 +96,15 @@ namespace DogBotN {
   //! Compute the joint angles given a location.
   bool LegKinematicsC::InverseVirtual(float at[3],float (&angles)[3]) const
   {
-    float x = at[0];
+#if 1
+    float x = -at[0];
     float y = -at[1];
-    float z = at[2];
+    float z = -at[2];
+#else
+    float x = -at[0] - m_legOrigin[0];
+    float y = -at[1] - m_legOrigin[1];
+    float z = -at[2] - m_legOrigin[2];
+#endif
 
     {
       float ta = atan2(x,z);
@@ -128,14 +134,7 @@ namespace DogBotN {
 
     float kneeTarget = M_PI - acos(ac2);
 
-#if 0
-    float servoAngle = 0;
-    if(!Linkage4BarBack(kneeTarget,servoAngle))
-      return false;
-    angles[2] = servoAngle;
-#else
     angles[2] = kneeTarget;
-#endif
 
     for(int i = 0;i < 3;i++)
       angles[i] *= m_jointDirections[i];
@@ -149,19 +148,17 @@ namespace DogBotN {
     for(int i = 0;i < 3;i++)
       angles[i] *= m_jointDirections[i];
 
-#if 0
-    float kneeAngle = Linkage4BarForward(angles[2]);
-#else
     float kneeAngle = angles[2];
-#endif
 
     float y = m_l1 * sin(angles[1]) + m_l2 * sin(angles[1] + kneeAngle);
     float z = m_l1 * cos(angles[1]) + m_l2 * cos(angles[1] + kneeAngle);
 
     //float xr = 0;
-    at[0] = sin(angles[0]) * (m_zoff + z); //  + cos(angles[0]) * xr
-    at[1] = y;
-    at[2] = cos(angles[0]) * (m_zoff + z); // + sin(angles[0]) * xr
+    at[0] =  -sin(angles[0]) * (m_zoff + z); //  + cos(angles[0]) * xr
+    at[1] =  + y;
+    at[2] =  -cos(angles[0]) * (m_zoff + z); // + sin(angles[0]) * xr
+
+    //for(int i = 0;i < 3;i++) at[i] += m_legOrigin[i];
 
     return true;
   }

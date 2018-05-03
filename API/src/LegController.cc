@@ -73,6 +73,12 @@ namespace DogBotN {
 
     // FIXME:- If move fails what should we do ?
 
+    return GotoJointAngles(angles,torque);
+  }
+
+  //! Goto a joint angles
+  bool LegControllerC::GotoJointAngles(float angles[3],float torque)
+  {
     if(!m_joints[0]->DemandPosition(angles[0],torque))
       return false;
     if(!m_joints[1]->DemandPosition(angles[1],torque))
@@ -80,9 +86,27 @@ namespace DogBotN {
     if(!m_joints[2]->DemandPosition(angles[2],torque))
       return false;
 
-
     return true;
   }
+
+
+  //! Get current joint angles
+  bool LegControllerC::GetJointAngles(JointC::TimePointT theTime,float &roll,float &pitch,float &knee)
+  {
+    double velocity = 0,torque = 0;
+    double rolld,pitchd,kneed = 0;
+    if(!m_joints[0]->GetStateAt(theTime,rolld,velocity,torque))
+      return false;
+    if(!m_joints[1]->GetStateAt(theTime,pitchd,velocity,torque))
+      return false;
+    if(!m_joints[2]->GetStateAt(theTime,kneed,velocity,torque))
+      return false;
+    roll = rolld;
+    pitch = pitchd;
+    knee = kneed;
+    return true;
+  }
+
 
 
 }

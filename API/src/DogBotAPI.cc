@@ -1164,6 +1164,10 @@ namespace DogBotN {
         } break;
         case DS_NoConnection: {
           if(!m_coms->IsReady()) {
+            if(m_deviceName == "none") {
+              std::this_thread::sleep_for(std::chrono::seconds(2));
+              break;
+            }
             if(m_manageComs && !m_coms->Open(m_deviceName.c_str())) {
               m_log->warn("Failed to open coms channel. ");
               std::this_thread::sleep_for(std::chrono::seconds(2));
@@ -1371,5 +1375,21 @@ namespace DogBotN {
     std::lock_guard<std::mutex> lock(m_mutexDevices);
     return m_joints;
   }
+
+  //! Access an ordered list of leg names
+  const std::vector<std::string> &DogBotAPIC::LegNames()
+  {
+    static std::vector<std::string> g_legNames = {"front_left","front_right","back_left","back_right"};
+    return g_legNames;
+  }
+
+  //! Access names of leg joints.
+  const std::vector<std::string> &DogBotAPIC::LegJointNames()
+  {
+    static std::vector<std::string> g_legJointNames = {"roll","pitch","knee"};
+    return g_legJointNames;
+  }
+
+
 
 }

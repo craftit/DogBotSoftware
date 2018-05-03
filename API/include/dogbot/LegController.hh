@@ -27,6 +27,16 @@ namespace DogBotN {
     //! Returns true if the requested position is reachable
     virtual bool Goto(float x,float y,float z,float torque);
 
+    //! Goto a joint angles
+    virtual bool GotoJointAngles(float angles[3],float torque);
+
+    //! Get current joint angles
+    virtual bool GetJointAngles(JointC::TimePointT theTime,float &roll,float &pitch,float &knee);
+
+    //! Access leg kinematics.
+    DogBotN::LegKinematicsC &Kinematics()
+    { return *m_kinematics; }
+
   protected:
     bool m_useVirtualKnee = true;
     std::string m_legName;
