@@ -414,9 +414,22 @@ static const CANConfig cancfg = {
 //  CAN_BTR_LBKM |
   CAN_BTR_SJW(0) |
   CAN_BTR_TS2(1) |
-  CAN_BTR_TS1(8) |
-  CAN_BTR_BRP(6)
+  CAN_BTR_TS1(10) |
+  CAN_BTR_BRP(2)
 };
+
+// For 500Kb
+// CAN_BTR_SJW(0) |
+// CAN_BTR_TS2(1) |
+// CAN_BTR_TS1(8) |
+// CAN_BTR_BRP(6)
+
+// For 1Mb
+// CAN_BTR_SJW(0) |
+// CAN_BTR_TS2(1) |
+// CAN_BTR_TS1(10) |
+// CAN_BTR_BRP(2)
+
 
 /*
  * Receiver thread.
