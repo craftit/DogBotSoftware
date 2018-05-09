@@ -204,11 +204,17 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
         return false;
       }
       break;
-    case CS_StartUp:
     case CS_Ready:
+    case CS_Diagnostic:
+      // Don't let it turn to boot-loader from ready
+      if(newState == CS_BootLoader) {
+        SendParamUpdate(CPI_ControlState);
+        return false;
+      }
+      break;
+    case CS_StartUp:
     case CS_SelfTest:
     case CS_Home:
-    case CS_Diagnostic:
     case CS_BootLoader:
     case CS_MotionCalibrate:
     default:
@@ -301,6 +307,7 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
       SetMotorControlMode(CM_Brake);
       break;
     case CS_BootLoader: {
+
       g_stateChangeCause = changeSource;
       g_controlState = newState;
       PWMStop();
