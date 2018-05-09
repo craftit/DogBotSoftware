@@ -372,7 +372,7 @@ namespace DogBotN {
 
     if(m_exitBootloaderOnComplete) {
       // Restart into normal mode
-      if(!m_coms->SetParam(targetDevice,CPI_ControlState,(uint8_t) CS_StartUp)) {
+      if(!m_coms->SetParam(targetDevice,CPI_ControlState,(uint8_t) CS_Standby)) {
         m_log->error("Failed to restart the controller.");
       }
     }
