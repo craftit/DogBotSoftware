@@ -32,7 +32,7 @@ float g_phaseInductance = 1e-9;
 //#define TIM_1_8_PERIOD_CLOCKS (4095)  // 10 KHz
 #define CURRENT_MEAS_PERIOD ((float)(TIM_1_8_PERIOD_CLOCKS)/(float)TIM_1_8_CLOCK_HZ)
 
-int g_motorReportSampleCount = (1.0 / (100.0 * CURRENT_MEAS_PERIOD)) + 0.5f;  // The target rate is 100Hz
+int g_motorReportSampleCount = (1.0 / (250.0 * CURRENT_MEAS_PERIOD)) + 0.5f;  // The target rate is 100Hz
 float g_PWMFrequency = 1.0/CURRENT_MEAS_PERIOD;
 
 BSEMAPHORE_DECL(g_reportSampleReady,0); // Synchronise motion report loop (Normally 100Hz )
