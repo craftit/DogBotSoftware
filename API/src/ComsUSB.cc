@@ -246,12 +246,20 @@ namespace DogBotN
 
     m_log->info("Device attached: {}:{} ", desc.idVendor, desc.idProduct);
 
-    unsigned char buff[128];
-    if((rc = libusb_get_string_descriptor_ascii(m_handle, desc.iSerialNumber, buff, 128)) < 0) {
-      m_log->error("Error getting serial number. {} ",libusb_error_name(rc));
-      libusb_close(m_handle);
-      m_handle = 0;
-      return ;
+    const int buffSize = 128;
+    unsigned char buff[buffSize];
+    int retryCount = 3;
+    while(true) {
+      if((rc = libusb_get_string_descriptor_ascii(m_handle, desc.iSerialNumber, buff, buffSize)) >= 0)
+        break; // Success.
+      if(retryCount-- < 0)
+      {
+        m_log->error("Error getting serial number. {} ",libusb_error_name(rc));
+        libusb_close(m_handle);
+        m_handle = 0;
+        return ;
+      }
+      usleep(100000);
     }
     std::string serialNumber((char *)buff);
     m_log->info("SerialNumber:{}  ",serialNumber);
