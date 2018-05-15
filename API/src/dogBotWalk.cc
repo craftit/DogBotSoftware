@@ -95,6 +95,7 @@ int main(int argc,char **argv)
 
     while(1) {
 
+
       DogBotN::SimpleQuadrupedPoseC pose;
       gaitController.Step(0.01,pose);
 

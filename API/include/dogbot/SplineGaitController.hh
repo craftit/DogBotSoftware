@@ -94,7 +94,6 @@ namespace DogBotN {
 
     float m_phase = 0;  //!< Current phase in radians
     float m_defaultOmega = 4;  //!< Radians / second cycle speed
-    float m_omega = 2;  //!< Radians / second cycle speed
 
     float m_phases[4] = { 0,0,0,0 };
     //LegKinematicsC m_legKinematics;

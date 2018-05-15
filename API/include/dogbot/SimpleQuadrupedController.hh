@@ -36,11 +36,14 @@ namespace DogBotN {
     //! Virtual destructor
     virtual ~SimpleQuadrupedControllerC();
 
+    //! Set omega
+    virtual void SetOmega(float omega);
+
     //! Do a single timestep
     virtual bool Step(float timeStep,SimpleQuadrupedPoseC &pose);
 
   protected:
-
+    float m_omega = 2;  //!< Radians / second cycle speed
   };
 }
 

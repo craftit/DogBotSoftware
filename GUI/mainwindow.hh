@@ -7,6 +7,8 @@
 #include "dogbot/Coms.hh"
 #include "dogbot/DogBotAPI.hh"
 #include "dogbot/LegKinematics.hh"
+#include "dogbot/SplineGaitController.hh"
+
 #include "ServoTable.hh"
 
 namespace Ui {
@@ -178,6 +180,14 @@ private slots:
 
   void on_lineEditServoReportFrequency_textEdited(const QString &arg1);
 
+  void on_checkBoxRunAnimation_stateChanged(int arg1);
+
+  void on_dialAnimationOmega_valueChanged(int value);
+
+  void on_doubleSpinBoxAnimationTorque_valueChanged(double arg1);
+
+  void on_doubleSpinBoxAnimationSpeedLimit_valueChanged(double arg1);
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);
@@ -229,6 +239,12 @@ private:
   //! Get the current position and set the given parameter to it.
   void SetValueToCurrentPosition(ComsParameterIndexT param);
 
+  //! Run the current animation
+  void RunAnimation();
+
+  //! Stop current animation
+  void StopAnimation();
+
   int m_toQuery = 0;
   std::vector<ComsParameterIndexT> m_displayQuery;
 
@@ -253,6 +269,14 @@ private:
   enum PWMControlDynamicT m_controlMode = CM_Off;
   ServoTable *m_servoTable = 0;
   std::string m_configFilename;
+
+  DogBotN::SplineGaitControllerC m_gaitController;
+  bool m_runAnimation = false;
+  std::thread m_animationThread;
+  float m_animationOmega = 1.0;
+  float m_animationTorque = 6.0;
+  float g_animationVelocityLimit = 2000.0;
+  std::mutex m_accessGait;
 };
 
 #endif // MAINWINDOW_H

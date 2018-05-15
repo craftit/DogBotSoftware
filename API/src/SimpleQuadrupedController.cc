@@ -46,6 +46,12 @@ namespace DogBotN {
   SimpleQuadrupedControllerC::~SimpleQuadrupedControllerC()
   {}
 
+  //! Set omega
+  void SimpleQuadrupedControllerC::SetOmega(float omega)
+  {
+    m_omega = omega;
+  }
+
   //! Do a single timestep
   bool SimpleQuadrupedControllerC::Step(float timeStep,SimpleQuadrupedPoseC &positions)
   {

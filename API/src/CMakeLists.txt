@@ -50,6 +50,7 @@ ADD_LIBRARY (DogBotAPI STATIC
         SplineCatmullRom.cc
         SimpleQuadrupedController.cc
         SplineGaitController.cc
+        LineABC2d.cc
 )
 
 set_target_properties(DogBotAPI PROPERTIES VERSION ${PROJECT_VERSION})
