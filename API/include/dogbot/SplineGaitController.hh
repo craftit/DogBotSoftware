@@ -7,6 +7,12 @@
 
 namespace DogBotN {
 
+  enum SplineGaitTypeT
+  {
+    SGT_Walk,
+    SGT_Trot
+  };
+
   //! Foot trajectory parameters.
   // From 'Locomotion Control for Electrically Powered Quadruped Robot Dynarobin'
   // by Edin Koco
@@ -46,13 +52,16 @@ namespace DogBotN {
     //! Do a single timestep
     virtual bool Step(float timeStep,SimpleQuadrupedPoseC &pose) override;
 
+    //! Set the gait style
+    virtual bool SetStyle(const std::string &styleName);
+
     //! Plot graph of gait
     void PlotGait();
 
   protected:
 
 
-    void GenerateFootTrajectory();
+    void GenerateFootTrajectory(enum SplineGaitTypeT gaitType);
 
     float m_maxSpeed = 6;
 

@@ -52,6 +52,12 @@ namespace DogBotN {
     m_omega = omega;
   }
 
+  //! Set the gait style
+  bool SimpleQuadrupedControllerC::SetStyle(const std::string &styleName)
+  {
+    return false;
+  }
+
   //! Do a single timestep
   bool SimpleQuadrupedControllerC::Step(float timeStep,SimpleQuadrupedPoseC &positions)
   {

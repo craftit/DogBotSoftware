@@ -42,6 +42,9 @@ namespace DogBotN {
     //! Do a single timestep
     virtual bool Step(float timeStep,SimpleQuadrupedPoseC &pose);
 
+    //! Set the gait style
+    virtual bool SetStyle(const std::string &styleName);
+
   protected:
     float m_omega = 2;  //!< Radians / second cycle speed
   };

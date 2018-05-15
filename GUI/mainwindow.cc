@@ -1519,7 +1519,6 @@ void MainWindow::on_checkBoxRunAnimation_stateChanged(int arg1)
   std::cerr << "Animation state: " << arg1 << std::endl;
 }
 
-
 void MainWindow::on_dialAnimationOmega_valueChanged(int value)
 {
   std::lock_guard<std::mutex> lock(m_accessGait);
@@ -1536,4 +1535,11 @@ void MainWindow::on_doubleSpinBoxAnimationSpeedLimit_valueChanged(double arg1)
 {
   std::lock_guard<std::mutex> lock(m_accessGait);
   g_animationVelocityLimit = arg1;
+}
+
+void MainWindow::on_comboBoxAmimationStyle_activated(const QString &arg1)
+{
+  std::lock_guard<std::mutex> lock(m_accessGait);
+  std::cerr << "Setting style to " << arg1.toLatin1().data() << " " << std::endl;
+  m_gaitController.SetStyle(arg1.toLatin1().data());
 }

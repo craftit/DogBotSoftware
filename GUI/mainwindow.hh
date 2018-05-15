@@ -188,6 +188,8 @@ private slots:
 
   void on_doubleSpinBoxAnimationSpeedLimit_valueChanged(double arg1);
 
+  void on_comboBoxAmimationStyle_activated(const QString &arg1);
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);

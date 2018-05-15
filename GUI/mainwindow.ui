@@ -1533,6 +1533,26 @@
             <double>1500.000000000000000</double>
            </property>
           </widget>
+          <widget class="QComboBox" name="comboBoxAmimationStyle">
+           <property name="geometry">
+            <rect>
+             <x>430</x>
+             <y>100</y>
+             <width>101</width>
+             <height>22</height>
+            </rect>
+           </property>
+           <item>
+            <property name="text">
+             <string>walk</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>trot</string>
+            </property>
+           </item>
+          </widget>
          </widget>
         </item>
        </layout>

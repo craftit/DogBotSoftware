@@ -62,38 +62,47 @@ namespace DogBotN {
   SplineGaitControllerC::SplineGaitControllerC()
    : m_footTrajectories(4)
   {
-    GenerateFootTrajectory();
+    GenerateFootTrajectory(SGT_Walk);
   }
 
-  void SplineGaitControllerC::GenerateFootTrajectory()
+  void SplineGaitControllerC::GenerateFootTrajectory(enum SplineGaitTypeT gaitType)
   {
     float hightAdjust = 0.2;
     float timePush = 0.02;
-#if 0
-    // Trot
-    m_timePropel = 0.5;
 
-    m_phases[0] = 0;
-    m_phases[1] = M_PI;
-    m_phases[2] = M_PI;
-    m_phases[3] = 0;
+    switch(gaitType)
+    {
+      case SGT_Walk: {
+        // Walk
+        m_lengthPropel = 0.25;
+        m_timePropel = 0.75;
+        hightAdjust = 0.15;
+        timePush = 0.02;
 
-    m_omega = 6;
-#else
-    // Walk
-    m_lengthPropel = 0.25;
-    m_timePropel = 0.75;
-    hightAdjust = 0.15;
-    timePush = 0.02;
+        m_phases[0] = 0;
+        m_phases[1] = 3* M_PI/2.0;
+        m_phases[2] = M_PI;
+        m_phases[3] = M_PI/2.0;
 
-    m_phases[0] = 0;
-    m_phases[1] = 3* M_PI/2.0;
-    m_phases[2] = M_PI;
-    m_phases[3] = M_PI/2.0;
+        //m_omega = 1;
+      } break;
+      case SGT_Trot: {
+        // Trot
+        m_timePropel = 0.5;
+        m_lengthPropel = 0.15;
 
-    m_omega = 1;
+        m_phases[0] = 0;
+        m_phases[1] = M_PI;
+        m_phases[2] = M_PI;
+        m_phases[3] = 0;
 
-#endif
+        //m_omega = 6;
+
+      } break;
+      default:
+        std::cerr << "Unrecognised gait type, ignoring. " << std::endl;
+        return ;
+    }
 
     FootTrajectoryC trajectory(
         m_zCentre, // Zc,  Z center
@@ -105,7 +114,8 @@ namespace DogBotN {
         timePush    // Tpu, Time push
         );
 
-
+    for(int i = 0;i < 4;i++)
+      m_footTrajectories[i] =SplineLinear3dC();
 
     m_footTrajectories[0].Setup(trajectory.GenerateTrajectory(-m_footRotate,m_footSeperation,m_tiltX + m_tiltY));
     m_footTrajectories[1].Setup(trajectory.GenerateTrajectory(-m_footRotate,-m_footSeperation,m_tiltX - m_tiltY));
@@ -114,6 +124,22 @@ namespace DogBotN {
 
   }
 
+
+  //! Set the gait style
+  bool SplineGaitControllerC::SetStyle(const std::string &styleName)
+  {
+    std::cerr << "Updating gait style: '" << styleName << "' " << std::endl;
+    if(styleName == "walk") {
+      GenerateFootTrajectory(SGT_Walk);
+      return true;
+    }
+    if(styleName == "trot") {
+      GenerateFootTrajectory(SGT_Trot);
+      return true;
+    }
+    std::cerr << "Unknown gait style: '" << styleName << "' " << std::endl;
+    return false;
+  }
 
   void SplineGaitControllerC::PlotGait() {
 
