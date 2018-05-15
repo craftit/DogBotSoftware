@@ -1,0 +1,51 @@
+
+CAN:  42Mhz Clock  Baud: (42e6 / (3 * 14))
+
+Bus timing calulator: http://www.bittiming.can-wiki.info/
+Notes on CAN bus timing: http://cache.freescale.com/files/microcontrollers/doc/app_note/AN1798.pdf
+
+/*
+ * GPIOA setup:
+ *
+ * PA0  - VSENSEA                   (analog in)
+ * PA1  - VSENSEB                   (analog in)
+ * PA2  - VSENSEC                   (analog in)
+ * PA3  - ISENSEA                   (analog in)
+ * PA4  - ISENSEB                   (analog in)
+ * PA5  - ISENSEC                   (analog in)
+ * PA6  - VSUPPLY                   (analog in)
+ * PA7  - NC                        (input pull-up)
+ * PA8  - INHC                      (output push-pull)
+ * PA9  - INHB                      (output push-pull)
+ * PA10 - INHA                      (output push-pull)
+ * PA11 - OTG_FS_DM                 (alternate 10).
+ * PA12 - OTG_FS_DP                 (alternate 10).
+ * PA13 - SWDIO                     (alternate 0).
+ * PA14 - SWCLK                     (alternate 0).
+ * PA15 - JTDI                      (?).
+ */
+
+ 
+ openocd -f interface/stlink-v2-1.cfg -f target/stm32f4x.cfg  -c "program build.bin verify reset exit"
+  
+ cp ./build/BMCV2.bin  /Volumes/NODE_F302R8/
+ 
+
+Cal with new setup:
+ 
+Cal 0 : 2123 2290 2409   
+Cal 1 : 1997 2183 2409   
+Cal 2 : 1980 2079 2373   
+Cal 3 : 1972 1970 2223   
+Cal 4 : 1978 1890 2069   
+Cal 5 : 2102 1936 2013   
+Cal 6 : 2229 2008 1993   
+Cal 7 : 2367 2139 2001   
+Cal 8 : 2381 2233 2039   
+Cal 9 : 2391 2340 2206   
+Cal 10 : 2384 2412 2357   
+Cal 11 : 2265 2365 2397   
+
+
+
+2883616 1650753082 -> 0
