@@ -4,6 +4,7 @@
 #include "dogbot/DogBotAPI.hh"
 #include <memory>
 #include "dogbot/LegKinematics.hh"
+#include <eigen3/Eigen/Geometry>
 
 namespace DogBotN {
 
@@ -33,6 +34,9 @@ namespace DogBotN {
     //! Get current joint angles
     virtual bool GetJointAngles(JointC::TimePointT theTime,float &roll,float &pitch,float &knee);
 
+    //! Compute the force on a foot and where it is.
+    bool ComputeFootForce(const DogBotN::ServoC::TimePointT &atTime,Eigen::Vector3f &position,Eigen::Vector3f &force);
+
     //! Access leg kinematics.
     DogBotN::LegKinematicsC &Kinematics()
     { return *m_kinematics; }
@@ -46,6 +50,8 @@ namespace DogBotN {
     std::vector<std::string> m_legJointNames;
     std::shared_ptr<JointC> m_joints[3];
     float m_torqueLimit = 2.0;
+
+    Eigen::Vector3f m_legOrigin;
   };
 
 }

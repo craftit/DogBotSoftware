@@ -231,6 +231,7 @@ extern "C" {
 
     CPI_ServoReportFrequency   = 0x62,
     CPI_PWMFrequency      = 0x63,
+    CPI_MotionUpdatePeriod  = 0x64,
 
     CPI_FINAL           = 0xff
   };

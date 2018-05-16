@@ -3,6 +3,7 @@
 #include "dogbot/DogBotAPI.hh"
 #include "dogbot/ComsSerial.hh"
 #include "dogbot/ComsProxy.hh"
+#include "dogbot/LegController.hh"
 #include "dogbot/Util.hh"
 #include <iostream>
 #include <QFileDialog>
@@ -518,7 +519,9 @@ void MainWindow::LocalProcessParam(PacketParam8ByteC psp)
   case CPI_ServoReportFrequency: {
     ui->lineEditServoReportFrequency->setText(QString::number(psp.m_data.float32[0]));
   } break;
-
+  case CPI_MotionUpdatePeriod: {
+    ui->doubleSpinBoxMotionUpdate->setValue(psp.m_data.int16[0]);
+  } break;
   default:
     break;
   }
@@ -1169,17 +1172,20 @@ void MainWindow::on_pushButtonQueryHomed_clicked()
 
 void MainWindow::on_pushButtonBrake_clicked()
 {
+  StopAnimation();
   m_coms->SendSetParam(0,CPI_PWMMode,CM_Brake);
 }
 
 void MainWindow::on_pushButtonOff_clicked()
 {
+  StopAnimation();
   m_coms->SendSetParam(0,CPI_PWMMode,CM_Off);
 }
 
 void MainWindow::on_pushButtonHold_clicked()
 {
   // Go through and set demand to current position.
+  StopAnimation();
   m_dogBotAPI->DemandHoldPosition();
 }
 
@@ -1325,6 +1331,7 @@ void MainWindow::SetValueToCurrentPosition(ComsParameterIndexT param)
 
 }
 
+
 void MainWindow::on_pushButtonSetEndStopStart_clicked()
 {
   SetValueToCurrentPosition(CPI_EndStopStart);
@@ -1358,6 +1365,7 @@ void MainWindow::on_comboBoxSafetyMode_activated(const QString &arg1)
 
 void MainWindow::on_pushButtonLowPower_clicked()
 {
+  StopAnimation();
   m_dogBotAPI->LowPowerAll();
 }
 
@@ -1407,7 +1415,7 @@ void MainWindow::on_pushButtonHomeAll_clicked()
     return ;
   }
   access.unlock();
-
+  StopAnimation();
   std::thread run = std::thread([this](){
     std::cerr << "Homing all " << std::endl;
     std::lock_guard<std::mutex> lock(access);
@@ -1442,4 +1450,98 @@ void MainWindow::on_lineEditServoReportFrequency_textEdited(const QString &arg1)
     // Replace with the old value.
     m_coms->SendQueryParam(m_targetDeviceId,CPI_ServoReportFrequency);
   }
+}
+
+void MainWindow::RunAnimation()
+{
+  // Lift the speed limit a bit
+
+  float speedLimit = 0;
+
+  {
+    std::lock_guard<std::mutex> lock(m_accessGait);
+    speedLimit = g_animationVelocityLimit;
+  }
+
+  m_dogBotAPI->Connection()->SendSetParam(0,CPI_VelocityLimit,speedLimit);
+
+  std::shared_ptr<DogBotN::LegControllerC> legs[4];
+  legs[0] = std::make_shared<DogBotN::LegControllerC>(m_dogBotAPI,"front_left");
+  legs[1] = std::make_shared<DogBotN::LegControllerC>(m_dogBotAPI,"front_right");
+  legs[2] = std::make_shared<DogBotN::LegControllerC>(m_dogBotAPI,"back_left");
+  legs[3] = std::make_shared<DogBotN::LegControllerC>(m_dogBotAPI,"back_right");
+
+  while(m_runAnimation) {
+
+    DogBotN::SimpleQuadrupedPoseC pose;
+
+    float torque = 0;
+    float newSpeedLimit = 0;
+    {
+      std::lock_guard<std::mutex> lock(m_accessGait);
+      m_gaitController.Step(0.01,pose);
+      torque = m_animationTorque;
+      newSpeedLimit = g_animationVelocityLimit;
+    }
+    if(newSpeedLimit != speedLimit) {
+      speedLimit = newSpeedLimit;
+      m_dogBotAPI->Connection()->SendSetParam(0,CPI_VelocityLimit,speedLimit);
+    }
+
+    for(int i = 0;i < 4;i++) {
+      float x = 0,y = 0,z = 0.5;
+      pose.GetLegPosition(i,x,y,z);
+      legs[i]->Goto(x,y,z,torque);
+    }
+
+    usleep(10000); // ~100Hz
+  }
+}
+
+//! Stop current animation
+void MainWindow::StopAnimation()
+{
+  m_runAnimation = false;
+}
+
+void MainWindow::on_checkBoxRunAnimation_stateChanged(int arg1)
+{
+  if(arg1 == 0) {
+    StopAnimation();
+    return ;
+  }
+
+  if(!m_runAnimation) {
+    if(m_animationThread.joinable())
+      m_animationThread.join();
+    m_runAnimation = true;
+    m_animationThread = std::thread([this]() { RunAnimation(); });
+  }
+
+  std::cerr << "Animation state: " << arg1 << std::endl;
+}
+
+void MainWindow::on_dialAnimationOmega_valueChanged(int value)
+{
+  std::lock_guard<std::mutex> lock(m_accessGait);
+  m_gaitController.SetOmega(value * 2.0 * M_PI / 100.0f);
+}
+
+void MainWindow::on_doubleSpinBoxAnimationTorque_valueChanged(double arg1)
+{
+  std::lock_guard<std::mutex> lock(m_accessGait);
+  m_animationTorque = arg1;
+}
+
+void MainWindow::on_doubleSpinBoxAnimationSpeedLimit_valueChanged(double arg1)
+{
+  std::lock_guard<std::mutex> lock(m_accessGait);
+  g_animationVelocityLimit = arg1;
+}
+
+void MainWindow::on_comboBoxAmimationStyle_activated(const QString &arg1)
+{
+  std::lock_guard<std::mutex> lock(m_accessGait);
+  std::cerr << "Setting style to " << arg1.toLatin1().data() << " " << std::endl;
+  m_gaitController.SetStyle(arg1.toLatin1().data());
 }

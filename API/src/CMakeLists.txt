@@ -36,6 +36,7 @@ ADD_LIBRARY (DogBotAPI STATIC
         ComsProxy.cc 
         ComsUSB.cc 
         ComsRecorder.cc
+        ComsRoute.cc
         DogBotAPI.cc 
         Servo.cc 
         LegKinematics.cc 
@@ -47,6 +48,10 @@ ADD_LIBRARY (DogBotAPI STATIC
         FirmwareUpdate.cc
         Util.cc
         LegController.cc
+        SplineCatmullRom.cc
+        SimpleQuadrupedController.cc
+        SplineGaitController.cc
+        LineABC2d.cc
 )
 
 set_target_properties(DogBotAPI PROPERTIES VERSION ${PROJECT_VERSION})
@@ -63,32 +68,31 @@ target_include_directories(DogBotAPI PUBLIC
     PRIVATE src)
 
 add_executable (exampleClient exampleClient.cc)
-
 target_link_libraries (exampleClient LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT} ${LIBUSB_LIBRARIES})
 
 add_executable (dumpServoState dumpServoState.cc)
-
 target_link_libraries (dumpServoState LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT})
 
 add_executable (testKinematics testKinematics.cc)
-
 target_link_libraries (testKinematics LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT})
 
 add_executable (dogBotServer dogBotServer.cc)
-
 target_link_libraries (dogBotServer LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT})
 
 add_executable (dogBotFirmwareUpdate dogBotFirmwareUpdate.cc)
-
 target_link_libraries (dogBotFirmwareUpdate LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT})
 
 add_executable (dumpLegCoordinates dumpLegCoordinates.cc)
-
 target_link_libraries (dumpLegCoordinates LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT})
 
 add_executable (dogBotExerciser dogBotExerciser.cc)
-
 target_link_libraries (dogBotExerciser LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT})
+
+add_executable (testDogBotGait testDogBotGait.cc)
+target_link_libraries (testDogBotGait LINK_PUBLIC DogBotAPI )
+
+add_executable (dogBotWalk dogBotWalk.cc)
+target_link_libraries (dogBotWalk LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT} DogBotAPI)
 
 
 # 'make install' to the correct locations (provided by GNUInstallDirs).

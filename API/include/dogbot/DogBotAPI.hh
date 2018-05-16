@@ -141,6 +141,9 @@ namespace DogBotN {
     //! Get servo entry by name
     std::shared_ptr<JointC> GetJointByName(const std::string &name);
 
+    //! Get joint entry by name
+    std::shared_ptr<JointC> GetJointById(int id);
+
     //! Get kinematics for leg by name
     std::shared_ptr<LegKinematicsC> LegKinematicsByName(const std::string &name);
 
