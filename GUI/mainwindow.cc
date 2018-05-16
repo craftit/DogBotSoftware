@@ -519,7 +519,9 @@ void MainWindow::LocalProcessParam(PacketParam8ByteC psp)
   case CPI_ServoReportFrequency: {
     ui->lineEditServoReportFrequency->setText(QString::number(psp.m_data.float32[0]));
   } break;
-
+  case CPI_MotionUpdatePeriod: {
+    ui->doubleSpinBoxMotionUpdate->setValue(psp.m_data.int16[0]);
+  } break;
   default:
     break;
   }

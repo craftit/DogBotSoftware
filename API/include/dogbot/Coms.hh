@@ -37,6 +37,10 @@ namespace DogBotN {
     // Disconnects and closes file descriptors
     virtual ~ComsC();
 
+    //! Access name of channel, this is the same string as used to open the device.
+    const std::string &Name() const
+    { return m_name; }
+
     //! Set the logger to use
     void SetLogger(const std::shared_ptr<spdlog::logger> &log);
 
@@ -206,6 +210,8 @@ namespace DogBotN {
     { return ((float) val)/ 32767.0; }
 
   protected:
+    std::string m_name;
+
     //! Send packet
     virtual void SendPacketWire(const uint8_t *data,int len);
 

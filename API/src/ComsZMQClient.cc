@@ -48,6 +48,7 @@ namespace DogBotN
       m_log->warn("Exit lock already locked, multiple threads attempting to open coms ?");
       return false;
     }
+    m_name = portAddr;
     if(portAddr == "local")
       m_rootAddress = "tcp://127.0.01";
     else

@@ -91,6 +91,8 @@ extern float g_current[3];
 extern float g_phaseAngle;
 extern float g_current_Ibus;
 
+extern mutex_t g_demandMutex;
+
 extern float g_demandPhasePosition;
 extern float g_demandPhaseVelocity;
 extern float g_demandTorque;

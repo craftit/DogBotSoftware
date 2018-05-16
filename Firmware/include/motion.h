@@ -37,6 +37,10 @@ extern "C" {
   extern float g_actuatorRatio;
   extern float g_homeIndexPosition;
 
+  extern int g_motionLastPositionTime;
+  extern int g_motionUpdatePeriod;
+  extern int g_motionPositionTime;
+
   enum FaultCodeT LoadSetup(void);
   enum FaultCodeT SaveSetup(void);
 

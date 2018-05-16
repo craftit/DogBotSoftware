@@ -70,9 +70,11 @@ namespace DogBotN {
       }
     }
 
+#if 0
     m_log->info("Setting angles to {} {} {}  for  {} {} {}  UseVirt:{} ",
                    DogBotN::Rad2Deg(angles[0]),DogBotN::Rad2Deg(angles[1]),DogBotN::Rad2Deg(angles[2]),
                    at[0],at[1],at[2],m_useVirtualKnee);
+#endif
 
 
     // FIXME:- If move fails what should we do ?

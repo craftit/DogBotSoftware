@@ -266,6 +266,7 @@ static bool FOC_current(float phaseAngle,float Id_des, float Iq_des) {
   return true;
 }
 
+MUTEX_DECL(g_demandMutex);
 float g_demandPhasePosition = 0;
 float g_demandPhaseVelocity = 0;
 float g_demandTorque = 0;
@@ -419,7 +420,7 @@ static void ComputeState(void)
     g_phaseRotationCount--;
   }
 
-  // If we just sum up difference things will drift.
+  // If we just sum up difference things will drift, so we compute position.
   g_currentPhasePosition = (float) g_phaseRotationCount * 2 * M_PI + g_phaseAngle;
 
   // Update currents
@@ -519,8 +520,31 @@ static void MotorControlLoop(void)
       faultTimer = 0;
     }
 
-    float demandCurrent = g_demandTorque;
-    float targetPosition = g_demandPhasePosition;
+
+    static float localDemandTorque = 0;
+    static float localDemandPosition = 0;
+    static float localDemandVelocity = 0;
+    static int localMotionTime = 0;
+
+    if(g_motionPositionTime < 100000) // Protect against wrap around
+      g_motionPositionTime++; // Used for working out the frequency of motion requests
+    if(localMotionTime < 100000) // Protect against wrap around
+      localMotionTime++;
+
+    // Try and lock the mutex to update state variables, if we fail just use the
+    // same values from the last pwm cycle and pick up changes next time around.
+    // This avoid blocking in this loop which we definitely don't want to do.
+    if(chMtxTryLock(&g_demandMutex)) {
+      localDemandTorque = g_demandTorque;
+      localDemandPosition = g_demandPhasePosition;
+      localDemandVelocity = g_demandPhaseVelocity;
+      localMotionTime = g_motionPositionTime;
+      chMtxUnlock(&g_demandMutex);
+    }
+
+    float demandCurrent = localDemandTorque;
+    float targetPosition = localDemandPosition;
+    float targetVelocity = localDemandVelocity;
 
     switch(g_controlMode)
     {
@@ -565,14 +589,13 @@ static void MotorControlLoop(void)
         Monitor_FOC_Current(g_phaseAngle);
         break;
       case CM_Position: {
+        if(localMotionTime < g_motionUpdatePeriod)
+          targetPosition += (localDemandVelocity * (float) g_motionPositionTime) / CURRENT_MEAS_PERIOD;
         float positionError = (targetPosition - g_currentPhasePosition);
-        float targetVelocity =  positionError * g_positionGain;
-
-        g_demandPhaseVelocity = targetVelocity;
+        targetVelocity = localDemandVelocity + positionError * g_positionGain;
       }
       // no break
       case CM_Velocity: {
-        float targetVelocity = g_demandPhaseVelocity;
 
         // Apply velocity limits
         if(targetVelocity > g_velocityLimit)

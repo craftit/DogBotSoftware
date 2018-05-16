@@ -287,7 +287,7 @@ namespace DogBotN {
       case CPI_ServoReportFrequency: return "ServoReportRate";
       case CPI_PWMFrequency: return "PWMFrequency";
       case CPI_EndStopPhaseAngles: return "EndStopPhaseAngles";
-
+      case CPI_MotionUpdatePeriod: return "MotionUpdatePeriod";
       case CPI_FINAL: return "FINAL";
     }
     printf("Unexpected parameter index %d",(int)paramIndex);
@@ -390,6 +390,7 @@ namespace DogBotN {
       case CPI_ServoReportFrequency: return CPIT_float32;
       case CPI_PWMFrequency: return CPIT_float32;
       case CPI_EndStopPhaseAngles: return CPIT_float32_2;
+      case CPI_MotionUpdatePeriod: return CPIT_uint16;
       case CPI_FINAL: return CPIT_Invalid;
     }
 
@@ -1332,6 +1333,12 @@ namespace DogBotN {
     if(id >= m_devices.size())
       return std::shared_ptr<ServoC>();
     return m_devices[id];
+  }
+
+  //! Get joint entry by name
+  std::shared_ptr<JointC> DogBotAPIC::GetJointById(int id)
+  {
+    return std::shared_ptr<JointC>(GetServoById(id));
   }
 
   //! Get servo entry by name

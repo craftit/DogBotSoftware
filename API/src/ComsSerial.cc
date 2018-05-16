@@ -67,6 +67,7 @@ namespace DogBotN
       return false;
     }
 
+    m_name = portAddr;
     m_log->info("Opening: '{}'",portAddr);
 
     m_fd = open(portAddr.c_str(),O_RDWR | O_NONBLOCK);
