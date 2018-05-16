@@ -45,6 +45,7 @@ extern "C" {
     CPT_FlashData        = 25, // Data packet
     CPT_FlashWrite       = 26, // Write buffer
     CPT_FlashRead        = 27, // Read buffer and send it back
+    CPT_IMU              = 28, // IMU report
     CPT_Final                  // Use to get count of known packet types.
   };
 
@@ -549,6 +550,12 @@ extern "C" {
     uint16_t m_len;
   };
 
+  struct PacketIMUC {
+    uint8_t m_packetType;
+    uint8_t m_deviceId;
+    uint16_t m_linear[3]; // XYZ linear accelerations
+    uint16_t m_quat[4]; // Quaternion angle
+  };
 
 
 #ifdef __cplusplus

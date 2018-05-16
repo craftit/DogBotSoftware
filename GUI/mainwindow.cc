@@ -1390,7 +1390,7 @@ void MainWindow::on_pushButtonHomeJoint_clicked()
   }
   access.unlock();
 
-  std::thread run = std::thread([servoPtr,&access](){
+  std::thread run = std::thread([servoPtr](){
     std::cerr << "Homing joint " << servoPtr->Name() << std::endl;
     std::lock_guard<std::mutex> lock(access);
     servoPtr->HomeJoint();
@@ -1408,7 +1408,7 @@ void MainWindow::on_pushButtonHomeAll_clicked()
   }
   access.unlock();
 
-  std::thread run = std::thread([this,&access](){
+  std::thread run = std::thread([this](){
     std::cerr << "Homing all " << std::endl;
     std::lock_guard<std::mutex> lock(access);
     m_dogBotAPI->HomeAll();
