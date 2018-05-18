@@ -8,9 +8,15 @@ set(CMAKE_INSTALL_INCLUDEDIR "/usr/local/include")
 
 project(dogbot VERSION ${DOGBOT_VERSION} LANGUAGES CXX)# DESCRIPTION "API for React AI DogBot firmware interaction")
 FIND_PACKAGE ( Threads REQUIRED )
-FIND_PACKAGE ( DogBotAPI REQUIRED PATHS ../../API/build )
+FIND_PACKAGE ( DogBotAPI REQUIRED PATHS ) # ../../API/build )
 
-include (FindPkgConfig)
+if ( NOT DogBotAPI_FOUND )
+  message(FATAL_ERROR "Package DogBotAPI required, but not found!")
+elseif ( DogBotAPI_FOUND )
+  message("Package DogBotAPI found")
+endif()
+
+find_package(PkgConfig)
 
 if (PKG_CONFIG_FOUND)
   pkg_check_modules(JSONCPP jsoncpp)
