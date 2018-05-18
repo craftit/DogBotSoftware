@@ -18,7 +18,6 @@
 
 namespace DogBotN {
 
-  class ComsC;
 
   //! Low level communication interface
 

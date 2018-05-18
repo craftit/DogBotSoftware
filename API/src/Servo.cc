@@ -6,25 +6,22 @@
 #include <string>
 #include <cmath>
 
+
+
 namespace DogBotN {
 
-
   MotorCalibrationC::MotorCalibrationC()
-  {
-
-  }
+  {}
 
   //! Send calibration to motor
   bool MotorCalibrationC::SendCal(ComsC &coms,int deviceId)
   {
-
     return true;
   }
 
   //! Read calibration from motor
   bool MotorCalibrationC::ReadCal(ComsC &coms,int deviceId)
   {
-
     return true;
   }
 
@@ -120,27 +117,26 @@ namespace DogBotN {
   //! --------------------------
 
   ServoC::ServoC(const std::shared_ptr<ComsC> &coms, int deviceId, const PacketDeviceIdC &pktAnnounce)
-   : m_uid1(pktAnnounce.m_uid[0]),
-     m_uid2(pktAnnounce.m_uid[1]),
-     m_id(deviceId),
-     m_coms(coms)
+   : DeviceC(coms,deviceId,pktAnnounce)
   {
-    m_serialNumber =  std::to_string(pktAnnounce.m_uid[0]) + "-" + std::to_string(pktAnnounce.m_uid[1]);
-    m_name = m_serialNumber;
+    m_name = m_serialNumber; // Set a default name
     Init();
   }
 
   ServoC::ServoC(const std::shared_ptr<ComsC> &coms, int deviceId)
-   : m_id(deviceId),
-     m_coms(coms)
+   : DeviceC(coms,deviceId)
   {
-    if(deviceId != 0)
-      m_name = std::to_string(deviceId);
     Init();
   }
 
   //! Type of joint
   std::string ServoC::JointType() const
+  {
+    return "servo";
+  }
+
+  //! Access the device type
+  const char *ServoC::DeviceType() const
   {
     return "servo";
   }
@@ -190,8 +186,7 @@ namespace DogBotN {
   //! Update coms device
   void ServoC::UpdateComs(const std::shared_ptr<ComsC> &coms)
   {
-    JointC::UpdateComs(coms);
-    m_coms = coms;
+    DeviceC::UpdateComs(coms);
   }
 
   //! Do constant setup
@@ -201,13 +196,13 @@ namespace DogBotN {
     m_servoKt = (60.0f * m_gearRatio) / (2 * M_PI * m_motorKv);
   }
 
-
-
+#if 0
   void ServoC::SetUID(uint32_t uid1, uint32_t uid2)
   {
     m_uid1 = uid1;
     m_uid2 = uid2;
   }
+#endif
 
   //! Configure from JSON
   bool ServoC::ConfigureFromJSON(DogBotAPIC &api,const Json::Value &conf)
@@ -215,14 +210,14 @@ namespace DogBotN {
     if(!(JointC::ConfigureFromJSON(api,conf)))
       return false;
 
+    if(!(DeviceC::ConfigureFromJSON(api,conf)))
+      return false;
+    if(!m_name.empty())
+      m_deviceName = m_name;
     {
       std::lock_guard<std::mutex> lock(m_mutexAdmin);
-      m_uid1 = conf.get("uid1",-1).asInt();
-      m_uid2 = conf.get("uid2",-1).asInt();
-      m_enabled = conf.get("enabled",false).asBool();
       m_motorKv = conf.get("motorKv",260.0).asFloat();
       m_gearRatio = conf.get("gearRatio",21.0).asFloat();
-
       m_endStopStart = conf.get("endStopStart",0).asFloat();
       m_endStopFinal = conf.get("endStopFinal",0).asFloat();
       m_endStopEnable = conf.get("endStopEnable",false).asBool();
@@ -241,15 +236,12 @@ namespace DogBotN {
   }
 
   //! Get the servo configuration as JSON
-  Json::Value ServoC::ConfigAsJSON() const
+  void ServoC::ConfigAsJSON(Json::Value &ret) const
   {
-    Json::Value ret = JointC::ConfigAsJSON();
-
+    JointC::ConfigAsJSON(ret);
+    DeviceC::ConfigAsJSON(ret);
     {
       std::lock_guard<std::mutex> lock(m_mutexAdmin);
-      ret["uid1"] = m_uid1;
-      ret["uid2"] = m_uid2;
-      ret["deviceId"] = m_id;
       ret["enabled"] = m_enabled;
       ret["motorKv"] = m_motorKv;
       ret["gearRatio"] = m_gearRatio;
@@ -266,7 +258,6 @@ namespace DogBotN {
     if(m_motorCal) {
       ret["setup"] = m_motorCal->AsJSON();
     }
-    return ret;
   }
 
   bool ServoC::HandlePacketPong(const PacketPingPongC &)
@@ -342,21 +333,6 @@ namespace DogBotN {
     return true;
   }
 
-  //! Handle an incoming announce message.
-  bool ServoC::HandlePacketAnnounce(const PacketDeviceIdC &pkt,bool isManager)
-  {
-    bool ret = false;
-    if(pkt.m_deviceId != m_id && isManager) {
-      m_log->info("Updating device {} {} with id {} ",m_uid1,m_uid2,m_id);
-      m_coms->SendSetDeviceId(m_id,m_uid1,m_uid2);
-      ret = true;
-    }
-    std::lock_guard<std::mutex> lock(m_mutexState);
-    auto timeNow = std::chrono::steady_clock::now();
-    m_timeOfLastComs = timeNow;
-    return ret;
-  }
-
   //! Handle parameter update.
   //! Returns true if a value has changed.
 
@@ -365,9 +341,9 @@ namespace DogBotN {
     char buff[64];
     bool ret = false;
 
+    DeviceC::HandlePacketReportParam(pkt);
+
     std::lock_guard<std::mutex> lock(m_mutexState);
-    auto timeNow = std::chrono::steady_clock::now();
-    m_timeOfLastComs = timeNow;
     ComsParameterIndexT cpi = (enum ComsParameterIndexT) pkt.m_header.m_index;
     switch (cpi) {
     case CPI_DriveTemp: {
@@ -559,6 +535,8 @@ namespace DogBotN {
 
   bool ServoC::UpdateTick(TimePointT timeNow)
   {
+    DeviceC::UpdateTick(timeNow);
+
     bool ret = false;
     std::chrono::duration<double> timeSinceLastReport;
     FaultCodeT faultCode = FC_Unknown;

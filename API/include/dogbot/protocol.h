@@ -45,6 +45,8 @@ extern "C" {
     CPT_FlashData        = 25, // Data packet
     CPT_FlashWrite       = 26, // Write buffer
     CPT_FlashRead        = 27, // Read buffer and send it back
+    CPT_IMU              = 28, // IMU Data packet
+    CPT_Message          = 29, // Debug message packet
     CPT_Final                  // Use to get count of known packet types.
   };
 
@@ -107,7 +109,8 @@ extern "C" {
     DT_Unknown = 0,
     DT_SystemController = 1,
     DT_MotorDriver = 2,
-    DT_BootLoader = 3
+    DT_BootLoader = 3,
+    DT_IMU = 4
   };
 
 
@@ -435,7 +438,10 @@ extern "C" {
   struct PacketDeviceIdC {
     uint8_t m_packetType; // CPT_AnnounceId or CPT_SetDeviceId
     uint8_t m_deviceId;
-    uint32_t m_uid[2];
+    union {
+      uint32_t m_uid[2];
+      uint8_t m_idBytes[8];
+    };
   } __attribute__((packed)) ;
 
   struct PacketCalZeroC {
@@ -448,6 +454,13 @@ extern "C" {
     uint8_t m_deviceId;
   }  __attribute__((packed));
 
+  struct PacketIMUC {
+    uint8_t m_packetType;
+    uint8_t m_deviceId;
+    int16_t m_accel[3];
+    int16_t m_gyro[3];
+    int16_t m_rot[4];
+  };
 
   enum StateChangeSourceT {
     SCS_UserRequest = 0,

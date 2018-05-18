@@ -86,9 +86,9 @@ namespace DogBotN {
   }
 
   //! Get the servo configuration as JSON
-  Json::Value JointRelativeC::ConfigAsJSON() const
+  void JointRelativeC::ConfigAsJSON(Json::Value &ret) const
   {
-    Json::Value ret = JointC::ConfigAsJSON();
+    JointC::ConfigAsJSON(ret);
 
     if(m_jointRef)
       ret["jointRef"] = m_jointRef->Name();
@@ -96,7 +96,6 @@ namespace DogBotN {
       ret["jointDrive"] = m_jointDrive->Name();
     ret["refGain"] = m_refGain;
     ret["refOffset"] = m_refOffset;
-    return ret;
   }
 
   //! Get last reported state of the servo and the time it was taken.
@@ -226,7 +225,7 @@ namespace DogBotN {
     //driveTorqueLimit = Max(1.0,fabs(driveTorqueLimit));
     driveTorqueLimit = m_demandTorqueLimit;
 
-    m_log->info("Setting demand angle for {} to {} with torque {} ",m_jointDrive->Name(),Rad2Deg(drivePosition),driveTorqueLimit);
+    m_logJoint->info("Setting demand angle for {} to {} with torque {} ",m_jointDrive->Name(),Rad2Deg(drivePosition),driveTorqueLimit);
 
     // Only send on if something has changed.
     if(drivePosition != m_lastDrivePosition || driveTorqueLimit != m_lastDriveTorque) {

@@ -27,22 +27,18 @@ namespace DogBotN {
   {
     std::lock_guard<std::mutex> lock(m_mutexJointAdmin);
     m_name = conf.get("name","?").asString();
-    m_notes = conf.get("notes","").asString();
-    m_serialNumber = conf.get("serial_number",m_serialNumber).asString();
+    // m_notes = conf.get("notes","").asString();
+    // m_serialNumber = conf.get("serial_number",m_serialNumber).asString();
     return true;
   }
-
   //! Get the servo configuration as JSON
-  Json::Value JointC::ConfigAsJSON() const
+  void JointC::ConfigAsJSON(Json::Value &ret) const
   {
-    Json::Value  ret;
-
     std::lock_guard<std::mutex> lock(m_mutexJointAdmin);
     ret["name"] = m_name;
-    ret["notes"] = m_notes;
-    ret["serial_number"] = m_serialNumber;
+    //ret["notes"] = m_notes;
+    //ret["serial_number"] = m_serialNumber;
     ret["type"] = JointType();
-    return ret;
   }
 
   //! Access name of device
@@ -52,33 +48,11 @@ namespace DogBotN {
     return m_name;
   }
 
-  //! Access serial number if set.
-  std::string JointC::SerialNumber() const
-  {
-    std::lock_guard<std::mutex> lock(m_mutexJointAdmin);
-    return m_serialNumber;
-  }
-
   //! Set name of servo
   void JointC::SetName(const std::string &name)
   {
     std::lock_guard<std::mutex> lock(m_mutexJointAdmin);
     m_name = name;
-
-  }
-
-  //! Access notes.
-  std::string JointC::Notes() const
-  {
-    std::lock_guard<std::mutex> lock(m_mutexJointAdmin);
-    return m_notes;
-  }
-
-  //! Set notes.
-  void JointC::SetNotes(const std::string &notes)
-  {
-    std::lock_guard<std::mutex> lock(m_mutexJointAdmin);
-    m_notes = notes;
   }
 
 
@@ -124,11 +98,6 @@ namespace DogBotN {
     return true;
   }
 
-  //! Update coms device
-  void JointC::UpdateComs(const std::shared_ptr<ComsC> &coms)
-  {
-  }
-
   //! Add a update callback for motor position
   CallbackHandleC JointC::AddPositionUpdateCallback(const PositionUpdateFuncT &callback)
   { return m_positionCallbacks.Add(callback); }
@@ -136,11 +105,6 @@ namespace DogBotN {
   //! Add a callback when the motor target position is updated
   CallbackHandleC JointC::AddDemandUpdateCallback(const DemandUpdateFuncT &callback)
   { return m_demandCallbacks.Add(callback); }
-
-
-  //! Add notification callback if a parameter changes.
-  CallbackHandleC JointC::AddParameterUpdateCallback(const ParameterUpdateFuncT &func)
-  { return m_parameterCallbacks.Add(func); }
 
 
   //! Move to position and wait until it gets there or stalls.
@@ -151,7 +115,7 @@ namespace DogBotN {
 
     TimePointT startTime = TimePointT::clock::now();
     if(!DemandPosition(targetPosition,torqueLimit)) {
-      m_log->info("Failed to set {} to demand position {} . ",Name(),targetPosition);
+      m_logJoint->info("Failed to set {} to demand position {} . ",Name(),targetPosition);
       return JMS_Error;
     }
 
@@ -165,7 +129,7 @@ namespace DogBotN {
         {
           // At target position ?
           if(fabs(position - targetPosition) < tolerance) {
-            m_log->info("Got {} to position {} . ",Name(),targetPosition);
+            m_logJoint->info("Got {} to position {} . ",Name(),targetPosition);
             ret = JMS_Done;
             done.unlock();
             return ;
@@ -173,7 +137,7 @@ namespace DogBotN {
           // Stalled ?
           double timeSinceStart =  (theTime - startTime).count();
           if(fabs(velocity) < (M_PI/64.0) && torque >= (torqueLimit * 0.95) && timeSinceStart > 0.5){
-            m_log->info("Stalled {} at {}. ",Name(),position);
+            m_logJoint->info("Stalled {} at {}. ",Name(),position);
 
             ret = JMS_Stalled;
             done.unlock();
@@ -185,7 +149,7 @@ namespace DogBotN {
     using Ms = std::chrono::milliseconds;
 
     if(!done.try_lock_for(Ms((int) (1000 * timeOut)))) {
-      m_log->info("Timeout {} going to {}. ",Name(),targetPosition);
+      m_logJoint->info("Timeout {} going to {}. ",Name(),targetPosition);
       cb.Remove();
       return JMS_TimeOut;
     }

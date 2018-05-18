@@ -30,7 +30,7 @@ namespace DogBotN {
     virtual bool ConfigureFromJSON(DogBotAPIC &api,const Json::Value &value) override;
 
     //! Get the servo configuration as JSON
-    virtual Json::Value ConfigAsJSON() const override;
+    virtual void ConfigAsJSON(Json::Value &) const override;
 
     //! Get last reported state of the servo and the time it was taken.
     virtual bool GetState(TimePointT &tick,double &position,double &velocity,double &torque) const override;

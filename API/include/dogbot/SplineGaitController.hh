@@ -80,7 +80,7 @@ namespace DogBotN {
     float m_minTimePropel = 0.05;
     float m_maxTimePropel = 1.0;
 
-    float m_hightAdjust = 0.4;
+    float m_hightAdjust = 0.3;
     float m_defaultHightAdjust = 0.15;
     float m_maxHightAdjust = 0.23;
 

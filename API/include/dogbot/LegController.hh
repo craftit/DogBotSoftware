@@ -32,10 +32,10 @@ namespace DogBotN {
     virtual bool GotoJointAngles(float angles[3],float torque);
 
     //! Get current joint angles
-    virtual bool GetJointAngles(JointC::TimePointT theTime,float &roll,float &pitch,float &knee);
+    virtual bool GetJointAngles(TimePointT theTime,float &roll,float &pitch,float &knee);
 
     //! Compute the force on a foot and where it is.
-    bool ComputeFootForce(const DogBotN::ServoC::TimePointT &atTime,Eigen::Vector3f &position,Eigen::Vector3f &force);
+    bool ComputeFootForce(const DogBotN::TimePointT &atTime,Eigen::Vector3f &position,Eigen::Vector3f &force);
 
     //! Access leg kinematics.
     DogBotN::LegKinematicsC &Kinematics()

@@ -481,7 +481,7 @@ static THD_FUNCTION(can_tx, p)
 int InitCAN(void)
 {
   // Setup an unique node id.
-  g_nodeUId[0] = STM32_UID[0];
+  g_nodeUId[0] = (STM32_UID[0] & 0x0ffffff); // Upper 4 bits are reserved for device type
   g_nodeUId[1] = STM32_UID[1] + STM32_UID[2];
 
   palClearPad(GPIOB, GPIOB_PIN5);       /* Make sure transmitter is in normal mode.  */

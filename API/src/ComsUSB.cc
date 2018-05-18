@@ -381,6 +381,7 @@ namespace DogBotN
           }
           if(dat != usbLen) {
             m_log->error("Packet boundary error. at {} of {} ",dat,usbLen);
+            break;
           }
           at += usbLen;
         }

@@ -52,6 +52,8 @@ ADD_LIBRARY (DogBotAPI STATIC
         SimpleQuadrupedController.cc
         SplineGaitController.cc
         LineABC2d.cc
+        Device.cc
+        DeviceIMU.cc
 )
 
 set_target_properties(DogBotAPI PROPERTIES VERSION ${PROJECT_VERSION})

@@ -104,7 +104,7 @@ int main(int argc,char **argv)
   {
 
     for(int i = 0;i < 3;i++) {
-      DogBotN::JointC::TimePointT tick;
+      DogBotN::TimePointT tick;
       double position,velocity,torque;
       joints[i]->GetState(tick,position,velocity,torque);
       angles[i] = position;
