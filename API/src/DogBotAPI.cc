@@ -1438,6 +1438,17 @@ namespace DogBotN {
     return std::shared_ptr<JointC>(GetServoById(id));
   }
 
+  //! Get device entry by name
+  std::shared_ptr<DeviceC> DogBotAPIC::GetDeviceByName(const std::string &name)
+  {
+    std::lock_guard<std::mutex> lock(m_mutexKinematics);
+    for(auto &a : m_devices) {
+      if(a && a->DeviceName() == name)
+        return a;
+    }
+    return std::shared_ptr<DeviceC>();
+  }
+
   //! Get servo entry by name
   std::shared_ptr<JointC> DogBotAPIC::GetJointByName(const std::string &name)
   {

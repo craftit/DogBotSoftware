@@ -135,6 +135,9 @@ namespace DogBotN {
     //! Refresh information on all controllers.
     void RefreshAll();
 
+    //! Get device entry by name
+    std::shared_ptr<DeviceC> GetDeviceByName(const std::string &name);
+
     //! Get servo entry by id
     std::shared_ptr<ServoC> GetServoById(int id);
 
