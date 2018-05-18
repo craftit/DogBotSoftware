@@ -114,9 +114,6 @@ namespace DogBotN {
         timePush    // Tpu, Time push
         );
 
-    for(int i = 0;i < 4;i++)
-      m_footTrajectories[i] =SplineLinear3dC();
-
     m_footTrajectories[0].Setup(trajectory.GenerateTrajectory(-m_footRotate,m_footSeperation,m_tiltX + m_tiltY));
     m_footTrajectories[1].Setup(trajectory.GenerateTrajectory(-m_footRotate,-m_footSeperation,m_tiltX - m_tiltY));
     m_footTrajectories[2].Setup(trajectory.GenerateTrajectory(m_footRotate,m_footSeperation,-m_tiltX + m_tiltY));

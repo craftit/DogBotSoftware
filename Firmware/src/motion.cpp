@@ -153,6 +153,11 @@ void EnterHomedState()
   SendParamUpdate(CPI_HomedState);
 }
 
+float g_motionLastPositionRequest = 0;
+int g_motionUpdatePeriod = 180;
+int g_motionPositionTime = g_motionUpdatePeriod;
+int g_motionLastPositionTime = 0;
+float g_motionUdpateAccum = 180.0;
 
 bool UpdateRequestedPosition()
 {
@@ -161,7 +166,18 @@ bool UpdateRequestedPosition()
   {
     case CM_Position:
       {
+        bool haveValidVelocity = false;
+        int timeDiff =  g_motionPositionTime - g_motionLastPositionTime;
+        if(timeDiff > 10 && timeDiff < 1000) {
+          g_motionUdpateAccum += (timeDiff - g_motionUdpateAccum) * 0.1;
+          g_motionUpdatePeriod = (int) (g_motionUdpateAccum + 0.5f);
+          haveValidVelocity = true;
+        } else {
+          g_motionUpdatePeriod = 0;
+        }
+
         float positionAsPhaseAngle = DemandInt16ToPhasePosition(g_requestedJointPosition);
+
 
         if((g_requestedJointMode & 0x1) != 0) { // Calibrated position ?
           // Yes we're dealing with a calibrated position request,
@@ -169,6 +185,8 @@ bool UpdateRequestedPosition()
           if(g_motionHomedState != MHS_Homed) return false;
           positionAsPhaseAngle += g_homeAngleOffset;
         }
+
+
         if((g_motionPositionReference & 0x2) != 0) { // Relative position to another joint?
           // If we want a calibrated position and the other joint is uncalibrated then
           // give up.
@@ -191,7 +209,23 @@ bool UpdateRequestedPosition()
             positionAsPhaseAngle = g_endStopPhaseMax;
         }
 
+#if 0
+        float positionDelta = positionAsPhaseAngle - g_motionLastPositionRequest;
+        float velocity = positionDelta * g_PWMFrequency/g_motionUpdatePeriod;
+        if(!haveValidVelocity)
+          velocity = 0;
+#else
+        float velocity = 0;
+#endif
+
+        g_motionLastPositionRequest = positionAsPhaseAngle;
+
+
+        chMtxLock(&g_demandMutex);
+        g_motionPositionTime = -g_motionUpdatePeriod;
+        g_demandPhaseVelocity = velocity;
         g_demandPhasePosition = positionAsPhaseAngle;
+        chMtxUnlock(&g_demandMutex);
       }
       break;
     case CM_Velocity:

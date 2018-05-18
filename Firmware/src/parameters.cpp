@@ -411,6 +411,8 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
     case CPI_PWMFrequency:
       // Setting the PWM frequency is not supported at the moment.
       return false;
+    case CPI_MotionUpdatePeriod:
+      return false;
     case CPI_FINAL:
       return false;
     default:
@@ -719,6 +721,10 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
     case CPI_PWMFrequency: {
       *len = 4;
       data->float32[0] = g_PWMFrequency;
+    } break;
+    case CPI_MotionUpdatePeriod: {
+      *len = 2;
+      data->int16[0] = g_motionUpdatePeriod;
     } break;
     case CPI_FINAL:
     default: return false;

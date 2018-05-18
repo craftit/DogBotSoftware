@@ -23,10 +23,12 @@ int main(int argc,char **argv)
   auto logger = spdlog::stdout_logger_mt("console");
   bool dumpPose = false;
   bool cycle = false;
+  int jointId = -1;
   float torque = 1.0;
   float range = 45.0;
   float angle = 0;
   int delay = 5000;
+  float speed  = -1.0;
   bool useVirtualJoint = false;
   try
   {
@@ -38,12 +40,14 @@ int main(int argc,char **argv)
     options.add_options()
       ("c,config", "Configuration file", cxxopts::value<std::string>(configFile))
       ("d,device", "Device to use from communication. Typically 'local' for local server or 'usb' for direct connection ", cxxopts::value<std::string>(devFilename))
+      ("i,target","Controller id to use", cxxopts::value<int>(jointId))
       ("t,torque","Torque to use", cxxopts::value<float>(torque))
       ("j,joint","Joint name", cxxopts::value<std::string>(jointName))
       ("r,range","Motion range", cxxopts::value<float>(range))
       ("a,angle","Centre angle", cxxopts::value<float>(angle))
       ("p,pose","Joint name", cxxopts::value<bool>(dumpPose))
       ("l,load","Load pose", cxxopts::value<std::string>(loadPoseFile))
+      ("s,speed","Speed for smooth movement", cxxopts::value<float>(speed))
       ("g,cycle","Cycle up and down",cxxopts::value<bool>(cycle))
       ("v,virtual-joint","Use virtual joint",cxxopts::value<bool>(useVirtualJoint))
       ("o,delay","Delay in cycle, default is 5000",cxxopts::value<int>(delay))
@@ -76,7 +80,7 @@ int main(int argc,char **argv)
       );
 
   // Wait for poses to update and things to settle.
-  sleep(1);
+  sleep(3);
 
   if(dumpPose) {
     std::vector<std::shared_ptr<DogBotN::ServoC> > list = dogbot->ListServos();
@@ -119,12 +123,6 @@ int main(int argc,char **argv)
     return 0;
   }
 
-  std::shared_ptr<DogBotN::JointC> joint = dogbot->GetJointByName(jointName);
-  if(!joint) {
-    logger->error("Failed to find joint {} ",jointName);
-    return 1;
-  }
-
   if(cycle) {
 
     // Lift the speed limit a bit
@@ -150,15 +148,41 @@ int main(int argc,char **argv)
 
   }
 
-
-  enum DogBotN::JointMoveStatusT moveStatus;
-  while(true)
-  {
-    if((moveStatus = joint->MoveWait(DogBotN::Deg2Rad(angle-range/2),torque)) != DogBotN::JMS_Done) {
-      logger->warn("Move failed. {} ",(int) moveStatus);
+  std::shared_ptr<DogBotN::JointC> joint;
+  std::cerr << "Joint id " << jointId << "\n";
+  if(jointId >= 0) {
+    joint = dogbot->GetJointById(jointId);
+    if(!joint) {
+      logger->error("Failed to find joint id {} ",jointId);
+      return 1;
     }
-    if((moveStatus =joint->MoveWait(DogBotN::Deg2Rad(angle+range/2),torque))!= DogBotN::JMS_Done) {
-      logger->warn("Move failed. {} ",(int) moveStatus);
+  } else {
+    joint = dogbot->GetJointByName(jointName);
+    if(!joint) {
+      logger->error("Failed to find joint {} ",jointName);
+      return 1;
+    }
+  }
+
+  if(speed >= 0) {
+    float omega = 0;
+    while(true) {
+      omega += 0.01 * speed;
+      float goTo = DogBotN::Deg2Rad(angle + (sin(omega) * range/2.0f));
+      std::cerr << "Goto:" << goTo << std::endl;
+      joint->DemandPosition(goTo,torque);
+      usleep(10000);
+    }
+  } else {
+    enum DogBotN::JointMoveStatusT moveStatus;
+    while(true)
+    {
+      if((moveStatus = joint->MoveWait(DogBotN::Deg2Rad(angle-range/2),torque)) != DogBotN::JMS_Done) {
+        logger->warn("Move failed. {} ",(int) moveStatus);
+      }
+      if((moveStatus =joint->MoveWait(DogBotN::Deg2Rad(angle+range/2),torque))!= DogBotN::JMS_Done) {
+        logger->warn("Move failed. {} ",(int) moveStatus);
+      }
     }
   }
 

@@ -12,6 +12,8 @@
 			"motorKv" : 260,
 			"name" : "spare",
 			"notes" : "",
+			"safetyMode" : 1,
+			"serial_number" : "",
 			"type" : "servo",
 			"uid1" : 2621480,
 			"uid2" : 1650753082
@@ -27,23 +29,10 @@
 			"motorKv" : 260,
 			"name" : "front_right_knee",
 			"notes" : "",
+			"safetyMode" : 1,
+			"serial_number" : "",
 			"type" : "servo",
 			"uid1" : 3342397,
-			"uid2" : 1650753082
-		},
-		{
-			"deviceId" : 3,
-			"enabled" : true,
-			"endStopEnable" : false,
-			"endStopFinal" : 0,
-			"endStopStart" : 0,
-			"gearRatio" : 21,
-			"homeOffset" : 0,
-			"motorKv" : 260,
-			"name" : "back_right_knee",
-			"notes" : "",
-			"type" : "servo",
-			"uid1" : 2883639,
 			"uid2" : 1650753082
 		},
 		{
@@ -57,6 +46,8 @@
 			"motorKv" : 260,
 			"name" : "front_right_pitch",
 			"notes" : "",
+			"safetyMode" : 1,
+			"serial_number" : "",
 			"type" : "servo",
 			"uid1" : 3407924,
 			"uid2" : 1650753082
@@ -72,6 +63,8 @@
 			"motorKv" : 260,
 			"name" : "front_right_roll",
 			"notes" : "",
+			"safetyMode" : 1,
+			"serial_number" : "",
 			"type" : "servo",
 			"uid1" : 3342381,
 			"uid2" : 1650753082
@@ -87,6 +80,8 @@
 			"motorKv" : 260,
 			"name" : "back_right_roll",
 			"notes" : "",
+			"safetyMode" : 1,
+			"serial_number" : "",
 			"type" : "servo",
 			"uid1" : 3407912,
 			"uid2" : 1650753082
@@ -102,6 +97,8 @@
 			"motorKv" : 260,
 			"name" : "back_left_knee",
 			"notes" : "",
+			"safetyMode" : 1,
+			"serial_number" : "",
 			"type" : "servo",
 			"uid1" : 3342371,
 			"uid2" : 1650753082
@@ -117,6 +114,8 @@
 			"motorKv" : 260,
 			"name" : "front_left_pitch",
 			"notes" : "",
+			"safetyMode" : 1,
+			"serial_number" : "",
 			"type" : "servo",
 			"uid1" : 3342364,
 			"uid2" : 1650753082
@@ -132,6 +131,8 @@
 			"motorKv" : 260,
 			"name" : "front_left_knee",
 			"notes" : "",
+			"safetyMode" : 1,
+			"serial_number" : "",
 			"type" : "servo",
 			"uid1" : 3211292,
 			"uid2" : 1650753082
@@ -147,6 +148,8 @@
 			"motorKv" : 260,
 			"name" : "front_left_roll",
 			"notes" : "",
+			"safetyMode" : 1,
+			"serial_number" : "",
 			"type" : "servo",
 			"uid1" : 3604506,
 			"uid2" : 1650753082
@@ -162,6 +165,8 @@
 			"motorKv" : 260,
 			"name" : "back_left_roll",
 			"notes" : "",
+			"safetyMode" : 1,
+			"serial_number" : "",
 			"type" : "servo",
 			"uid1" : 3473433,
 			"uid2" : 1650753082
@@ -177,6 +182,8 @@
 			"motorKv" : 260,
 			"name" : "back_left_pitch",
 			"notes" : "",
+			"safetyMode" : 1,
+			"serial_number" : "",
 			"type" : "servo",
 			"uid1" : 3211288,
 			"uid2" : 1650753082
@@ -192,8 +199,27 @@
 			"motorKv" : 260,
 			"name" : "back_right_pitch",
 			"notes" : "",
+			"safetyMode" : 1,
+			"serial_number" : "",
 			"type" : "servo",
 			"uid1" : 3342380,
+			"uid2" : 1650753082
+		},
+		{
+			"deviceId" : 3,
+			"enabled" : true,
+			"endStopEnable" : false,
+			"endStopFinal" : 0,
+			"endStopStart" : 0,
+			"gearRatio" : 21,
+			"homeOffset" : 0,
+			"motorKv" : 260,
+			"name" : "back_right_knee",
+			"notes" : "",
+			"safetyMode" : 1,
+			"serial_number" : "3211287-1650753082",
+			"type" : "servo",
+			"uid1" : 3211287,
 			"uid2" : 1650753082
 		},
 		{
@@ -203,8 +229,8 @@
 			"name" : "virtual_front_left_knee",
 			"notes" : "",
 			"refGain" : -1,
-			"gain": 1,
 			"refOffset" : 0,
+			"serial_number" : "",
 			"type" : "4bar"
 		},
 		{
@@ -215,7 +241,7 @@
 			"notes" : "",
 			"refGain" : -1,
 			"refOffset" : 0,
-                        "gain": 1,
+			"serial_number" : "",
 			"type" : "4bar"
 		},
 		{
@@ -226,74 +252,80 @@
 			"notes" : "",
 			"refGain" : -1,
 			"refOffset" : 0,
-                        "gain": 1,
+			"serial_number" : "",
 			"type" : "4bar"
 		},
 		{
-			"jointDrive" : "back_right_knee",
 			"jointRef" : "back_right_pitch",
-			"legKinematics" : "back_right",
 			"name" : "virtual_back_right_knee",
 			"notes" : "",
-			"refGain" : -1,
+			"refGain" : 1,
 			"refOffset" : 0,
-                        "gain": 1,
+			"serial_number" : "",
 			"type" : "4bar"
 		}
 	],
 	"kinematics" : 
 	[
 		{
+			"FootDrop" : 0.02500000037252903,
+			"FootSphereRadius" : 0.05000000074505806,
 			"LinkA" : 0.032000001519918442,
 			"LinkB" : 0.039999999105930328,
 			"LinkH" : 0.36300000548362732,
 			"ZOffset" : 0.079999998211860657,
+			"alternateSolution" : true,
+			"dirKnee" : -1,
+			"dirPitch" : 1,
+			"dirRoll" : 1,
 			"l1" : 0.36100000143051147,
 			"l2" : 0.31000000238418579,
-			"name" : "front_left",
-                        "alternateSolution":true,
-			"dirRoll":1,
-                        "dirPitch":1,
-                        "dirKnee":-1
+			"name" : "front_left"
 		},
 		{
+			"FootDrop" : 0.02500000037252903,
+			"FootSphereRadius" : 0.05000000074505806,
 			"LinkA" : 0.032000001519918442,
 			"LinkB" : 0.039999999105930328,
 			"LinkH" : 0.36300000548362732,
 			"ZOffset" : 0.079999998211860657,
+			"alternateSolution" : false,
+			"dirKnee" : 1,
+			"dirPitch" : -1,
+			"dirRoll" : 1,
 			"l1" : 0.36100000143051147,
 			"l2" : 0.31000000238418579,
-			"name" : "front_right",
-                        "alternateSolution":false,
-                        "dirRoll":1,
-                        "dirPitch":-1,
-                        "dirKnee":1
+			"name" : "front_right"
 		},
 		{
+			"FootDrop" : 0.02500000037252903,
+			"FootSphereRadius" : 0.05000000074505806,
 			"LinkA" : 0.032000001519918442,
 			"LinkB" : 0.039999999105930328,
 			"LinkH" : 0.36300000548362732,
 			"ZOffset" : 0.079999998211860657,
+			"alternateSolution" : true,
+			"dirKnee" : -1,
+			"dirPitch" : 1,
+			"dirRoll" : -1,
 			"l1" : 0.36100000143051147,
 			"l2" : 0.31000000238418579,
-			"name" : "back_left",
-                        "alternateSolution":true,
-                        "dirRoll":-1,
-                        "dirPitch":1,
-                        "dirKnee":-1
+			"name" : "back_left"
 		},
 		{
+			"FootDrop" : 0.02500000037252903,
+			"FootSphereRadius" : 0.05000000074505806,
 			"LinkA" : 0.032000001519918442,
 			"LinkB" : 0.039999999105930328,
 			"LinkH" : 0.36300000548362732,
 			"ZOffset" : 0.079999998211860657,
+			"alternateSolution" : false,
+			"dirKnee" : 1,
+			"dirPitch" : -1,
+			"dirRoll" : -1,
 			"l1" : 0.36100000143051147,
 			"l2" : 0.31000000238418579,
-			"name" : "back_right",
-                        "alternateSolution":false,
-                        "dirRoll":-1,
-                        "dirPitch":-1,
-                        "dirKnee":1
+			"name" : "back_right"
 		}
 	]
 }
