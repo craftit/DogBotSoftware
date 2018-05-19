@@ -21,6 +21,9 @@ if [ $# -gt 0 ]; then
   if [ $BUILDARG -eq 1 ]; then
     echo "building project"
     $DIR/buildall.sh
+    
+    echo "building ROS components"
+    $DIR/rosbuild.sh
   fi
 fi
   

@@ -1,29 +1,45 @@
 
-# Brushless Motor Controller V2 Firmware
+# Dogbot (repo BMC2-Firmware)
 
-This repository contains firmware and a UI for interacting with the [DogBot] robotic hardware platform developed by [React AI]
+[DogBot] is a quadruped robot developed by [React AI] as a platform for researching robotics, AI and more.
 
-Note: this code is still work-in-progress.
+This repository contains firmware and a UI for interacting with the [DogBot] robotic hardware platform developed by [React AI], as well as CAD designs, along with software for higher-level systems for control and operation of the DogBot robot via [ROS].
 
-Corresponding higher-level ROS control software, along with CAD packages and other artifacts, can be found in the [Dogbot repo].  While that code requires the firmware to operate, the code in this repository is self-contained.
+Note: areas of this code are still work-in-progress.
 
 # Installation
 
 ## Pre-requisites
+
+This code has been tested for installation and operation on Ubuntu Linux 16.04.
+
 [Qt] is required to build and run the UI, it was built and tested with Qt version 5.9.2 64-bit.
 
-The software was developed and has been tested on Linux Ubuntu 16.04
+[ROS] must be installed if ROS interaction is required; the code has been tested against the Kinetic release.  The repository contains a [catkin](http://wiki.ros.org/catkin) workspace under [Software/ROS](./ROS), which should be built with `catkin build`
+
+You may need to install the packages `ros-kinetic-rosparam-shortcuts ros-kinetic-ros-control ros-kinetic-ros-controllers` 
 
 ## Setup steps
-To use USB you need access to the appropriate device:
+To use a USB connection you need access to the appropriate device:
 
 ```bat
 sudo cp ./API/src/reactai.rules /etc/udev/rules.d/
 sudo udevadm control --reload-rules && udevadm trigger
 ```
-There is a [configuration file](./Config/configexample.json): to enable the ROS components in the [Dogbot repo] to access this it should be copied into ~/.config/DogBot
+There is a [configuration file](./Config/configexample.json): to enable the ROS components to access this it should be copied into ~/.config/DogBot.  Replace with your own DogBot's configuration file as required.
 
-The code under [API](./API) should be built with `cmake --build` and `make install`. There is a script to wrap these steps at [buildall.sh](./Scripts/buildall.sh)
+The code under [API](./API) and [DataRecorder](./Utilities/DataRecorder) should be built with `cmake', 'make` and `make install`, for the API for example:
+
+```bat
+cd ./API
+mkdir -p build
+cd build
+cmake ../src/
+make
+sudo make install
+```
+
+There is a script to wrap these steps at [buildall.sh](./Scripts/buildall.sh)
 
 There is an installation script at [setup.sh](./Scripts/setup.sh), calling it as `setup.sh 1` also calls the build script.
 
@@ -82,7 +98,28 @@ Method 2:
 
 ![setup tab screenshot](resources/UI_motor_setup.png "Motor setup tab in UI")
 
-The motor(s) may now be controlled via ROS if you wish, further details for that are in the [Dogbot repo]
+The motor(s) may now be controlled via ROS if you wish.
+
+# ROS Control
+
+**Note:** complete the Firmware UI steps before starting the ROS components.  The hardware interface node in ROS will send conflicting signals if it is operational while the UI tries to alter the motor positions.
+
+To get started with ROS control, build and source the code then run `dogbot_hardware.launch`
+
+```bat
+cd Software/ROS
+catkin build
+source devel/setup.bash
+roslaunch dogbot_control dogbot_hardware.launch
+```
+
+This launches a hardware interface node of type dogbot_control/dogbot_hw_main, which uses the [ros_control](http://wiki.ros.org/controller_manager) package to spawn and interact with ROS controllers.  This provides a framework for different controller types, as well as standardising interactions with Gazebo and RViz.
+
+If you are controlling other equipment you may require a different launch file, such as testrig_hardware.launch
+
+## Further ROS Control
+
+The motors can now be controlled by interacting directly with ROS topics or via ROS nodes. Further details are in the ROS directory [readme file](./ROS)
 
 # Useful Tools
 * stlink programming: https://github.com/texane/stlink
@@ -96,7 +133,6 @@ If you wish to contribute please fork the project on GitHub. More details to fol
 
 Details to follow
 
-[Dogbot repo]: https://github.com/craftit/Dogbot
 [DogBot]: https://www.reactai.com/dog-bot/
 [React AI]: https://www.reactai.com
 [ROS]: http://www.ros.org

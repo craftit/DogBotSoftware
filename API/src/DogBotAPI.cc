@@ -7,6 +7,7 @@
 #include "dogbot/ComsProxy.hh"
 #include "dogbot/Joint4BarLinkage.hh"
 #include "dogbot/JointRelative.hh"
+#include "dogbot/DeviceIMU.hh"
 #include <fstream>
 #include <chrono>
 #include <mutex>
@@ -795,6 +796,51 @@ namespace DogBotN {
     return defaultConfig;
   }
 
+  //! Make a new device
+  std::shared_ptr<DeviceC> DogBotAPIC::MakeDevice(int deviceId,const std::string &deviceTypeName)
+  {
+    if(deviceTypeName == "servo")
+      return MakeDevice(deviceId,DT_MotorDriver);
+    if(deviceTypeName == "imu")
+      return MakeDevice(deviceId,DT_IMU);
+    if(deviceTypeName == "system")
+      return MakeDevice(deviceId,DT_SystemController);
+    m_log->error("Asked to create unknown device type '{}' ",deviceTypeName);
+    return MakeDevice(deviceId,DT_Unknown);
+  }
+
+  //! Make a new device
+  std::shared_ptr<DeviceC> DogBotAPIC::MakeDevice(int deviceId,DeviceTypeT deviceType)
+  {
+    m_log->info("Creating device {} of type id {} ",deviceId,(int) deviceType);
+    switch(deviceType)
+    {
+      case DT_Unknown: return std::make_shared<DeviceC>(m_coms,deviceId);
+      case DT_MotorDriver: return std::make_shared<ServoC>(m_coms,deviceId);
+      case DT_SystemController:
+      case DT_BootLoader:
+      case DT_IMU: return std::make_shared<DeviceIMUC>(m_coms,deviceId);
+        break;
+    }
+    m_log->warn("Asked to create unknown device type {} ",(int) deviceType);
+    return std::make_shared<DeviceC>(m_coms,deviceId);
+  }
+
+
+  //! Make device for given id
+  std::shared_ptr<DeviceC> DogBotAPIC::MakeDevice(int deviceId,const PacketDeviceIdC &pkt)
+  {
+    int deviceType = pkt.m_idBytes[3] >> 4;
+    m_log->info("Creating device {} of type id {} ",deviceId,(int) deviceType);
+    switch(deviceType)
+    {
+      case 0: return std::make_shared<ServoC>(m_coms,deviceId,pkt);
+      case 4: return std::make_shared<DeviceIMUC>(m_coms,deviceId,pkt);
+    }
+    m_log->warn("Asked to create unknown device type {} ",(int) deviceType);
+    return std::make_shared<DeviceC>(m_coms,deviceId,pkt);
+  }
+
   //! Load a configuration file
   bool DogBotAPIC::LoadConfig(const std::string &configFile)
   {
@@ -838,18 +884,24 @@ namespace DogBotN {
         ServoUpdateTypeT op = SUT_Updated;
         for(int i = 0;i < deviceList.size();i++) {
           Json::Value deviceConf = deviceList[i];
-          std::string deviceType = deviceConf.get("type","").asString();
-          if(!deviceType.empty() && deviceType != "servo" ) {
-            std::shared_ptr<JointC> joint = MakeJoint(deviceType);
+          std::string jointType = deviceConf.get("type","").asString();
+          if(!jointType.empty() && (
+              jointType == "relative" ||
+              jointType == "4bar" ||
+              jointType == "joint"))
+          {
+            std::shared_ptr<JointC> joint = MakeJoint(jointType);
             joint->ConfigureFromJSON(*this,deviceConf);
+            m_log->info("Loaded joint '{}' of type '{}' ",joint->Name(),jointType);
             m_joints.push_back(joint);
             continue;
           }
-          std::shared_ptr<ServoC> device;
+          std::shared_ptr<DeviceC> device;
           int deviceId = 0;
           uint32_t uid1 = deviceConf.get("uid1",0u).asInt();
           uint32_t uid2 = deviceConf.get("uid2",0u).asInt();
           int reqId = deviceConf.get("deviceId",0u).asInt();
+          std::string deviceType = deviceConf.get("device_type","servo").asString();
           // Ignore silly ids
           if(reqId > 255 || reqId < 0)
             reqId = 0;
@@ -875,19 +927,19 @@ namespace DogBotN {
                 while(m_devices.size() < reqId)
                   m_devices.push_back(std::shared_ptr<ServoC>());
                 deviceId = reqId;
-                device = std::make_shared<ServoC>(m_coms,deviceId);
+                device = MakeDevice(deviceId,deviceType);
                 m_devices.push_back(device);
                 op = SUT_Add;
               }
               if(deviceId > 0) {
-                device = std::make_shared<ServoC>(m_coms,deviceId);
+                device = MakeDevice(deviceId,deviceType);
                 m_devices[deviceId] = device;
               }
             }
             // Still no luck... just append it.
             if(deviceId == 0) {
               deviceId = (int) m_devices.size();
-              device = std::make_shared<ServoC>(m_coms,deviceId);
+              device = MakeDevice(deviceId,deviceType);
               m_devices.push_back(device);
               op = SUT_Add;
             }
@@ -895,9 +947,10 @@ namespace DogBotN {
           assert(device);
           if(device) {
             device->ConfigureFromJSON(*this,deviceConf);
-            ServoStatusUpdate(device.get(),op);
-            if(device->IsExported())
-              m_joints.push_back(device);
+            m_log->info("Loaded device '{}' of type '{}' ",device->DeviceName(),deviceType);
+            DeviceStatusUpdate(device.get(),op);
+            std::shared_ptr<JointC> jnt = std::dynamic_pointer_cast<JointC>(device);
+            if(jnt) m_joints.push_back(jnt);
           }
         }
       }
@@ -928,14 +981,14 @@ namespace DogBotN {
       for(auto &a : m_devices) {
         if(!a)
           continue;
-        deviceList[index++] = a->ConfigAsJSON();
+        a->ConfigAsJSON(deviceList[index++]);
       }
       for(auto &a : m_joints) {
         if(!a)
           continue;
         if(a->JointType() == "servo")
           continue;
-        deviceList[index++] = a->ConfigAsJSON();
+        a->ConfigAsJSON(deviceList[index++]);
       }
       rootConfig["devices"] = deviceList;
 
@@ -960,27 +1013,48 @@ namespace DogBotN {
 
 
   //! Issue an update notification
-  void DogBotAPIC::ServoStatusUpdate(JointC *id,ServoUpdateTypeT op)
+  void DogBotAPIC::DeviceStatusUpdate(DeviceC *id,ServoUpdateTypeT op)
   {
-    for(auto &a : m_jointStatusCallbacks.Calls()) {
+    for(auto &a : m_deviceStatusCallbacks.Calls()) {
       if(a) a(id,op);
+    }
+    JointC *jnt = dynamic_cast<JointC *>(id);
+    if(jnt != 0) {
+      for(auto &a : m_jointStatusCallbacks.Calls()) {
+        if(a) a(jnt,op);
+      }
     }
   }
 
-  //! Access device id, create entry if needed
-  std::shared_ptr<ServoC> DogBotAPIC::DeviceEntry(int deviceId)
+  //! Access servo by deviceId
+  std::shared_ptr<ServoC> DogBotAPIC::ServoEntry(int deviceId)
   {
+    std::shared_ptr<ServoC> ret;
     std::lock_guard<std::mutex> lock(m_mutexDevices);
 
     // The device clearly exists, so make sure there is an entry.
     if(deviceId >= m_devices.size() || deviceId < 0)
       return std::shared_ptr<ServoC>();
+    ret = std::dynamic_pointer_cast<ServoC>(m_devices[deviceId]);
+    if(!ret && m_devices[deviceId])
+      m_log->warn("Device {} not a servo. ",deviceId);
+    return ret;
+  }
+
+  //! Access by device id
+  std::shared_ptr<DeviceC> DogBotAPIC::DeviceEntry(int deviceId)
+  {
+    std::lock_guard<std::mutex> lock(m_mutexDevices);
+
+    // The device clearly exists, so make sure there is an entry.
+    if(deviceId >= m_devices.size() || deviceId < 0)
+      return std::shared_ptr<DeviceC>();
     return m_devices[deviceId];
   }
 
   void DogBotAPIC::HandlePacketAnnounce(const PacketDeviceIdC &pkt)
   {
-    std::shared_ptr<ServoC> device;
+    std::shared_ptr<DeviceC> device;
     int deviceId = pkt.m_deviceId;
     m_log->info("Handling device announcement {} {}   Id:{} ",pkt.m_uid[0],pkt.m_uid[1],(int) pkt.m_deviceId);
     ServoUpdateTypeT updateType = SUT_Updated;
@@ -1006,7 +1080,7 @@ namespace DogBotN {
           }
         }
         if(!device)
-          device = std::make_shared<ServoC>(m_coms,deviceId,pkt);
+          device = MakeDevice(deviceId,pkt);
         m_devices[deviceId] = device;
         updateType = SUT_Add;
       } else {
@@ -1019,7 +1093,7 @@ namespace DogBotN {
           m_log->error(
              "Conflicting ids detected for device {}, with uid {}-{} and existing device {}-{} '{}' ",
              (int) pkt.m_deviceId,pkt.m_uid[0],pkt.m_uid[1],
-             device->UId1(),device->UId2(),device->Name()
+             device->UId1(),device->UId2(),device->DeviceName()
              );
         }
       }
@@ -1036,7 +1110,7 @@ namespace DogBotN {
       }
       // No matching id found ?
       if(!device && m_deviceManagerMode == DMM_DeviceManager) {
-        device = std::make_shared<ServoC>(m_coms,0,pkt);
+        device = MakeDevice(0,pkt);
         m_timeLastUnassignedUpdate = std::chrono::steady_clock::now();
         for(auto &a : m_unassignedDevices) {
           if(a->HasUID(pkt.m_uid[0],pkt.m_uid[1])) {
@@ -1050,7 +1124,7 @@ namespace DogBotN {
     assert(device || m_deviceManagerMode != DMM_DeviceManager);
     if(device) {
       device->HandlePacketAnnounce(pkt,m_deviceManagerMode == DMM_DeviceManager);
-      ServoStatusUpdate(device.get(),updateType);
+      DeviceStatusUpdate(device.get(),updateType);
     }
   }
 
@@ -1084,11 +1158,11 @@ namespace DogBotN {
             return;
           }
           const PacketServoReportC *pkt = (const PacketServoReportC *) data;
-          std::shared_ptr<ServoC> device = DeviceEntry(pkt->m_deviceId);
+          std::shared_ptr<ServoC> device = ServoEntry(pkt->m_deviceId);
           if(!device)
             return ;
           if(device->HandlePacketServoReport(*pkt)) {
-            ServoStatusUpdate(device.get(),SUT_Updated);
+            DeviceStatusUpdate(device.get(),SUT_Updated);
           }
         }
     );
@@ -1116,11 +1190,11 @@ namespace DogBotN {
                           }
                           const PacketParam8ByteC *pkt = (const PacketParam8ByteC *) data;
                           // We can only deal with devices after they've been allocated an id.
-                          std::shared_ptr<ServoC> device = DeviceEntry(pkt->m_header.m_deviceId);
+                          std::shared_ptr<DeviceC> device = DeviceEntry(pkt->m_header.m_deviceId);
                           if(!device)
                             return ;
                           if(device->HandlePacketReportParam(*pkt)) {
-                            ServoStatusUpdate(device.get(),SUT_Updated);
+                            DeviceStatusUpdate(device.get(),SUT_Updated);
                           }
 
                         }
@@ -1141,18 +1215,38 @@ namespace DogBotN {
                                        (int) pkt->m_errorCode,
                                        DogBotN::ComsPacketTypeToString((enum ComsPacketTypeT) pkt->m_causeType),(int) pkt->m_causeType,
                                        (int) pkt->m_errorData);
-
-                          std::shared_ptr<ServoC> device = DeviceEntry(pkt->m_deviceId);
-                          if(!device)
-                            return ;
-#if 0
-                          if(device->HandlePacketReportParam(*pkt)) {
-                            ServoStatusUpdate(pkt->m_header.m_deviceId,SUT_Updated);
-                          }
-#endif
-
                         }
                        );
+
+    callbacks += m_coms->SetHandler(CPT_IMU,
+                       [this](const uint8_t *data,int size) mutable
+                        {
+                          if(size != sizeof(PacketIMUC)) {
+                            m_log->error("'IMU' packet to short {} ",size);
+                            return ;
+                          }
+                          struct PacketIMUC *pkt = (struct PacketIMUC *) data;
+                          std::shared_ptr<DeviceC> device = DeviceEntry(pkt->m_deviceId);
+                          if(!device)
+                            return ;
+                          DeviceIMUC *anIMU = dynamic_cast<DeviceIMUC *>(device.get());
+                          if(anIMU->HandlePacketIMU(pkt)) {
+                            DeviceStatusUpdate(device.get(),SUT_Updated);
+                          }
+                        });
+
+    callbacks += m_coms->SetHandler(CPT_Message,
+                                    [this](const uint8_t *data,int size) mutable
+                                     {
+                                       if(size < 2) {
+                                         m_log->info("Empty message received. ");
+                                         return ;
+                                       }
+                                       char buff[256];
+                                       memcpy(buff,&data[2],size-2);
+                                       buff[size-2] = 0;
+                                       m_log->info("Message from {} : {} ",(int) data[1],buff);
+                                     });
 
     while(!m_terminate)
     {
@@ -1181,8 +1275,10 @@ namespace DogBotN {
           }
           m_driverState = DS_Connected;
           // Send out a device query.
-          m_coms->SendQueryDevices();
+          for(int i = 0;i < 3;i++)
+            m_coms->SendSync();
           m_coms->SendPing(0); // Find out what we're connected to.
+          m_coms->SendQueryDevices();
         }
         // no break
         case DS_Connected: {
@@ -1192,8 +1288,9 @@ namespace DogBotN {
             break;
           }
           auto now = std::chrono::steady_clock::now();
+          //m_coms->SendPing(0); // Find out what we're connected to.
           bool unassignedDevicesFound = false;
-          std::vector<std::shared_ptr<ServoC> > devicesList;
+          std::vector<std::shared_ptr<DeviceC> > devicesList;
           {
             std::lock_guard<std::mutex> lock(m_mutexDevices);
             devicesList = m_devices;
@@ -1207,7 +1304,7 @@ namespace DogBotN {
             if(!a)
               continue;
             if(a->UpdateTick(now)) {
-              ServoStatusUpdate(a.get(),SUT_Updated);
+              DeviceStatusUpdate(a.get(),SUT_Updated);
             }
           }
           if(unassignedDevicesFound)
@@ -1226,7 +1323,7 @@ namespace DogBotN {
   void DogBotAPIC::ProcessUnassignedDevices()
   {
     ServoUpdateTypeT op = SUT_Add;
-    std::vector<JointC *> updated;
+    std::vector<DeviceC *> updated;
     {
       std::lock_guard<std::mutex> lock(m_mutexDevices);
       while(m_unassignedDevices.size() > 0) {
@@ -1255,14 +1352,14 @@ namespace DogBotN {
         } else {
           m_devices[deviceId] = device;
         }
-        m_log->info("Adding new device '{}' ",deviceId);
+        m_log->info("Adding new device {} of type '{}' named '{}' ",deviceId,device->DeviceType(),device->DeviceName());
         device->SetId(deviceId);
         updated.push_back(device.get());
         m_coms->SendSetDeviceId(deviceId,device->UId1(),device->UId2());
       }
     }
     for(auto a : updated)
-      ServoStatusUpdate(a,op);
+      DeviceStatusUpdate(a,op);
   }
 
 
@@ -1280,7 +1377,7 @@ namespace DogBotN {
         std::lock_guard<std::mutex> lock(m_mutexDevices);
         deviceCount = m_devices.size();
         if(i < deviceCount)
-          servo = m_devices[i];
+          servo = std::dynamic_pointer_cast<ServoC>(m_devices[i]);
       }
       if(!servo || servo->Id() == 0)
         continue;
@@ -1310,16 +1407,16 @@ namespace DogBotN {
       deviceCount = m_devices.size();
     }
     for(int i = 0;i < deviceCount;i++) {
-      std::shared_ptr<ServoC> servo;
+      std::shared_ptr<DeviceC> dev;
       {
         std::lock_guard<std::mutex> lock(m_mutexDevices);
         deviceCount = m_devices.size();
         if(i < deviceCount)
-          servo = m_devices[i];
+          dev = m_devices[i];
       }
-      if(!servo || servo->Id() == 0)
+      if(!dev || dev->Id() == 0)
         continue;
-      servo->QueryRefresh();
+      dev->QueryRefresh();
     }
 
   }
@@ -1332,7 +1429,7 @@ namespace DogBotN {
     std::lock_guard<std::mutex> lock(m_mutexDevices);
     if(id >= m_devices.size())
       return std::shared_ptr<ServoC>();
-    return m_devices[id];
+    return std::dynamic_pointer_cast<ServoC>(m_devices[id]);
   }
 
   //! Get joint entry by name
@@ -1341,13 +1438,24 @@ namespace DogBotN {
     return std::shared_ptr<JointC>(GetServoById(id));
   }
 
+  //! Get device entry by name
+  std::shared_ptr<DeviceC> DogBotAPIC::GetDeviceByName(const std::string &name)
+  {
+    std::lock_guard<std::mutex> lock(m_mutexKinematics);
+    for(auto &a : m_devices) {
+      if(a && a->DeviceName() == name)
+        return a;
+    }
+    return std::shared_ptr<DeviceC>();
+  }
+
   //! Get servo entry by name
   std::shared_ptr<JointC> DogBotAPIC::GetJointByName(const std::string &name)
   {
     std::lock_guard<std::mutex> lock(m_mutexKinematics);
     for(auto &a : m_devices) {
-      if(a && a->Name() == name)
-        return a;
+      if(a && a->DeviceName() == name)
+        return std::dynamic_pointer_cast<JointC>(a);
     }
     for(auto &a : m_joints) {
       if(a && a->Name() == name)
@@ -1372,7 +1480,13 @@ namespace DogBotN {
   std::vector<std::shared_ptr<ServoC> > DogBotAPIC::ListServos()
   {
     std::lock_guard<std::mutex> lock(m_mutexDevices);
-    return m_devices;
+    std::vector<std::shared_ptr<ServoC> > servos;
+    for(auto &a : m_devices) {
+      std::shared_ptr<ServoC> ptr = std::dynamic_pointer_cast<ServoC>(a);
+      if(ptr)
+        servos.push_back(ptr);
+    }
+    return servos;
   }
 
 

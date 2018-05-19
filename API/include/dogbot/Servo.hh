@@ -2,6 +2,7 @@
 #define DOGBOG_SERVO_HEADER 1
 
 #include "dogbot/Joint.hh"
+#include "dogbot/Device.hh"
 #include <chrono>
 #include "dogbot/Coms.hh"
 
@@ -83,7 +84,8 @@ namespace DogBotN {
   //! Information about a single servo.
 
   class ServoC
-   : public JointC
+   : public JointC,
+     public DeviceC
   {
   public:
     typedef std::function<void (TimePointT theTime,double position,double velocity,double torque,PositionReferenceT posRef)> PositionRefUpdateFuncT;
@@ -97,42 +99,14 @@ namespace DogBotN {
     //! Type of joint
     virtual std::string JointType() const override;
 
-    //! Set servo enabled flag.
-    void SetEnabled(bool enabled)
-    { m_enabled = enabled; }
-
-    //! Is servo enabled ?
-    bool IsEnabled() const
-    { return m_enabled; }
-
-    //! Access the device id.
-    int Id() const
-    { return m_id; }
-
-    //! Set device id.
-    void SetId(int id)
-    { m_id = id; }
-
-    //! Access part 1 of unique id
-    int UId1() const
-    { return m_uid1; }
-
-    //! Access part 2 of unique id
-    int UId2() const
-    { return m_uid2; }
-
-    //! Set device unique id
-    void SetUID(uint32_t uid1,uint32_t uid2);
-
-    //! Does this servo have a matching id ?
-    bool HasUID(uint32_t uid1,uint32_t uid2) const
-    { return m_uid1 == uid1 && m_uid2 == uid2; }
+    //! Access the device type
+    virtual const char *DeviceType() const override;
 
     //! Configure from JSON
-    bool ConfigureFromJSON(DogBotAPIC &api,const Json::Value &value) override;
+    virtual bool ConfigureFromJSON(DogBotAPIC &api,const Json::Value &value) override;
 
     //! Get the servo configuration as JSON
-    Json::Value ConfigAsJSON() const override;
+    virtual void ConfigAsJSON(Json::Value &value) const override;
 
     //! Get last reported state of the servo and the time it was taken.
     //! Position in radians.
@@ -192,7 +166,7 @@ namespace DogBotN {
     { return m_controlDynamic; }
 
     //! Query setup information from the controller again.
-    void QueryRefresh();
+    void QueryRefresh() override;
 
     //! Access index state
     int IndexState() const
@@ -242,10 +216,6 @@ namespace DogBotN {
     //! Returns true if state changed
     bool HandlePacketServoReport(const PacketServoReportC &);
 
-    //! Handle an incoming announce message.
-    //! Returns true if state changed.
-    bool HandlePacketAnnounce(const PacketDeviceIdC &pkt,bool isManager);
-
     //! Handle parameter update.
     //! Returns true if a value has changed.
     bool HandlePacketReportParam(const PacketParam8ByteC &pkt);
@@ -253,38 +223,24 @@ namespace DogBotN {
     //! Tick from main loop
     //! Used to check for communication timeouts.
     //! Returns true if state changed.
-    bool UpdateTick(TimePointT timeNow);
+    virtual bool UpdateTick(TimePointT timeNow) override;
 
 
     mutable std::mutex m_mutexAdmin;
 
     CallbackArrayC<PositionRefUpdateFuncT> m_positionRefCallbacks;
 
-    uint32_t m_uid1 = 0;
-    uint32_t m_uid2 = 0;
-    int m_id = -1; // Device id.
-
-    bool m_enabled = true;
-
     std::shared_ptr<MotorCalibrationC> m_motorCal;
-
-    std::shared_ptr<spdlog::logger> m_log = spdlog::get("console");
-    std::shared_ptr<ComsC> m_coms;
-
-    bool m_online = false;
 
     int m_queryCycle = 0;
 
     FaultCodeT m_faultCode = FC_Unknown;
     MotionHomedStateT m_homedState = MHS_Lost;
-    ControlStateT m_controlState = CS_StartUp;
     PWMControlDynamicT m_controlDynamic = CM_Off;
     bool m_homeIndexState = false;
-    mutable std::mutex m_mutexState;
 
     TimePointT m_timeEpoch;
     TimePointT m_timeOfLastReport;
-    TimePointT m_timeOfLastComs;
 
     uint8_t m_lastTimestamp = 0;
 

@@ -46,7 +46,7 @@ namespace DogBotN {
   {
     float theta;
     if(!m_legKinematics->Linkage4BarBack(position,theta,m_legKinematics->UseAlternateSolution())) {
-      m_log->error("No solution for angle {} for joint {} ",position,Name());
+      m_logJoint->error("No solution for angle {} for joint {} ",position,Name());
       return false;
     }
     float ratio = m_legKinematics->LinkageSpeedRatio(theta,position);
@@ -74,12 +74,11 @@ namespace DogBotN {
   }
 
   //! Get the servo configuration as JSON
-  Json::Value Joint4BarLinkageC::ConfigAsJSON() const
+  void Joint4BarLinkageC::ConfigAsJSON(Json::Value &value) const
   {
-    Json::Value ret = JointRelativeC::ConfigAsJSON();
+    JointRelativeC::ConfigAsJSON(value);
     if(m_legKinematics)
-      ret["legKinematics"] = m_legKinematics->Name();
-    return ret;
+      value["legKinematics"] = m_legKinematics->Name();
   }
 
 }

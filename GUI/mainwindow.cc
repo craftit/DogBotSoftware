@@ -1319,7 +1319,7 @@ void MainWindow::SetValueToCurrentPosition(ComsParameterIndexT param)
     std::cerr << "No servo\n";
     return ;
   }
-  DogBotN::JointC::TimePointT tick;
+  DogBotN::TimePointT tick;
   double position = 0;
   double velocity = 0;
   double torque = 0;

@@ -229,6 +229,7 @@ namespace DogBotN
   //! Send query devices message
   void ComsC::SendQueryDevices()
   {
+    m_log->info("Sending device query. ");
     uint8_t data[2];
     data[0] = CPT_QueryDevices;
     SendPacket(data,1);
