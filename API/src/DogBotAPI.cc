@@ -15,6 +15,7 @@
 #include <memory>
 #include <exception>
 #include <stdexcept>
+#include <iostream>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -158,6 +159,8 @@ namespace DogBotN {
       case CPT_FlashData: return "FlashData";
       case CPT_FlashWrite: return "FlashWrite";
       case CPT_FlashRead: return "FlashRead";
+      case CPT_IMU: return "IMU";
+      case CPT_Message: return "Message";
       case CPT_Final:return "!!Final!!";
     }
     printf("Unexpected packet type %d",(int)packetType);
@@ -697,6 +700,7 @@ namespace DogBotN {
             return false;
           }
           jnt->DemandPosition(0,2.0,PR_Absolute);
+          return true;
         }));
       }
       for(auto &thr: threads) {
@@ -723,6 +727,7 @@ namespace DogBotN {
             return false;
           }
           jnt->DemandPosition(0,2.0,PR_Absolute);
+          return true;
         }));
       }
       for(auto &thr: threads) {
@@ -749,6 +754,7 @@ namespace DogBotN {
             return false;
           }
           jnt->DemandPosition(0,2.0,PR_Absolute);
+          return true;
         }));
       }
       for(auto &thr: threads) {
@@ -789,9 +795,10 @@ namespace DogBotN {
     std::string devFilename = "local";
     std::string homeDir = getenv("HOME");
     std::string defaultConfig = homeDir + "/.config/dogbot/robot.json";
-
-    if(!FileExists(defaultConfig))
+    if(!FileExists(defaultConfig))  {
+      std::cerr << "Default configuration file '" << defaultConfig << "' doesn't exist. " << std::endl;
       return "";
+    }
 
     return defaultConfig;
   }

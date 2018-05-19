@@ -218,7 +218,7 @@ namespace DogBotN {
 
     //! Handle parameter update.
     //! Returns true if a value has changed.
-    bool HandlePacketReportParam(const PacketParam8ByteC &pkt);
+    bool HandlePacketReportParam(const PacketParam8ByteC &pkt) override;
 
     //! Tick from main loop
     //! Used to check for communication timeouts.

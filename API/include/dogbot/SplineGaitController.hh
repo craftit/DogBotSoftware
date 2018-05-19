@@ -53,7 +53,7 @@ namespace DogBotN {
     virtual bool Step(float timeStep,SimpleQuadrupedPoseC &pose) override;
 
     //! Set the gait style
-    virtual bool SetStyle(const std::string &styleName);
+    virtual bool SetStyle(const std::string &styleName) override;
 
     //! Plot graph of gait
     void PlotGait();

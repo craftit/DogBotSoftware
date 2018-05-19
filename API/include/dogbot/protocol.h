@@ -563,13 +563,6 @@ extern "C" {
     uint16_t m_len;
   };
 
-  struct PacketIMUC {
-    uint8_t m_packetType;
-    uint8_t m_deviceId;
-    uint16_t m_linear[3]; // XYZ linear accelerations
-    uint16_t m_quat[4]; // Quaternion angle
-  };
-
 
 #ifdef __cplusplus
 }
