@@ -28,7 +28,7 @@ namespace DogBotN {
     virtual bool ConfigureFromJSON(DogBotAPIC &api,const Json::Value &value) override;
 
     //! Get the servo configuration as JSON
-    virtual Json::Value ConfigAsJSON() const override;
+    virtual void ConfigAsJSON(Json::Value &value) const override;
 
   protected:
     virtual bool Raw2Simple(

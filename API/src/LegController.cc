@@ -97,7 +97,7 @@ namespace DogBotN {
 
 
   //! Get current joint angles
-  bool LegControllerC::GetJointAngles(JointC::TimePointT theTime,float &roll,float &pitch,float &knee)
+  bool LegControllerC::GetJointAngles(TimePointT theTime,float &roll,float &pitch,float &knee)
   {
     double velocity = 0,torque = 0;
     double rolld,pitchd,kneed = 0;
@@ -114,7 +114,7 @@ namespace DogBotN {
   }
 
   //! Compute the force on a foot and where it is.
-  bool LegControllerC::ComputeFootForce(const DogBotN::ServoC::TimePointT &atTime,Eigen::Vector3f &footAt,Eigen::Vector3f &force)
+  bool LegControllerC::ComputeFootForce(const TimePointT &atTime,Eigen::Vector3f &footAt,Eigen::Vector3f &force)
   {
     if(m_kinematics)
       m_legOrigin = Eigen::Vector3f(m_kinematics->LegOrigin(0),m_kinematics->LegOrigin(1),m_kinematics->LegOrigin(2));

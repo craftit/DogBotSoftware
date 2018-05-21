@@ -477,8 +477,6 @@ void DoStartup(void)
  */
 int main(void) {
 
-  getpid();
-
   /*
    * System initialisations.
    * - HAL initialisation, this also initialises the configured device drivers

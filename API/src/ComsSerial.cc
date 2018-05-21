@@ -18,6 +18,7 @@
 #include <sys/termios.h>
 
 #include "../include/dogbot/ComsSerial.hh"
+#include "../include/dogbot/DogBotAPI.hh"
 
 namespace DogBotN
 {
@@ -100,8 +101,9 @@ namespace DogBotN
       termios_p.c_cflag &=~(PARENB);  // No parity
       termios_p.c_iflag &= ~(INPCK);
 
-      cfsetispeed(&termios_p, B38400);
-      cfsetospeed(&termios_p, B38400);
+      speed_t speed = B57600; // B38400;
+      cfsetispeed(&termios_p, speed); //
+      cfsetospeed(&termios_p, speed);
 
       if(tcsetattr(m_fd, TCSANOW, &termios_p ) < 0)  {
         m_log->error("Failed to configure serial port ");
@@ -182,6 +184,7 @@ namespace DogBotN
     } break;
     case 5: // ETX.
       if(sendByte == m_charETX) {
+        //m_log->info("Got packet {} {} len:{} ",(int) m_data[0],ComsPacketTypeToString((enum ComsPacketTypeT) m_data[0]),m_packetLen);
         ProcessPacket(m_data,m_packetLen);
       } else {
         m_log->warn("Packet corrupted. Len {} Type {} ",m_packetLen,(int) m_data[0]);
@@ -203,7 +206,6 @@ namespace DogBotN
     uint8_t readBuff[1024];
     fd_set localFds;
     fd_set exceptFds;
-    FD_ZERO(&localFds);
     FD_ZERO(&exceptFds);
 
     int theFd = m_fd;
@@ -259,6 +261,8 @@ namespace DogBotN
   void ComsSerialC::SendPacketWire(const uint8_t *buff,int len)
   {
     assert(m_fd >= 0);
+
+    //m_log->info("Sent packet {} {} len:{} ",(int) buff[0],ComsPacketTypeToString((enum ComsPacketTypeT) buff[0]),len);
 
     std::vector<uint8_t> packet;
     packet.reserve(len + 6);

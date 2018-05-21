@@ -70,7 +70,7 @@ int main(int nargs,char **argv)
       return 1;
     }
 
-    cs += joint->AddPositionUpdateCallback([](DogBotN::JointC::TimePointT theTime,double position,double velocity,double torque)
+    cs += joint->AddPositionUpdateCallback([](DogBotN::TimePointT theTime,double position,double velocity,double torque)
                                      {
                                        std::cout << "Joint at " << position << std::endl;
                                      });

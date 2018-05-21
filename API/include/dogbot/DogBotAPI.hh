@@ -135,6 +135,9 @@ namespace DogBotN {
     //! Refresh information on all controllers.
     void RefreshAll();
 
+    //! Get device entry by name
+    std::shared_ptr<DeviceC> GetDeviceByName(const std::string &name);
+
     //! Get servo entry by id
     std::shared_ptr<ServoC> GetServoById(int id);
 
@@ -167,6 +170,11 @@ namespace DogBotN {
     CallbackHandleC AddServoStatusHandler(const std::function<void (JointC *,ServoUpdateTypeT)> &callback)
     { return m_jointStatusCallbacks.Add(callback); }
 
+    //! Add callback for state changes. When a servo is added, removed or updated.
+    // Called with device id and update type.
+    CallbackHandleC AddDeviceStatusHandler(const std::function<void (DeviceC *,ServoUpdateTypeT)> &callback)
+    { return m_deviceStatusCallbacks.Add(callback); }
+
     //! Access an ordered list of leg names
     static const std::vector<std::string> &LegNames();
 
@@ -174,6 +182,15 @@ namespace DogBotN {
     static const std::vector<std::string> &LegJointNames();
 
   protected:
+    //! Make a new device
+    std::shared_ptr<DeviceC> MakeDevice(int deviceId,const std::string &deviceTypeName);
+
+    //! Make a new device
+    std::shared_ptr<DeviceC> MakeDevice(int deviceId,DeviceTypeT deviceType);
+
+    //! Make device for given id
+    std::shared_ptr<DeviceC> MakeDevice(int deviceId,const PacketDeviceIdC &pkt);
+
     //! Read calibration from a device.
     bool ReadCalibration(int deviceId,MotorCalibrationC &cal);
 
@@ -181,7 +198,7 @@ namespace DogBotN {
     bool WriteCalibration(int deviceId,const MotorCalibrationC &cal);
 
     //! Issue an update notification
-    void ServoStatusUpdate(JointC *,ServoUpdateTypeT op);
+    void DeviceStatusUpdate(DeviceC *,ServoUpdateTypeT op);
 
     //! Handle an incoming announce message.
     void HandlePacketAnnounce(const PacketDeviceIdC &pkt);
@@ -193,7 +210,10 @@ namespace DogBotN {
     std::shared_ptr<JointC> MakeJoint(const std::string &jointType) const;
 
     //! Access device id, create entry if needed
-    std::shared_ptr<ServoC> DeviceEntry(int deviceId);
+    std::shared_ptr<DeviceC> DeviceEntry(int deviceId);
+
+    //! Access servo id, create entry if needed
+    std::shared_ptr<ServoC> ServoEntry(int deviceId);
 
     enum DriverStateT {
       DS_Init,
@@ -208,6 +228,7 @@ namespace DogBotN {
 
     std::vector<int> m_comsHandlerIds;
 
+    CallbackArrayC<std::function<void (DeviceC *,ServoUpdateTypeT)> > m_deviceStatusCallbacks;
     CallbackArrayC<std::function<void (JointC *,ServoUpdateTypeT)> > m_jointStatusCallbacks;
 
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("console");
@@ -219,8 +240,8 @@ namespace DogBotN {
     std::mutex m_mutexDevices;
 
     std::chrono::time_point<std::chrono::steady_clock> m_timeLastUnassignedUpdate;
-    std::vector<std::shared_ptr<ServoC> > m_unassignedDevices; // Unassigned devices.
-    std::vector<std::shared_ptr<ServoC> > m_devices; // Indexed by device id.
+    std::vector<std::shared_ptr<DeviceC> > m_unassignedDevices; // Unassigned devices.
+    std::vector<std::shared_ptr<DeviceC> > m_devices; // Indexed by device id.
     std::vector<std::shared_ptr<JointC> > m_joints; // List of available joints.
 
     std::thread m_threadMonitor;

@@ -7,14 +7,12 @@
 #include <jsoncpp/json/json.h>
 #include "dogbot/CallbackArray.hh"
 #include "dogbot/protocol.h"
+#include "dogbot/Common.hh"
 #include <spdlog/spdlog.h>
 
 namespace DogBotN {
 
   enum JointMoveStatusT { JMS_Done, JMS_Stalled, JMS_TimeOut, JMS_IncorrectMode, JMS_Error };
-
-  class DogBotAPIC;
-  class ComsC;
 
   //! Abstract joint.
   //! These give access for the common functionality needed to control a single joint.
@@ -22,7 +20,6 @@ namespace DogBotN {
   class JointC
   {
   public:
-    typedef std::chrono::time_point<std::chrono::steady_clock,std::chrono::duration< double > > TimePointT;
 
     typedef std::function<void (TimePointT theTime,double position,double velocity,double torque)> PositionUpdateFuncT;
 
@@ -39,26 +36,17 @@ namespace DogBotN {
     //! Access name of device
     std::string Name() const;
 
-    //! Access notes.
-    std::string Notes() const;
-
-    //! Access serial number if set.
-    std::string SerialNumber() const;
+    //! Set name of servo
+    void SetName(const std::string &name);
 
     //! Type of joint
     virtual std::string JointType() const;
-
-    //! Set notes.
-    void SetNotes(const std::string &notes);
-
-    //! Set name of servo
-    void SetName(const std::string &name);
 
     //! Configure from JSON
     virtual bool ConfigureFromJSON(DogBotAPIC &api,const Json::Value &value);
 
     //! Get the servo configuration as JSON
-    virtual Json::Value ConfigAsJSON() const;
+    virtual void ConfigAsJSON(Json::Value &value) const;
 
     //! Get last reported state of the servo and the time it was taken.
     virtual bool GetState(TimePointT &tick,double &position,double &velocity,double &torque) const;
@@ -81,9 +69,6 @@ namespace DogBotN {
     //! Add a callback when the motor target position is updated
     virtual CallbackHandleC AddDemandUpdateCallback(const DemandUpdateFuncT &callback);
 
-    //! Add notification callback if a parameter changes.
-    virtual CallbackHandleC AddParameterUpdateCallback(const ParameterUpdateFuncT &func);
-
     //! Get current demand
     virtual bool GetDemand(double &position,double &torqueLimit);
 
@@ -99,13 +84,6 @@ namespace DogBotN {
     float Velocity() const
     { return m_velocity; }
 
-    //! Is this joint exported ?
-    bool IsExported() const
-    { return m_export; }
-
-    //! Update coms device
-    virtual void UpdateComs(const std::shared_ptr<ComsC> &coms);
-
     //! Move to position and wait until it gets there or stalls.
     //! timeout is in seconds.
     JointMoveStatusT MoveWait(float position,float torqueLimit,double timeOut = 3.0);
@@ -113,16 +91,12 @@ namespace DogBotN {
   protected:
     CallbackArrayC<PositionUpdateFuncT> m_positionCallbacks;
     CallbackArrayC<DemandUpdateFuncT> m_demandCallbacks;
-    CallbackArrayC<ParameterUpdateFuncT> m_parameterCallbacks;
 
     mutable std::mutex m_mutexJointAdmin;
 
-    std::shared_ptr<spdlog::logger> m_log = spdlog::get("console");
+    std::shared_ptr<spdlog::logger> m_logJoint = spdlog::get("console");
 
     std::string m_name;
-    std::string m_notes;
-    std::string m_serialNumber;
-    bool m_export = false;
 
     float m_demandPosition = nan("");
     float m_demandTorqueLimit = nan("");

@@ -268,7 +268,9 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
       }
       return "";
     case ColumnNotes:
-      return joint->Notes().c_str();
+      if(servo)
+        return servo->Notes().c_str();
+      return "";
     default:
       break;
     }
@@ -369,7 +371,7 @@ bool ServoTable::setData(const QModelIndex &index, const QVariant &value, int ro
     return false; // Doesn't seem to exist.
   }
   DogBotN::JointC *joint = it->second;
-  //DogBotN::ServoC *servo = dynamic_cast<DogBotN::ServoC *>(joint);
+  DogBotN::ServoC *servo = dynamic_cast<DogBotN::ServoC *>(joint);
 
   if (role == Qt::EditRole) {
     switch (index.column()) {
@@ -382,12 +384,14 @@ bool ServoTable::setData(const QModelIndex &index, const QVariant &value, int ro
       return true;
     } break;
     case ColumnNotes: {
-      std::string newNotes = value.toString().toStdString();
-      if(joint->Notes() != newNotes) {
-        joint->SetNotes(newNotes);
-        emit dataChanged(index,index);
+      if(servo != 0) {
+        std::string newNotes = value.toString().toStdString();
+        if(servo->Notes() != newNotes) {
+          servo->SetNotes(newNotes);
+          emit dataChanged(index,index);
+        }
+        return true;
       }
-      return true;
     } break;
     default:
       break;

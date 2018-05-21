@@ -1550,7 +1550,7 @@
             <double>3000.000000000000000</double>
            </property>
            <property name="value">
-            <double>1500.000000000000000</double>
+            <double>1000.000000000000000</double>
            </property>
           </widget>
           <widget class="QComboBox" name="comboBoxAmimationStyle">
