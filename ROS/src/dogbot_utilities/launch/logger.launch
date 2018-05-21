@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+
+<!-- push some dummy data into Postgres -->  
+
+<launch>
+  <arg name="namespace" default="dogbot" />
+  <arg name="logging_config" default="dogbot_logging.yaml" />
+  
+  <group ns="$(arg namespace)">
+    <rosparam command="load" file="$(find dogbot_utilities)/config/$(arg logging_config)" />
+    <node name="logger" pkg="dogbot_utilities" type="sqllogger.py" output="screen"/>
+  </group>
+  
+</launch> 
+ 

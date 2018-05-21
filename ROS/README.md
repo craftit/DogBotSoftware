@@ -1,12 +1,12 @@
 # Dogbot ROS Components
 
-DogBot is integrated with ROS for ease of integration with your own systems.  Refer to the main [Dogbot repo] instructions for initial setup.
+DogBot is integrated with ROS for ease of integration with your own systems.  Refer to the main repo instructions for initial setup.
 
 # Operation
 
 ## Initial Operation and Controllers
 
-Interaction with the hardware requires the firmware components found in the [Firmware] repo, and the motors reqiure 'homing' via the firmware UI.  Once this is done, basic components can be run up using:
+Interaction with the hardware requires the firmware components found in the [API](./API) section of in the repo, and the motors reqiure 'homing' via the firmware UI.  Once this is done, basic components can be run up using:
 
 ```bat
 cd Software/ROS
@@ -46,6 +46,5 @@ Set a joint position:
 
 
 [boilerplate]: https://github.com/davetcoleman/ros_control_boilerplate
-[Dogbot repo]: https://github.com/craftit/Dogbot
 [ROS]: http://www.ros.org
-[Firmware]: https://github.com/craftit/BMC2-Firmware
+

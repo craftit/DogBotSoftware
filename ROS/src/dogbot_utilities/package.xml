@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package>
+  <name>dogbot_utilities</name>
+  <version>0.1.0</version>
+  <description>
+        Utilities for dogbot/ROS operation, including logging of ROS topics
+  </description>
+
+  <maintainer email="nic.greenway@reactai.com">Charles Galambos</maintainer>
+
+  <!-- One license tag required, multiple allowed, one license per tag -->
+  <!-- Commonly used license strings: -->
+  <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
+  <license>TODO</license>
+  
+  <buildtool_depend>catkin</buildtool_depend>
+  <run_depend>urdf</run_depend>
+  
+  <!-- The export tag contains other, unspecified, tags -->
+  <export>
+    <!-- Other tools can request additional information be placed here -->
+
+  </export>
+</package>
