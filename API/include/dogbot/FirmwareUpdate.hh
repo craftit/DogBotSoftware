@@ -2,6 +2,7 @@
 #define DOGBOT_FIRMWARE_UPDATE_HEADER 1
 
 #include "dogbot/Coms.hh"
+#include <map>
 
 namespace DogBotN {
 
