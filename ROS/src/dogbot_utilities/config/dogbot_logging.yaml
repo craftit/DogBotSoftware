@@ -1,0 +1,15 @@
+dbtype: "postgres"
+
+postgres:
+  conn_string: "host='localhost' dbname='dogbot' user='reactai' password='letmein'"
+  schema: ""
+
+performance:
+  batch_commits: True
+  batch_frequency_hz: 5
+  
+topics:
+  - { name: "{joint}_position_controller/command", datatype: "Float", table: "position_command", processing: "", joints: "all", timesource: "ROS" }
+  #- { name: "{simjoint}_position_controller/state", datatype: "JointControllerState", table: "joint_state_pid", processing: "", joints: "all", timesource: "live" }
+  - { name: "joint_states", datatype: "JointState", table: "joint_state", processing: "", joints: "n/a", timesource: "ROS" }
+

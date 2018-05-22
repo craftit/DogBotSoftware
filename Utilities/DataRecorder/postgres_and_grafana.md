@@ -6,6 +6,9 @@ sudo service grafana-server start
 go to http://127.0.0.1:3000 in browser
 default admin user is 'admin'
 
+scripted dashbaord:
+http://127.0.0.1:3000/dashboard/script/jointstates.js
+
 # Install
 
 http://docs.grafana.org/installation/debian/   -follow apt install

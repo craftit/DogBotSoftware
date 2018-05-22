@@ -15,9 +15,11 @@ This code has been tested for installation and operation on Ubuntu Linux 16.04.
 
 [Qt] is required to build and run the UI, it was built and tested with Qt version 5.9.2 64-bit.
 
-[ROS] must be installed if ROS interaction is required; the code has been tested against the Kinetic release.  The repository contains a [catkin](http://wiki.ros.org/catkin) workspace under [Software/ROS](./ROS), which should be built with `catkin build`
+[ROS] must be installed if ROS interaction is required; the code has been tested against the Kinetic release.  The repository contains a [catkin](http://wiki.ros.org/catkin) workspace under [ROS](./ROS), which should be built with `catkin build`
 
-You may need to install the packages `ros-kinetic-rosparam-shortcuts ros-kinetic-ros-control ros-kinetic-ros-controllers` 
+For ROS operation you may need to install the packages `ros-kinetic-rosparam-shortcuts ros-kinetic-ros-control ros-kinetic-ros-controllers` 
+
+The [DataRecorder](./Utilities/DataRecorder) utility requires [PostgreSQL] 9.5 or higher, and is intended to be viewed using [Grafana]
 
 ## Setup steps
 To use a USB connection you need access to the appropriate device:
@@ -137,3 +139,5 @@ Details to follow
 [React AI]: https://www.reactai.com
 [ROS]: http://www.ros.org
 [Qt]: https://www.qt.io
+[PostgreSQL]: https://www.postgresql.org/
+[Grafana]: https://grafana.com/
