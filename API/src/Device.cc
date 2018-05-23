@@ -132,6 +132,7 @@ namespace DogBotN {
     std::lock_guard<std::mutex> lock(m_mutexState);
     auto timeNow = std::chrono::steady_clock::now();
     m_timeOfLastComs = timeNow;
+    return true;
   }
 
   //! Tick from main loop
