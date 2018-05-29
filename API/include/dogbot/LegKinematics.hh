@@ -3,6 +3,7 @@
 
 #include <jsoncpp/json/json.h>
 #include <cassert>
+#include <eigen3/Eigen/Geometry>
 
 namespace DogBotN {
 
@@ -78,20 +79,21 @@ namespace DogBotN {
     //! Inverse kinematics for the leg using a virtual joint for the knee
     //! Compute joint angles needed to get to a 3d position in a leg coordinate system
     //! Return true if position is reachable
-    bool InverseVirtual(float at[3],float (&angles)[3]) const;
+    bool InverseVirtual(const Eigen::Vector3f &position, Eigen::Vector3f &angles) const;
 
     //! Forward kinematics for the leg using a virtual joint for the knee
     //! Compute the position of the foot relative to the top of the leg from the joint angles.
-    bool ForwardVirtual(float angles[3],float (&at)[3]) const;
+    bool ForwardVirtual(const Eigen::Vector3f &angles,Eigen::Vector3f &position) const;
 
     //! Inverse kinematics for the leg
     //! Compute joint angles needed to get to a 3d position in a leg coordinate system
     //! Return true if position is reachable
-    bool InverseDirect(float at[3],float (&angles)[3]) const;
+    bool InverseDirect(const Eigen::Vector3f &position,Eigen::Vector3f &angles) const;
 
     //! Forward kinematics for the leg
     //! Compute the position of the foot relative to the top of the leg from the joint angles.
-    bool ForwardDirect(float angles[3],float (&at)[3]) const;
+    bool ForwardDirect(const Eigen::Vector3f &angles,Eigen::Vector3f &position) const;
+
 
     //! Use alternate solution ?
     bool UseAlternateSolution() const
@@ -103,6 +105,10 @@ namespace DogBotN {
       assert(jnt >= 0 && jnt < 3);
       return m_jointDirections[jnt];
     }
+
+    // ! Access joint directions as vector
+    const Eigen::Vector3f &JointDirections() const
+    { return m_jointDirections; }
 
     //! Length of upper leg
     float LengthUpperLeg() const
@@ -140,6 +146,10 @@ namespace DogBotN {
     float LegOrigin(int coordinate) const
     { return m_legOrigin[coordinate]; }
 
+    //! Leg origin.
+    const Eigen::Vector3f &LegOrigin() const
+    { return m_legOrigin; }
+
   protected:
     std::string m_name; // Leg name
 
@@ -147,8 +157,8 @@ namespace DogBotN {
     float m_bodyWidth = 0.304;
     float m_bodyLength = 0.556;
 
-    float m_legOrigin[3] = {0,0,0};
-    float m_jointDirections[3] = { 1.0, 1.0, 1.0 };
+    Eigen::Vector3f m_legOrigin = { 0, 0, 0};
+    Eigen::Vector3f m_jointDirections = { 1.0, 1.0, 1.0 };
 
     float m_l1 = 0.361; // Upper leg length
     float m_l2 = 0.29;  // Lower leg length

@@ -16,7 +16,7 @@ int main(int argc,char **argv)
   std::string configFile = DogBotN::DogBotAPIC::DefaultConfigFile();
   std::string legName = "front_right";
 
-  float at[3] = { 0,0,0.6 };
+  Eigen::Vector3f at = { 0,0,0.6 };
 
   float torqueLimit = 1.0;
 
@@ -86,7 +86,7 @@ int main(int argc,char **argv)
     }
   }
 
-  float angles[3];
+  Eigen::Vector3f angles;
   if(leg->InverseVirtual(at,angles)) {
     logger->info("Setting angles to {} {} {}  for  {} {} {} ",
                  DogBotN::Rad2Deg(angles[0]),DogBotN::Rad2Deg(angles[1]),DogBotN::Rad2Deg(angles[2]),
@@ -110,7 +110,7 @@ int main(int argc,char **argv)
       angles[i] = position;
     }
 
-    float at[3];
+    Eigen::Vector3f at;
     leg->ForwardVirtual(angles,at);
 
     logger->info("{} Angles {} {} {}, Position {} {} {}  ",

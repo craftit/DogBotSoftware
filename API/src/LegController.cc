@@ -53,10 +53,9 @@ namespace DogBotN {
 
   //! Goto a position
   //! Returns true position is reachable
-  bool LegControllerC::Goto(float x,float y,float z,float torque)
+  bool LegControllerC::Goto(const Eigen::Vector3f &at,float torque)
   {
-    float at[3] = {x,y,z};
-    float angles[3];
+    Eigen::Vector3f angles;
 
     if(!m_useVirtualKnee) {
       if(!m_kinematics->InverseDirect(at,angles)) {
@@ -83,7 +82,7 @@ namespace DogBotN {
   }
 
   //! Goto a joint angles
-  bool LegControllerC::GotoJointAngles(float angles[3],float torque)
+  bool LegControllerC::GotoJointAngles(const Eigen::Vector3f &angles,float torque)
   {
     if(!m_joints[0]->DemandPosition(angles[0],torque))
       return false;
@@ -97,7 +96,7 @@ namespace DogBotN {
 
 
   //! Get current joint angles
-  bool LegControllerC::GetJointAngles(TimePointT theTime,float &roll,float &pitch,float &knee)
+  bool LegControllerC::GetJointAngles(TimePointT theTime,Eigen::Vector3f &angles)
   {
     double velocity = 0,torque = 0;
     double rolld,pitchd,kneed = 0;
@@ -107,9 +106,9 @@ namespace DogBotN {
       return false;
     if(!m_joints[2]->GetStateAt(theTime,kneed,velocity,torque))
       return false;
-    roll = rolld;
-    pitch = pitchd;
-    knee = kneed;
+    angles[0] = rolld;
+    angles[1] = pitchd;
+    angles[2] = kneed;
     return true;
   }
 

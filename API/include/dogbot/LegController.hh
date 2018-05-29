@@ -26,13 +26,14 @@ namespace DogBotN {
 
     //! Goto a position in the leg coordinate frame
     //! Returns true if the requested position is reachable
-    virtual bool Goto(float x,float y,float z,float torque);
+    virtual bool Goto(const Eigen::Vector3f &at,float torque);
 
     //! Goto a joint angles
-    virtual bool GotoJointAngles(float angles[3],float torque);
+    virtual bool GotoJointAngles(const Eigen::Vector3f &angles,float torque);
 
     //! Get current joint angles
-    virtual bool GetJointAngles(TimePointT theTime,float &roll,float &pitch,float &knee);
+    // The vector has the angles  indexed in the following order : roll,pitch,knee
+    virtual bool GetJointAngles(TimePointT theTime,Eigen::Vector3f &angles);
 
     //! Compute the force on a foot and where it is.
     bool ComputeFootForce(const DogBotN::TimePointT &atTime,Eigen::Vector3f &position,Eigen::Vector3f &force);

@@ -28,10 +28,10 @@ float Diff(const DogBotN::LegKinematicsC &legKinamtics,float theta) {
 int main() {
   DogBotN::LegKinematicsC legKinamtics(0.36,0.31);
 
-  float pos[3];
+  Eigen::Vector3f pos;
   {
-    float angles[3];
-    float target[3] = {0.15,0.1,0.3};
+    Eigen::Vector3f angles;
+    Eigen::Vector3f target = {0.15,0.1,0.3};
 
     if(!legKinamtics.InverseVirtual(target,angles)) {
       std::cerr << "Failed." << std::endl;
@@ -50,7 +50,7 @@ int main() {
   }
   {
     std::cout << "Zero:" << std::endl;
-    float angles[3] = {0,M_PI/2.0,M_PI/2};
+    Eigen::Vector3f angles = {0,M_PI/2.0,M_PI/2};
     if(!legKinamtics.ForwardVirtual(angles,pos)) {
       std::cerr << "Forward kinematics failed." << std::endl;
       return 1;
@@ -59,7 +59,7 @@ int main() {
     std::cout << "     At: "<< pos[0] << " " << pos[1] << " " << pos[2] << " " << std::endl;
   }
   {
-    float angles2[3] = {0,0,0};
+    Eigen::Vector3f angles2 = {0,0,0};
     if(!legKinamtics.ForwardVirtual(angles2,pos)) {
       std::cerr << "Forward kinematics failed." << std::endl;
       return 1;

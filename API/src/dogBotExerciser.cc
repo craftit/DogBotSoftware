@@ -140,7 +140,7 @@ int main(int argc,char **argv)
         float z = cos(DogBotN::Deg2Rad(i)) * 0.17 +0.525;
 
         for(int i = 0;i < 4;i++) {
-          legs[i]->Goto(0,0,-z,torque);
+          legs[i]->Goto(Eigen::Vector3f(0,0,-z),torque);
         }
         usleep(delay);
       }

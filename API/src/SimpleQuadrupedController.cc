@@ -1,6 +1,6 @@
 
 #include <cassert>
-#include "../include/dogbot/SimpleQuadrupedController.hh"
+#include "dogbot/SimpleQuadrupedController.hh"
 
 namespace DogBotN {
 
@@ -36,6 +36,44 @@ namespace DogBotN {
     for(int i = 1;i < 12;i++)
       out << " " << m_position[i];
   }
+
+
+  // Set the leg goal position
+  void SimpleQuadrupedPoseC::SetLegPosition(int legId,const Eigen::Vector3f &at)
+  {
+    int off = legId * 3;
+    assert(off >= 0);
+    assert(off < 12);
+
+    for(int i = 0;i < 3;i++)
+      m_position[off+i] = at[i];
+  }
+
+  // Set the leg goal position
+  void SimpleQuadrupedPoseC::GetLegPosition(int legId,Eigen::Vector3f &at)
+  {
+    int off = legId * 3;
+    assert(off >= 0);
+    assert(off < 12);
+
+    for(int i = 0;i < 3;i++)
+      at[i] = m_position[off+i];
+  }
+
+  // Get the leg goal position
+  Eigen::Vector3f SimpleQuadrupedPoseC::LegPosition(int legId)
+  {
+    Eigen::Vector3f ret;
+    int off = legId * 3;
+    assert(off >= 0);
+    assert(off < 12);
+
+    for(int i = 0;i < 3;i++)
+      ret[i] = m_position[off+i];
+
+    return ret;
+  }
+
 
   // ------------------------------------------------------
 

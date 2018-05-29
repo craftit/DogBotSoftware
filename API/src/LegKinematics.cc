@@ -93,8 +93,10 @@ namespace DogBotN {
   }
 
 
-  //! Compute the joint angles given a location.
-  bool LegKinematicsC::InverseVirtual(float at[3],float (&angles)[3]) const
+  //! Inverse kinematics for the leg using a virtual joint for the knee
+  //! Compute joint angles needed to get to a 3d position in a leg coordinate system
+  //! Return true if position is reachable
+  bool LegKinematicsC::InverseVirtual(const Eigen::Vector3f &at, Eigen::Vector3f &angles) const
   {
 #if 1
     float x = -at[0];
@@ -142,11 +144,14 @@ namespace DogBotN {
     return true;
   }
 
-  //! Forward kinematics for the leg.
-  bool LegKinematicsC::ForwardVirtual(float angles[3],float (&at)[3]) const
+  //! Forward kinematics for the leg using a virtual joint for the knee
+  //! Compute the position of the foot relative to the top of the leg from the joint angles.
+  bool LegKinematicsC::ForwardVirtual(const Eigen::Vector3f &anglesIn,Eigen::Vector3f &at) const
   {
+    Eigen::Vector3f angles;
+
     for(int i = 0;i < 3;i++)
-      angles[i] *= m_jointDirections[i];
+      angles[i] = anglesIn[i] * m_jointDirections[i];
 
     float kneeAngle = angles[2];
 
@@ -166,7 +171,7 @@ namespace DogBotN {
   //! Inverse kinematics for the leg
   //! Compute joint angles needed to get to a 3d position in a leg coordinate system
   //! Return true if position is reachable
-  bool LegKinematicsC::InverseDirect(float at[3],float (&angles)[3]) const
+  bool LegKinematicsC::InverseDirect(const Eigen::Vector3f &at,Eigen::Vector3f &angles) const
   {
     if(!InverseVirtual(at,angles))
       return false;
@@ -183,19 +188,21 @@ namespace DogBotN {
 
   //! Forward kinematics for the leg
   //! Compute the position of the foot relative to the top of the leg from the joint angles.
-  bool LegKinematicsC::ForwardDirect(float angles[3],float (&at)[3]) const
+  bool LegKinematicsC::ForwardDirect(const Eigen::Vector3f &angles,Eigen::Vector3f &at) const
   {
     float theta = angles[2] + angles[1];
 
     // Theta = Knee Servo
     // Psi = Knee joint
     float psi = Linkage4BarForward(theta,UseAlternateSolution());
-    float anglesVirtual[3] = {angles[0],angles[1],psi};
+    Eigen::Vector3f anglesVirtual = {angles[0],angles[1],psi};
 
     if(!ForwardVirtual(anglesVirtual,at))
       return false;
     return false;
   }
+
+
 
 
   //! 4 bar linkage angle backward,
@@ -251,7 +258,6 @@ namespace DogBotN {
 
     return result;
   }
-
 
 }
 

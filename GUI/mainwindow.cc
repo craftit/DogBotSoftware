@@ -1489,9 +1489,7 @@ void MainWindow::RunAnimation()
     }
 
     for(int i = 0;i < 4;i++) {
-      float x = 0,y = 0,z = 0.5;
-      pose.GetLegPosition(i,x,y,z);
-      legs[i]->Goto(x,y,z,torque);
+      legs[i]->Goto(pose.LegPosition(i),torque);
     }
 
     usleep(10000); // ~100Hz

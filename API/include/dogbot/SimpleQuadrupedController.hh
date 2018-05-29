@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <iostream>
+#include <eigen3/Eigen/Geometry>
 
 namespace DogBotN {
 
@@ -17,8 +18,17 @@ namespace DogBotN {
     // Set the leg goal position
     void SetLegPosition(int legId,float x,float y,float z);
 
-    // Set the leg goal position
+    // Get the leg goal position
     void GetLegPosition(int legId,float &x,float &y,float &z);
+
+    // Set the leg goal position
+    void SetLegPosition(int legId,const Eigen::Vector3f &at);
+
+    // Get the leg goal position
+    void GetLegPosition(int legId,Eigen::Vector3f &at);
+
+    // Get the leg goal position
+    Eigen::Vector3f LegPosition(int legId);
 
     //! Dump pose
     void Dump(std::ostream &out);
