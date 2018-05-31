@@ -84,14 +84,14 @@ namespace DogBotN {
   //! Goto a joint angles
   bool LegControllerC::GotoJointAngles(const Eigen::Vector3f &angles,float torque)
   {
+    bool ret = true;
     if(!m_joints[0]->DemandPosition(angles[0],torque))
-      return false;
+      ret = false;
     if(!m_joints[1]->DemandPosition(angles[1],torque))
-      return false;
+      ret = false;
     if(!m_joints[2]->DemandPosition(angles[2],torque))
-      return false;
-
-    return true;
+      ret = false;
+    return ret;
   }
 
 
@@ -99,17 +99,18 @@ namespace DogBotN {
   bool LegControllerC::GetJointAngles(TimePointT theTime,Eigen::Vector3f &angles)
   {
     double velocity = 0,torque = 0;
-    double rolld,pitchd,kneed = 0;
+    double rolld = 0,pitchd = 0,kneed = 0;
+    bool ret = true;
     if(!m_joints[0]->GetStateAt(theTime,rolld,velocity,torque))
-      return false;
+      ret = false;
     if(!m_joints[1]->GetStateAt(theTime,pitchd,velocity,torque))
-      return false;
+      ret = false;
     if(!m_joints[2]->GetStateAt(theTime,kneed,velocity,torque))
-      return false;
+      ret = false;
     angles[0] = rolld;
     angles[1] = pitchd;
     angles[2] = kneed;
-    return true;
+    return ret;
   }
 
   //! Compute the force on a foot and where it is.

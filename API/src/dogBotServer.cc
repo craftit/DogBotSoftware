@@ -7,6 +7,7 @@
 #include "dogbot/DogBotAPI.hh"
 #include "dogbot/ComsZMQServer.hh"
 #include "dogbot/ComsRecorder.hh"
+#include "dogbot/ComsRoute.hh"
 #include "cxxopts.hpp"
 #include <sched.h>
 
@@ -15,6 +16,7 @@
 int main(int argc,char **argv)
 {
   std::string devFilename = "usb";
+  std::string devIMUFilename = "/dev/ttyUSB1";
   std::string configFile = DogBotN::DogBotAPIC::DefaultConfigFile();
   std::string logFile;
   std::string zmqAddress = "tcp://*";
@@ -43,7 +45,8 @@ int main(int argc,char **argv)
     options.add_options()
       ("m,manager", "Manager mode, allowing allocation of device ids", cxxopts::value<bool>(managerMode))
       ("c,config", "Configuration file", cxxopts::value<std::string>(configFile))
-      ("d,device", "Device to use from communication ", cxxopts::value<std::string>(devFilename))
+      ("d,device", "Device to use for communication ", cxxopts::value<std::string>(devFilename))
+      ("i,imu",    "Device to use for IMU communication ", cxxopts::value<std::string>(devIMUFilename))
       ("l,log"   , "File to use for communication log ", cxxopts::value<std::string>(logFile))
       ("n,net"   , "Address to offer service on ", cxxopts::value<std::string>(zmqAddress))
       ("h,help", "Print help")
@@ -70,10 +73,26 @@ int main(int argc,char **argv)
   logger->info("Using communication type: '{}'",devFilename);
   logger->info("Communication log: '{}'",logFile);
 
+  std::shared_ptr<DogBotN::ComsRouteC> coms = std::make_shared<DogBotN::ComsRouteC>();
+
+  if(!coms->Open(devFilename)) {
+    logger->error("Failed to open {} ",devFilename);
+    return 1;
+  }
+  if(!devIMUFilename.empty()) {
+    if(!coms->Open(devIMUFilename)) {
+      logger->error("Failed to open {} ",devIMUFilename);
+      return 1;
+    }
+  }
+
+  std::shared_ptr<DogBotN::ComsC> pureComs(coms);
+
   DogBotN::DogBotAPIC dogbot(
-      devFilename,
-      configFile,
+      pureComs,
+      DogBotN::DogBotAPIC::DefaultConfigFile(),
       logger,
+      false,
       managerMode ? DogBotN::DogBotAPIC::DMM_DeviceManager : DogBotN::DogBotAPIC::DMM_ClientOnly
           );
 

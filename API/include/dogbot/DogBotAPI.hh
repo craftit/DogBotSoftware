@@ -27,6 +27,9 @@ namespace DogBotN {
   //! Convert coms packet type to a string
   const char *ComsPacketTypeToString(ComsPacketTypeT packetType);
 
+  //! Convert coms device type to a string
+  const char *ComsDeviceTypeToString(DeviceTypeT packetType);
+
   //! Convert a state change source to a string
   const char *ComsStateChangeSource(enum StateChangeSourceT changeSource);
 
@@ -85,6 +88,7 @@ namespace DogBotN {
     //! \param devMaster If this instance of the class should manage device ids, management is enabled if connecting directly via usb, and not otherwise
     DogBotAPIC(
         const std::shared_ptr<ComsC> &coms,
+        const std::string &configurationFile,
         const std::shared_ptr<spdlog::logger> &log = spdlog::stdout_logger_mt("console"),
         bool manageComs = false,
         DeviceManagerModeT devMasterMode = DMM_Auto

@@ -7,6 +7,8 @@
 namespace DogBotN
 {
 
+  //! Single frame of IMU data.
+
   class IMUFrameC
   {
   public:

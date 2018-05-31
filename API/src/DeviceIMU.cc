@@ -35,7 +35,7 @@ namespace DogBotN
     IMUFrameC frame(acceleration,rotationVelocity,orientation);
 
     //m_log->info("{} : Accel {} {} {} Gyro {} {} {} ",DeviceName(),pkt->m_accel[0],pkt->m_accel[1],pkt->m_accel[2],pkt->m_gyro[0],pkt->m_gyro[1],pkt->m_gyro[2]);
-
+    //m_log->info("{} : Distance {} ",DeviceName(),pkt->m_groundDistance);
     for(auto &a : m_imuCallbacks.Calls()) {
       if(a) a(when,frame);
     }

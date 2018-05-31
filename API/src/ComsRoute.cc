@@ -38,7 +38,7 @@ namespace DogBotN
                                 if(len > 2 && ((enum ComsPacketTypeT) data[0]) == CPT_AnnounceId) {
                                   int destId = data[1];
                                   std::lock_guard<std::mutex> lock(m_accessTx);
-                                  if(m_route.size() < destId) {
+                                  if(m_route.size() <= destId) {
                                     m_route.reserve(destId+1);
                                     while(m_route.size() < destId)
                                       m_route.push_back(std::shared_ptr<ComsC>());
@@ -76,6 +76,16 @@ namespace DogBotN
       return false;
     return true;
   }
+
+  //! Set the logger to use
+  void ComsRouteC::SetLogger(const std::shared_ptr<spdlog::logger> &log)
+  {
+    ComsC::SetLogger(log);
+    std::lock_guard<std::mutex> lock(m_accessTx);
+    for(auto &a : m_coms)
+      a->SetLogger(log);
+  }
+
 
   bool ComsRouteC::Open(const std::string &portAddr)
   {

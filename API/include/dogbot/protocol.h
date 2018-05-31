@@ -355,7 +355,7 @@ extern "C" {
   struct PacketBridgeModeC {
     uint8_t m_packetType;
     uint8_t m_enable;
-  };
+  } __attribute__((packed));
 
   struct PacketPingPongC {
     uint8_t m_packetType;
@@ -460,7 +460,8 @@ extern "C" {
     int16_t m_accel[3];
     int16_t m_gyro[3];
     int16_t m_rot[4];
-  };
+    int16_t m_groundDistance;
+  } __attribute__((packed));
 
   enum StateChangeSourceT {
     SCS_UserRequest = 0,

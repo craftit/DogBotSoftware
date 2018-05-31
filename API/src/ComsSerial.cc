@@ -137,8 +137,8 @@ namespace DogBotN
     case 1: // Packet length.
       m_packetLen = sendByte;
       if(m_packetLen > 64) {
-        printf("Packet to long! %d  ",m_packetLen);
-        if(sendByte != m_charSTX)
+        m_log->warn("Packet to long. {} ",m_packetLen);
+        if(sendByte != m_charSTX)  // Otherwise stay in the current state.
           m_state = 0;
         break;
       }

@@ -41,7 +41,7 @@ namespace DogBotN {
     { return m_name; }
 
     //! Set the logger to use
-    void SetLogger(const std::shared_ptr<spdlog::logger> &log);
+    virtual void SetLogger(const std::shared_ptr<spdlog::logger> &log);
 
     //! Open a port.
     virtual bool Open(const std::string &portAddr);

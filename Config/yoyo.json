@@ -222,6 +222,17 @@
 			"uid1" : 3211287,
 			"uid2" : 1650753082
 		},
+                {
+                        "deviceId" : 14,
+                        "enabled" : true,
+                        "name" : "imu",
+                        "notes" : "imu",
+                        "serial_number" : "1092830567-2298553157",
+                        "type" : "imu",
+                        "device_type" : "imu",
+                        "uid1" : 1092830567,
+                        "uid2" : 2298553157
+                },
 		{
 			"jointDrive" : "front_left_knee",
 			"jointRef" : "front_left_pitch",

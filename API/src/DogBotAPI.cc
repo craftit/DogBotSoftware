@@ -167,6 +167,21 @@ namespace DogBotN {
     return "Invalid";
   }
 
+  //! Convert coms device type to a string
+  const char *ComsDeviceTypeToString(DeviceTypeT deviceType)
+  {
+    switch(deviceType) {
+      case DT_Unknown: return "unknown";
+      case DT_SystemController: return "system controller";
+      case DT_MotorDriver: return "motor driver";
+      case DT_BootLoader: return "boot loader";
+      case DT_IMU: return "IMU";
+    }
+    printf("Unexpected device type %d",(int)deviceType);
+    return "Invalid";
+  }
+
+
   //! Convert a state change source to a string
   const char *ComsStateChangeSource(enum StateChangeSourceT changeSource)
   {
@@ -425,6 +440,7 @@ namespace DogBotN {
   //! Construct with coms object
   DogBotAPIC::DogBotAPIC(
       const std::shared_ptr<ComsC> &coms,
+      const std::string &configurationFile,
       const std::shared_ptr<spdlog::logger> &log,
       bool manageComs,
       DeviceManagerModeT devMasterMode
@@ -435,6 +451,9 @@ namespace DogBotN {
     m_manageComs = manageComs;
     m_log = log;
     m_coms->SetLogger(log);
+    if(!configurationFile.empty()) {
+      LoadConfig(configurationFile);
+    }
     Init();
   }
 
@@ -819,7 +838,7 @@ namespace DogBotN {
   //! Make a new device
   std::shared_ptr<DeviceC> DogBotAPIC::MakeDevice(int deviceId,DeviceTypeT deviceType)
   {
-    m_log->info("Creating device {} of type id {} ",deviceId,(int) deviceType);
+    m_log->info("Creating device {} of type '{}' ({}) ",deviceId,ComsDeviceTypeToString(deviceType),(int) deviceType);
     switch(deviceType)
     {
       case DT_Unknown: return std::make_shared<DeviceC>(m_coms,deviceId);
@@ -837,12 +856,12 @@ namespace DogBotN {
   //! Make device for given id
   std::shared_ptr<DeviceC> DogBotAPIC::MakeDevice(int deviceId,const PacketDeviceIdC &pkt)
   {
-    int deviceType = pkt.m_idBytes[3] >> 4;
-    m_log->info("Creating device {} of type id {} ",deviceId,(int) deviceType);
+    DeviceTypeT deviceType = (DeviceTypeT) ((int) pkt.m_idBytes[3] >> 4);
+    m_log->info("Creating device {} of type '{}' ({}) ID: {} {}  ",deviceId,ComsDeviceTypeToString(deviceType),deviceType,pkt.m_uid[0],pkt.m_uid[1]);
     switch(deviceType)
     {
-      case 0: return std::make_shared<ServoC>(m_coms,deviceId,pkt);
-      case 4: return std::make_shared<DeviceIMUC>(m_coms,deviceId,pkt);
+      case DT_Unknown: return std::make_shared<ServoC>(m_coms,deviceId,pkt);
+      case DT_IMU: return std::make_shared<DeviceIMUC>(m_coms,deviceId,pkt);
     }
     m_log->warn("Asked to create unknown device type {} ",(int) deviceType);
     return std::make_shared<DeviceC>(m_coms,deviceId,pkt);
@@ -853,7 +872,9 @@ namespace DogBotN {
   {
     if(configFile.empty())
       return false;
+#if 0
     try {
+#endif
       std::ifstream confStrm(configFile,std::ifstream::binary);
 
       if(!confStrm) {
@@ -905,8 +926,9 @@ namespace DogBotN {
           }
           std::shared_ptr<DeviceC> device;
           int deviceId = 0;
-          uint32_t uid1 = deviceConf.get("uid1",0u).asInt();
-          uint32_t uid2 = deviceConf.get("uid2",0u).asInt();
+          uint32_t uid1 = deviceConf.get("uid1",0u).asUInt();
+          uint32_t uid2 = deviceConf.get("uid2",0u).asUInt();
+
           int reqId = deviceConf.get("deviceId",0u).asInt();
           std::string deviceType = deviceConf.get("device_type","servo").asString();
           // Ignore silly ids
@@ -929,6 +951,10 @@ namespace DogBotN {
               if(m_devices.size() > reqId) {
                 if(!m_devices[reqId]) {
                   deviceId = reqId;
+                  if(deviceId > 0) {
+                    device = MakeDevice(deviceId,deviceType);
+                    m_devices[deviceId] = device;
+                  }
                 }
               } else {
                 while(m_devices.size() < reqId)
@@ -937,10 +963,6 @@ namespace DogBotN {
                 device = MakeDevice(deviceId,deviceType);
                 m_devices.push_back(device);
                 op = SUT_Add;
-              }
-              if(deviceId > 0) {
-                device = MakeDevice(deviceId,deviceType);
-                m_devices[deviceId] = device;
               }
             }
             // Still no luck... just append it.
@@ -961,10 +983,12 @@ namespace DogBotN {
           }
         }
       }
+#if 0
     } catch(std::exception &ex) {
-      m_log->error("Failed load configuration file {}", ex.what());
+      m_log->error("Failed to load configuration file. : {}", ex.what());
       return false;
     }
+#endif
 
     return true;
   }
@@ -1063,7 +1087,10 @@ namespace DogBotN {
   {
     std::shared_ptr<DeviceC> device;
     int deviceId = pkt.m_deviceId;
-    m_log->info("Handling device announcement {} {}   Id:{} ",pkt.m_uid[0],pkt.m_uid[1],(int) pkt.m_deviceId);
+    DeviceTypeT deviceType = (DeviceTypeT) ((int) pkt.m_idBytes[3] >> 4);
+    if(deviceType == DT_Unknown)
+      deviceType = DT_MotorDriver;
+    m_log->info("Handling device announcement {} {} Type:{} Id:{} ",pkt.m_uid[0],pkt.m_uid[1],ComsDeviceTypeToString(deviceType),(int) pkt.m_deviceId);
     ServoUpdateTypeT updateType = SUT_Updated;
     // Check device id is
     if(deviceId != 0) {
@@ -1237,6 +1264,10 @@ namespace DogBotN {
                           if(!device)
                             return ;
                           DeviceIMUC *anIMU = dynamic_cast<DeviceIMUC *>(device.get());
+                          if(anIMU == 0) {
+                            m_log->error("IMU Packet from non-IMU device. {} ({}) ",(int) pkt->m_deviceId,typeid(*device.get()).name());
+                            return;
+                          }
                           if(anIMU->HandlePacketIMU(pkt)) {
                             DeviceStatusUpdate(device.get(),SUT_Updated);
                           }

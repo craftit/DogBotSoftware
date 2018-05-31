@@ -97,8 +97,8 @@ namespace DogBotN {
     m_deviceName = conf.get("name","?").asString();
     m_notes = conf.get("notes","").asString();
     m_serialNumber = conf.get("serial_number",m_serialNumber).asString();
-    m_uid1 = conf.get("uid1",-1).asInt();
-    m_uid2 = conf.get("uid2",-1).asInt();
+    m_uid1 = conf.get("uid1",0u).asUInt();
+    m_uid2 = conf.get("uid2",0u).asUInt();
     m_enabled = conf.get("enabled",false).asBool();
     return true;
   }
