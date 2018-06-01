@@ -12,14 +12,22 @@ namespace DogBotN
   class IMUFrameC
   {
   public:
+    IMUFrameC()
+      : m_acceleration(0,0,0),
+        m_rotationVelocity(0,0,0),
+        m_orientation(1,0,0,0)
+    {}
+
     IMUFrameC(
         const Eigen::Vector3f &acceleration,
         const Eigen::Vector3f &rotationVelocity,
-        const Eigen::Quaternionf &orientation
+        const Eigen::Quaternionf &orientation,
+        float groundDistance
         )
      : m_acceleration(acceleration),
        m_rotationVelocity(rotationVelocity),
-       m_orientation(orientation)
+       m_orientation(orientation),
+       m_groundDistance(groundDistance)
     {}
 
     //! Position
@@ -34,11 +42,15 @@ namespace DogBotN
     const Eigen::Quaternionf &Orientaton() const
     { return m_orientation; }
 
+    //! Access ground distance
+    float GroundDistance() const
+    { return m_groundDistance; }
 
   protected:
     Eigen::Vector3f m_acceleration;
     Eigen::Vector3f m_rotationVelocity;
     Eigen::Quaternionf m_orientation;
+    float m_groundDistance = -1.0;
   };
 
 
@@ -62,13 +74,25 @@ namespace DogBotN
     //! Handle an incoming IMU packet.
     bool HandlePacketIMU(struct PacketIMUC *imu);
 
+    //! Get last received IMU state.
+    //! when - Time at which data was received.
+    //! frame - IMU information
+    void GetState(TimePointT &when,IMUFrameC &frame);
+
     //! Add a update callback for motor position
     CallbackHandleC AddIMUCallback(const IMUUpdateFuncT &callback)
     { return m_imuCallbacks.Add(callback); }
 
+    //! Access the last update time.
+    TimePointT LastUpdateTime() const
+    { return m_when; }
+
   protected:
+
     CallbackArrayC<IMUUpdateFuncT > m_imuCallbacks;
 
+    TimePointT m_when;
+    IMUFrameC m_frame;
   };
 
 }
