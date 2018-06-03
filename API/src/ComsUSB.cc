@@ -435,7 +435,12 @@ namespace DogBotN
       return ;
     }
 
+#if (LIBUSB_API_VERSION >= 0x01000106)
+    libusb_set_option(m_usbContext,LIBUSB_OPTION_LOG_LEVEL,LIBUSB_LOG_LEVEL_INFO);
+#else
     libusb_set_debug(m_usbContext,LIBUSB_LOG_LEVEL_INFO);
+#endif
+
     if(libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
       m_log->info("usb hotplug notifications are available");
 

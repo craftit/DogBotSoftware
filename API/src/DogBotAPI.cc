@@ -860,8 +860,11 @@ namespace DogBotN {
     m_log->info("Creating device {} of type '{}' ({}) ID: {} {}  ",deviceId,ComsDeviceTypeToString(deviceType),deviceType,pkt.m_uid[0],pkt.m_uid[1]);
     switch(deviceType)
     {
+      case DT_MotorDriver:
       case DT_Unknown: return std::make_shared<ServoC>(m_coms,deviceId,pkt);
       case DT_IMU: return std::make_shared<DeviceIMUC>(m_coms,deviceId,pkt);
+      case DT_BootLoader:
+      case DT_SystemController: return std::make_shared<DeviceC>(m_coms,deviceId,pkt);
     }
     m_log->warn("Asked to create unknown device type {} ",(int) deviceType);
     return std::make_shared<DeviceC>(m_coms,deviceId,pkt);
@@ -1263,9 +1266,10 @@ namespace DogBotN {
                           std::shared_ptr<DeviceC> device = DeviceEntry(pkt->m_deviceId);
                           if(!device)
                             return ;
-                          DeviceIMUC *anIMU = dynamic_cast<DeviceIMUC *>(device.get());
+                          DeviceC *devPtr = device.get();
+                          DeviceIMUC *anIMU = dynamic_cast<DeviceIMUC *>(devPtr);
                           if(anIMU == 0) {
-                            m_log->error("IMU Packet from non-IMU device. {} ({}) ",(int) pkt->m_deviceId,typeid(*device.get()).name());
+                            m_log->error("IMU Packet from non-IMU device. {} ({}) ",(int) pkt->m_deviceId,typeid(*devPtr).name());
                             return;
                           }
                           if(anIMU->HandlePacketIMU(pkt)) {
