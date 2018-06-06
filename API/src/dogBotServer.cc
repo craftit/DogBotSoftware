@@ -16,7 +16,7 @@
 int main(int argc,char **argv)
 {
   std::string devFilename = "usb";
-  std::string devIMUFilename = "/dev/ttyUSB1";
+  std::string devIMUFilename = ""; //"/dev/ttyUSB1";
   std::string configFile = DogBotN::DogBotAPIC::DefaultConfigFile();
   std::string logFile;
   std::string zmqAddress = "tcp://*";

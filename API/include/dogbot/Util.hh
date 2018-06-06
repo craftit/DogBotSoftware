@@ -1,13 +1,16 @@
 #ifndef DOGBOG_UTIL_HEADER
 #define DOGBOG_UTIL_HEADER 1
 
+#include <math.h>
+
 namespace DogBotN {
 
   //! Convert degrees to radians
-  float Deg2Rad(float deg);
+  inline float Deg2Rad(float deg)
+  { return deg * M_PI/ 180.0f; }
 
-  //! Convert radians to degrees
-  float Rad2Deg(float deg);
+  inline float Rad2Deg(float rad)
+  { return rad * 180.0f/M_PI; }
 
   //! Return the minimum of two values.
   template<typename ValueT>

@@ -102,6 +102,9 @@ namespace DogBotN {
     //! Access the device type
     virtual const char *DeviceType() const override;
 
+    //! Set the name of the joint/device
+    virtual void SetName(const std::string &name) override;
+
     //! Configure from JSON
     virtual bool ConfigureFromJSON(DogBotAPIC &api,const Json::Value &value) override;
 

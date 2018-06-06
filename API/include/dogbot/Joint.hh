@@ -37,7 +37,7 @@ namespace DogBotN {
     std::string Name() const;
 
     //! Set name of servo
-    void SetName(const std::string &name);
+    virtual void SetName(const std::string &name);
 
     //! Type of joint
     virtual std::string JointType() const;

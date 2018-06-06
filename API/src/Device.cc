@@ -79,7 +79,7 @@ namespace DogBotN {
   void DeviceC::ConfigAsJSON(Json::Value &ret) const
   {
     std::lock_guard<std::mutex> lock(m_mutexState);
-    ret["name"] = m_deviceName;
+    ret["device_name"] = m_deviceName;
     ret["notes"] = m_notes;
     ret["serial_number"] = m_serialNumber;
     ret["device_type"] = DeviceType();
@@ -94,7 +94,7 @@ namespace DogBotN {
   bool DeviceC::ConfigureFromJSON(DogBotAPIC &api,const Json::Value &conf)
   {
     std::lock_guard<std::mutex> lock(m_mutexState);
-    m_deviceName = conf.get("name","?").asString();
+    m_deviceName = conf.get("device_name",conf.get("name","?").asString()).asString();
     m_notes = conf.get("notes","").asString();
     m_serialNumber = conf.get("serial_number",m_serialNumber).asString();
     m_uid1 = conf.get("uid1",0u).asUInt();

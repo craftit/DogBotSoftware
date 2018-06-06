@@ -534,7 +534,12 @@ void MainWindow::SetupComs()
   logger->info("Starting bark");
   m_coms = std::make_shared<DogBotN::ComsProxyC>();
   m_coms->SetLogger(logger);
-  m_dogBotAPI = std::make_shared<DogBotN::DogBotAPIC>(m_coms,logger,false,DogBotN::DogBotAPIC::DMM_ClientOnly);
+  m_dogBotAPI = std::make_shared<DogBotN::DogBotAPIC>(
+        m_coms,
+        "",
+        logger,
+        false,
+        DogBotN::DogBotAPIC::DMM_ClientOnly);
 
   m_coms->SetHandler(CPT_PWMState,[this](const uint8_t *data,int size) mutable
   {
@@ -1191,7 +1196,7 @@ void MainWindow::on_pushButtonHold_clicked()
 
 void MainWindow::on_comboBoxServoName_activated(const QString &arg1)
 {
-#if 0
+#if 1
   std::shared_ptr<DogBotN::ServoC> servo = m_dogBotAPI->GetServoById(m_targetDeviceId);
   if(servo) {
     servo->SetName(arg1.toLatin1().data());

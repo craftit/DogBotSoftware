@@ -37,6 +37,10 @@ namespace DogBotN {
     const std::string &DeviceName() const
     { return m_deviceName; }
 
+    //! Set the name of the device
+    void SetDeviceName(const std::string &name)
+    { m_deviceName = name; }
+
     //! Is servo enabled ?
     bool IsEnabled() const
     { return m_enabled; }

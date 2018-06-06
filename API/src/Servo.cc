@@ -204,6 +204,13 @@ namespace DogBotN {
   }
 #endif
 
+  //! Set the name of the joint/device
+  void ServoC::SetName(const std::string &name)
+  {
+    JointC::SetName(name);
+    DeviceC::SetDeviceName(name);
+  }
+
   //! Configure from JSON
   bool ServoC::ConfigureFromJSON(DogBotAPIC &api,const Json::Value &conf)
   {

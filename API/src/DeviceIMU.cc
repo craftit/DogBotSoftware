@@ -43,7 +43,7 @@ namespace DogBotN
     }
 
     //m_log->info("{} : Accel {} {} {} Gyro {} {} {} Orientation {} {} {} {} ",DeviceName(),pkt->m_accel[0],pkt->m_accel[1],pkt->m_accel[2],pkt->m_gyro[0],pkt->m_gyro[1],pkt->m_gyro[2],pkt->m_rot[0],pkt->m_rot[1],pkt->m_rot[2],pkt->m_rot[3]);
-    //m_log->info("{} : Distance {}   Rot: {} {} {} {} ",DeviceName(),pkt->m_groundDistance,rot.w(),rot.x(),rot.y(),rot.z());
+    m_log->info("{} : Distance {}   Rot: {} {} {} {} ",DeviceName(),pkt->m_groundDistance,rot.w(),rot.x(),rot.y(),rot.z());
     for(auto &a : m_imuCallbacks.Calls()) {
       if(a) a(when,frame);
     }

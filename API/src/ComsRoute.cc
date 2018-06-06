@@ -40,7 +40,7 @@ namespace DogBotN
                                   std::lock_guard<std::mutex> lock(m_accessTx);
                                   if(m_route.size() <= destId) {
                                     m_route.reserve(destId+1);
-                                    while(m_route.size() < destId)
+                                    while(m_route.size() <= destId)
                                       m_route.push_back(std::shared_ptr<ComsC>());
                                   }
                                   m_route[destId] = coms;

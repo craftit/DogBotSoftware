@@ -169,6 +169,10 @@ namespace DogBotN {
     spdlog::logger &Log()
     { return *m_log; }
 
+    //! Access shared pointer to log
+    std::shared_ptr<spdlog::logger> &LogPtr()
+    { return m_log; }
+
     //! Add callback for state changes. When a servo is added, removed or updated.
     // Called with device id and update type.
     CallbackHandleC AddServoStatusHandler(const std::function<void (JointC *,ServoUpdateTypeT)> &callback)
