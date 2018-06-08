@@ -59,12 +59,12 @@ namespace DogBotN {
 
     if(!m_useVirtualKnee) {
       if(!m_kinematics->InverseDirect(at,angles)) {
-        m_log->warn("Failed to find solution.");
+        m_log->warn("Failed to find solution for direct foot location {} .",at);
         return false;
       }
     } else {
       if(!m_kinematics->InverseVirtual(at,angles)) {
-        m_log->warn("Failed to find solution.");
+        m_log->warn("Failed to find solution for virtual foot location {} .",at);
         return false;
       }
     }
