@@ -109,7 +109,7 @@
        <bool>true</bool>
       </property>
       <property name="currentIndex">
-       <number>4</number>
+       <number>5</number>
       </property>
       <widget class="QWidget" name="tab_connect">
        <attribute name="title">
@@ -1508,7 +1508,7 @@
             <double>20.000000000000000</double>
            </property>
            <property name="value">
-            <double>6.000000000000000</double>
+            <double>5.000000000000000</double>
            </property>
           </widget>
           <widget class="QLabel" name="label_42">
@@ -1550,7 +1550,7 @@
             <double>3000.000000000000000</double>
            </property>
            <property name="value">
-            <double>1000.000000000000000</double>
+            <double>500.000000000000000</double>
            </property>
           </widget>
           <widget class="QComboBox" name="comboBoxAmimationStyle">
