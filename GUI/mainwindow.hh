@@ -277,7 +277,7 @@ private:
   std::thread m_animationThread;
   float m_animationOmega = 1.0;
   float m_animationTorque = 6.0;
-  float g_animationVelocityLimit = 2000.0;
+  float g_animationVelocityLimit = 500.0;
   std::mutex m_accessGait;
 };
 
