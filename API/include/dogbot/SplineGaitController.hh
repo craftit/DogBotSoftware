@@ -65,7 +65,7 @@ namespace DogBotN {
 
     float m_maxSpeed = 6;
 
-    float m_zOffset = 0.7;
+    float m_zOffset = 0.6;
 
     float m_zCentre = 0.0;
     float m_defaultZcentre = 0.0;
