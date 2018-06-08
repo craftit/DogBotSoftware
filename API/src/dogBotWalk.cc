@@ -28,6 +28,7 @@ int main(int argc,char **argv)
   float range = 45.0;
   float angle = 0;
   float velocityLimit = 300.0;
+  std::string gaitType = "walk";
   bool plotGait = false;
   try
   {
@@ -42,6 +43,7 @@ int main(int argc,char **argv)
       ("j,joint","Joint name", cxxopts::value<std::string>(jointName))
       ("t,torque","Maximum torque to apply", cxxopts::value<float>(torque))
       ("v,velocity","Maximum velocity to allow",cxxopts::value<float>(velocityLimit))
+      ("g,gait","Gait type, 'walk' or 'trot' ",cxxopts::value<std::string>(gaitType))
       ("p,plot","Plot gait. ",cxxopts::value<bool>(plotGait))
       ("h,help", "Print help")
     ;
@@ -66,6 +68,10 @@ int main(int argc,char **argv)
   logger->info("Using communication type: '{}'",devFilename);
 
   DogBotN::SplineGaitControllerC gaitController;
+
+  if(!gaitType.empty()) {
+    gaitController.SetStyle(gaitType);
+  }
 
   if(plotGait) {
     gaitController.PlotGait();
