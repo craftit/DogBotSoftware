@@ -113,26 +113,26 @@ namespace DogBotN {
 
       angles[0] = ta;
 
-      float xr = x;
-      float zr = z;
-
-      z = sin(ta) * xr + cos(ta) * zr - m_zoff;
+      z = sin(ta) * x + cos(ta) * z - m_zoff;
     }
 
-
     float l2 = Sqr(z) + Sqr(y);
-    float l = sqrt(l2);
-    float a1 = atan2(y,z);
-
-    double ac1 = (l2 + Sqr(m_l1) - Sqr(m_l2))/(2 * l * m_l1);
-    if(ac1 < -1 || ac1 > 1)
+    double ac1 = (l2 + Sqr(m_l1) - Sqr(m_l2))/(2 * sqrt(l2) * m_l1);
+    if(ac1 < -1 || ac1 > 1) {
+      std::cerr << "No pitch solution." << std::endl;
+      std::cerr << "L1=" << m_l1 << " L2=" << m_l2 << " Zoff=" << m_zoff << " ." << std::endl;
       return false;
+    }
 
+    float a1 = atan2(y,z);
     angles[1] = -1 *(a1 + acos(ac1));
 
     double ac2 = (Sqr(m_l2) + Sqr(m_l1) -l2)/(2 * m_l2 * m_l1);
-    if(ac2 < -1 || ac2 > 1)
+    if(ac2 < -1 || ac2 > 1) {
+      std::cerr << "No knee solution." << std::endl;
+      std::cerr << "L1=" << m_l1 << " L2=" << m_l2 << " Zoff=" << m_zoff << " ." << std::endl;
       return false;
+    }
 
     float kneeTarget = M_PI - acos(ac2);
 
@@ -237,8 +237,10 @@ namespace DogBotN {
 
     float delta = atan(Bt/At);
     float cosAngle = -Ct / sqrt(At * At + Bt * Bt);
-    if(cosAngle > 1.0 || cosAngle < -1.0)
+    if(cosAngle > 1.0 || cosAngle < -1.0) {
+      std::cerr << "No angle found for linkage. " << std::endl;
       return false;
+    }
     psi = delta + (solution2 ? -1 : 1) * acos(cosAngle);
     return true;
   }
