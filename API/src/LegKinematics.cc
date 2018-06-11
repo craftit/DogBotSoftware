@@ -120,8 +120,7 @@ namespace DogBotN {
     float l2 = Sqr(z) + Sqr(y);
     double ac1 = (l2 + Sqr(m_l1) - Sqr(m_l2))/(2 * sqrt(l2) * m_l1);
     if(ac1 < -1 || ac1 > 1) {
-      std::cerr << "No pitch solution." << std::endl;
-      std::cerr << "L1=" << m_l1 << " L2=" << m_l2 << " Zoff=" << m_zoff << " ." << std::endl;
+      //std::cerr << "No pitch solution." << std::endl;
       return false;
     }
 
@@ -130,8 +129,7 @@ namespace DogBotN {
 
     double ac2 = (Sqr(m_l2) + Sqr(m_l1) -l2)/(2 * m_l2 * m_l1);
     if(ac2 < -1 || ac2 > 1) {
-      std::cerr << "No knee solution." << std::endl;
-      std::cerr << "L1=" << m_l1 << " L2=" << m_l2 << " Zoff=" << m_zoff << " ." << std::endl;
+      //std::cerr << "No knee solution." << std::endl;
       return false;
     }
 
