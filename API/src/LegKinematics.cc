@@ -64,6 +64,7 @@ namespace DogBotN {
       m_legOrigin[2] = 0;
     }
     std::cout << " Name:" << m_name << "  Origin:" << m_legOrigin[0] << " " << m_legOrigin[1] << " " << m_legOrigin[2] << " " << std::endl;
+    std::cout << "  Leg: L1=" << m_l1 << " L2=" << m_l2 << " linkA=" << m_linkA << " linkB=" << m_linkB << " LinkH=" << m_linkH << std::endl;
     return true;
   }
 
