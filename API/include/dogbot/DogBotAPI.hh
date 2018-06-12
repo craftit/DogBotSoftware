@@ -6,6 +6,7 @@
 #include "dogbot/Coms.hh"
 #include "dogbot/LegKinematics.hh"
 #include "dogbot/CallbackArray.hh"
+#include "dogbot/DogBotKinematics.hh"
 
 namespace DogBotN {
 
@@ -154,6 +155,14 @@ namespace DogBotN {
     //! Get kinematics for leg by name
     std::shared_ptr<LegKinematicsC> LegKinematicsByName(const std::string &name);
 
+    //! Access dogbot kinematics
+    const DogBotKinematicsC &DogBotKinematics() const
+    { return m_dogBotKinematics; }
+
+    //! Access dogbot kinematics
+    DogBotKinematicsC &DogBotKinematics()
+    { return m_dogBotKinematics; }
+
     //! Get list of configured servos
     //! These are actual devices on the robot. These are 'actuators' in ROS speak.
     std::vector<std::shared_ptr<ServoC> > ListServos();
@@ -257,8 +266,7 @@ namespace DogBotN {
     DeviceManagerModeT m_deviceManagerMode = DMM_ClientOnly;
     bool m_started = false;
     bool m_terminate = false;
-    std::mutex m_mutexKinematics;
-    std::vector<std::shared_ptr<LegKinematicsC> > m_legKinematics;
+    DogBotKinematicsC m_dogBotKinematics;
   };
 
 

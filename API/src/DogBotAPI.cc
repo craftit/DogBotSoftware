@@ -887,28 +887,8 @@ namespace DogBotN {
 
       Json::Value rootConfig;
       confStrm >> rootConfig;
-      Json::Value kinematicsList = rootConfig["kinematics"];
-      if(!kinematicsList.isNull()) {
-        for(int i = 0;i < kinematicsList.size();i++) {
-          Json::Value kinConf = kinematicsList[i];
-          std::string name = kinConf.get("name","default").asString();
-          std::shared_ptr<LegKinematicsC> kin;
 
-          std::lock_guard<std::mutex> lock(m_mutexKinematics);
-          for(auto &a : m_legKinematics) {
-            if(a->Name() == name) {
-              kin = a;
-              break;
-            }
-          }
-          if(!kin) {
-            kin = std::make_shared<LegKinematicsC>(kinConf);
-            m_legKinematics.push_back(kin);
-          } else {
-            kin->ConfigureFromJSON(kinConf);
-          }
-        }
-      }
+      m_dogBotKinematics.ConfigureFromJSON(rootConfig);
 
       Json::Value deviceList = rootConfig["devices"];
       if(!deviceList.isNull()) {
@@ -1026,19 +1006,9 @@ namespace DogBotN {
       }
       rootConfig["devices"] = deviceList;
 
-      Json::Value kinematicsList;
-      index = 0;
-      for(auto &a : m_legKinematics) {
-        if(!a)
-          continue;
-        a->ConfigAsJSON();
-        kinematicsList[index++] = a->ConfigAsJSON();
-      }
-
-      rootConfig["kinematics"] = kinematicsList;
+      //! Get the servo configuration as JSON
+      m_dogBotKinematics.ConfigAsJSON(rootConfig);
     }
-
-
 
     confStrm << rootConfig;
 
@@ -1483,7 +1453,7 @@ namespace DogBotN {
   //! Get device entry by name
   std::shared_ptr<DeviceC> DogBotAPIC::GetDeviceByName(const std::string &name)
   {
-    std::lock_guard<std::mutex> lock(m_mutexKinematics);
+    std::lock_guard<std::mutex> lock(m_mutexDevices);
     for(auto &a : m_devices) {
       if(a && a->DeviceName() == name)
         return a;
@@ -1494,7 +1464,7 @@ namespace DogBotN {
   //! Get servo entry by name
   std::shared_ptr<JointC> DogBotAPIC::GetJointByName(const std::string &name)
   {
-    std::lock_guard<std::mutex> lock(m_mutexKinematics);
+    std::lock_guard<std::mutex> lock(m_mutexDevices);
     for(auto &a : m_devices) {
       if(a && a->DeviceName() == name)
         return std::dynamic_pointer_cast<JointC>(a);
@@ -1509,12 +1479,7 @@ namespace DogBotN {
   //! Get kinematics for leg by name
   std::shared_ptr<LegKinematicsC> DogBotAPIC::LegKinematicsByName(const std::string &name)
   {
-    std::lock_guard<std::mutex> lock(m_mutexDevices);
-    for(auto &a : m_legKinematics) {
-      if(a && a->Name() == name)
-        return a;
-    }
-    return std::shared_ptr<LegKinematicsC>();
+    return m_dogBotKinematics.LegKinematicsByName(name);
   }
 
 
