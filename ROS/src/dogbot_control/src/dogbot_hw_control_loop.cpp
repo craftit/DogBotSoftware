@@ -63,7 +63,7 @@ DogbotHWControlLoop::DogbotHWControlLoop(
   rosparam_shortcuts::shutdownIfError(name_, error);
 
   // Get current time for use with first update
-  m_lastTime = DogBotN::ServoC::TimePointT::clock::now();
+  m_lastTime = DogBotN::TimePointT::clock::now();
 
   // Start timer
   ros::Duration desired_update_freq = ros::Duration(1 / loop_hz_);
@@ -72,7 +72,7 @@ DogbotHWControlLoop::DogbotHWControlLoop(
 
 void DogbotHWControlLoop::update(const ros::TimerEvent& e)
 {
-  m_currentTime = DogBotN::ServoC::TimePointT::clock::now();
+  m_currentTime = DogBotN::TimePointT::clock::now();
 
   // Get change in time
   elapsed_time_ = ros::Duration(std::chrono::duration<double>(m_currentTime - m_lastTime).count());

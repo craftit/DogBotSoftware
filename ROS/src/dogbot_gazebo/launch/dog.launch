@@ -14,9 +14,11 @@
   
   <!-- ros/Gazebo controllers -->
   <include file="$(find dogbot_control)/launch/controllers.launch" />  
-  
+
+<!--   
   <include if="$(arg postgres_log)"  file="$(find dogbot_utilities)/launch/logger.launch">
     <arg name="logging_config" value="sim_logging.yaml"/>
   </include>
- 
+  -->
+  
 </launch>

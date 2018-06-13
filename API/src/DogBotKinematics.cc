@@ -1,5 +1,6 @@
 
 #include "dogbot/DogBotKinematics.hh"
+#include "dogbot/DogBotAPI.hh"
 #include <fstream>
 
 namespace DogBotN {
@@ -66,6 +67,11 @@ namespace DogBotN {
       } else {
         kin->ConfigureFromJSON(kinConf);
       }
+    }
+
+    m_legKinematicsByNumber.clear();
+    for(int i = 0;i < 4;i++) {
+      m_legKinematicsByNumber.push_back(LegKinematicsByName(DogBotAPIC::LegNames()[i]));
     }
 
     return true;

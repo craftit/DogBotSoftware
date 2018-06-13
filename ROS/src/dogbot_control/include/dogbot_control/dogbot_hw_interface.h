@@ -79,10 +79,10 @@ public:
   virtual void init();
 
   /** \brief Read the state from the robot hardware. */
-  virtual void read(const DogBotN::ServoC::TimePointT &theTime,ros::Duration &elapsed_time);
+  virtual void read(const DogBotN::TimePointT &theTime,ros::Duration &elapsed_time);
 
   /** \brief Write the command to the robot hardware. */
-  virtual void write(const DogBotN::ServoC::TimePointT &theTime,ros::Duration &elapsed_time);
+  virtual void write(const DogBotN::TimePointT &theTime,ros::Duration &elapsed_time);
 
   /** \brief Set all members to default values */
   virtual void reset();

@@ -90,8 +90,8 @@ protected:
   ros::Duration elapsed_time_;
   double loop_hz_;
 
-  DogBotN::ServoC::TimePointT m_lastTime;
-  DogBotN::ServoC::TimePointT m_currentTime;
+  DogBotN::TimePointT m_lastTime;
+  DogBotN::TimePointT m_currentTime;
 
   /** \brief ROS Controller Manager and Runner
    *

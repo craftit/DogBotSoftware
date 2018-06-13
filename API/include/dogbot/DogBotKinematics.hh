@@ -27,10 +27,19 @@ namespace DogBotN {
     //! Get kinematics for leg by name
     std::shared_ptr<LegKinematicsC> LegKinematicsByName(const std::string &name);
 
+    //! Get kinematics for leg by name
+    const std::shared_ptr<LegKinematicsC> &LegKinematicsByNumber(int i) const
+    {
+      assert(i >= 0 && i < 4);
+      assert(m_legKinematicsByNumber[i]);
+      return m_legKinematicsByNumber[i];
+    }
+
   protected:
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("console");
     std::mutex m_mutexKinematics;
     std::vector<std::shared_ptr<LegKinematicsC> > m_legKinematics;
+    std::vector<std::shared_ptr<LegKinematicsC> > m_legKinematicsByNumber;
   };
 
 }

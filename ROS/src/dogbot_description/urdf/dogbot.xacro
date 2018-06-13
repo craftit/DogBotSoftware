@@ -8,7 +8,7 @@
 
   <xacro:property name="drivediam" value="0.08" />
   
-  <xacro:property name="upperleglen" value="0.36" />
+  <xacro:property name="upperleglen" value="0.30" />
   <xacro:property name="lowerleglen" value="0.31" />
   
   <xacro:property name="pi" value="3.1415" />

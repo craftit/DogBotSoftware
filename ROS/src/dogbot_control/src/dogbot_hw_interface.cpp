@@ -382,7 +382,7 @@ void DogBotHWInterface::loadURDF(ros::NodeHandle &nh, std::string param_name)
     ROS_DEBUG_STREAM_NAMED(name_, "Received URDF from param server");
 }
 
-void DogBotHWInterface::read(const DogBotN::ServoC::TimePointT &theTime,ros::Duration &elapsed_time)
+void DogBotHWInterface::read(const DogBotN::TimePointT &theTime,ros::Duration &elapsed_time)
 {
   for (std::size_t joint_id = 0; joint_id < num_joints_; ++joint_id) {
     std::shared_ptr<DogBotN::JointC> &jnt = m_actuators[joint_id];
@@ -395,7 +395,7 @@ void DogBotHWInterface::read(const DogBotN::ServoC::TimePointT &theTime,ros::Dur
   }
 }
 
-void DogBotHWInterface::write(const DogBotN::ServoC::TimePointT &theTime,ros::Duration &elapsed_time)
+void DogBotHWInterface::write(const DogBotN::TimePointT &theTime,ros::Duration &elapsed_time)
 {
   if(m_enableControl) {
     // Safety
