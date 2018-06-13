@@ -2,13 +2,19 @@
 
 # Setup steps for local installation of DogBot Firmware
 # if first argument is 1, also build the code
+# second argument is the dog's name
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DOGNAME="tango"
+
+if [ $# -gt 0 ]; then
+  DOGNAME=$1
+fi
 
 #copy the sample config (individual users will replace with their own dog-specific configs)
-echo "copying configuration to /home/$USER/.config/DogBot/"
-mkdir -p /home/$USER/.config/DogBot
-cp $DIR/../Config/configexample.json /home/$USER/.config/DogBot/robot.json
+echo "linking configuration for $DOGNAME to /home/$USER/.config/DogBot/"
+mkdir -p /home/$USER/.config/dogbot
+ln -sf ~/src/RR/DogBot/Config/$DOGNAME.json ~/.config/dogbot/robot.json
 
 #set the rules for  accessing USB
 sudo cp $DIR/../API/src/reactai.rules /etc/udev/rules.d/
@@ -16,8 +22,8 @@ sudo udevadm control --reload-rules && udevadm trigger
 
 BUILDARG=""
 
-if [ $# -gt 0 ]; then
-  BUILDARG=$1
+if [ $# -gt 1 ]; then
+  BUILDARG=$2
   if [ $BUILDARG -eq 1 ]; then
     echo "building project"
     $DIR/buildall.sh
