@@ -94,7 +94,6 @@ namespace DogBotN {
     //! Compute the position of the foot relative to the top of the leg from the joint angles.
     bool ForwardDirect(const Eigen::Vector3f &angles,Eigen::Vector3f &position) const;
 
-
     //! Use alternate solution ?
     bool UseAlternateSolution() const
     { return m_alternateSolution; }
@@ -150,9 +149,19 @@ namespace DogBotN {
     const Eigen::Vector3f &LegOrigin() const
     { return m_legOrigin; }
 
+    //! Compute the maximum extension of the leg
+    float MaxExtension() const;
+
+    //! Compute the minimum extension of the leg
+    float MinExtension() const;
+
   protected:
+    void Init();
+
     std::string m_name; // Leg name
 
+    float m_minExtension = -1;
+    float m_maxExtension = -1;
     // These are used to compute the leg positions, though they don't really belong here.
     float m_bodyWidth = 0.304;
     float m_bodyLength = 0.556;
@@ -160,13 +169,13 @@ namespace DogBotN {
     Eigen::Vector3f m_legOrigin = { 0, 0, 0};
     Eigen::Vector3f m_jointDirections = { 1.0, 1.0, 1.0 };
 
-    float m_l1 = 0.361; // Upper leg length
-    float m_l2 = 0.29;  // Lower leg length
+    float m_l1 = 0.30; // Upper leg length
+    float m_l2 = 0.31;  // Lower leg length
     float m_zoff = 0.08;// Vertical offset from central axis
 
     float m_linkA = 0.032; // Hip CAD: 0.032
     float m_linkB = 0.04;  // Knee CAD: 0.04
-    float m_linkH = 0.363; // Push rod 0.363
+    float m_linkH = 0.2995; // Push rod 0.363
 
     float m_footDrop = 0.025; // Distance of centre of foot bellow
     float m_footSphereRadius = 0.05; // Radius of foot sphere

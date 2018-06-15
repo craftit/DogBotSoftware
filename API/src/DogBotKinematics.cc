@@ -104,6 +104,62 @@ namespace DogBotN {
     return std::shared_ptr<LegKinematicsC>();
   }
 
+  //! Access an ordered list of leg names
+  const std::vector<std::string> &DogBotKinematicsC::LegNames()
+  {
+    static std::vector<std::string> g_legNames = {"front_left","front_right","back_left","back_right"};
+    return g_legNames;
+  }
+
+  //! Access names of leg joints.
+  const std::vector<std::string> &DogBotKinematicsC::LegJointNames()
+  {
+    static std::vector<std::string> g_legJointNames = {"roll","pitch","knee"};
+    return g_legJointNames;
+  }
+
+  //! Compute the maximum extension of the legs
+  // This is the maximum extension all the legs are capable of
+  float DogBotKinematicsC::MaxLegExtension() const
+  {
+    float maxExt = 0;
+    auto it = m_legKinematics.begin();
+    if(it != m_legKinematics.end()) {
+      assert(*it);
+      maxExt = (*it)->MaxExtension();
+      for(;it != m_legKinematics.end();++it) {
+        assert(*it);
+        float ext = (*it)->MaxExtension();
+        if(ext < maxExt) {
+          maxExt = ext;
+        }
+      }
+    }
+    return maxExt;
+  }
+
+  //! Compute the minimum extension of the legs
+  // This is the minimum extension all the legs are capable of
+  float DogBotKinematicsC::MinLegExtension() const
+  {
+    float minExt = 0;
+    auto it = m_legKinematics.begin();
+    if(it != m_legKinematics.end()) {
+      assert(*it);
+      minExt = (*it)->MinExtension();
+      for(;it != m_legKinematics.end();++it) {
+        assert(*it);
+        float ext = (*it)->MinExtension();
+        if(ext > minExt) {
+          minExt = ext;
+        }
+      }
+    }
+    return minExt;
+  }
+
+
+
 
 }
 

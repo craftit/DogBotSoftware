@@ -10,7 +10,9 @@ namespace DogBotN {
   { return val * val; }
 
   LegKinematicsC::LegKinematicsC()
-  {}
+  {
+    Init();
+  }
 
   //! Construct from a json object
   LegKinematicsC::LegKinematicsC(const Json::Value &value)
@@ -22,7 +24,11 @@ namespace DogBotN {
   LegKinematicsC::LegKinematicsC(float l1,float l2)
    : m_l1(l1),
      m_l2(l2)
-  {}
+  {
+    Init();
+    std::cout << " Name:" << m_name << "  Origin:" << m_legOrigin[0] << " " << m_legOrigin[1] << " " << m_legOrigin[2] << " " << std::endl;
+    std::cout << "  Leg: L1=" << m_l1 << " L2=" << m_l2 << " linkA=" << m_linkA << " linkB=" << m_linkB << " LinkH=" << m_linkH << std::endl;
+  }
 
   //! Configure from JSON
   bool LegKinematicsC::ConfigureFromJSON(const Json::Value &value)
@@ -65,8 +71,17 @@ namespace DogBotN {
     }
     std::cout << " Name:" << m_name << "  Origin:" << m_legOrigin[0] << " " << m_legOrigin[1] << " " << m_legOrigin[2] << " " << std::endl;
     std::cout << "  Leg: L1=" << m_l1 << " L2=" << m_l2 << " linkA=" << m_linkA << " linkB=" << m_linkB << " LinkH=" << m_linkH << std::endl;
+    Init();
     return true;
   }
+
+  void LegKinematicsC::Init()
+  {
+    m_minExtension = MinExtension();
+    m_maxExtension = MaxExtension();
+  }
+
+
 
   //! Get the servo configuration as JSON
   Json::Value LegKinematicsC::ConfigAsJSON() const
@@ -99,6 +114,8 @@ namespace DogBotN {
   //! Return true if position is reachable
   bool LegKinematicsC::InverseVirtual(const Eigen::Vector3f &at, Eigen::Vector3f &angles) const
   {
+    bool ret = true;
+
 #if 1
     float x = -at[0];
     float y = -at[1];
@@ -140,7 +157,7 @@ namespace DogBotN {
     for(int i = 0;i < 3;i++)
       angles[i] *= m_jointDirections[i];
 
-    return true;
+    return ret;
   }
 
   //! Forward kinematics for the leg using a virtual joint for the knee
@@ -172,7 +189,27 @@ namespace DogBotN {
   //! Return true if position is reachable
   bool LegKinematicsC::InverseDirect(const Eigen::Vector3f &at,Eigen::Vector3f &angles) const
   {
-    if(!InverseVirtual(at,angles))
+    bool ret = true;
+    Eigen::Vector3f target = at;
+#if 1
+    // Set target to closest we can actually reach.
+    float ext = at.norm();
+    if(ext < m_minExtension) {
+      std::cerr << "Limiting min extension from " << ext << " to " << m_minExtension << " ." << std::endl;
+      if(ext != 0)
+        target *= m_minExtension / ext;
+      ret = false;
+    }
+    if(ext > m_maxExtension) {
+      std::cerr << "Limiting max extension from " << ext << " to " << m_maxExtension << " ." << std::endl;
+      ext = m_maxExtension;
+      if(ext != 0)
+        target *= m_maxExtension / ext;
+      ret = false;
+    }
+#endif
+
+    if(!InverseVirtual(target,angles))
       return false;
 
     // Allow for 4 bar linkage
@@ -182,7 +219,7 @@ namespace DogBotN {
     }
     angles[2] = theta - angles[1];
 
-    return true;
+    return ret;
   }
 
   //! Forward kinematics for the leg
@@ -237,7 +274,7 @@ namespace DogBotN {
     float delta = atan(Bt/At);
     float cosAngle = -Ct / sqrt(At * At + Bt * Bt);
     if(cosAngle > 1.0 || cosAngle < -1.0) {
-      std::cerr << "No angle found for linkage. " << std::endl;
+      //std::cerr << "No angle found for linkage. " << std::endl;
       return false;
     }
     psi = delta + (solution2 ? -1 : 1) * acos(cosAngle);
@@ -258,6 +295,24 @@ namespace DogBotN {
         (a * g * sin(theta) + a * b * cos(psi) * sin(theta) - a * b * cos(theta) * sin(psi) );
 
     return result;
+  }
+
+  //! Compute the maximum extension of the leg
+  float LegKinematicsC::MaxExtension() const
+  {
+    Eigen::Vector3f anglesIn(0,0,0);
+    Eigen::Vector3f at;
+    ForwardDirect(anglesIn,at);
+    return at.norm();
+  }
+
+  //! Compute the minimum extension of the leg
+  float LegKinematicsC::MinExtension() const
+  {
+    Eigen::Vector3f anglesIn(0,M_PI,0);
+    Eigen::Vector3f at;
+    ForwardDirect(anglesIn,at);
+    return at.norm();
   }
 
 }

@@ -35,6 +35,20 @@ namespace DogBotN {
       return m_legKinematicsByNumber[i];
     }
 
+    //! Access an ordered list of leg names
+    static const std::vector<std::string> &LegNames();
+
+    //! Access names of leg joints.
+    static const std::vector<std::string> &LegJointNames();
+
+    //! Compute the maximum extension of the legs
+    // This is the maximum extension all the legs are capable of
+    float MaxLegExtension() const;
+
+    //! Compute the minimum extension of the legs
+    // This is the minimum extension all the legs are capable of
+    float MinLegExtension() const;
+
   protected:
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("console");
     std::mutex m_mutexKinematics;

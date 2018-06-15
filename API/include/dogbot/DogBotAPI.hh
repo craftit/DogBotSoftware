@@ -192,11 +192,13 @@ namespace DogBotN {
     CallbackHandleC AddDeviceStatusHandler(const std::function<void (DeviceC *,ServoUpdateTypeT)> &callback)
     { return m_deviceStatusCallbacks.Add(callback); }
 
-    //! Access an ordered list of leg names
-    static const std::vector<std::string> &LegNames();
+    //! Access an ordered list of the four leg names
+    static const std::vector<std::string> &LegNames()
+    { return DogBotKinematicsC::LegNames(); }
 
     //! Access names of leg joints.
-    static const std::vector<std::string> &LegJointNames();
+    static const std::vector<std::string> &LegJointNames()
+    { return DogBotKinematicsC::LegJointNames(); }
 
   protected:
     //! Make a new device

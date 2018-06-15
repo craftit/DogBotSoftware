@@ -23,6 +23,7 @@ int main(int argc,char **argv)
   auto logger = spdlog::stdout_logger_mt("console");
   bool dumpPose = false;
   bool cycle = false;
+  bool dumpLimits = false;
   int jointId = -1;
   float torque = 1.0;
   float range = 45.0;
@@ -51,6 +52,7 @@ int main(int argc,char **argv)
       ("g,cycle","Cycle up and down",cxxopts::value<bool>(cycle))
       ("v,virtual-joint","Use virtual joint",cxxopts::value<bool>(useVirtualJoint))
       ("o,delay","Delay in cycle, default is 5000",cxxopts::value<int>(delay))
+      ("n,limits","Dump motion limits",cxxopts::value<bool>(dumpLimits))
       ("h,help", "Print help")
     ;
 
@@ -78,6 +80,16 @@ int main(int argc,char **argv)
       configFile,
       logger
       );
+
+  float minLegExtention = dogbot->DogBotKinematics().MinLegExtension();
+  float maxLegExtention = dogbot->DogBotKinematics().MaxLegExtension();
+  float legRange = maxLegExtention - minLegExtention;
+  if(range > legRange)
+    range = legRange;
+  logger->info("Limit Min {}   Max {}  Range:{}",minLegExtention,maxLegExtention,legRange);
+  if(dumpLimits) { // Just dump limits and exit ?
+    return 0;
+  }
 
   // Wait for poses to update and things to settle.
   sleep(3);
@@ -134,10 +146,13 @@ int main(int argc,char **argv)
     legs[1] = std::make_shared<DogBotN::LegControllerC>(dogbot,"back_right",useVirtualJoint);
     legs[0] = std::make_shared<DogBotN::LegControllerC>(dogbot,"back_left",useVirtualJoint);
 
+    float midRange = (maxLegExtention+minLegExtention)/2.0;
     while(1) {
+
       for(int i = 0;i < 360;i++) {
         // 0.35 to 0.7
-        float z = cos(DogBotN::Deg2Rad(i)) * 0.17 +0.525;
+
+        float z = cos(DogBotN::Deg2Rad(i)) * range + midRange;
 
         for(int i = 0;i < 4;i++) {
           legs[i]->Goto(Eigen::Vector3f(0,0,-z),torque);

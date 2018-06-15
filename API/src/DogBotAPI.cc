@@ -1504,20 +1504,5 @@ namespace DogBotN {
     return m_joints;
   }
 
-  //! Access an ordered list of leg names
-  const std::vector<std::string> &DogBotAPIC::LegNames()
-  {
-    static std::vector<std::string> g_legNames = {"front_left","front_right","back_left","back_right"};
-    return g_legNames;
-  }
-
-  //! Access names of leg joints.
-  const std::vector<std::string> &DogBotAPIC::LegJointNames()
-  {
-    static std::vector<std::string> g_legJointNames = {"roll","pitch","knee"};
-    return g_legJointNames;
-  }
-
-
 
 }
