@@ -169,10 +169,8 @@ namespace DogBotN {
     for(int i = 0;i < 3;i++)
       angles[i] = anglesIn[i] * m_jointDirections[i];
 
-    float kneeAngle = angles[2];
-
-    float y = m_l1 * sin(angles[1]) + m_l2 * sin(angles[1] + kneeAngle);
-    float z = m_l1 * cos(angles[1]) + m_l2 * cos(angles[1] + kneeAngle);
+    float y = m_l1 * sin(angles[1]) + m_l2 * sin(angles[1] + angles[2]);
+    float z = m_l1 * cos(angles[1]) + m_l2 * cos(angles[1] + angles[2]);
 
     //float xr = 0;
     at[0] =  -sin(angles[0]) * (m_zoff + z); //  + cos(angles[0]) * xr
@@ -215,6 +213,7 @@ namespace DogBotN {
     // Allow for 4 bar linkage
     float theta = 0;
     if(!Linkage4BarBack(angles[2] ,theta,UseAlternateSolution())) {
+      std::cerr << "Linkage failed. \n";
       return false;
     }
     angles[2] = theta - angles[1];
@@ -233,9 +232,7 @@ namespace DogBotN {
     float psi = Linkage4BarForward(theta,UseAlternateSolution());
     Eigen::Vector3f anglesVirtual = {angles[0],angles[1],psi};
 
-    if(!ForwardVirtual(anglesVirtual,at))
-      return false;
-    return false;
+    return ForwardVirtual(anglesVirtual,at);
   }
 
 
@@ -302,17 +299,23 @@ namespace DogBotN {
   {
     Eigen::Vector3f anglesIn(0,0,0);
     Eigen::Vector3f at;
-    ForwardDirect(anglesIn,at);
+    if(!ForwardDirect(anglesIn,at)) {
+      assert(0 && "Forward kinematics failed.");
+      return 0;
+    }
     return at.norm();
   }
 
   //! Compute the minimum extension of the leg
   float LegKinematicsC::MinExtension() const
   {
-    Eigen::Vector3f anglesIn(0,M_PI,0);
-    Eigen::Vector3f at;
-    ForwardDirect(anglesIn,at);
-    return at.norm();
+    Eigen::Vector3f angles(0,M_PI,0);
+    float theta = angles[2] + angles[1];
+    float psi = Linkage4BarForward(theta,UseAlternateSolution());
+    float y = m_l1 * sin(angles[1]) + m_l2 * sin(angles[1] + psi);
+    float z = m_l1 * cos(angles[1]) + m_l2 * cos(angles[1] + psi);
+    float dist = sqrt(y * y + z*z) + m_zoff;
+    return dist;
   }
 
 }

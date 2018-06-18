@@ -73,7 +73,7 @@ int TestFixedAngles()
   return 0;
 }
 
-int CheckTarget(Eigen::Vector3f target) {
+int CheckTargetVirtual(Eigen::Vector3f target) {
   DogBotN::LegKinematicsC legKinematics;
   Eigen::Vector3f angles;
   Eigen::Vector3f pos;
@@ -82,9 +82,34 @@ int CheckTarget(Eigen::Vector3f target) {
     std::cerr << "Failed." << std::endl;
     return __LINE__;
   }
-  std::cout << " Angles:" << DogBotN::Rad2Deg(angles[0]) << " " << DogBotN::Rad2Deg(angles[1]) << " " << DogBotN::Rad2Deg(angles[2]) << " " << std::endl;
+  std::cout << " Virtual Angles:" << DogBotN::Rad2Deg(angles[0]) << " " << DogBotN::Rad2Deg(angles[1]) << " " << DogBotN::Rad2Deg(angles[2]) << " " << std::endl;
 
   if(!g_legKinematics.ForwardVirtual(angles,pos)) {
+    std::cerr << "Forward kinematics failed." << std::endl;
+    return __LINE__;
+  }
+
+  float dist = (target - pos).norm();
+  std::cout <<" Target: "<< target[0] << " " << target[1] << " " << target[2] << " " << std::endl;
+  std::cout <<" At: "<< pos[0] << " " << pos[1] << " " << pos[2] << "   Distance:" << dist << std::endl;
+  if(dist > 1e-6) {
+    return __LINE__;
+  }
+  return 0;
+}
+
+int CheckTargetDirect(Eigen::Vector3f target) {
+  DogBotN::LegKinematicsC legKinematics;
+  Eigen::Vector3f angles;
+  Eigen::Vector3f pos;
+
+  if(!g_legKinematics.InverseDirect(target,angles)) {
+    std::cerr << "Failed to find solution for target :" << target << " " << std::endl;
+    return __LINE__;
+  }
+  std::cout << " Direct Angles:" << DogBotN::Rad2Deg(angles[0]) << " " << DogBotN::Rad2Deg(angles[1]) << " " << DogBotN::Rad2Deg(angles[2]) << " " << std::endl;
+
+  if(!g_legKinematics.ForwardDirect(angles,pos)) {
     std::cerr << "Forward kinematics failed." << std::endl;
     return __LINE__;
   }
@@ -104,7 +129,7 @@ int TestReachableTargets()
   {
     int ln = 0;
     Eigen::Vector3f target = {0.15,0.1,0.3};
-    if((ln = CheckTarget(target)) != 0) {
+    if((ln = CheckTargetDirect(target)) != 0) {
       std::cerr << "Check target failed at " << ln << std::endl;
       return __LINE__;
     }
@@ -112,9 +137,9 @@ int TestReachableTargets()
 
   {
     int ln = 0;
-    float maxReach = g_legKinematics.MaxExtension();
+    float maxReach = g_legKinematics.MaxExtension() * 0.99;
     Eigen::Vector3f target = {0,0,maxReach};
-    if((ln = CheckTarget(target)) != 0) {
+    if((ln = CheckTargetDirect(target)) != 0) {
       std::cerr << "Check target failed at " << ln << std::endl;
       return __LINE__;
     }
@@ -122,9 +147,9 @@ int TestReachableTargets()
 
   {
     int ln = 0;
-    float minReach = g_legKinematics.MinExtension();
+    float minReach = g_legKinematics.MinExtension() * 1.01;
     Eigen::Vector3f target = {0,0,minReach};
-    if((ln = CheckTarget(target)) != 0) {
+    if((ln = CheckTargetDirect(target)) != 0) {
       std::cerr << "Check target failed at " << ln << std::endl;
       return __LINE__;
     }
@@ -136,15 +161,15 @@ int TestReachableTargets()
 int main() {
   int ln = 0;
   if((ln = CheckLinkageAngles()) != 0) {
-    std::cerr << "Test failed at " << __LINE__ << " " << std::endl;
+    std::cerr << "Test failed at " << ln << " " << std::endl;
     return 1;
   }
   if((ln = TestFixedAngles()) != 0) {
-    std::cerr << "Test failed at " << __LINE__ << " " << std::endl;
+    std::cerr << "Test failed at " << ln << " " << std::endl;
     return 1;
   }
   if((ln = TestReachableTargets()) != 0) {
-    std::cerr << "Test failed at " << __LINE__ << " " << std::endl;
+    std::cerr << "Test failed at " << ln << " " << std::endl;
     return 1;
   }
   std::cerr << "Test passed." << std::endl;

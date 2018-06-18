@@ -149,10 +149,10 @@ namespace DogBotN {
     const Eigen::Vector3f &LegOrigin() const
     { return m_legOrigin; }
 
-    //! Compute the maximum extension of the leg
+    //! Compute the maximum extension of the leg vertically down
     float MaxExtension() const;
 
-    //! Compute the minimum extension of the leg
+    //! Compute the minimum extension of the leg vertically down
     float MinExtension() const;
 
   protected:
