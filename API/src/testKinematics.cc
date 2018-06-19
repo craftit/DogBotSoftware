@@ -137,7 +137,7 @@ int TestReachableTargets()
 
   {
     int ln = 0;
-    float maxReach = g_legKinematics.MaxExtension() * 0.99;
+    float maxReach = g_legKinematics.MaxExtension();
     Eigen::Vector3f target = {0,0,maxReach};
     if((ln = CheckTargetDirect(target)) != 0) {
       std::cerr << "Check target failed at " << ln << std::endl;
@@ -147,7 +147,7 @@ int TestReachableTargets()
 
   {
     int ln = 0;
-    float minReach = g_legKinematics.MinExtension() * 1.01;
+    float minReach = g_legKinematics.MinExtension();
     Eigen::Vector3f target = {0,0,minReach};
     if((ln = CheckTargetDirect(target)) != 0) {
       std::cerr << "Check target failed at " << ln << std::endl;
