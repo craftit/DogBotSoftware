@@ -467,6 +467,10 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     sprintf(buff,"\n Device %d, Max Current %f ",psp->m_header.m_deviceId,psp->m_data.float32[0]);
     displayStr += buff;
   } break;
+  case CPI_MotionUpdatePeriod: {
+    ret = false;
+  } break;
+
   default:
     break;
   }
