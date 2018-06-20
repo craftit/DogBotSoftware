@@ -89,7 +89,7 @@ namespace DogBotN {
       kinematicsList[index++] = a->ConfigAsJSON();
     }
 
-    kinematicsList["kinematics"] = kinematicsList;
+    value["kinematics"] = kinematicsList;
   }
 
 
