@@ -11,26 +11,43 @@ Note: areas of this code are still work-in-progress.
 
 ## Pre-requisites
 
-This code has been tested for installation and operation on Ubuntu Linux 16.04.  Requires the packages: `libspdlog-dev libjsoncpp-dev libeigen3-dev libzmq3-dev libusb-1.0.0-dev mesa-common-dev build-essential libg11-mesa-dev`
+This code has been tested for installation and operation on Ubuntu Linux 16.04.  Requires the packages: `libspdlog-dev libjsoncpp-dev libeigen3-dev libzmq3-dev libusb-1.0.0-dev mesa-common-dev build-essential libgl1-mesa-dev`
 
 [Qt] is required to build and run the UI, it was built and tested with Qt versions 5.9.2 and 5.11 64-bit.
 
 [ROS] must be installed if ROS interaction is required; the code has been tested against the Kinetic release.  The repository contains a [catkin](http://wiki.ros.org/catkin) workspace under [ROS](./ROS), which should be built with `catkin build`
 
-For ROS operation you may need to install the packages `ros-kinetic-rosparam-shortcuts ros-kinetic-ros-control ros-kinetic-ros-controllers` 
+For ROS operation you may need to install the packages `ros-kinetic-rosparam-shortcuts ros-kinetic-ros-control ros-kinetic-ros-controllers ros-kinetic-pluginlib` 
 
 The [DataRecorder](./Utilities/DataRecorder) utility requires [PostgreSQL] 9.5 or higher, and is intended to be viewed using [Grafana]
 
-## Setup steps
-To use a USB connection you need access to the appropriate device:
+## Setup steps: Scripted
+
+There is an installation script at [setup.sh](./Scripts/setup.sh) to run various setup steps. The first argument is the dog's name.  If the second argument is passed as 1, the build scripts are also called, which should complete all required tasks, e.g. `setup.sh tango 1`
+
+The individual scripts may also be called:
+* [setup.sh](./Scripts/setup.sh) - sets permissions, links config file; optionally calls the build scripts
+* [buildall.sh](./Scripts/buildall.sh) - wraps the build steps for the C++ projects (API and data recorder)
+* [rosbuild.sh](./Scripts/rosbuild.sh) - wraps catkin build for ROS components
+
+## Setup steps: Manual
+
+These steps are an alternative to the scripted install.
+
+First, to use a USB connection you need access to the appropriate device:
 
 ```bat
 sudo cp ./API/src/reactai.rules /etc/udev/rules.d/
 sudo udevadm control --reload-rules && udevadm trigger
 ```
-There is a [configuration file](./Config/configexample.json): to enable the ROS components to access this it should be copied into ~/.config/DogBot.  Replace with your own DogBot's configuration file as required.
 
-The code under [API](./API) and [DataRecorder](./Utilities/DataRecorder) should be built with `cmake', 'make` and `make install`, for the API for example:
+The configuration file for your specific Dogbot has to be accessible to the UI, which is done via a symlink.  To use the configuration for Tango, for example:
+
+```bat
+mkdir -p ~/.config/dogbot
+ln -s ~/src/RR/DogBot/Config/tango.json ~/.config/dogbot/robot.json
+```
+Then the code under [API](./API) and [DataRecorder](./Utilities/DataRecorder) should be built with `cmake', 'make` and `make install`, for the API for example:
 
 ```bat
 cd ./API
@@ -40,17 +57,6 @@ cmake ../src/
 make
 sudo make install
 ```
-
-The configuration file for your specific Dogbot has to be accessible to the UI, which is done via a symlink.  To use the configuration for Tango, for example:
-
-```bat
-mkdir -p ~/.config/dogbot
-ln -s ~/src/RR/DogBot/Config/tango.json ~/.config/dogbot/robot.json
-```
-
-There is a script to wrap these steps at [buildall.sh](./Scripts/buildall.sh)
-
-There is an installation script at [setup.sh](./Scripts/setup.sh), the first argument is the dog's name.  If the second argument is passed as 1, the build scripts is also called, e.g. `setup.sh tango 1`
 
 # Operation
 
