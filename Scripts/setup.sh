@@ -12,9 +12,9 @@ if [ $# -gt 0 ]; then
 fi
 
 #copy the sample config (individual users will replace with their own dog-specific configs)
-echo "linking configuration for $DOGNAME to /home/$USER/.config/DogBot/"
+echo "linking configuration for $DOGNAME to /home/$USER/.config/dogbot/"
 mkdir -p /home/$USER/.config/dogbot
-ln -sf ~/src/RR/DogBot/Config/$DOGNAME.json ~/.config/dogbot/robot.json
+ln -sf $DIR/../Config/$DOGNAME.json /home/$USER/.config/dogbot/robot.json
 
 #set the rules for  accessing USB
 sudo cp $DIR/../API/src/reactai.rules /etc/udev/rules.d/
