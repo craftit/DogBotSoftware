@@ -21,7 +21,7 @@
 
     <!-- Load controller settings -->
     <rosparam file="$(find dogbot_control)/config/dogbot_controllers.yaml" command="load"/>
-    <param name="dogbot_config" value="/home/$(env USER)/.config/DogBot/$(arg configname)" />
+    <param name="dogbot_config" value="/home/$(env USER)/.config/dogbot/$(arg configname)" />
      
    <!-- Load controller manager -->
     <node name="ros_control_controller_manager" pkg="controller_manager" type="controller_manager" respawn="false"
