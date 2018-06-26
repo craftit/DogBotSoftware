@@ -384,6 +384,7 @@ void DogBotHWInterface::loadURDF(ros::NodeHandle &nh, std::string param_name)
 
 void DogBotHWInterface::read(const DogBotN::TimePointT &theTime,ros::Duration &elapsed_time)
 {
+  assert(m_actuators.size() >= num_joints_);
   for (std::size_t joint_id = 0; joint_id < num_joints_; ++joint_id) {
     std::shared_ptr<DogBotN::JointC> &jnt = m_actuators[joint_id];
     if(!jnt) {
@@ -400,7 +401,7 @@ void DogBotHWInterface::write(const DogBotN::TimePointT &theTime,ros::Duration &
   if(m_enableControl) {
     // Safety
     enforceLimits(elapsed_time);
-
+    assert(m_actuators.size() >= num_joints_);
     for (std::size_t joint_id = 0; joint_id < num_joints_; ++joint_id) {
       std::shared_ptr<DogBotN::JointC> &jnt = m_actuators[joint_id];
       if(!jnt)
