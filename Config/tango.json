@@ -282,6 +282,7 @@
                         "type" : "4bar"
                 },
                 {
+                        "jointDrive" : "back_right_knee",
                         "jointRef" : "back_right_pitch",
                         "name" : "virtual_back_right_knee",
                         "legKinematics" : "back_right",
