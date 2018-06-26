@@ -68,7 +68,8 @@ extern "C" {
     CET_BootLoaderProtected = 10,
     CET_BootLoaderBusy  = 11,
     CET_BootLoaderWriteFailed = 12,
-    CET_BootLoaderUnalignedAddress = 13
+    CET_BootLoaderUnalignedAddress = 13,
+    CET_UnavailableInCurrentMode = 14,
   };
 
   /* Fault codes.
@@ -339,9 +340,10 @@ extern "C" {
    */
 
   enum MotionHomedStateT {
-    MHS_Lost = 0,
-    MHS_Measuring    = 1,
-    MHS_Homed   = 2
+    MHS_Lost       = 0,
+    MHS_Measuring  = 1,
+    MHS_Homed      = 2,
+    MHS_ApproxHomed= 3
   };
 
   struct PacketErrorC {

@@ -46,6 +46,21 @@ namespace DogBotN {
   //! Get type information for parameters
   enum ComsParameterIndexTypeT ComsParameterIndexToType(ComsParameterIndexT paramIndex);
 
+
+  class ExceptionBadConfigC
+   : public std::exception
+  {
+  public:
+    ExceptionBadConfigC(const char *msg)
+      : m_msg(msg)
+    {}
+
+    virtual const char *what() const noexcept override
+    { return m_msg; }
+  protected:
+    const char *m_msg;
+  };
+
   //! Dogbot device control
 
   //! This does low level management of the robot, configuration of the drivers and status monitoring.
@@ -127,6 +142,9 @@ namespace DogBotN {
 
     //! Home whole robot;
     bool HomeAll();
+
+    //! Home from squatting position
+    bool HomeSquat();
 
     //! Tell all servos to hold the current position
     void DemandHoldPosition();
@@ -269,6 +287,8 @@ namespace DogBotN {
     bool m_started = false;
     bool m_terminate = false;
     DogBotKinematicsC m_dogBotKinematics;
+    float m_lastSpeedLimit = 0;
+    std::vector<bool> m_emergencyStopFlags = std::vector<bool>(256,false);
   };
 
 
