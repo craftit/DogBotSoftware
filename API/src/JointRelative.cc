@@ -71,6 +71,8 @@ namespace DogBotN {
           [this](double position,double torqueLimit) mutable
           { UpdateDemand(); }
       );
+    } else {
+      api.Log().warn("No reference joint defined for '{}' ",Name());
     }
     std::string jointDriveName = value.get("jointDrive","").asString();
     if(!jointDriveName.empty()) {
@@ -79,6 +81,8 @@ namespace DogBotN {
         api.Log().error("Failed to find servo '{}' ",jointDriveName);
         return false;
       }
+    } else {
+      api.Log().warn("No drive joint defined for '{}' ",Name());
     }
     m_refGain = value.get("refGain",1.0).asFloat();
     m_refOffset = value.get("refOffset",0.0).asFloat();
