@@ -7,6 +7,15 @@ This repository contains firmware and a UI for interacting with the [DogBot] rob
 
 Note: areas of this code are still work-in-progress.
 
+# Quick-Start Summary
+
+* Clone this repo (into ~/src/RR/DogBot if you want the examples to match your deployment exactly)
+* Review the [Pre-requisites](#pre-requisites) section and ensure all requirements are met
+* [Setup](#setup-steps-scripted) your PC and build the code using `./Scripts/setup.sh <dogname> 1`
+* [Switch On](#switch-on) - ensure you follow all the safety guidelines!
+* Run the UI and [connect to the controller](#connecting-to-the-controllers)
+* [Home the motors](#homing-the-motors)
+
 # Installation
 
 ## Pre-requisites
@@ -21,7 +30,7 @@ For ROS operation you may need to install the packages `ros-kinetic-rosparam-sho
 
 The [DataRecorder](./Utilities/DataRecorder) utility requires [PostgreSQL] 9.5 or higher, and is intended to be viewed using [Grafana]
 
-## Setup steps: Scripted
+## Setup Steps Scripted
 
 There is an installation script at [setup.sh](./Scripts/setup.sh) to run various setup steps. The first argument is the dog's name.  If the second argument is passed as 1, the build scripts are also called, which should complete all required tasks, e.g. `setup.sh tango 1`
 
@@ -30,7 +39,7 @@ The individual scripts may also be called:
 * [buildall.sh](./Scripts/buildall.sh) - wraps the build steps for the C++ projects (API and data recorder)
 * [rosbuild.sh](./Scripts/rosbuild.sh) - wraps catkin build for ROS components
 
-## Setup steps: Manual
+## Setup Steps Manual
 
 These steps are an alternative to the scripted install.
 
@@ -106,7 +115,7 @@ Homing the motors, method 1:
 * ensure all the limbs have room to move
 * Press the Home All button
 
-You may need to press Home All again if all 12 motors do not home the first time.
+You may need to press Home All more than once if all 12 motors do not home the first time.
 
 Method 2, if a particular motor has a problem:
 * note the ID for the required joint on the Overview tab
