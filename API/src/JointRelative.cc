@@ -105,7 +105,8 @@ namespace DogBotN {
     double driveVelocity = 0;
     double driveTorque = 0;
     if(!m_jointDrive || !m_jointRef) {
-      m_logJoint->error("Relative joint not configured. ");
+      m_logJoint->error("Relative joint {} not configured. ",Name());
+      throw ExceptionBadConfigC("Relative joint not configured.");
       return false;
     }
 
@@ -137,8 +138,8 @@ namespace DogBotN {
     double driveVelocity = 0;
     double driveTorque = 0;
     if(!m_jointDrive || !m_jointRef) {
-      m_logJoint->error("Relative joint not configured. ");
-      return false;
+      m_logJoint->error("Relative joint {} not configured. ",Name());
+      throw ExceptionBadConfigC("Relative joint not configured.");
     }
 
     if(!m_jointDrive->GetState(tick,drivePosition,driveVelocity,driveTorque)) {

@@ -62,6 +62,7 @@ namespace DogBotN {
       case MHS_Lost: return "Lost";
       case MHS_Measuring: return "Measuring";
       case MHS_Homed: return "Homed";
+      case MHS_ApproxHomed: return "Approximated";
     }
     printf("Unexpected homed state %d",(int)calibrationState);
     return "Invalid";
@@ -122,6 +123,7 @@ namespace DogBotN {
       case CET_BootLoaderBusy: return "BootLoader busy";
       case CET_BootLoaderWriteFailed: return "BootLoader write failed";
       case CET_BootLoaderUnalignedAddress: return "BootLoader unaligned address";
+      case CET_UnavailableInCurrentMode: return "Command unavailable in current mode.";
     }
     printf("Unexpected error code %d",(int)errorCode);
     return "Invalid";
@@ -674,6 +676,9 @@ namespace DogBotN {
       return false;
     }
 
+    for(int i = 0;i < m_emergencyStopFlags.size();i++)
+      m_emergencyStopFlags[i] = false;
+
     //! Initialise which serial device to use.
     if(m_deviceName.empty())
       m_deviceName = m_configRoot.get("device","usb").asString();
@@ -691,23 +696,51 @@ namespace DogBotN {
     return true;
   }
 
+
+  //! Home from squatting position
+  bool DogBotAPIC::HomeSquat()
+  {
+//            "back_left_knee" : 238.32269287109375,
+//            "back_left_pitch" : -58.273262023925781,
+//            "back_left_roll" : 0,
+//            "back_right_knee" : 121.75420379638672,
+//            "back_right_pitch" : 58.361156463623047,
+//            "back_right_roll" : 0,
+//            "front_left_knee" : 238.30073547363281,
+//            "front_left_pitch" : -59.393905639648438,
+//            "front_left_roll" : 0,
+//            "front_right_knee" : 121.66630554199219,
+//            "front_right_pitch" : 59.591667175292969,
+//            "front_right_roll" : 0
+
+#if 0
+    // First check all the roll joints are in the right place.
+    {
+
+      for(int i = 0;i < 4;i++) {
+        std::string jointName = legNames[i] + "_roll";
+        std::shared_ptr<ServoC> jnt = std::dynamic_pointer_cast<ServoC>(GetJointByName(jointName));
+      }
+
+      //m_homeIndexState
+    }
+#endif
+
+
+    return true;
+  }
+
   //! Home whole robot;
   bool DogBotAPIC::HomeAll()
   {
-
-    std::vector<std::string> legNames;
-    legNames.push_back("front_left_");
-    legNames.push_back("front_right_");
-    legNames.push_back("back_left_");
-    legNames.push_back("back_right_");
-
+    const std::vector<std::string> &legNames = LegNames();
     bool allOk = true;
     {
       std::vector<std::thread> threads;
 
       // Home roll
       for(int i = 0;i < legNames.size();i++) {
-        std::string jointName = legNames[i] + "roll";
+        std::string jointName = legNames[i] + "_roll";
         std::shared_ptr<ServoC> jnt = std::dynamic_pointer_cast<ServoC>(GetJointByName(jointName));
         if(!jnt) {
           m_log->error("Failed to find joint {} ",jointName);
@@ -734,7 +767,7 @@ namespace DogBotN {
       std::vector<std::thread> threads;
       // Home knees.
       for(int i = 0;i < legNames.size();i++) {
-        std::string jointName = legNames[i] + "knee";
+        std::string jointName = legNames[i] + "_knee";
         std::shared_ptr<ServoC> jnt = std::dynamic_pointer_cast<ServoC>(GetJointByName(jointName));
         if(!jnt) {
           m_log->error("Failed to find joint {} ",jointName);
@@ -761,7 +794,7 @@ namespace DogBotN {
       std::vector<std::thread> threads;
       // Home pitch
       for(int i = 0;i < legNames.size();i++) {
-        std::string jointName = legNames[i] + "pitch";
+        std::string jointName = legNames[i] + "_pitch";
         std::shared_ptr<ServoC> jnt = std::dynamic_pointer_cast<ServoC>(GetJointByName(jointName));
         if(!jnt) {
           m_log->error("Failed to find joint {} ",jointName);
@@ -1229,7 +1262,7 @@ namespace DogBotN {
                        [this](const uint8_t *data,int size) mutable
                         {
                           if(size != sizeof(PacketIMUC)) {
-                            m_log->error("'IMU' packet to short {} ",size);
+                            m_log->error("'IMU' packet unexpected length {} ",size);
                             return ;
                           }
                           struct PacketIMUC *pkt = (struct PacketIMUC *) data;
@@ -1258,6 +1291,20 @@ namespace DogBotN {
                                        memcpy(buff,&data[2],size-2);
                                        buff[size-2] = 0;
                                        m_log->info("Message from {} : {} ",(int) data[1],buff);
+                                     });
+
+    callbacks += m_coms->SetHandler(CPT_EmergencyStop,
+                                    [this](const uint8_t *data,int size) mutable
+                                     {
+                                       PacketEmergencyStopC *es =  (struct PacketEmergencyStopC *) data;
+                                       if(size != sizeof(PacketEmergencyStopC)) {
+                                         m_log->error("Unexpected emergency stop packet size {} ",size);
+                                         return ;
+                                       }
+                                       if(m_emergencyStopFlags[es->m_deviceId]) // Already seen message?
+                                         return ;
+                                       m_emergencyStopFlags[es->m_deviceId] = true;
+                                       m_log->error("Got emergency stop from device {}, cause type {} ({}) ",es->m_deviceId,ComsStateChangeSource((enum StateChangeSourceT) es->m_cause),es->m_cause);
                                      });
 
     while(!m_terminate)
@@ -1402,13 +1449,16 @@ namespace DogBotN {
   void DogBotAPIC::ResetAll()
   {
     m_coms->SendSetParam(0,CPI_ControlState,CS_StartUp);
-
+    for(int i = 0;i < m_emergencyStopFlags.size();i++)
+      m_emergencyStopFlags[i] = false;
   }
 
   //! Request all controllers go into low power mode
   void DogBotAPIC::LowPowerAll()
   {
     m_coms->SendSetParam(0,CPI_ControlState,CS_Standby);
+    for(int i = 0;i < m_emergencyStopFlags.size();i++)
+      m_emergencyStopFlags[i] = false;
   }
 
   void DogBotAPIC::RefreshAll()
