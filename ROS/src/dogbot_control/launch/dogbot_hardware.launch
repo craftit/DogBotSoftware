@@ -3,7 +3,7 @@
   <arg name="configname" value="robot.json" />
   <arg name="namespace" value="dogbot" />
   
-  <arg name="enable_control" default="false" />
+  <arg name="enable_control" default="true" />
   
   <!-- GDB functionality -->
   <arg name="debug" default="false" />
@@ -22,6 +22,7 @@
     <!-- Load controller settings -->
     <rosparam file="$(find dogbot_control)/config/dogbot_controllers.yaml" command="load"/>
     <param name="dogbot_config" value="/home/$(env USER)/.config/dogbot/$(arg configname)" />
+    <param name="enable_control" value="$(arg enable_control)" />
      
    <!-- Load controller manager -->
     <node name="ros_control_controller_manager" pkg="controller_manager" type="controller_manager" respawn="false"
