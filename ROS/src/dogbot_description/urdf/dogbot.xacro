@@ -188,11 +188,13 @@
          rpy="0 ${reflectx * pi/6} 0"  
          lower ="${(pi * (reflectx -1)/3.5) }" 
          upper ="${(pi * (reflectx +1)/3.5) }" 
+         lower ="${(pi * reflectx - pi*2) }" 
+         upper ="${(pi * reflectx + pi*0) }" 
       -->
       <origin xyz="${upperleglen * reflectx} 0 0" rpy="0 0 0"/>
       <limit 
-         lower ="${(pi * reflectx - pi) }" 
-         upper ="${(pi * reflectx + pi) }" 
+         lower ="${(pi * reflectx - pi*2) }" 
+         upper ="${(pi * reflectx + pi*2) }" 
          effort="500" velocity="10.0" />
     </joint>
 
