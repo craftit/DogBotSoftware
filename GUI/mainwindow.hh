@@ -8,6 +8,7 @@
 #include "dogbot/DogBotAPI.hh"
 #include "dogbot/LegKinematics.hh"
 #include "dogbot/SplineGaitController.hh"
+#include "dogbot/LegController.hh"
 
 #include "ServoTable.hh"
 
@@ -190,6 +191,10 @@ private slots:
 
   void on_comboBoxAmimationStyle_activated(const QString &arg1);
 
+  void on_horizontalSliderHeight_valueChanged(int value);
+
+  void on_checkBoxStand_stateChanged(int arg1);
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);
@@ -278,7 +283,13 @@ private:
   float m_animationOmega = 1.0;
   float m_animationTorque = 6.0;
   float g_animationVelocityLimit = 500.0;
+  float m_minHeight = 0.3;
+  float m_maxHeight = 0.6;
+  bool m_runStand = false;
   std::mutex m_accessGait;
+  float m_lastSpeedLimit = 0.0;
+  std::shared_ptr<DogBotN::LegControllerC> m_legs[4];
+
 };
 
 #endif // MAINWINDOW_H
