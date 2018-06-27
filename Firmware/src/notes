@@ -1,4 +1,7 @@
 
+Joint 10:
+
+
 CAN:  42Mhz Clock  Baud: (42e6 / (3 * 14))
 
 Bus timing calulator: http://www.bittiming.can-wiki.info/

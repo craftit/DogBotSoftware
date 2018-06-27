@@ -71,11 +71,11 @@ namespace DogBotN {
     //! Get the servo configuration as JSON
     virtual void ConfigAsJSON(Json::Value &value) const;
 
-    //! Update coms device
-    virtual void UpdateComs(const std::shared_ptr<ComsC> &coms);
-
     //! Configure from JSON
     virtual bool ConfigureFromJSON(DogBotAPIC &api,const Json::Value &value);
+
+    //! Update coms device
+    virtual void UpdateComs(const std::shared_ptr<ComsC> &coms);
 
     //! Handle an announce packet
     bool HandlePacketAnnounce(const PacketDeviceIdC &pkt,bool isManager);

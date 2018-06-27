@@ -61,6 +61,7 @@ namespace DogBotN
   {
   public:
     typedef std::function<void (const TimePointT &when,const IMUFrameC &frame)> IMUUpdateFuncT;
+    typedef std::function<void (const TimePointT &when,int sensorId,float distance)> RangeUpdateFuncT;
 
     // Construct from coms link and deviceId
     DeviceIMUC(const std::shared_ptr<ComsC> &coms,int deviceId);
@@ -68,31 +69,50 @@ namespace DogBotN
     // Construct with announce packet.
     DeviceIMUC(const std::shared_ptr<ComsC> &coms,int deviceId,const PacketDeviceIdC &pktAnnounce);
 
+    //! Get the servo configuration as JSON
+    virtual void ConfigAsJSON(Json::Value &value) const;
+
+    //! Configure from JSON
+    virtual bool ConfigureFromJSON(DogBotAPIC &api,const Json::Value &value);
+
     //! Access the device type
     virtual const char *DeviceType() const;
 
     //! Handle an incoming IMU packet.
     bool HandlePacketIMU(struct PacketIMUC *imu);
 
+    //! Handle an incoming range packet.
+    bool HandlePacketRange(struct PacketRangeC *imu);
+
     //! Get last received IMU state.
     //! when - Time at which data was received.
     //! frame - IMU information
     void GetState(TimePointT &when,IMUFrameC &frame);
 
-    //! Add a update callback for motor position
+    //! Add a update callback for imu reading
     CallbackHandleC AddIMUCallback(const IMUUpdateFuncT &callback)
     { return m_imuCallbacks.Add(callback); }
 
+    //! Add a update callback for range reading
+    CallbackHandleC AddRangeCallback(const RangeUpdateFuncT &callback)
+    { return m_rangeCallbacks.Add(callback); }
+
     //! Access the last update time.
     TimePointT LastUpdateTime() const
-    { return m_when; }
+    { return m_whenIMU; }
 
   protected:
 
     CallbackArrayC<IMUUpdateFuncT > m_imuCallbacks;
+    CallbackArrayC<RangeUpdateFuncT > m_rangeCallbacks;
 
-    TimePointT m_when;
+    TimePointT m_whenIMU;
     IMUFrameC m_frame;
+
+    TimePointT m_whenRange;
+    float m_groundDistance = 0;
+    float m_rangeOffset = 0.01;
+
   };
 
 }

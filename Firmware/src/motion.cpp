@@ -133,7 +133,7 @@ static int16_t PhaseVelocityToInt16(float angle)
 
 void SetupEndStops()
 {
-  if(g_motionHomedState != MHS_Homed) {
+  if(g_motionHomedState != MHS_Homed && g_motionHomedState != MHS_ApproxHomed) {
     g_endStopPhaseMin = 0;
     g_endStopPhaseMax = 0;
     g_endStopTargetAcceleration = -1; // Disable acceleration based end-stops for the moment.

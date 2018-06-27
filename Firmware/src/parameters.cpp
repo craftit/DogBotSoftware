@@ -111,7 +111,20 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
     case CPI_CalibrationOffset:
       if(len != 4)
         return false;
-      g_homeAngleOffset = data->float32[0] * g_actuatorRatio;
+      switch(g_motionHomedState)
+      {
+        case MHS_Lost:
+          MotionResetCalibration(MHS_ApproxHomed);
+        case MHS_Measuring:
+        case MHS_ApproxHomed:
+          g_homeAngleOffset = data->float32[0] * g_actuatorRatio;
+          g_motionHomedState = MHS_ApproxHomed;
+          SendParamUpdate(CPI_HomedState);
+          break;
+        case MHS_Homed:
+          SendError(g_deviceId,CET_UnavailableInCurrentMode,CPT_SetParam,index);
+          break;
+      }
       return true;
 
     case CPI_HomedState: {
@@ -125,6 +138,12 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
           break;
         case MHS_Measuring:
           MotionResetCalibration(MHS_Measuring);
+          break;
+        case MHS_ApproxHomed:
+          enum MotionHomedStateT oldState = g_motionHomedState;
+          g_motionHomedState = MHS_ApproxHomed;
+          if(oldState != g_motionHomedState)
+            SendParamUpdate(CPI_HomedState);
           break;
         case MHS_Homed:
           // Let user know it hasn't changed.
