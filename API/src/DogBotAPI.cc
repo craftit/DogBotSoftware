@@ -163,6 +163,7 @@ namespace DogBotN {
       case CPT_FlashRead: return "FlashRead";
       case CPT_IMU: return "IMU";
       case CPT_Message: return "Message";
+      case CPT_Range: return "Range";
       case CPT_Final:return "!!Final!!";
     }
     printf("Unexpected packet type %d",(int)packetType);
@@ -713,13 +714,37 @@ namespace DogBotN {
 //            "front_right_pitch" : 59.591667175292969,
 //            "front_right_roll" : 0
 
-#if 0
+    const std::vector<std::string> &legNames = LegNames();
+#if 1
     // First check all the roll joints are in the right place.
     {
 
+      std::shared_ptr<ServoC> jnts[4];
       for(int i = 0;i < 4;i++) {
         std::string jointName = legNames[i] + "_roll";
-        std::shared_ptr<ServoC> jnt = std::dynamic_pointer_cast<ServoC>(GetJointByName(jointName));
+        jnts[i] = std::dynamic_pointer_cast<ServoC>(GetJointByName(jointName));
+        if(!jnts[i]->IsAtHomeIndex()) {
+          m_log->warn("Roll joint {} not in correct position.",jointName);
+          return false;
+        }
+      }
+
+      // Each of the roll drives should at the zero position
+      for(int i = 0;i < 4;i++) {
+        TimePointT tick;
+        double position = 0;
+        double velocity = 0;
+        double torque = 0;
+        enum PositionReferenceT posRef = PR_Absolute;
+        if(!jnts[i]->GetRawState(tick,position,velocity,torque,posRef)) {
+          m_log->warn("Failed to query {} servo position.",jnts[i]->Name());
+          return false;
+        }
+        // If joint is already homed, skip it.
+        if(posRef != PR_Relative) {
+          continue;
+        }
+        m_coms->SendSetParam(jnts[i]->Id(),CPI_homeIndexPosition,position);
       }
 
       //m_homeIndexState
@@ -1276,6 +1301,28 @@ namespace DogBotN {
                             return;
                           }
                           if(anIMU->HandlePacketIMU(pkt)) {
+                            DeviceStatusUpdate(device.get(),SUT_Updated);
+                          }
+                        });
+
+    callbacks += m_coms->SetHandler(CPT_Range,
+                       [this](const uint8_t *data,int size) mutable
+                        {
+                          if(size != sizeof(PacketRangeC)) {
+                            m_log->error("'IMU' packet unexpected length {} ",size);
+                            return ;
+                          }
+                          struct PacketRangeC *pkt = (struct PacketRangeC *) data;
+                          std::shared_ptr<DeviceC> device = DeviceEntry(pkt->m_deviceId);
+                          if(!device)
+                            return ;
+                          DeviceC *devPtr = device.get();
+                          DeviceIMUC *anIMU = dynamic_cast<DeviceIMUC *>(devPtr);
+                          if(anIMU == 0) {
+                            m_log->error("Range Packet from non-IMU device. {} ({}) ",(int) pkt->m_deviceId,typeid(*devPtr).name());
+                            return;
+                          }
+                          if(anIMU->HandlePacketRange(pkt)) {
                             DeviceStatusUpdate(device.get(),SUT_Updated);
                           }
                         });

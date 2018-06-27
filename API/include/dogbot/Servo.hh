@@ -117,6 +117,9 @@ namespace DogBotN {
     //! torque in N.m
     bool GetState(TimePointT &tick,double &position,double &velocity,double &torque) const override;
 
+    //! Get raw state information
+    bool GetRawState(TimePointT &tick,double &position,double &velocity,double &torque,enum PositionReferenceT &posRef);
+
     //! Estimate state at the given time.
     //! Position in radians.
     //! Velocity in radians/second
@@ -125,6 +128,7 @@ namespace DogBotN {
     //! the same as the last reading.
     //! If the data is more than 5 ticks away from the
     bool GetStateAt(TimePointT theTime,double &position,double &velocity,double &torque) const override;
+
 
     //! Update torque for the servo. In Newton-meters.
     bool DemandTorque(float torque) override;
@@ -185,6 +189,10 @@ namespace DogBotN {
     //! Add a update callback for motor position
     CallbackHandleC AddPositionRefUpdateCallback(const PositionRefUpdateFuncT &callback)
     { return m_positionRefCallbacks.Add(callback); }
+
+    //! Test if joint home index sensor is active
+    bool IsAtHomeIndex() const
+    { return !m_homeIndexState; }
 
   protected:
     //! Convert a report value to a torque

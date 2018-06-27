@@ -47,6 +47,7 @@ extern "C" {
     CPT_FlashRead        = 27, // Read buffer and send it back
     CPT_IMU              = 28, // IMU Data packet
     CPT_Message          = 29, // Debug message packet
+    CPT_Range            = 30, // Range sensor reading
     CPT_Final                  // Use to get count of known packet types.
   };
 
@@ -369,6 +370,7 @@ extern "C" {
   struct PacketReadParamC {
     uint8_t m_packetType;
     uint8_t m_deviceId;   // Target device
+    uint8_t m_sensorId;   // Sensor id on device
     uint16_t m_index;
   } __attribute__((packed));
 
@@ -462,7 +464,13 @@ extern "C" {
     int16_t m_accel[3];
     int16_t m_gyro[3];
     int16_t m_rot[4];
-    int16_t m_groundDistance;
+  } __attribute__((packed));
+
+  struct PacketRangeC {
+    uint8_t m_packetType;
+    uint8_t m_deviceId;
+    uint8_t m_sensorId;
+    int16_t m_range;
   } __attribute__((packed));
 
   enum StateChangeSourceT {

@@ -518,6 +518,19 @@ namespace DogBotN {
     return true;
   }
 
+  //! Get raw state information
+  bool ServoC::GetRawState(TimePointT &tick,double &position,double &velocity,double &torque,enum PositionReferenceT &posRef)
+  {
+    std::lock_guard<std::mutex> lock(m_mutexState);
+    posRef = m_positionRef;
+    position = m_position;
+    velocity = m_velocity;
+    torque = m_torque;
+    tick = m_timeEpoch + m_tick * m_tickDuration;
+    return true;
+  }
+
+
   //! Estimate state at the given time.
   bool ServoC::GetStateAt(TimePointT theTime,double &position,double &velocity,double &torque) const
   {

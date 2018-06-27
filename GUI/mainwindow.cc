@@ -192,6 +192,7 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
         case MHS_Lost: emit setCalibrationState(0); break;
         case MHS_Measuring: emit setCalibrationState(1);  break;
         case MHS_Homed: emit setCalibrationState(2); break;
+        case MHS_ApproxHomed: emit setCalibrationState(3); break;
       default:
         sprintf(buff,"\n Unexpected calibration mode: %02x ",(unsigned) psp->m_data.uint8[0]);
         displayStr += buff;
@@ -958,6 +959,9 @@ void MainWindow::on_comboBoxCalibration_activated(const QString &arg1)
   if(arg1 == "Homed") {
     calMode = MHS_Homed;
   }
+  if(arg1 == "Approximated") {
+    calMode = MHS_ApproxHomed;
+  }
   m_coms->SendSetParam(m_targetDeviceId,CPI_HomedState,calMode);
 }
 
@@ -1465,20 +1469,16 @@ void MainWindow::RunAnimation()
 {
   // Lift the speed limit a bit
 
-  float speedLimit = 0;
-
   {
     std::lock_guard<std::mutex> lock(m_accessGait);
-    speedLimit = g_animationVelocityLimit;
+    m_lastSpeedLimit = g_animationVelocityLimit;
   }
 
-  m_dogBotAPI->Connection()->SendSetParam(0,CPI_VelocityLimit,speedLimit);
+  m_dogBotAPI->Connection()->SendSetParam(0,CPI_VelocityLimit,m_lastSpeedLimit);
 
   std::shared_ptr<DogBotN::LegControllerC> legs[4];
-  legs[0] = std::make_shared<DogBotN::LegControllerC>(m_dogBotAPI,"front_left");
-  legs[1] = std::make_shared<DogBotN::LegControllerC>(m_dogBotAPI,"front_right");
-  legs[2] = std::make_shared<DogBotN::LegControllerC>(m_dogBotAPI,"back_left");
-  legs[3] = std::make_shared<DogBotN::LegControllerC>(m_dogBotAPI,"back_right");
+  for(int i = 0;i < 4;i++)
+    legs[i] = std::make_shared<DogBotN::LegControllerC>(m_dogBotAPI,m_dogBotAPI->LegNames()[i]);
 
   while(m_runAnimation) {
 
@@ -1492,9 +1492,9 @@ void MainWindow::RunAnimation()
       torque = m_animationTorque;
       newSpeedLimit = g_animationVelocityLimit;
     }
-    if(newSpeedLimit != speedLimit) {
-      speedLimit = newSpeedLimit;
-      m_dogBotAPI->Connection()->SendSetParam(0,CPI_VelocityLimit,speedLimit);
+    if(newSpeedLimit != m_lastSpeedLimit) {
+      m_lastSpeedLimit = newSpeedLimit;
+      m_dogBotAPI->Connection()->SendSetParam(0,CPI_VelocityLimit,m_lastSpeedLimit);
     }
 
     for(int i = 0;i < 4;i++) {
@@ -1518,6 +1518,8 @@ void MainWindow::on_checkBoxRunAnimation_stateChanged(int arg1)
     return ;
   }
 
+  m_runStand = false;
+  ui->checkBoxStand->setChecked(false);
   if(!m_runAnimation) {
     if(m_animationThread.joinable())
       m_animationThread.join();
@@ -1551,4 +1553,40 @@ void MainWindow::on_comboBoxAmimationStyle_activated(const QString &arg1)
   std::lock_guard<std::mutex> lock(m_accessGait);
   std::cerr << "Setting style to " << arg1.toLatin1().data() << " " << std::endl;
   m_gaitController.SetStyle(arg1.toLatin1().data());
+}
+
+void MainWindow::on_horizontalSliderHeight_valueChanged(int value)
+{
+  if(!m_runStand) {
+    return ;
+  }
+  float heightDiff = m_maxHeight - m_minHeight;
+  float height = (((float) value) * heightDiff)/100.0 + m_minHeight;
+  float torque = m_animationTorque;
+  float newSpeedLimit = g_animationVelocityLimit;
+  if(newSpeedLimit != m_lastSpeedLimit) {
+    m_lastSpeedLimit = newSpeedLimit;
+    m_dogBotAPI->Connection()->SendSetParam(0,CPI_VelocityLimit,m_lastSpeedLimit);
+  }
+  for(int i = 0;i < 4;i++) {
+    Eigen::Vector3f pos = Eigen::Vector3f(0,0,-height);
+    m_legs[i]->Goto(pos,torque);
+  }
+}
+
+void MainWindow::on_checkBoxStand_stateChanged(int arg1)
+{
+  if(arg1 == 0) {
+    m_runStand = false;
+    return ;
+  }
+  m_minHeight = m_dogBotAPI->DogBotKinematics().MinLegExtension();
+  m_maxHeight = m_dogBotAPI->DogBotKinematics().MaxLegExtension();
+
+  for(int i = 0;i < 4;i++)
+    if(!m_legs[i]) m_legs[i] = std::make_shared<DogBotN::LegControllerC>(m_dogBotAPI,m_dogBotAPI->LegNames()[i]);
+
+  ui->checkBoxRunAnimation->setChecked(false);
+  StopAnimation();
+  m_runStand = true;
 }
