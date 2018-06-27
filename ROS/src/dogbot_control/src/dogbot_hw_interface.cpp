@@ -406,7 +406,7 @@ void DogBotHWInterface::write(const DogBotN::TimePointT &theTime,ros::Duration &
       std::shared_ptr<DogBotN::JointC> &jnt = m_actuators[joint_id];
       if(!jnt)
         continue;
-      //ROS_INFO_NAMED("dogbot_hw_interface", "Setting jnt '%s' to position %f ",joint_names_[joint_id].c_str(),joint_position_command_[joint_id]);
+      //ROS_INFO("Setting jnt '%s' to position %f ",joint_names_[joint_id].c_str(),joint_position_command_[joint_id]);
       jnt->DemandPosition(joint_position_command_[joint_id],5.0);
     }
   }
