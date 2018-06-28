@@ -188,7 +188,7 @@ int16_t g_driverTempADCValue = 0;
 int16_t g_motorTempADCValue = 0;
 uint16_t g_hall[3];
 int g_adcInjCount = 0;
-
+float g_supplyVoltageScale = 1.0;
 
 BSEMAPHORE_DECL(g_adcInjectedDataReady,0);
 BSEMAPHORE_DECL(g_adcDataReady,0);
@@ -336,7 +336,7 @@ float ReadSupplyVoltage(void)
 {
   uint16_t val = ReadADC(ADC_Channel_6);
 
-  return val * ((3.0+39.0)/3.0) * 3.3f/((float)(1<<12));
+  return ((float) val) * ((3.0+39.0)/3.0) * 3.3f/((float)(1<<12)) * g_supplyVoltageScale;
 }
 
 float ReadDriveTemperature(void)

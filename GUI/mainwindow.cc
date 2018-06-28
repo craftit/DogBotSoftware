@@ -113,6 +113,7 @@ MainWindow::MainWindow(QWidget *parent) :
   m_displayQuery.push_back(CPI_JointInertia);
   m_displayQuery.push_back(CPI_PWMFrequency);
   m_displayQuery.push_back(CPI_ServoReportFrequency);
+  m_displayQuery.push_back(CPI_SupplyVoltageScale);
 
   // Update default position
   ui->sliderTorque->setSliderPosition(m_torque*10.0);
@@ -526,6 +527,9 @@ void MainWindow::LocalProcessParam(PacketParam8ByteC psp)
   } break;
   case CPI_MotionUpdatePeriod: {
     ui->doubleSpinBoxMotionUpdate->setValue(psp.m_data.int16[0]);
+  } break;
+  case CPI_SupplyVoltageScale: {
+    ui->doubleSpinBoxSupplyVoltageScale->setValue(psp.m_data.float32[0]);
   } break;
   default:
     break;
@@ -1588,4 +1592,30 @@ void MainWindow::on_checkBoxStand_stateChanged(int arg1)
   ui->checkBoxRunAnimation->setChecked(false);
   StopAnimation();
   m_runStand = true;
+}
+
+void MainWindow::on_pushButtonUpdateSupplyCal_clicked()
+{
+  float voltage = atof(ui->lineEditMeasuredSupplyVoltage->text().toLatin1().data());
+  m_dogBotAPI->CalibrateSupplyVoltage(voltage);
+}
+
+void MainWindow::on_pushButtonRestoreConfig_clicked()
+{
+  m_dogBotAPI->RestoreConfig();
+}
+
+void MainWindow::on_pushButtonResetSupplyVoltageCal_clicked()
+{
+  m_dogBotAPI->SetSupplyVoltageScaleToOne();
+
+}
+
+void MainWindow::on_doubleSpinBoxSupplyVoltageScale_valueChanged(double arg1)
+{
+  if(arg1 < 0.8 || arg1 > 1.2) {
+    std::cerr << "Supply scale "  << arg1 << " value out of range." << std::endl;
+    return ;
+  }
+  m_coms->SendSetParam(m_targetDeviceId,CPI_SupplyVoltageScale,arg1);
 }

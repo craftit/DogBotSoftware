@@ -466,7 +466,7 @@ enum FaultCodeT LoadSetup(void) {
   g_endStopMaxBreakCurrent = g_storedConfig.m_endStopMaxBreakCurrent;
   g_jointInertia = g_storedConfig.m_jointInertia;
   g_safetyMode = g_storedConfig.m_safetyMode;
-
+  g_supplyVoltageScale = g_storedConfig.m_supplyVoltageScale;
   SetupEndStops();
 
   return FC_Ok;
@@ -509,6 +509,7 @@ enum FaultCodeT SaveSetup(void) {
   g_storedConfig.m_endStopMaxBreakCurrent = g_endStopMaxBreakCurrent;
   g_storedConfig.m_jointInertia = g_jointInertia;
   g_storedConfig.m_safetyMode = g_safetyMode;
+  g_storedConfig.m_supplyVoltageScale = g_supplyVoltageScale;
 
   if(!StoredConf_Save(&g_storedConfig)) {
     return FC_InternalStoreFailed;

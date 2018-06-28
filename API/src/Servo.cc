@@ -178,7 +178,7 @@ namespace DogBotN {
     m_updateQuery.push_back(CPI_EndStopEnable);
     m_updateQuery.push_back(CPI_EndStopStart);
     m_updateQuery.push_back(CPI_EndStopFinal);
-
+    m_updateQuery.push_back(CPI_SupplyVoltageScale);
 
   }
 
@@ -227,7 +227,10 @@ namespace DogBotN {
       m_endStopStart = conf.get("endStopStart",0).asFloat();
       m_endStopFinal = conf.get("endStopFinal",0).asFloat();
       m_endStopEnable = conf.get("endStopEnable",false).asBool();
-      m_homeOffset = conf.get("homeOffset",0).asFloat();
+      m_defaultHomeOffset = conf.get("homeOffset",0).asFloat();
+      m_homeOffset = m_defaultHomeOffset;
+      m_defaultSupplyVoltageScale = conf.get("supplyVoltageScale",1.0).asFloat();
+      m_supplyVoltageScale = m_defaultSupplyVoltageScale;
     }
 
     Json::Value motorCal = conf["setup"];
@@ -253,12 +256,13 @@ namespace DogBotN {
       ret["gearRatio"] = m_gearRatio;
 
       ret["homeOffset"]  = m_homeOffset;
+      ret["supplyVoltageScale"] = m_supplyVoltageScale;
 
       ret["endStopStart"] = m_endStopStart;
       ret["endStopFinal"] = m_endStopFinal;
       ret["endStopEnable"] = m_endStopEnable;
 
-      ret["safetyMode"] = m_safetyMode;
+      ret["safetyMode"] = SafetyModeToString(m_safetyMode);
     }
 
     if(m_motorCal) {
@@ -493,6 +497,11 @@ namespace DogBotN {
       if(ret) {
         m_tickDuration = std::chrono::duration<double>(1.0/m_servoReportFrequency);
       }
+    } break;
+    case CPI_SupplyVoltageScale: {
+      float scale = pkt.m_data.float32[0];
+      ret = (scale != m_supplyVoltageScale);
+      m_supplyVoltageScale = scale;
     } break;
     default:
       break;
@@ -987,6 +996,30 @@ namespace DogBotN {
     }
     cb.Remove();
     return ret;
+  }
+
+  //! Restore configuration from stored settings.
+  bool ServoC::RestoreConfig()
+  {
+    m_log->info("Restoring configuration for device {}  SupplyVoltageScale= {} ",Name(),m_defaultSupplyVoltageScale);
+    if(!DeviceC::RestoreConfig())
+      return false;
+    if(m_controlState != CS_Standby) {
+      m_log->warn("Can't restore state unless controller is in standby.");
+      return false;
+    }
+    if(!m_coms->SetParam(m_id,CPI_homeIndexPosition,m_defaultHomeOffset)) {
+      m_log->error("Failed to set homeIndexPostion for device {} ",m_deviceName);
+      return false;
+    }
+#if 0
+    if(!m_coms->SetParam(m_id,CPI_SupplyVoltageScale,m_defaultSupplyVoltageScale)) {
+      m_log->error("Failed to set supply voltage scale for device {} ",m_deviceName);
+      return false;
+    }
+#endif
+    m_coms->SendStoreConfig(m_id);
+    return true;
   }
 
 

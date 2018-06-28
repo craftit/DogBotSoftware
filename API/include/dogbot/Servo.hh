@@ -194,6 +194,13 @@ namespace DogBotN {
     bool IsAtHomeIndex() const
     { return !m_homeIndexState; }
 
+    //! Restore configuration from stored settings.
+    virtual bool RestoreConfig() override;
+
+    //! Access supply voltage scaling.
+    float SupplyVoltageScale() const
+    { return m_supplyVoltageScale; }
+
   protected:
     //! Convert a report value to a torque
     float TorqueReport2Current(int16_t val)
@@ -286,11 +293,14 @@ namespace DogBotN {
     float m_motorResistance = 0;
 
     float m_homeOffset = 0;
+    float m_defaultHomeOffset = 0; // Value as loaded from configuration.
     float m_endStopStart = 0;
     float m_endStopFinal = 0;
-
+    float m_supplyVoltageScale = 1.0;
+    float m_defaultSupplyVoltageScale = 1.0; // Value as loaded from configuration.
     bool m_endStopEnable = false;
     enum SafetyModeT m_safetyMode = SM_GlobalEmergencyStop;
+    enum SafetyModeT m_defaultSafetyMode =  SM_GlobalEmergencyStop;
     friend class DogBotAPIC;
   };
 

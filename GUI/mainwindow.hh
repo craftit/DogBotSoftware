@@ -195,6 +195,14 @@ private slots:
 
   void on_checkBoxStand_stateChanged(int arg1);
 
+  void on_pushButtonUpdateSupplyCal_clicked();
+
+  void on_pushButtonRestoreConfig_clicked();
+
+  void on_pushButtonResetSupplyVoltageCal_clicked();
+
+  void on_doubleSpinBoxSupplyVoltageScale_valueChanged(double arg1);
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);

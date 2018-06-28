@@ -432,6 +432,15 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
       return false;
     case CPI_MotionUpdatePeriod:
       return false;
+    case CPI_SupplyVoltageScale: {
+      if(len != 4)
+        return false;
+      float newValue = data->float32[0];
+      // Limit range to somewhat sensible values.
+      if(newValue < 0.8 || newValue > 1.4 || isnanf(newValue))
+        return false;
+      g_supplyVoltageScale = newValue;
+    } return true;
     case CPI_FINAL:
       return false;
     default:
@@ -744,6 +753,10 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
     case CPI_MotionUpdatePeriod: {
       *len = 2;
       data->int16[0] = g_motionUpdatePeriod;
+    } break;
+    case CPI_SupplyVoltageScale: {
+      *len = 4;
+      data->float32[0] = g_supplyVoltageScale;
     } break;
     case CPI_FINAL:
     default: return false;

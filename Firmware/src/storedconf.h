@@ -35,6 +35,7 @@ struct StoredConfigT {
   float m_endStopMaxBreakCurrent;
   float m_jointInertia;
   enum SafetyModeT m_safetyMode;
+  float m_supplyVoltageScale;
 };
 
 void StoredConf_Init(void);

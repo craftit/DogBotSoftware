@@ -311,6 +311,7 @@ namespace DogBotN {
       case CPI_PWMFrequency: return "PWMFrequency";
       case CPI_EndStopPhaseAngles: return "EndStopPhaseAngles";
       case CPI_MotionUpdatePeriod: return "MotionUpdatePeriod";
+      case CPI_SupplyVoltageScale: return "SupplyVoltageScale";
       case CPI_FINAL: return "FINAL";
     }
     printf("Unexpected parameter index %d \n",(int)paramIndex);
@@ -1482,9 +1483,10 @@ namespace DogBotN {
   }
 
 
-  //! Tell all servos to hold the current position
-  void DogBotAPIC::DemandHoldPosition()
+  // Call a method for all connected servos
+  bool DogBotAPIC::ForAllServos(const std::function<void (ServoC *)> &func)
   {
+    bool ret = true;
     size_t deviceCount = 0;
     {
       std::lock_guard<std::mutex> lock(m_mutexDevices);
@@ -1500,9 +1502,42 @@ namespace DogBotN {
       }
       if(!servo || servo->Id() == 0)
         continue;
+      func(servo.get());
+    }
+    return ret;
+  }
+
+  // Call a method for all connected devices
+  bool DogBotAPIC::ForAllDevices(const std::function<void (DeviceC *)> &func)
+  {
+    size_t deviceCount = 0;
+    {
+      std::lock_guard<std::mutex> lock(m_mutexDevices);
+      deviceCount = m_devices.size();
+    }
+    for(int i = 0;i < deviceCount;i++) {
+      std::shared_ptr<DeviceC> dev;
+      {
+        std::lock_guard<std::mutex> lock(m_mutexDevices);
+        deviceCount = m_devices.size();
+        if(i < deviceCount)
+          dev = m_devices[i];
+      }
+      if(!dev || dev->Id() == 0)
+        continue;
+      func(dev.get());
+    }
+
+    return true;
+  }
+
+  //! Tell all servos to hold the current position
+  void DogBotAPIC::DemandHoldPosition()
+  {
+    ForAllServos([this](ServoC *servo) {
       m_coms->SendSetParam(servo->Id(),CPI_PWMMode,CM_Position);
       servo->DemandPosition(servo->Position(),servo->DefaultPositionTorque(),servo->PositionReference());
-    }
+    });
     // Make sure
   }
 
@@ -1523,24 +1558,96 @@ namespace DogBotN {
 
   void DogBotAPIC::RefreshAll()
   {
+    ForAllDevices([](DeviceC *dev){ dev->QueryRefresh(); });
+  }
+
+
+  //! Update supply voltage calibration
+  bool DogBotAPIC::SetSupplyVoltageScaleToOne()
+  {
     size_t deviceCount = 0;
     {
       std::lock_guard<std::mutex> lock(m_mutexDevices);
       deviceCount = m_devices.size();
     }
     for(int i = 0;i < deviceCount;i++) {
-      std::shared_ptr<DeviceC> dev;
+      std::shared_ptr<ServoC> servo;
       {
         std::lock_guard<std::mutex> lock(m_mutexDevices);
         deviceCount = m_devices.size();
         if(i < deviceCount)
-          dev = m_devices[i];
+          servo = std::dynamic_pointer_cast<ServoC>(m_devices[i]);
       }
-      if(!dev || dev->Id() == 0)
+      if(!servo || servo->Id() == 0)
         continue;
-      dev->QueryRefresh();
+      float scale = 1.0;
+      m_log->warn("Device {} ({}) setting scale to {}. ",servo->Name(),servo->Id(),scale);
+      usleep(1000);
+      m_coms->SendSetParam(servo->Id(),CPI_SupplyVoltageScale,scale);
+    }
+    return true;
+  }
+
+  //! Update supply voltage calibration
+  bool DogBotAPIC::CalibrateSupplyVoltage(float supplyVoltage)
+  {
+    size_t deviceCount = 0;
+    if(supplyVoltage < 10.0 || supplyVoltage > 40.0) {
+      m_log->warn("Supply voltage calibration must be between 10 and 40 volts.");
+      return false;
     }
 
+    {
+      std::lock_guard<std::mutex> lock(m_mutexDevices);
+      deviceCount = m_devices.size();
+    }
+    for(int i = 0;i < deviceCount;i++) {
+      std::shared_ptr<ServoC> servo;
+      {
+        std::lock_guard<std::mutex> lock(m_mutexDevices);
+        deviceCount = m_devices.size();
+        if(i < deviceCount)
+          servo = std::dynamic_pointer_cast<ServoC>(m_devices[i]);
+      }
+      if(!servo || servo->Id() == 0)
+        continue;
+      float supplyReading = servo->SupplyVoltage();
+      if(supplyReading < 10.0) { // Must be above 10 voltage to calibrate correctly.
+        m_log->warn("Device {} has a supply voltage below 10 volts, skipping. ",servo->Id());
+        continue;
+      }
+      float scale = supplyVoltage / (supplyReading * servo->SupplyVoltageScale());
+      m_log->warn("Device {} ({}) setting scale to {}. ",servo->Name(),servo->Id(),scale);
+      m_coms->SendSetParam(servo->Id(),CPI_SupplyVoltageScale,scale);
+      m_coms->SendStoreConfig(servo->Id());
+      usleep(1000);
+    }
+    return true;
+  }
+
+  //! Restore configuration from file values.
+  bool DogBotAPIC::RestoreConfig()
+  {
+    size_t deviceCount = 0;
+    {
+      std::lock_guard<std::mutex> lock(m_mutexDevices);
+      deviceCount = m_devices.size();
+    }
+    bool ok = true;
+    for(int i = 0;i < deviceCount;i++) {
+      std::shared_ptr<ServoC> servo;
+      {
+        std::lock_guard<std::mutex> lock(m_mutexDevices);
+        deviceCount = m_devices.size();
+        if(i < deviceCount)
+          servo = std::dynamic_pointer_cast<ServoC>(m_devices[i]);
+      }
+      if(!servo || servo->Id() == 0)
+        continue;
+      if(!servo->RestoreConfig())
+        ok = true;
+    }
+    return ok;
   }
 
   //! Get servo entry by id

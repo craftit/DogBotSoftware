@@ -69,6 +69,7 @@ extern float g_PWMFrequency;
 
 extern float g_maxSupplyVoltage;
 extern float g_maxOperatingTemperature;
+extern float g_supplyVoltageScale;
 
 extern float g_driveTemperature;
 extern float g_motorTemperature;
