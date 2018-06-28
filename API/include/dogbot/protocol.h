@@ -478,7 +478,8 @@ extern "C" {
     SCS_Unknown = 2,
     SCS_Fault = 3,
     SCS_EStopLostComs = 4,
-    SCS_EStopSwitch = 5
+    SCS_EStopSwitch = 5,
+    SCS_External    = 6
   };
 
   struct PacketEmergencyStopC {

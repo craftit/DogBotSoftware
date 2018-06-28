@@ -195,6 +195,7 @@ namespace DogBotN {
       case SCS_Fault:   return "Fault";
       case SCS_EStopLostComs: return "EStopLostComs";
       case SCS_EStopSwitch: return "EStopSwitch";
+      case SCS_External: return "External";
     }
     printf("Unexpected state change source %d \n",(int)changeSource);
     return "Invalid";
@@ -1254,6 +1255,12 @@ namespace DogBotN {
                             return;
                           }
                           const PacketParam8ByteC *pkt = (const PacketParam8ByteC *) data;
+                          // Reset
+                          if(((enum ComsParameterIndexT) pkt->m_header.m_index) == CPI_ControlState) {
+                            if(((enum ControlStateT) pkt->m_data.int8[0]) == CS_Standby) {
+                              m_emergencyStopFlags[pkt->m_header.m_deviceId] = false;
+                            }
+                          }
                           // We can only deal with devices after they've been allocated an id.
                           std::shared_ptr<DeviceC> device = DeviceEntry(pkt->m_header.m_deviceId);
                           if(!device)
@@ -1351,7 +1358,13 @@ namespace DogBotN {
                                        if(m_emergencyStopFlags[es->m_deviceId]) // Already seen message?
                                          return ;
                                        m_emergencyStopFlags[es->m_deviceId] = true;
-                                       m_log->error("Got emergency stop from device {}, cause type {} ({}) ",es->m_deviceId,ComsStateChangeSource((enum StateChangeSourceT) es->m_cause),es->m_cause);
+                                       std::string causeStr;
+                                       if(es->m_cause & 0x80) {
+                                         causeStr = std::string("Device ") + std::to_string((int)(es->m_cause & 0x7f));
+                                       } else {
+                                         causeStr = ComsStateChangeSource((enum StateChangeSourceT) es->m_cause);
+                                       }
+                                       m_log->error("Got emergency stop from device {}, cause type {} ({}) ",(int) es->m_deviceId,causeStr,(int) es->m_cause);
                                      });
 
     while(!m_terminate)

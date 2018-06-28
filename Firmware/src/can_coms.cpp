@@ -35,15 +35,15 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
       enum StateChangeSourceT changeSource = SCS_Unknown;
       uint8_t changeDevice = 0;
       if(rxmsg.DLC == 2) {
-        changeSource = (enum StateChangeSourceT) rxmsg.data8[0];
-        changeDevice = rxmsg.data8[1];
+        changeDevice = rxmsg.data8[0];
+        changeSource = (enum StateChangeSourceT) rxmsg.data8[1];
       }
-      ChangeControlState(CS_EmergencyStop,changeSource);
+      ChangeControlState(CS_EmergencyStop,SCS_External);
       if(g_canBridgeMode) {
         struct PacketEmergencyStopC pkt;
         pkt.m_packetType = CPT_EmergencyStop;
-        pkt.m_deviceId = changeSource;
-        pkt.m_cause = changeDevice;
+        pkt.m_deviceId = changeDevice;
+        pkt.m_cause = changeSource;
         USBSendPacket((uint8_t *) &pkt,sizeof(pkt));
       }
     } break;

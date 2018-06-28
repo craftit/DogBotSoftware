@@ -2,11 +2,10 @@
 #define _BSD_SOURCE 1
 
 #include "dogbot/Servo.hh"
+#include "dogbot/DogBotAPI.hh"
 #include "dogbot/Util.hh"
 #include <string>
 #include <cmath>
-
-
 
 namespace DogBotN {
 
@@ -371,6 +370,9 @@ namespace DogBotN {
     case CPI_FaultCode: {
       enum FaultCodeT faultCode = (enum FaultCodeT) pkt.m_data.uint8[0];
       ret = m_faultCode != faultCode;
+      if(faultCode != FC_Ok && ret) {
+        m_log->warn("Fault received '{}' on device {} ",FaultCodeToString(faultCode),Name());
+      }
       m_faultCode = faultCode;
     } break;
     case CPI_ControlState: {
