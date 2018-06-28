@@ -62,9 +62,9 @@ namespace DogBotN {
       case MHS_Lost: return "Lost";
       case MHS_Measuring: return "Measuring";
       case MHS_Homed: return "Homed";
-      case MHS_ApproxHomed: return "Approximated";
+      case MHS_SoftHomed: return "SoftHomed";
     }
-    printf("Unexpected homed state %d",(int)calibrationState);
+    printf("Unexpected homed state %d \n",(int)calibrationState);
     return "Invalid";
   }
 
@@ -85,7 +85,7 @@ namespace DogBotN {
     case CS_Diagnostic: return "Diagnostic";
     case CS_BootLoader: return "Boot Loader";
     }
-    printf("Unexpected state %d",(int)controlState);
+    printf("Unexpected state %d \n",(int)controlState);
     return "Invalid";
   }
 
@@ -101,7 +101,7 @@ namespace DogBotN {
       case CM_Fault: return "Fault";
       case CM_Final: return "Final";
     }
-    printf("Unexpected dynamic value %d",(int)dynamic);
+    printf("Unexpected dynamic value %d \n",(int)dynamic);
     return "Invalid";
   }
 
@@ -125,7 +125,7 @@ namespace DogBotN {
       case CET_BootLoaderUnalignedAddress: return "BootLoader unaligned address";
       case CET_UnavailableInCurrentMode: return "Command unavailable in current mode.";
     }
-    printf("Unexpected error code %d",(int)errorCode);
+    printf("Unexpected error code %d \n",(int)errorCode);
     return "Invalid";
   }
 
@@ -166,7 +166,7 @@ namespace DogBotN {
       case CPT_Range: return "Range";
       case CPT_Final:return "!!Final!!";
     }
-    printf("Unexpected packet type %d",(int)packetType);
+    printf("Unexpected packet type %d \n",(int)packetType);
     return "Invalid";
   }
 
@@ -180,7 +180,7 @@ namespace DogBotN {
       case DT_BootLoader: return "boot loader";
       case DT_IMU: return "IMU";
     }
-    printf("Unexpected device type %d",(int)deviceType);
+    printf("Unexpected device type %d \n",(int)deviceType);
     return "Invalid";
   }
 
@@ -196,7 +196,7 @@ namespace DogBotN {
       case SCS_EStopLostComs: return "EStopLostComs";
       case SCS_EStopSwitch: return "EStopSwitch";
     }
-    printf("Unexpected state change source %d",(int)changeSource);
+    printf("Unexpected state change source %d \n",(int)changeSource);
     return "Invalid";
   }
 
@@ -211,7 +211,7 @@ namespace DogBotN {
       case SM_MasterEmergencyStop: return "Master Emergency Stop";
       case SM_LocalStop: return "Local Stop";
     }
-    printf("Unexpected safety mode %d",(int)safetyMode);
+    printf("Unexpected safety mode %d \n",(int)safetyMode);
     return "Invalid";
   }
 
@@ -312,7 +312,7 @@ namespace DogBotN {
       case CPI_MotionUpdatePeriod: return "MotionUpdatePeriod";
       case CPI_FINAL: return "FINAL";
     }
-    printf("Unexpected parameter index %d",(int)paramIndex);
+    printf("Unexpected parameter index %d \n",(int)paramIndex);
     return "Invalid";
   }
 
@@ -416,7 +416,7 @@ namespace DogBotN {
       case CPI_FINAL: return CPIT_Invalid;
     }
 
-    printf("Unexpected parameter index %d for type query",(int)paramIndex);
+    printf("Unexpected parameter index %d for type query. \n",(int)paramIndex);
     return CPIT_Unknown;
   }
 

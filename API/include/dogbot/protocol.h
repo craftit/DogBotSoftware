@@ -344,7 +344,7 @@ extern "C" {
     MHS_Lost       = 0,
     MHS_Measuring  = 1,
     MHS_Homed      = 2,
-    MHS_ApproxHomed= 3
+    MHS_SoftHomed= 3
   };
 
   struct PacketErrorC {
@@ -370,7 +370,6 @@ extern "C" {
   struct PacketReadParamC {
     uint8_t m_packetType;
     uint8_t m_deviceId;   // Target device
-    uint8_t m_sensorId;   // Sensor id on device
     uint16_t m_index;
   } __attribute__((packed));
 

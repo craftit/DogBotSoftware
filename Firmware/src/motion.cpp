@@ -133,7 +133,7 @@ static int16_t PhaseVelocityToInt16(float angle)
 
 void SetupEndStops()
 {
-  if(g_motionHomedState != MHS_Homed && g_motionHomedState != MHS_ApproxHomed) {
+  if(g_motionHomedState != MHS_Homed && g_motionHomedState != MHS_SoftHomed) {
     g_endStopPhaseMin = 0;
     g_endStopPhaseMax = 0;
     g_endStopTargetAcceleration = -1; // Disable acceleration based end-stops for the moment.
@@ -361,8 +361,10 @@ void MotionStep()
   {
     case MHS_Lost:
       break;
+    case MHS_SoftHomed:
     case MHS_Measuring:
       // Establishing a new calibration
+      // FIXME:- If we change the home position from SoftHome, should we fade in the position change to avoid jumps?
       if(g_newCalibrationData) {
         g_newCalibrationData = false;
         if(MotionEstimateOffset(g_homeAngleOffset)) {
