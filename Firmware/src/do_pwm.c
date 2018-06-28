@@ -729,12 +729,22 @@ static THD_FUNCTION(ThreadPWM, arg) {
   (void)arg;
   chRegSetThreadName("pwm");
 
+  // Set initial motor mode
+  SetMotorControlMode(CM_Brake);
 
   palSetPad(GPIOC, GPIOC_PIN13); // Wake
 
   //! Wait for powerup to complete
-  // TODO: Add a timeout and report and error
-  while (!palReadPad(GPIOD, GPIOD_PIN2) && g_pwmRun) {
+  int timeOut = 10;
+  while (!palReadPad(GPIOD, GPIOD_PIN2) && g_pwmRun ) {
+    if(timeOut-- < 0) {
+      palClearPad(GPIOC, GPIOC_PIN14); // Paranoid gate disable
+      palClearPad(GPIOC, GPIOC_PIN13); // Go back to sleep
+      g_gateDriverFault = true;
+      g_pwmRun = false;
+      g_pwmThreadRunning = false;
+      return ;
+    }
     chThdSleepMilliseconds(100);
   }
 
@@ -786,6 +796,9 @@ static THD_FUNCTION(ThreadPWM, arg) {
 
   g_velocityISum = 0; // Reset velocity integral
   g_phaseRotationCount = 0; // Reset the rotation count to zero.
+  g_demandTorque = 0;
+  g_demandPhasePosition = 0;
+  g_demandPhaseVelocity = 0;
 
   // Do main control loop
   MotorControlLoop();
