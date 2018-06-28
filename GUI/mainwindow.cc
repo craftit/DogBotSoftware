@@ -192,7 +192,7 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
         case MHS_Lost: emit setCalibrationState(0); break;
         case MHS_Measuring: emit setCalibrationState(1);  break;
         case MHS_Homed: emit setCalibrationState(2); break;
-        case MHS_ApproxHomed: emit setCalibrationState(3); break;
+        case MHS_SoftHomed: emit setCalibrationState(3); break;
       default:
         sprintf(buff,"\n Unexpected calibration mode: %02x ",(unsigned) psp->m_data.uint8[0]);
         displayStr += buff;
@@ -952,15 +952,15 @@ void MainWindow::on_comboBoxCalibration_activated(const QString &arg1)
   enum MotionHomedStateT calMode = MHS_Lost;
   if(arg1 == "Lost") {
     calMode = MHS_Lost;
-  }
-  if(arg1 == "Measuring") {
+  } else if(arg1 == "Measuring") {
     calMode = MHS_Measuring;
-  }
-  if(arg1 == "Homed") {
+  } else if(arg1 == "Homed") {
     calMode = MHS_Homed;
-  }
-  if(arg1 == "Approximated") {
-    calMode = MHS_ApproxHomed;
+  } else if(arg1 == "Soft Homed") {
+    calMode = MHS_SoftHomed;
+  } else {
+    std::cerr << "Homed state " << arg1.toLatin1().data() << "not known." << std::endl;
+    assert(0 && "Unrecognised homed state.");
   }
   m_coms->SendSetParam(m_targetDeviceId,CPI_HomedState,calMode);
 }
@@ -1092,7 +1092,6 @@ void MainWindow::on_doubleSpinBoxDemandPosition_editingFinished()
   default:
     break;
   }
-
 }
 
 void MainWindow::on_doubleSpinBoxTorqueLimit_editingFinished()

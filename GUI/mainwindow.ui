@@ -109,7 +109,7 @@
        <bool>true</bool>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="tab_connect">
        <attribute name="title">
@@ -592,7 +592,7 @@
              </item>
              <item>
               <property name="text">
-               <string>Approximated</string>
+               <string>Soft Homed</string>
               </property>
              </item>
             </widget>
