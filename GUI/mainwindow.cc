@@ -43,12 +43,9 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(this,SIGNAL(setControlMode(const QString &)),ui->comboBoxMotorControlMode,SLOT(setCurrentText(const QString &)));
   connect(this,SIGNAL(setFault(const QString &)),ui->lineEditFault,SLOT(setText(const QString &)));
   connect(this,SIGNAL(setCalibrationAngle(double)),ui->doubleSpinBoxCalibrationOffset,SLOT(setValue(double)));
-  connect(this,SIGNAL(setOtherJoint(int)),ui->spinOtherJointId,SLOT(setValue(int)));
   connect(this,SIGNAL(setPositionRef(const QString &)),ui->comboBoxPositionRef,SLOT(setCurrentText(const QString &)));
   connect(this,SIGNAL(setIndicator(bool)),ui->checkBoxIndicator,SLOT(setChecked(bool)));
 
-  connect(this,SIGNAL(setOtherJointGain(double)),ui->doubleSpinBoxJointRelGain,SLOT(setValue(double)));
-  connect(this,SIGNAL(setOtherJointOffset(double)),ui->doubleSpinBoxJointRelOffset,SLOT(setValue(double)));
 
   connect(this,SIGNAL(setSupplyVoltage(QString)),ui->lineEdit_SupplyVoltage,SLOT(setText(QString)));
   connect(this,SIGNAL(setDriveTemperature(QString)),ui->lineEdit_DriveTemperature,SLOT(setText(QString)));
@@ -71,7 +68,6 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(this,SIGNAL(setMainLoopTimeout(QString)),ui->lineEditMainLoopTimeout,SLOT(setText(QString)));
   connect(this,SIGNAL(setFaultMap(QString)),ui->lineEditFaultMap,SLOT(setText(QString)));
   connect(this,SIGNAL(setIndexSensor(bool)),ui->checkBoxIndexSensor,SLOT(setChecked(bool)));
-  connect(this,SIGNAL(setJointRelativeEnabled(bool)),ui->checkBoxJointRelative,SLOT(setChecked(bool)));
   connect(this,SIGNAL(setFanMode(const QString &)),ui->comboBoxFanState,SLOT(setCurrentText(QString)));
   connect(this,SIGNAL(updatePosition(double)),this,SLOT(on_updatePosition(double)));
 
@@ -87,10 +83,7 @@ MainWindow::MainWindow(QWidget *parent) :
   m_displayQuery.push_back(CPI_PositionRef);
   m_displayQuery.push_back(CPI_PWMMode);
   m_displayQuery.push_back(CPI_CalibrationOffset);
-  m_displayQuery.push_back(CPI_OtherJoint);
   m_displayQuery.push_back(CPI_Indicator);
-  m_displayQuery.push_back(CPI_OtherJointOffset);
-  m_displayQuery.push_back(CPI_OtherJointGain);
   m_displayQuery.push_back(CPI_MotorIGain);
   m_displayQuery.push_back(CPI_VelocityPGain);
   m_displayQuery.push_back(CPI_VelocityIGain);
@@ -231,12 +224,7 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     }
     ret = false;
   } break;
-  case CPI_OtherJoint: {
-    if(psp->m_header.m_deviceId == m_targetDeviceId) {
-      uint8_t otherJointId = psp->m_data.uint8[0];
-      setOtherJoint(otherJointId);
-    }
-  } break;
+  case CPI_OtherJoint:  break;
   case CPI_PositionRef: {
     if(psp->m_header.m_deviceId == m_targetDeviceId) {
       enum PositionReferenceT posRef = (enum PositionReferenceT) psp->m_data.uint8[0];
@@ -248,23 +236,11 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     }
   } break;
   case CPI_JointRelative: {
-    if(psp->m_header.m_deviceId == m_targetDeviceId) {
-      enum JointRelativeT jointRelativeMode = (enum JointRelativeT) psp->m_data.uint8[0];
-      emit setJointRelativeEnabled(jointRelativeMode != JR_Isolated);
-    }
   } break;
   case CPI_Indicator: {
   } break;
-  case CPI_OtherJointGain:
-    if(psp->m_header.m_deviceId == m_targetDeviceId) {
-      emit setOtherJointGain(psp->m_data.float32[0]);
-    }
-    break;
-  case CPI_OtherJointOffset:
-    if(psp->m_header.m_deviceId == m_targetDeviceId) {
-      emit setOtherJointOffset(DogBotN::Rad2Deg(psp->m_data.float32[0]));
-    }
-    break;
+  case CPI_OtherJointGain: break;
+  case CPI_OtherJointOffset: break;
   case CPI_MotorInductance:
     sprintf(buff,"\n Inductance: %f ", psp->m_data.float32[0]);
     displayStr += buff;
@@ -1014,11 +990,6 @@ void MainWindow::on_checkBoxIndicator_toggled(bool checked)
   m_coms->SendSetParam(m_targetDeviceId,CPI_Indicator,checked);
 }
 
-void MainWindow::on_spinOtherJointId_valueChanged(int arg1)
-{
-  m_coms->SendSetParam(m_targetDeviceId,CPI_OtherJoint,arg1);
-}
-
 void MainWindow::on_comboBox_activated(const QString &arg1)
 {
   if(arg1 == "Relative") {
@@ -1284,17 +1255,6 @@ void MainWindow::on_comboBoxFanState_currentIndexChanged(const QString &arg1)
 void MainWindow::on_comboBoxFanState_activated(int index)
 {
   m_coms->SendSetParam(m_targetDeviceId,CPI_FanMode,index);
-}
-
-void MainWindow::on_checkBoxJointRelative_stateChanged(int arg1)
-{
-  enum JointRelativeT jointRelativeMode;
-  if(arg1 == 0) {
-    jointRelativeMode = JR_Isolated;
-  } else {
-    jointRelativeMode = JR_Offset;
-  }
-  m_coms->SendSetParam(m_targetDeviceId,CPI_JointRelative,jointRelativeMode);
 }
 
 void MainWindow::on_lineEditFanTempThreshold_editingFinished()

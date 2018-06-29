@@ -164,9 +164,6 @@ namespace DogBotN {
     m_updateQuery.push_back(CPI_ServoReportFrequency);
     m_updateQuery.push_back(CPI_PWMMode);
     m_updateQuery.push_back(CPI_CalibrationOffset);
-    m_updateQuery.push_back(CPI_OtherJoint);
-    m_updateQuery.push_back(CPI_OtherJointOffset);
-    m_updateQuery.push_back(CPI_OtherJointGain);
     m_updateQuery.push_back(CPI_MotorIGain);
     m_updateQuery.push_back(CPI_VelocityPGain);
     m_updateQuery.push_back(CPI_VelocityIGain);

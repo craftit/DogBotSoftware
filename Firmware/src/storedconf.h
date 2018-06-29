@@ -13,10 +13,10 @@ struct StoredConfigT {
   uint16_t configState;  // 0-Unconfigured 1-Ready
   uint16_t deviceId;
   uint16_t phaseAngles[g_calibrationPointCount][3];
-  uint8_t otherJointId;
+  uint8_t otherJointId; // Obsolete
   uint8_t m_motionPositionReference;
-  float m_relativePositionGain;
-  float m_relativePositionOffset;
+  float m_relativePositionGain; // Obsolete
+  float m_relativePositionOffset; // Obsolete
   float m_phaseResistance;
   float m_phaseOffsetVoltage;
   float m_phaseInductance;

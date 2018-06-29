@@ -185,12 +185,6 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
       if((rxmsg.data8[4] & 0x80) != 0) {
         EmergencyStopReceivedSafeFlag(rxDeviceId);
       }
-      if(rxDeviceId == g_otherJointId &&
-          g_otherJointId != 0 &&
-          g_otherJointId != g_deviceId &&
-          rxmsg.DLC == 8) {
-        MotionOtherJointUpdate(rxmsg.data16[0],rxmsg.data16[1],rxmsg.data8[4],rxmsg.data8[5]);
-      }
       if(g_canBridgeMode) {
         if(rxmsg.DLC != 8) {
           USBSendError(rxDeviceId,CET_UnexpectedPacketSize,CPT_ServoReport,rxmsg.DLC);

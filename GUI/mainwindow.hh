@@ -72,8 +72,6 @@ private slots:
 
   void on_checkBoxIndicator_toggled(bool checked);
 
-  void on_spinOtherJointId_valueChanged(int arg1);
-
   void on_comboBox_activated(const QString &arg1);
 
   void on_comboBoxPositionRef_activated(const QString &arg1);
@@ -210,11 +208,8 @@ signals:
   void setFault(const QString &str);
   void setCalibrationState(int index);
   void setCalibrationAngle(double value);
-  void setOtherJoint(int jointId);
   void setPositionRef(const QString &str);
   void setIndicator(bool state);
-  void setOtherJointGain(double gain);
-  void setOtherJointOffset(double offset);
   void setSupplyVoltage(QString str);
   void setDriveTemperature(QString str);
   void setMotorTemperature(QString str);

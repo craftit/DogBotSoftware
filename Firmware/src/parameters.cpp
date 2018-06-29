@@ -11,7 +11,6 @@
 #include "motion.h"
 #include "drv8503.h"
 #include "hal_channels.h"
-
 #include <string.h>
 
 uint8_t g_debugIndex = 0x55;
@@ -186,21 +185,13 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
         return false;
       g_indicatorState = data->uint8[0] > 0;
       break;
-    case CPI_OtherJoint:
-      if(len != 1)
-        return false;
-      g_otherJointId = data->uint8[0];
+    case CPI_OtherJoint: // Obsolete.
+      return false;
       break;
-    case CPI_OtherJointGain:
-      if(len != 4)
-        return false;
-      g_relativePositionGain = data->float32[0];
-      break;
-    case CPI_OtherJointOffset:
-      if(len != 4)
-        return false;
-      g_relativePositionOffset = data->float32[0] * g_actuatorRatio;
-      break;
+    case CPI_OtherJointGain:  // Obsolete.
+      return false;
+    case CPI_OtherJointOffset:  // Obsolete.
+      return false;
     case CPI_DebugIndex:
       g_debugIndex = len;
       break;
@@ -295,20 +286,8 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
     case CPI_MainLoopTimeout:
       g_mainLoopTimeoutCount = 0;
       break;
-    case CPI_JointRelative: {
-      if(len != 1)
-        return false;
-      enum JointRelativeT posRef = (enum JointRelativeT) data->uint8[0];
-      switch(posRef)
-      {
-        case JR_Isolated:
-        case JR_Offset:
-          g_motionJointRelative = posRef;
-          break;
-        default:
-          return false;
-      }
-    } break;
+    case CPI_JointRelative: // Obsolete
+      return false;
     case CPI_FanMode: {
       if(len != 1)
         return false;
@@ -430,14 +409,17 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
     case CPI_PWMFrequency:
       // Setting the PWM frequency is not supported at the moment.
       return false;
-    case CPI_MotionUpdatePeriod:
-      return false;
+    case CPI_MotionUpdatePeriod: {
+      if(len != 2)
+        return false;
+      g_motionUpdatePeriod = data->int16[0];
+    } return false;
     case CPI_SupplyVoltageScale: {
       if(len != 4)
         return false;
       float newValue = data->float32[0];
       // Limit range to somewhat sensible values.
-      if(newValue < 0.8 || newValue > 1.4 || isnanf(newValue))
+      if(newValue < 0.8 || newValue > 1.4)
         return false;
       g_supplyVoltageScale = newValue;
     } return true;
@@ -544,17 +526,17 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       *len = 4;
       data->float32[0] = g_motorTemperature;
       break;
-    case CPI_OtherJoint:
+    case CPI_OtherJoint: // Obsolete.
       *len = 1;
-      data->uint8[0] = g_otherJointId;
+      data->uint8[0] = 0;
       break;
-    case CPI_OtherJointGain:
+    case CPI_OtherJointGain: // Obsolete
       *len = 4;
-      data->float32[0] = g_relativePositionGain;
+      data->float32[0] = 0;
       break;
-    case CPI_OtherJointOffset:
+    case CPI_OtherJointOffset: // Obsolete
       *len = 4;
-      data->float32[0] = g_relativePositionOffset / g_actuatorRatio;
+      data->float32[0] = 0;
       break;
     case CPI_PhaseVelocity:
       *len = 4;
@@ -671,9 +653,9 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       *len = 4;
       data->uint32[0] = g_mainLoopTimeoutCount;
       break;
-    case CPI_JointRelative:
+    case CPI_JointRelative: // Obsolete
       *len = 1;
-      data->uint8[0] = g_motionJointRelative;
+      data->uint8[0] = 0;
       break;
     case CPI_FanMode: {
       *len = 1;

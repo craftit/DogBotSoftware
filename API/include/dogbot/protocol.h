@@ -159,9 +159,9 @@ extern "C" {
     CPI_Indicator       = 14,
     CPI_DriveTemp       = 15,
     CPI_MotorTemp       = 16,
-    CPI_OtherJoint      = 17,
-    CPI_OtherJointGain  = 18,
-    CPI_OtherJointOffset= 19,
+    CPI_OtherJoint      = 17, // Obsolete
+    CPI_OtherJointGain  = 18, // Obsolete
+    CPI_OtherJointOffset= 19, // Obsolete
     CPI_DebugIndex      = 20,
     CPI_MotorResistance = 21,
     CPI_MotorInductance = 22,
@@ -318,15 +318,6 @@ extern "C" {
   enum PositionReferenceT {
     PR_Relative = 0,
     PR_Absolute = 1
-  };
-
-  /*
-   * Position the joint relative to another.
-   */
-
-  enum JointRelativeT {
-    JR_Isolated = 0,
-    JR_Offset   = 1
   };
 
   enum FanModeT {

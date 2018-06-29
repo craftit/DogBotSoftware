@@ -24,14 +24,9 @@ enum MotionHomedStateT g_motionHomedState = MHS_Lost;
 enum PositionReferenceT g_motionPositionReference = PR_Absolute;
 enum ControlStateT g_controlState = CS_Standby;
 enum FaultCodeT g_lastFaultCode = FC_Ok;
-enum JointRelativeT g_motionJointRelative = JR_Isolated;
 
 bool g_indicatorState = false;
 bool g_newCalibrationData = false;
-
-uint8_t g_otherJointId = 0;
-float g_relativePositionGain = 1.0;
-float g_relativePositionOffset = 0.0;
 
 bool MotionSyncTime(void)
 {
@@ -108,9 +103,6 @@ bool MotionEstimateOffset(float &value)
 
 uint8_t g_requestedJointMode = 0;
 int16_t g_requestedJointPosition = 0;
-uint8_t g_otherJointMode = 0;
-int16_t g_otherJointPosition = 0;
-float g_otherPhaseOffset = 0; // Last reported position of other joint.
 
 static float DemandInt16ToPhasePosition(int16_t position)
 {
@@ -153,50 +145,40 @@ void EnterHomedState()
   SendParamUpdate(CPI_HomedState);
 }
 
-float g_motionLastPositionRequest = 0;
 int g_motionUpdatePeriod = 180;
-int g_motionPositionTime = g_motionUpdatePeriod;
-int g_motionLastPositionTime = 0;
-float g_motionUdpateAccum = 180.0;
+int g_motionPositionTime = 0; // This is incremented in the PWM loop.
+float g_motionLastPositionRequest = 0;
 
-bool UpdateRequestedPosition()
+bool MotionSetPosition(uint8_t jointMode,int16_t position,uint16_t torqueLimit)
 {
+  g_requestedJointMode = jointMode;
+  float newCurrentLimit = ((float) torqueLimit) * g_absoluteMaxCurrent / (65536.0);
+
+  // If we're not homed put a limit on the maximum current we'll accept.
+  if(g_motionHomedState != MHS_Homed) {
+    if(newCurrentLimit > g_uncalibratedCurrentLimit) {
+      newCurrentLimit = g_uncalibratedCurrentLimit;
+    }
+  }
+
+  g_currentLimit = newCurrentLimit;
+  g_requestedJointPosition = position;
+
+
   enum PWMControlDynamicT mode = static_cast<enum PWMControlDynamicT>(g_requestedJointMode >> 2);
   switch(mode)
   {
     case CM_Position:
       {
         bool haveValidVelocity = false;
-        int timeDiff =  g_motionPositionTime - g_motionLastPositionTime;
-        if(timeDiff > 10 && timeDiff < 1000) {
-          g_motionUdpateAccum += (timeDiff - g_motionUdpateAccum) * 0.1;
-          g_motionUpdatePeriod = (int) (g_motionUdpateAccum + 0.5f);
-          haveValidVelocity = true;
-        } else {
-          g_motionUpdatePeriod = 0;
-        }
 
         float positionAsPhaseAngle = DemandInt16ToPhasePosition(g_requestedJointPosition);
-
 
         if((g_requestedJointMode & 0x1) != 0) { // Calibrated position ?
           // Yes we're dealing with a calibrated position request,
           // this can only be processed if we're homed.
           if(g_motionHomedState != MHS_Homed) return false;
           positionAsPhaseAngle += g_homeAngleOffset;
-        }
-
-
-        if((g_motionPositionReference & 0x2) != 0) { // Relative position to another joint?
-          // If we want a calibrated position and the other joint is uncalibrated then
-          // give up.
-          if((g_otherJointMode & 0x1) == 0
-              && (g_motionPositionReference & 0x1) != 0) {
-            return false;
-          }
-          g_otherPhaseOffset = DemandInt16ToPhasePosition(g_otherJointPosition)
-              * g_relativePositionGain + g_relativePositionOffset;
-          positionAsPhaseAngle += g_otherPhaseOffset;
         }
 
         // Check the demand position doesn't leave the soft end stops. The soft end stops are only
@@ -240,38 +222,6 @@ bool UpdateRequestedPosition()
       FaultDetected(FC_InvalidCommand);
       break;
   }
-  return true;
-}
-
-
-bool MotionSetPosition(uint8_t mode,int16_t position,uint16_t torqueLimit)
-{
-  g_requestedJointMode = mode;
-  float newCurrentLimit = ((float) torqueLimit) * g_absoluteMaxCurrent / (65536.0);
-
-  // If we're not homed put a limit on the maximum current we'll accept.
-  if(g_motionHomedState != MHS_Homed) {
-    if(newCurrentLimit > g_uncalibratedCurrentLimit) {
-      newCurrentLimit = g_uncalibratedCurrentLimit;
-    }
-  }
-
-  g_currentLimit = newCurrentLimit;
-  g_requestedJointPosition = position;
-
-  return UpdateRequestedPosition();
-}
-
-bool MotionOtherJointUpdate(int16_t position,int16_t torque,uint8_t mode,uint8_t timestamp)
-{
-  // The following are not used at the moment.
-  (void) timestamp;
-  (void) torque;
-
-  g_otherJointPosition = position;
-  g_otherJointMode = mode;
-  if((g_motionPositionReference & 0x2) != 0)
-    return UpdateRequestedPosition();
   return true;
 }
 
@@ -409,14 +359,10 @@ void MotionStep()
         position = g_currentPhasePosition;
         posRef = PR_Relative;
       }
-      if(g_motionJointRelative == JR_Offset)
-        position -= g_otherPhaseOffset;
       int16_t reportPosition = PhasePositionToDemandInt16(position);
       MotionReport(reportPosition,reportVelocity,torque,posRef,g_motionTime);
     } break;
     case PR_Relative: {
-      if(g_motionJointRelative == JR_Offset)
-        position -= g_otherPhaseOffset;
       uint16_t reportPosition = PhasePositionToDemandInt16(position);
       MotionReport(reportPosition,reportVelocity,torque,posRef,g_motionTime);
     } break;
@@ -433,9 +379,6 @@ enum FaultCodeT LoadSetup(void) {
   StoredConf_Load(&g_storedConfig);
 
   //g_deviceId = g_storedConfig.deviceId; //!< This can cause Id conflicts, better to let controller give id again
-  g_otherJointId = g_storedConfig.otherJointId;
-  g_relativePositionGain = g_storedConfig.m_relativePositionGain;
-  g_relativePositionOffset = g_storedConfig.m_relativePositionOffset;
   g_motionPositionReference = (enum PositionReferenceT) g_storedConfig.m_motionPositionReference;
 
   g_phaseResistance = g_storedConfig.m_phaseResistance;
@@ -480,10 +423,7 @@ enum FaultCodeT SaveSetup(void) {
 
   g_storedConfig.configState = 1;
   g_storedConfig.deviceId = g_deviceId;
-  g_storedConfig.otherJointId = g_otherJointId;
 
-  g_storedConfig.m_relativePositionGain = g_relativePositionGain;
-  g_storedConfig.m_relativePositionOffset =  g_relativePositionOffset;
   g_storedConfig.m_motionPositionReference = (int) g_motionPositionReference;
   g_storedConfig.m_phaseResistance = g_phaseResistance;
   g_storedConfig.m_phaseInductance = g_phaseInductance;
