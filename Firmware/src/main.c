@@ -337,7 +337,6 @@ void SendBackgroundStateReport(void)
   static int lastUsbDrop = 0;
   static int lastCANError = 0;
   static int lastCANDrop = 0;
-  static int lastMotionUpdatePeriod = 0;
   static unsigned lastFaultState = 0;
   static unsigned lastMainLoopTimeoutCount = 0;
 
@@ -400,22 +399,16 @@ void SendBackgroundStateReport(void)
       }
       break;
     case 6:
-      if(lastMotionUpdatePeriod != g_motionUpdatePeriod) {
-        lastMotionUpdatePeriod = g_motionUpdatePeriod;
-        SendParamUpdate(CPI_MotionUpdatePeriod);
-      }
-      break;
-    case 7:
       // Finish here unless we're in diagnostic mode.
       if(g_controlState != CS_Diagnostic) {
         stateCount = -1;
         return ;
       }
       break;
-    case 8:
+    case 7:
       SendParamUpdate(CPI_DemandPhaseVelocity);
       break;
-    case 9:
+    case 8:
       SendParamUpdate(CPI_HallSensors);
       break;
   }

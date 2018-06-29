@@ -374,24 +374,24 @@ namespace DogBotN {
       case CPI_FaultState: return CPIT_uint32;
       case CPI_IndexSensor: return CPIT_bool;
 
-      case CPI_ANGLE_CAL_0: return CPIT_uint16;
-      case CPI_ANGLE_CAL_1: return CPIT_uint16;
-      case CPI_ANGLE_CAL_2: return CPIT_uint16;
-      case CPI_ANGLE_CAL_3: return CPIT_uint16;
-      case CPI_ANGLE_CAL_4: return CPIT_uint16;
-      case CPI_ANGLE_CAL_5: return CPIT_uint16;
-      case CPI_ANGLE_CAL_6: return CPIT_uint16;
-      case CPI_ANGLE_CAL_7: return CPIT_uint16;
-      case CPI_ANGLE_CAL_8: return CPIT_uint16;
-      case CPI_ANGLE_CAL_9: return CPIT_uint16;
-      case CPI_ANGLE_CAL_10: return CPIT_uint16;
-      case CPI_ANGLE_CAL_11: return CPIT_uint16;
-      case CPI_ANGLE_CAL_12: return CPIT_uint16;
-      case CPI_ANGLE_CAL_13: return CPIT_uint16;
-      case CPI_ANGLE_CAL_14: return CPIT_uint16;
-      case CPI_ANGLE_CAL_15: return CPIT_uint16;
-      case CPI_ANGLE_CAL_16: return CPIT_uint16;
-      case CPI_ANGLE_CAL_17: return CPIT_uint16;
+      case CPI_ANGLE_CAL_0: return CPIT_uint16_3;
+      case CPI_ANGLE_CAL_1: return CPIT_uint16_3;
+      case CPI_ANGLE_CAL_2: return CPIT_uint16_3;
+      case CPI_ANGLE_CAL_3: return CPIT_uint16_3;
+      case CPI_ANGLE_CAL_4: return CPIT_uint16_3;
+      case CPI_ANGLE_CAL_5: return CPIT_uint16_3;
+      case CPI_ANGLE_CAL_6: return CPIT_uint16_3;
+      case CPI_ANGLE_CAL_7: return CPIT_uint16_3;
+      case CPI_ANGLE_CAL_8: return CPIT_uint16_3;
+      case CPI_ANGLE_CAL_9: return CPIT_uint16_3;
+      case CPI_ANGLE_CAL_10: return CPIT_uint16_3;
+      case CPI_ANGLE_CAL_11: return CPIT_uint16_3;
+      case CPI_ANGLE_CAL_12: return CPIT_uint16_3;
+      case CPI_ANGLE_CAL_13: return CPIT_uint16_3;
+      case CPI_ANGLE_CAL_14: return CPIT_uint16_3;
+      case CPI_ANGLE_CAL_15: return CPIT_uint16_3;
+      case CPI_ANGLE_CAL_16: return CPIT_uint16_3;
+      case CPI_ANGLE_CAL_17: return CPIT_uint16_3;
 
       case CPI_CANPacketDrops: return CPIT_uint32;
       case CPI_CANPacketErrors: return CPIT_uint32;
@@ -414,7 +414,8 @@ namespace DogBotN {
       case CPI_ServoReportFrequency: return CPIT_float32;
       case CPI_PWMFrequency: return CPIT_float32;
       case CPI_EndStopPhaseAngles: return CPIT_float32_2;
-      case CPI_MotionUpdatePeriod: return CPIT_uint16;
+      case CPI_MotionUpdatePeriod: return CPIT_float32;
+      case CPI_SupplyVoltageScale: return CPIT_float32;
       case CPI_FINAL: return CPIT_Invalid;
     }
 

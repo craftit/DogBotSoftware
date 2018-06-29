@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-#define DOGBOT_FIRMWARE_VERSION 5
+#define DOGBOT_FIRMWARE_VERSION 6
 
   /* Message packet types, see end of file for structs transmitted for each message type.
    * These messages are ordered by decreasing priority.
@@ -406,6 +406,7 @@ extern "C" {
     uint8_t m_packetType; // CPT_Servo
     uint8_t m_deviceId;
     uint8_t m_mode;       //
+    uint8_t m_timestamp;
     int16_t m_position;   // Or velocity.
     uint16_t m_torqueLimit;
   } __attribute__((packed));

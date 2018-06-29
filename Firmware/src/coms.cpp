@@ -238,10 +238,10 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
     }
     PacketServoC *ps = (PacketServoC *) m_data;
     if(ps->m_deviceId == g_deviceId || ps->m_deviceId == 0) {
-      MotionSetPosition(ps->m_mode,ps->m_position,ps->m_torqueLimit);
+      MotionSetPosition(ps->m_mode,ps->m_timestamp,ps->m_position,ps->m_torqueLimit);
     } else {
       if(g_canBridgeMode && g_deviceId != 0) {
-        if(!CANSendServo(ps->m_deviceId,ps->m_position,ps->m_torqueLimit,ps->m_mode)) {
+        if(!CANSendServo(ps->m_deviceId,ps->m_position,ps->m_torqueLimit,ps->m_mode,ps->m_timestamp)) {
           USBSendError(g_deviceId,CET_CANTransmitFailed,CPT_Servo,ps->m_deviceId);
         }
       }

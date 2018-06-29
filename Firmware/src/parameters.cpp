@@ -415,9 +415,9 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
       // Setting the PWM frequency is not supported at the moment.
       return false;
     case CPI_MotionUpdatePeriod: {
-      if(len != 2)
+      if(len != 4)
         return false;
-      g_motionUpdatePeriod = data->int16[0];
+      SetMotionUpdatePeriod(data->float32[0]);
     } break;
     case CPI_SupplyVoltageScale: {
       if(len != 4)
@@ -740,8 +740,8 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       data->float32[0] = g_PWMFrequency;
     } break;
     case CPI_MotionUpdatePeriod: {
-      *len = 2;
-      data->int16[0] = g_motionUpdatePeriod;
+      *len = 4;
+      data->float32[0] = g_motionUpdatePeriod;
     } break;
     case CPI_SupplyVoltageScale: {
       *len = 4;

@@ -34,7 +34,8 @@ bool CANSendServo(
     uint8_t deviceId,
     int16_t position,
     uint16_t torque,
-    uint8_t mode
+    uint8_t mode,
+    uint8_t timeStamp
     );
 
 bool CANSendServoReport(

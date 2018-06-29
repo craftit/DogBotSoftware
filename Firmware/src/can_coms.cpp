@@ -203,14 +203,15 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
       break;
     case CPT_Servo: {
       if(rxDeviceId == g_deviceId && rxDeviceId != 0) {
-        if(rxmsg.DLC != 5) {
+        if(rxmsg.DLC != 6) {
           CANReportPacketSizeError(msgType,rxmsg.DLC);
           break;
         }
         int16_t position = (int16_t) rxmsg.data16[0];
         uint16_t torqueLimit = rxmsg.data16[1];
         uint8_t mode = rxmsg.data8[4];
-        MotionSetPosition(mode,position,torqueLimit);
+        uint8_t timestamp = rxmsg.data8[5];
+        MotionSetPosition(mode,timestamp,position,torqueLimit);
       }
     } break;
     case CPT_SaveSetup: {

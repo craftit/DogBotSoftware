@@ -142,13 +142,20 @@ void EnterHomedState()
   SendParamUpdate(CPI_HomedState);
 }
 
-int g_motionUpdatePeriod = 180;
+float g_motionUpdatePeriod = 0;
 int g_motionPositionTime = 0; // This is incremented in the PWM loop.
+uint8_t g_motionLastTimestamp = 0;
 float g_motionLastPositionRequest = 0;
+int g_motionTimeOut = 1000; // PWM cycles after last motion message before we abandon velocity estimate.
 
-bool MotionSetPosition(uint8_t jointMode,int16_t position,uint16_t torqueLimit)
+void SetMotionUpdatePeriod(float period)
 {
-#if 1
+  g_motionUpdatePeriod = period;
+  g_motionTimeOut = g_motionUpdatePeriod * g_PWMFrequency * 16.0; // If we miss more than 16 motion commands stop the velocity match
+}
+
+bool MotionSetPosition(uint8_t jointMode,uint8_t timestamp,int16_t position,uint16_t torqueLimit)
+{
   float newCurrentLimit = ((float) torqueLimit) * g_absoluteMaxCurrent / (65536.0);
   // If we're not homed put a limit on the maximum current we'll accept.
   if(g_motionHomedState != MHS_Homed) {
@@ -164,8 +171,6 @@ bool MotionSetPosition(uint8_t jointMode,int16_t position,uint16_t torqueLimit)
   {
     case CM_Position:
       {
-        //bool haveValidVelocity = false;
-
         float positionAsPhaseAngle = DemandInt16ToPhasePosition(position);
 
         if((jointMode & 0x1) != 0) { // Calibrated position ?
@@ -185,17 +190,13 @@ bool MotionSetPosition(uint8_t jointMode,int16_t position,uint16_t torqueLimit)
             positionAsPhaseAngle = g_endStopPhaseMax;
         }
 
-#if 0
-        float positionDelta = positionAsPhaseAngle - g_motionLastPositionRequest;
-        float velocity = positionDelta * g_PWMFrequency/g_motionUpdatePeriod;
-        if(!haveValidVelocity)
-          velocity = 0;
-#else
         float velocity = 0;
-#endif
-
+        uint8_t nextTimeStamp = g_motionLastTimestamp + 1;
+        if(nextTimeStamp == timestamp && g_motionUpdatePeriod != 0) {
+          velocity = (positionAsPhaseAngle - g_motionLastPositionRequest) / g_motionUpdatePeriod;
+        }
+        g_motionLastTimestamp = timestamp;
         g_motionLastPositionRequest = positionAsPhaseAngle;
-
 
         chMtxLock(&g_demandMutex);
         g_motionPositionTime = -g_motionUpdatePeriod;
@@ -216,7 +217,6 @@ bool MotionSetPosition(uint8_t jointMode,int16_t position,uint16_t torqueLimit)
       FaultDetected(FC_InvalidCommand);
       break;
   }
-#endif
   return true;
 }
 

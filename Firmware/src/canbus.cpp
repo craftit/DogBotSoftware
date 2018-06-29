@@ -88,7 +88,8 @@ bool CANSendServo(
     uint8_t deviceId,
     int16_t position,
     uint16_t torqueLimit,
-    uint8_t state
+    uint8_t state,
+    uint8_t timestamp
     )
 {
   CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
@@ -101,6 +102,7 @@ bool CANSendServo(
   txmsg->data16[0] = position;
   txmsg->data16[1] = torqueLimit;
   txmsg->data8[4] = state;
+  txmsg->data8[5] = timestamp;
   return g_txCANQueue.PostFullPacket(txmsg);
 }
 

@@ -530,6 +530,7 @@ static void MotorControlLoop(void)
     static float localDemandVelocity = 0;
     static int localMotionTime = 0;
 
+
     if(g_motionPositionTime < 100000) // Protect against wrap around
       g_motionPositionTime++; // Used for working out the frequency of motion requests
     if(localMotionTime < 100000) // Protect against wrap around
@@ -544,6 +545,11 @@ static void MotorControlLoop(void)
       localDemandVelocity = g_demandPhaseVelocity;
       localMotionTime = g_motionPositionTime;
       chMtxUnlock(&g_demandMutex);
+
+      if(localMotionTime > g_motionTimeOut) {
+        localMotionTime = g_motionTimeOut;
+        localDemandVelocity = 0;
+      }
     }
 
     float demandCurrent = localDemandTorque;
@@ -593,8 +599,8 @@ static void MotorControlLoop(void)
         Monitor_FOC_Current(g_phaseAngle);
         break;
       case CM_Position: {
-        if(localMotionTime < g_motionUpdatePeriod)
-          targetPosition += (localDemandVelocity * (float) g_motionPositionTime) / CURRENT_MEAS_PERIOD;
+        if(g_motionUpdatePeriod != 0)
+          targetPosition += (localDemandVelocity * (float) localMotionTime) / CURRENT_MEAS_PERIOD;
         float positionError = (targetPosition - g_currentPhasePosition);
         targetVelocity = localDemandVelocity + positionError * g_positionGain;
       }

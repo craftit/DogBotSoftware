@@ -14,7 +14,7 @@ extern "C" {
 
   void MotionUpdateIndex(bool state,float position,float velocity);
 
-  bool MotionSetPosition(uint8_t mode,int16_t position,uint16_t torqueLimit);
+  bool MotionSetPosition(uint8_t mode,uint8_t timestamp,int16_t position,uint16_t torqueLimit);
 
   bool MotionReport(int16_t position,int16_t velocity,int16_t torque,enum PositionReferenceT posRef,uint8_t timeStamp);
 
@@ -23,6 +23,8 @@ extern "C" {
   bool MotionCalZero(void);
 
   bool MotionSyncTime(void);
+
+  void SetMotionUpdatePeriod(float period);
 
   extern enum MotionHomedStateT g_motionHomedState;
   extern enum PositionReferenceT g_motionPositionReference;
@@ -34,8 +36,9 @@ extern "C" {
   extern float g_homeIndexPosition;
 
   extern int g_motionLastPositionTime;
-  extern int g_motionUpdatePeriod;
+  extern float g_motionUpdatePeriod;
   extern int g_motionPositionTime;
+  extern int g_motionTimeOut;
 
   enum FaultCodeT LoadSetup(void);
   enum FaultCodeT SaveSetup(void);

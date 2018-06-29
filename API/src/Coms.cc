@@ -260,6 +260,7 @@ namespace DogBotN
     struct PacketServoC servoPkt;
     servoPkt.m_packetType = CPT_Servo;
     servoPkt.m_deviceId = deviceId;
+    servoPkt.m_timestamp = 0;
     servoPkt.m_position = pos * 32767.0 / DOGBOT_SERVOREPORT_POSITIONRANGE;
     if(effort < 0) effort = 0;
     if(effort > 1.0) effort = 1.0;
@@ -276,6 +277,7 @@ namespace DogBotN
     struct PacketServoC servoPkt;
     servoPkt.m_packetType = CPT_Servo;
     servoPkt.m_deviceId = deviceId;
+    servoPkt.m_timestamp = 0;
     servoPkt.m_position = velocity * 32767.0 / DOGBOT_SERVOREPORT_POSITIONRANGE;
     if(effort < 0) effort = 0;
     if(effort > 1.0) effort = 1.0;
@@ -290,6 +292,7 @@ namespace DogBotN
   {
     struct PacketServoC servoPkt;
     servoPkt.m_packetType = CPT_Servo;
+    servoPkt.m_timestamp = 0;
     servoPkt.m_deviceId = deviceId;
     if(torque > 1) torque = 1;
     if(torque < -1) torque = -1;
