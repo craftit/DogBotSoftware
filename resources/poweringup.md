@@ -26,7 +26,7 @@ As a reminder of why, here's a short [video](https://www.youtube.com/watch?v=o6i
 
 Use a voltage around 25V  (this is lower than battery voltage, to acccommodate the possibility of higher voltage spikes)
 
-# Batter Operation
+# Battery Operation
 
 ## Connecting the Batteries
 
@@ -54,5 +54,5 @@ NB - the batteries are not designed to be fully discharged, they will be damaged
 
 # Links
 
-Back to main [readme](../readme.md)
+Back to main [readme](../README.md)
 
