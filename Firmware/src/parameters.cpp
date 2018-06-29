@@ -187,7 +187,6 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
       break;
     case CPI_OtherJoint: // Obsolete.
       return false;
-      break;
     case CPI_OtherJointGain:  // Obsolete.
       return false;
     case CPI_OtherJointOffset:  // Obsolete.
@@ -240,11 +239,17 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
         return false;
       g_homeIndexPosition = data->float32[0];
       break;
-    case CPI_MinSupplyVoltage:
+    case CPI_MinSupplyVoltage: {
       if(len != 4)
         return false;
-      g_minSupplyVoltage = data->float32[0];
-      break;
+      float newValue =data->float32[0];
+      // Check values are sane.
+      if(newValue < 6.0 || newValue > 42.0) {
+        SendError(CET_ParameterOutOfRange,CPT_SetParam,index);
+        return false;
+      }
+      g_minSupplyVoltage = newValue;
+    } break;
     //case CPI_ANGLE_CAL: // 12 Values
     case CPI_ANGLE_CAL_0:
     case CPI_ANGLE_CAL_1:
@@ -413,16 +418,18 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
       if(len != 2)
         return false;
       g_motionUpdatePeriod = data->int16[0];
-    } return false;
+    } break;
     case CPI_SupplyVoltageScale: {
       if(len != 4)
         return false;
       float newValue = data->float32[0];
       // Limit range to somewhat sensible values.
-      if(newValue < 0.8 || newValue > 1.4)
+      if(newValue < 0.8 || newValue > 1.4) {
+        SendError(CET_ParameterOutOfRange,CPT_SetParam,index);
         return false;
+      }
       g_supplyVoltageScale = newValue;
-    } return true;
+    } break;
     case CPI_FINAL:
       return false;
     default:
@@ -726,7 +733,7 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
     } break;
     case CPI_ServoReportFrequency: {
       *len = 4;
-      data->float32[0] = GetServoReportRate();
+      //data->float32[0] = GetServoReportRate();
     } break;
     case CPI_PWMFrequency: {
       *len = 4;
@@ -741,7 +748,9 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       data->float32[0] = g_supplyVoltageScale;
     } break;
     case CPI_FINAL:
-    default: return false;
+    default:
+      *len = 0;
+      return false;
   }
   return true;
 }

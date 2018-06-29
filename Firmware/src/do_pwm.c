@@ -38,7 +38,7 @@ float g_PWMFrequency = 1.0/CURRENT_MEAS_PERIOD;
 BSEMAPHORE_DECL(g_reportSampleReady,0); // Synchronise motion report loop (Normally 100Hz )
 
 float g_shuntADCValue2Amps = 0.0;
-float g_vbus_voltage = 12.0;
+float g_vbus_voltage = 3.0;
 float g_currentZeroOffset[3] = { 0,0,0 } ;
 float g_current[3] = { 0,0,0} ;
 float g_phaseAngle = 0 ;
@@ -79,6 +79,8 @@ void SetupMotorCurrentPID(void);
 // It must be a integer multiple of
 bool SetServoReportRate(float rate)
 {
+  if(rate == 0)
+    return false;
   float newValue = (1.0f/(rate * CURRENT_MEAS_PERIOD));
   if(newValue < 1 || newValue > ((int32_t)1<<30))
     return false;
@@ -90,6 +92,8 @@ bool SetServoReportRate(float rate)
 
 float GetServoReportRate(void)
 {
+  if(g_motorReportSampleCount == 0)
+    return 0;
   return 1.0f/((float) g_motorReportSampleCount * CURRENT_MEAS_PERIOD);
 }
 
@@ -1012,7 +1016,7 @@ enum FaultCodeT PWMSelfTest()
   if(rail5V < 4.5 || rail5V > 5.5)
     return FC_Internal5VRailOutOfRange;
 
-  g_vbus_voltage = ReadSupplyVoltage();
+  //g_vbus_voltage = ReadSupplyVoltage();
   if(g_vbus_voltage > g_maxSupplyVoltage)
     return FC_OverVoltage;
   if(g_vbus_voltage < g_minSupplyVoltage)

@@ -20,7 +20,7 @@ struct StoredConfigT {
   float m_phaseResistance;
   float m_phaseOffsetVoltage;
   float m_phaseInductance;
-  float m_velocityLimit;
+  float m_velocityLimit; // Obsolete, this has now to be set by the control software.
   float m_absoluteMaxCurrent;
   float m_homeIndexPosition;
   float m_minSupplyVoltage;

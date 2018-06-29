@@ -247,22 +247,19 @@ bool CANSendParam(enum ComsParameterIndexT index)
     // Report error ?
     return false;
   }
-  if(len <= 0) {
+  if(len <= 0 || len > 7) {
     CANSendError(CET_InternalError, CPT_ReadParam,(uint8_t) index);
     // Report error ?
     return false;
   }
 
   CANTxFrame *txmsg = g_txCANQueue.GetEmptyPacketI();
-  if(txmsg == 0)
+  if(txmsg == 0) // Queue is full ?
     return false;
   CANSetAddress(txmsg,g_deviceId,CPT_ReportParam);
   txmsg->RTR = CAN_RTR_DATA;
   txmsg->data8[0] = (uint8_t) index;
 
-  // Limit length to bytes we can send over can.
-  if(len > 7)
-    return false;
   txmsg->DLC = len+1;
   memcpy(&txmsg->data8[1],buff.uint8,len);
   return g_txCANQueue.PostFullPacket(txmsg);

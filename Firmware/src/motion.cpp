@@ -101,9 +101,6 @@ bool MotionEstimateOffset(float &value)
   return true;
 }
 
-uint8_t g_requestedJointMode = 0;
-int16_t g_requestedJointPosition = 0;
-
 static float DemandInt16ToPhasePosition(int16_t position)
 {
   return (((float) position) * g_actuatorRatio * DOGBOT_SERVOREPORT_POSITIONRANGE/ 32767.0);
@@ -151,9 +148,8 @@ float g_motionLastPositionRequest = 0;
 
 bool MotionSetPosition(uint8_t jointMode,int16_t position,uint16_t torqueLimit)
 {
-  g_requestedJointMode = jointMode;
+#if 1
   float newCurrentLimit = ((float) torqueLimit) * g_absoluteMaxCurrent / (65536.0);
-
   // If we're not homed put a limit on the maximum current we'll accept.
   if(g_motionHomedState != MHS_Homed) {
     if(newCurrentLimit > g_uncalibratedCurrentLimit) {
@@ -162,19 +158,17 @@ bool MotionSetPosition(uint8_t jointMode,int16_t position,uint16_t torqueLimit)
   }
 
   g_currentLimit = newCurrentLimit;
-  g_requestedJointPosition = position;
 
-
-  enum PWMControlDynamicT mode = static_cast<enum PWMControlDynamicT>(g_requestedJointMode >> 2);
+  enum PWMControlDynamicT mode = static_cast<enum PWMControlDynamicT>((jointMode >> 2) & 0xf);
   switch(mode)
   {
     case CM_Position:
       {
-        bool haveValidVelocity = false;
+        //bool haveValidVelocity = false;
 
-        float positionAsPhaseAngle = DemandInt16ToPhasePosition(g_requestedJointPosition);
+        float positionAsPhaseAngle = DemandInt16ToPhasePosition(position);
 
-        if((g_requestedJointMode & 0x1) != 0) { // Calibrated position ?
+        if((jointMode & 0x1) != 0) { // Calibrated position ?
           // Yes we're dealing with a calibrated position request,
           // this can only be processed if we're homed.
           if(g_motionHomedState != MHS_Homed) return false;
@@ -212,16 +206,17 @@ bool MotionSetPosition(uint8_t jointMode,int16_t position,uint16_t torqueLimit)
       break;
     case CM_Velocity:
       // Uck!
-      g_demandPhaseVelocity = PhasePositionToDemandInt16(g_requestedJointPosition);
+      g_demandPhaseVelocity = DemandInt16ToPhasePosition(position);
       break;
     case CM_Torque:
-      g_demandTorque = (((float)g_requestedJointPosition) * g_absoluteMaxCurrent) / 32767.0f;
+      g_demandTorque = (((float)position) * g_absoluteMaxCurrent) / 32767.0f;
       //g_
       break;
     default:
       FaultDetected(FC_InvalidCommand);
       break;
   }
+#endif
   return true;
 }
 
@@ -289,8 +284,7 @@ bool MotionCalZero()
     return false;
 
   // Make sure we don't fly off somewhere.
-  g_requestedJointMode = 0;
-  g_requestedJointPosition = g_currentPhasePosition;
+  g_demandPhaseVelocity = g_currentPhasePosition;
 
   g_homeAngleOffset = g_currentPhasePosition;
   EnterHomedState();

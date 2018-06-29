@@ -39,8 +39,8 @@ float g_fanTemperatureThreshold = 40.0;
  * This is a periodic thread that does nothing except flashing
  * a LED.
  */
-static THD_WORKING_AREA(waThread1, 128);
-static THD_FUNCTION(Thread1, arg) {
+static THD_WORKING_AREA(waThreadGreenLED, 128);
+static THD_FUNCTION(ThreadGreenLED, arg) {
 
   (void)arg;
   chRegSetThreadName("blinker");
@@ -91,8 +91,8 @@ static THD_FUNCTION(Thread1, arg) {
   }
 }
 
-static THD_WORKING_AREA(waThreadOrangeLed, 128);
-static THD_FUNCTION(ThreadOrangeLed, arg) {
+static THD_WORKING_AREA(waThreadOrangeLED, 128);
+static THD_FUNCTION(ThreadOrangeLED, arg) {
 
   (void)arg;
   chRegSetThreadName("orange blinker");
@@ -441,7 +441,11 @@ void DoStartup(void)
   }
 
   if(g_vbus_voltage < g_minSupplyVoltage) {
-    ChangeControlState(CS_Standby,SCS_Internal);
+    FaultDetected(FC_UnderVoltage);
+    return ;
+  }
+  if(g_vbus_voltage > g_maxSupplyVoltage) {
+    FaultDetected(FC_OverVoltage);
     return ;
   }
 
@@ -509,9 +513,8 @@ int main(void) {
   enum FaultCodeT faultCode = FC_Ok;
 
   /* Create the blinker threads. */
-  chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
-
-  chThdCreateStatic(waThreadOrangeLed, sizeof(waThreadOrangeLed), NORMALPRIO, ThreadOrangeLed, NULL);
+  chThdCreateStatic(waThreadGreenLED, sizeof(waThreadGreenLED), NORMALPRIO, ThreadGreenLED, NULL);
+  chThdCreateStatic(waThreadOrangeLED, sizeof(waThreadOrangeLED), NORMALPRIO, ThreadOrangeLED, NULL);
 
   int cycleCount = 0;
 
@@ -633,13 +636,20 @@ int main(void) {
           SendBackgroundStateReport();
         }
       } break;
+#if 1
+      // This catches unexpected states, but also suppresses compiler warnings about unused switch values.
+      default:
+        FaultDetected(FC_Internal);
+        chThdSleepMilliseconds(10);
+        break;
+#endif
     }
 
 
 
     // Stuff we want to check all the time.
     g_driveTemperature +=  (ReadDriveTemperature() - g_driveTemperature) * 0.1;
-    if(g_driveTemperature > 80.0) {
+    if(g_driveTemperature > 85.0) {
       FaultDetected(FC_DriverOverTemperature);
     }
 #if 1

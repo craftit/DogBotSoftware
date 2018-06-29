@@ -1577,5 +1577,5 @@ void MainWindow::on_doubleSpinBoxSupplyVoltageScale_valueChanged(double arg1)
     std::cerr << "Supply scale "  << arg1 << " value out of range." << std::endl;
     return ;
   }
-  m_coms->SendSetParam(m_targetDeviceId,CPI_SupplyVoltageScale,arg1);
+  //m_coms->SendSetParam(m_targetDeviceId,CPI_SupplyVoltageScale,arg1);
 }
