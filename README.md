@@ -73,7 +73,7 @@ sudo make install
 
 ## Switch On
 
-Use a benchtop power supply of between 20V and 30V, or the onboard batteries, more details are at [powering up](../resources/poweringup.md)
+Use a benchtop power supply of between 20V and 30V, or the onboard batteries, more details are at [powering up](./resources/poweringup.md)
 
 * Check cables are red-red throughout; check for loose wires, obstructions
 * Connect power supply
