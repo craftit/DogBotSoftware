@@ -95,8 +95,8 @@ bool StoredConf_Load(struct StoredConfigT *conf)
     conf->m_endStopTargetBreakCurrent = 3.0;
     conf->m_endStopMaxBreakCurrent = 0;
     conf->m_jointInertia = 0.0;
-
     conf->m_safetyMode = SM_GlobalEmergencyStop;
+    conf->m_supplyVoltageScale = 1.0;
   }
 
   return is_ok;

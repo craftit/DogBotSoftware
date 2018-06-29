@@ -114,15 +114,15 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
       switch(g_motionHomedState)
       {
         case MHS_Lost:
-          MotionResetCalibration(MHS_ApproxHomed);
+          MotionResetCalibration(MHS_SoftHomed);
         case MHS_Measuring:
-        case MHS_ApproxHomed:
+        case MHS_SoftHomed:
           g_homeAngleOffset = data->float32[0] * g_actuatorRatio;
-          g_motionHomedState = MHS_ApproxHomed;
+          g_motionHomedState = MHS_SoftHomed;
           SendParamUpdate(CPI_HomedState);
           break;
         case MHS_Homed:
-          SendError(g_deviceId,CET_UnavailableInCurrentMode,CPT_SetParam,index);
+          SendError(CET_UnavailableInCurrentMode,CPT_SetParam,index);
           break;
       }
       return true;
@@ -139,12 +139,12 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
         case MHS_Measuring:
           MotionResetCalibration(MHS_Measuring);
           break;
-        case MHS_ApproxHomed:
+        case MHS_SoftHomed: {
           enum MotionHomedStateT oldState = g_motionHomedState;
-          g_motionHomedState = MHS_ApproxHomed;
+          g_motionHomedState = MHS_SoftHomed;
           if(oldState != g_motionHomedState)
             SendParamUpdate(CPI_HomedState);
-          break;
+        } break;
         case MHS_Homed:
           // Let user know it hasn't changed.
           if(g_motionHomedState  != newCal)
@@ -432,6 +432,15 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
       return false;
     case CPI_MotionUpdatePeriod:
       return false;
+    case CPI_SupplyVoltageScale: {
+      if(len != 4)
+        return false;
+      float newValue = data->float32[0];
+      // Limit range to somewhat sensible values.
+      if(newValue < 0.8 || newValue > 1.4 || isnanf(newValue))
+        return false;
+      g_supplyVoltageScale = newValue;
+    } return true;
     case CPI_FINAL:
       return false;
     default:
@@ -744,6 +753,10 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
     case CPI_MotionUpdatePeriod: {
       *len = 2;
       data->int16[0] = g_motionUpdatePeriod;
+    } break;
+    case CPI_SupplyVoltageScale: {
+      *len = 4;
+      data->float32[0] = g_supplyVoltageScale;
     } break;
     case CPI_FINAL:
     default: return false;

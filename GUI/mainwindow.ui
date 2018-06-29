@@ -109,7 +109,7 @@
        <bool>true</bool>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="tab_connect">
        <attribute name="title">
@@ -385,9 +385,6 @@
              </property>
             </widget>
            </item>
-           <item row="0" column="2" colspan="2">
-            <widget class="QLineEdit" name="lineEdit_SupplyVoltage"/>
-           </item>
            <item row="5" column="0">
             <widget class="QLabel" name="label_14">
              <property name="text">
@@ -421,6 +418,9 @@
               <bool>true</bool>
              </property>
             </widget>
+           </item>
+           <item row="0" column="2" colspan="2">
+            <widget class="QLineEdit" name="lineEdit_SupplyVoltage"/>
            </item>
           </layout>
          </widget>
@@ -592,7 +592,7 @@
              </item>
              <item>
               <property name="text">
-               <string>Approximated</string>
+               <string>Soft Homed</string>
               </property>
              </item>
             </widget>
@@ -983,6 +983,20 @@
              </property>
             </widget>
            </item>
+           <item row="8" column="0">
+            <widget class="QLabel" name="label_47">
+             <property name="text">
+              <string>Supply Scale</string>
+             </property>
+            </widget>
+           </item>
+           <item row="8" column="1">
+            <widget class="QDoubleSpinBox" name="doubleSpinBoxSupplyVoltageScale">
+             <property name="decimals">
+              <number>6</number>
+             </property>
+            </widget>
+           </item>
           </layout>
          </widget>
         </item>
@@ -1285,7 +1299,7 @@
            <string>Relative Joint Positoins</string>
           </property>
           <layout class="QGridLayout" name="gridLayout_4">
-           <item row="2" column="1">
+           <item row="3" column="1">
             <widget class="QDoubleSpinBox" name="doubleSpinBoxJointRelOffset">
              <property name="minimum">
               <double>-360.000000000000000</double>
@@ -1302,7 +1316,31 @@
              </property>
             </widget>
            </item>
-           <item row="1" column="1">
+           <item row="3" column="0">
+            <widget class="QLabel" name="label_17">
+             <property name="text">
+              <string>Joint Rel Offset:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="0">
+            <widget class="QLabel" name="label_6">
+             <property name="text">
+              <string>Other Joint id</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="1">
+            <widget class="QSpinBox" name="spinOtherJointId"/>
+           </item>
+           <item row="0" column="0">
+            <widget class="QCheckBox" name="checkBoxJointRelative">
+             <property name="text">
+              <string>Joint Relative</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
             <widget class="QDoubleSpinBox" name="doubleSpinBoxJointRelGain">
              <property name="minimum">
               <double>-10.000000000000000</double>
@@ -1315,60 +1353,23 @@
              </property>
             </widget>
            </item>
-           <item row="2" column="0">
-            <widget class="QLabel" name="label_17">
-             <property name="text">
-              <string>Joint Rel Offset:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="0">
-            <widget class="QLabel" name="label_6">
-             <property name="text">
-              <string>Other Joint id</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="1">
-            <widget class="QSpinBox" name="spinOtherJointId"/>
-           </item>
-           <item row="0" column="0">
-            <widget class="QCheckBox" name="checkBoxJointRelative">
-             <property name="text">
-              <string>Joint Relative</string>
-             </property>
-            </widget>
-           </item>
           </layout>
          </widget>
-        </item>
-        <item row="1" column="0">
-         <spacer name="verticalSpacer_3">
-          <property name="orientation">
-           <enum>Qt::Vertical</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>20</width>
-            <height>40</height>
-           </size>
-          </property>
-         </spacer>
         </item>
         <item row="0" column="1">
          <widget class="QGroupBox" name="groupBox_11">
           <property name="title">
            <string>Controller Setup</string>
           </property>
-          <layout class="QHBoxLayout" name="horizontalLayout">
-           <item>
+          <layout class="QGridLayout" name="gridLayout_20">
+           <item row="0" column="0">
             <widget class="QLabel" name="label_37">
              <property name="text">
               <string>Assign</string>
              </property>
             </widget>
            </item>
-           <item>
+           <item row="0" column="1">
             <widget class="QComboBox" name="comboBoxServoName">
              <property name="editable">
               <bool>true</bool>
@@ -1440,8 +1441,74 @@
              </item>
             </widget>
            </item>
+           <item row="1" column="0" colspan="2">
+            <widget class="QPushButton" name="pushButtonRestoreConfig">
+             <property name="text">
+              <string>Restore Configuration From File</string>
+             </property>
+            </widget>
+           </item>
           </layout>
          </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QGroupBox" name="groupBox_13">
+          <property name="title">
+           <string>Supply Voltage Calibration</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_18">
+           <item row="0" column="2">
+            <widget class="QPushButton" name="pushButtonUpdateSupplyCal">
+             <property name="text">
+              <string>Update</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QLineEdit" name="lineEditMeasuredSupplyVoltage"/>
+           </item>
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_46">
+             <property name="text">
+              <string>Measured Voltage</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QPushButton" name="pushButtonResetSupplyVoltageCal">
+             <property name="text">
+              <string>Reset Calibration</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <spacer name="verticalSpacer_3">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="1" column="1">
+         <spacer name="horizontalSpacer_3">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
         </item>
        </layout>
       </widget>

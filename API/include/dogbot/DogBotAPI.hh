@@ -158,6 +158,15 @@ namespace DogBotN {
     //! Refresh information on all controllers.
     void RefreshAll();
 
+    //! Update supply voltage calibration
+    bool SetSupplyVoltageScaleToOne();
+
+    //! Update supply voltage calibration
+    bool CalibrateSupplyVoltage(float supplyVoltage);
+
+    //! Restore configuration from file values.
+    bool RestoreConfig();
+
     //! Get device entry by name
     std::shared_ptr<DeviceC> GetDeviceByName(const std::string &name);
 
@@ -219,6 +228,12 @@ namespace DogBotN {
     { return DogBotKinematicsC::LegJointNames(); }
 
   protected:
+    // Call a method for all connected servos
+    bool ForAllServos(const std::function<void (ServoC *)> &func);
+
+    // Call a method for all connected devices
+    bool ForAllDevices(const std::function<void (DeviceC *)> &func);
+
     //! Make a new device
     std::shared_ptr<DeviceC> MakeDevice(int deviceId,const std::string &deviceTypeName);
 

@@ -234,8 +234,9 @@ extern "C" {
     CPI_EndStopPhaseAngles = 0x61,
 
     CPI_ServoReportFrequency   = 0x62,
-    CPI_PWMFrequency      = 0x63,
-    CPI_MotionUpdatePeriod  = 0x64,
+    CPI_PWMFrequency       = 0x63,
+    CPI_MotionUpdatePeriod = 0x64,
+    CPI_SupplyVoltageScale = 0x65,
 
     CPI_FINAL           = 0xff
   };
@@ -344,7 +345,7 @@ extern "C" {
     MHS_Lost       = 0,
     MHS_Measuring  = 1,
     MHS_Homed      = 2,
-    MHS_ApproxHomed= 3
+    MHS_SoftHomed= 3
   };
 
   struct PacketErrorC {
@@ -370,7 +371,6 @@ extern "C" {
   struct PacketReadParamC {
     uint8_t m_packetType;
     uint8_t m_deviceId;   // Target device
-    uint8_t m_sensorId;   // Sensor id on device
     uint16_t m_index;
   } __attribute__((packed));
 
@@ -479,7 +479,8 @@ extern "C" {
     SCS_Unknown = 2,
     SCS_Fault = 3,
     SCS_EStopLostComs = 4,
-    SCS_EStopSwitch = 5
+    SCS_EStopSwitch = 5,
+    SCS_External    = 6
   };
 
   struct PacketEmergencyStopC {

@@ -11,7 +11,6 @@ static int g_masterEmergencyStopDevice = 0;
 
 void InitEmergencyStop(void)
 {
-
   g_currentOutputState = false;
   palSetPadMode(GPIOC, GPIOC_PIN7,PAL_MODE_INPUT_PULLUP);
   palSetPadMode(GPIOC, GPIOC_PIN6,PAL_MODE_OUTPUT_PUSHPULL);

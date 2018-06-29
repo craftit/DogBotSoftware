@@ -133,7 +133,7 @@ static int16_t PhaseVelocityToInt16(float angle)
 
 void SetupEndStops()
 {
-  if(g_motionHomedState != MHS_Homed && g_motionHomedState != MHS_ApproxHomed) {
+  if(g_motionHomedState != MHS_Homed && g_motionHomedState != MHS_SoftHomed) {
     g_endStopPhaseMin = 0;
     g_endStopPhaseMax = 0;
     g_endStopTargetAcceleration = -1; // Disable acceleration based end-stops for the moment.
@@ -361,8 +361,10 @@ void MotionStep()
   {
     case MHS_Lost:
       break;
+    case MHS_SoftHomed:
     case MHS_Measuring:
       // Establishing a new calibration
+      // FIXME:- If we change the home position from SoftHome, should we fade in the position change to avoid jumps?
       if(g_newCalibrationData) {
         g_newCalibrationData = false;
         if(MotionEstimateOffset(g_homeAngleOffset)) {
@@ -464,7 +466,7 @@ enum FaultCodeT LoadSetup(void) {
   g_endStopMaxBreakCurrent = g_storedConfig.m_endStopMaxBreakCurrent;
   g_jointInertia = g_storedConfig.m_jointInertia;
   g_safetyMode = g_storedConfig.m_safetyMode;
-
+  g_supplyVoltageScale = g_storedConfig.m_supplyVoltageScale;
   SetupEndStops();
 
   return FC_Ok;
@@ -507,6 +509,7 @@ enum FaultCodeT SaveSetup(void) {
   g_storedConfig.m_endStopMaxBreakCurrent = g_endStopMaxBreakCurrent;
   g_storedConfig.m_jointInertia = g_jointInertia;
   g_storedConfig.m_safetyMode = g_safetyMode;
+  g_storedConfig.m_supplyVoltageScale = g_supplyVoltageScale;
 
   if(!StoredConf_Save(&g_storedConfig)) {
     return FC_InternalStoreFailed;

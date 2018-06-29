@@ -148,4 +148,10 @@ namespace DogBotN {
   {
   }
 
+  //! Restore configuration from stored settings.
+  bool DeviceC::RestoreConfig()
+  {
+    return true;
+  }
+
 }

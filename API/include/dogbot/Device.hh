@@ -92,6 +92,9 @@ namespace DogBotN {
     //! Query setup information from the controller again.
     virtual void QueryRefresh();
 
+    //! Restore configuration from stored settings.
+    virtual bool RestoreConfig();
+
     //! Access notes.
     std::string Notes() const;
 
