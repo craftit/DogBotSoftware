@@ -87,7 +87,7 @@ bool CANSendServoReport(
 bool CANSendServo(
     uint8_t deviceId,
     int16_t position,
-    uint16_t torqueLimit,
+    int16_t torque,
     uint8_t state,
     uint8_t timestamp
     )
@@ -100,7 +100,7 @@ bool CANSendServo(
   txmsg->RTR = CAN_RTR_DATA;
   txmsg->DLC = 5;
   txmsg->data16[0] = position;
-  txmsg->data16[1] = torqueLimit;
+  txmsg->data16[1] = torque;
   txmsg->data8[4] = state;
   txmsg->data8[5] = timestamp;
   return g_txCANQueue.PostFullPacket(txmsg);

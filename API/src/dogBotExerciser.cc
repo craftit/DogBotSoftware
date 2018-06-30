@@ -4,6 +4,7 @@
 #include <fstream>
 #include <unistd.h>
 #include <getopt.h>
+#include <chrono>
 
 #include "dogbot/DogBotAPI.hh"
 #include "dogbot/Util.hh"
@@ -181,12 +182,15 @@ int main(int argc,char **argv)
 
   if(speed >= 0) {
     float omega = 0;
+    float updatePeriod = 0.01;
+    joint->SetupTrajectory(updatePeriod,torque);
+    auto nextTime = std::chrono::steady_clock::now();
     while(true) {
-      omega += 0.01 * speed;
+      omega += updatePeriod * speed;
       float goTo = DogBotN::Deg2Rad(angle + (sin(omega) * range/2.0f));
-      std::cerr << "Goto:" << goTo << std::endl;
-      joint->DemandPosition(goTo,torque);
-      usleep(10000);
+      joint->DemandTrajectory(goTo);
+      nextTime += std::chrono::microseconds((int)(updatePeriod * 1000000.0f));
+      std::this_thread::sleep_until(nextTime);
     }
   } else {
     enum DogBotN::JointMoveStatusT moveStatus;

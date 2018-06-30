@@ -114,7 +114,7 @@ namespace DogBotN {
     //! Get last reported state of the servo and the time it was taken.
     //! Position in radians.
     //! Velocity in radians/second
-    //! torque in N.m
+    //! torque in Newton-meters
     bool GetState(TimePointT &tick,double &position,double &velocity,double &torque) const override;
 
     //! Get raw state information
@@ -123,18 +123,30 @@ namespace DogBotN {
     //! Estimate state at the given time.
     //! Position in radians.
     //! Velocity in radians/second
-    //! torque in N.m
+    //! torque in Newton-meters
     //! This will linearly extrapolate position, and assume velocity and torque are
     //! the same as the last reading.
     //! If the data is more than 5 ticks away from the
     bool GetStateAt(TimePointT theTime,double &position,double &velocity,double &torque) const override;
 
-
-    //! Update torque for the servo. In Newton-meters.
+    //! Update torque for the servo.
+    // torque is in Newton-meters.
     bool DemandTorque(float torque) override;
 
-    //! Demand a position for the servo, torque limit is in Newton-meters
+    //! Demand a position for the servo
+    //! position in radians
+    //! torqueLimit is in Newton-meters
     bool DemandPosition(float position,float torqueLimit) override;
+
+    //! Set the trajectory.
+    // period in seconds,
+    // torqueLimit is in Newton-meters
+    bool SetupTrajectory(float period,float torqueLimit) override;
+
+    //! Demand next position for the servo
+    //! position in radians
+    //! Expected torque in Newton-meters
+    bool DemandTrajectory(float position,float torque = 0) override;
 
     //! Access the type of last position received.
     enum PositionReferenceT PositionReference() const
@@ -261,6 +273,7 @@ namespace DogBotN {
     TimePointT m_timeOfLastReport;
 
     uint8_t m_lastTimestamp = 0;
+    uint8_t m_trajectoryTimestamp = 0;
 
     std::chrono::duration<double> m_tickDuration; // Default is 10ms
     std::chrono::duration<double> m_comsTimeout; // Default is 200ms

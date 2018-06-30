@@ -648,7 +648,7 @@ namespace DogBotN {
   bool ServoC::DemandPosition(float position,float torqueLimit,enum PositionReferenceT positionRef)
   {
     float currentLimit = torqueLimit / (m_maxCurrent* m_servoKt);
-    m_coms->SendMoveWithEffort(m_id,position,currentLimit,positionRef);
+    m_coms->SendMoveWithEffortLimit(m_id,position,currentLimit,positionRef);
     return true;
   }
 
@@ -662,6 +662,33 @@ namespace DogBotN {
     JointC::DemandPosition(position,torqueLimit);
     return DemandPosition(position,torqueLimit,m_positionRef);
   }
+
+  //! Set the trajectory update rate in Hz.
+  bool ServoC::SetupTrajectory(float period,float torqueLimit)
+  {
+    JointC::SetupTrajectory(period,torqueLimit);
+    if(!m_coms->SetParam(m_id,CPI_MotionUpdatePeriod,period))
+      return false;
+    float effortLimit = torqueLimit / (m_maxCurrent* m_servoKt);
+    if(!m_coms->SetParam(m_id,CPI_CurrentLimit,effortLimit))
+      return false;
+    return true;
+  }
+
+  //! Demand next position for the servo, with expected torque
+  bool ServoC::DemandTrajectory(float position,float torque)
+  {
+    if(m_positionRef != PR_Absolute) {
+      m_log->warn("Joint not yet homed, ignoring trajectory request. ");
+      return false;
+    }
+    float effort = torque / (m_maxCurrent* m_servoKt);
+    JointC::DemandTrajectory(position,torque);
+    m_coms->SendMoveWithEffort(m_id,position,effort,PR_Absolute,m_trajectoryTimestamp);
+    m_trajectoryTimestamp++;
+    return true;
+  }
+
 
   void ServoC::QueryRefresh()
   {

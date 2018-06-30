@@ -106,7 +106,8 @@ extern float g_positionGain;
 extern float g_positionIGain;
 extern float g_positionIClamp;
 
-extern float g_currentLimit;
+extern float g_currentLimit;     // Current limit from last request
+extern float g_userCurrentLimit; // Current limit set as parameter
 
 extern int g_phaseRotationCount;
 extern float g_currentPhasePosition;

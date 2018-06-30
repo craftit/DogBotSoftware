@@ -60,8 +60,17 @@ namespace DogBotN {
     //! Update torque for the servo.
     virtual bool DemandTorque(float torque);
 
-    //! Demand a position for the servo
+    //! Demand a position for the servo, torque limit in Newton-meters
     virtual bool DemandPosition(float position,float torqueLimit);
+
+    //! Set the trajectory
+    //! update period in seconds, torque limit in Newton-meters
+    virtual bool SetupTrajectory(float updatePeriod,float torqueLimit);
+
+    //! Demand a next position in a trajectory
+    //! position in radians,
+    //! torque in Newton-meters
+    virtual bool DemandTrajectory(float position,float torque = 0);
 
     //! Add a update callback for motor position
     virtual CallbackHandleC AddPositionUpdateCallback(const PositionUpdateFuncT &callback);

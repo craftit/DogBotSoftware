@@ -62,8 +62,11 @@ namespace DogBotN {
     //! Send an emergency stop
     void SendEmergencyStop();
 
+    //! Send a move command with an effort limit.
+    void SendMoveWithEffortLimit(int deviceId,float pos,float effortLimit,enum PositionReferenceT posRef,uint8_t timestamp = 0);
+
     //! Send a move command with a current limit.
-    void SendMoveWithEffort(int deviceId,float pos,float currentLimit,enum PositionReferenceT posRef);
+    void SendMoveWithEffort(int deviceId,float pos,float effort,enum PositionReferenceT posRef,uint8_t timestamp = 0);
 
     //! Send velocity command with a current limit.
     void SendVelocityWithEffort(int deviceId,float velocity,float currentLimit);

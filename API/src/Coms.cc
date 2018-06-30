@@ -255,17 +255,44 @@ namespace DogBotN
   }
 
   //! Send a move command
-  void ComsC::SendMoveWithEffort(int deviceId,float pos,float effort,enum PositionReferenceT posRef)
+  void ComsC::SendMoveWithEffortLimit(
+      int deviceId,
+      float pos,
+      float effort,
+      enum PositionReferenceT posRef,
+      uint8_t timestamp)
   {
     struct PacketServoC servoPkt;
     servoPkt.m_packetType = CPT_Servo;
     servoPkt.m_deviceId = deviceId;
-    servoPkt.m_timestamp = 0;
-    servoPkt.m_position = pos * 32767.0 / DOGBOT_SERVOREPORT_POSITIONRANGE;
-    if(effort < 0) effort = 0;
+    servoPkt.m_timestamp = timestamp;
+    servoPkt.m_demand = pos * DOGBOT_PACKETSERVO_FLOATSCALE / DOGBOT_SERVOREPORT_POSITIONRANGE;
+    if(effort < 0.0) effort = 0.0;
     if(effort > 1.0) effort = 1.0;
-    servoPkt.m_torqueLimit = effort * 65535.0;
+    servoPkt.m_torque = effort * DOGBOT_PACKETSERVO_FLOATSCALE;
     servoPkt.m_mode = ((int) posRef) | (((int) CM_Position) << 2);
+
+    SendPacket((uint8_t *)&servoPkt,sizeof servoPkt);
+  }
+
+  //! Send a move command with a current limit.
+  void ComsC::SendMoveWithEffort(
+      int deviceId,
+      float pos,
+      float effort,
+      enum PositionReferenceT posRef,
+      uint8_t timestamp
+      )
+  {
+    struct PacketServoC servoPkt;
+    servoPkt.m_packetType = CPT_Servo;
+    servoPkt.m_deviceId = deviceId;
+    servoPkt.m_timestamp = timestamp;
+    servoPkt.m_demand = pos * DOGBOT_PACKETSERVO_FLOATSCALE / DOGBOT_SERVOREPORT_POSITIONRANGE;
+    if(effort < -1.0) effort = -1.0;
+    if(effort > 1.0) effort = 1.0;
+    servoPkt.m_torque = effort * DOGBOT_PACKETSERVO_FLOATSCALE;
+    servoPkt.m_mode = ((int) posRef) | (((int) CM_Position) << 2) | DOGBOT_PACKETSERVOMODE_DEMANDTORQUE;
 
     SendPacket((uint8_t *)&servoPkt,sizeof servoPkt);
   }
@@ -278,10 +305,10 @@ namespace DogBotN
     servoPkt.m_packetType = CPT_Servo;
     servoPkt.m_deviceId = deviceId;
     servoPkt.m_timestamp = 0;
-    servoPkt.m_position = velocity * 32767.0 / DOGBOT_SERVOREPORT_POSITIONRANGE;
+    servoPkt.m_demand = velocity * DOGBOT_PACKETSERVO_FLOATSCALE / DOGBOT_SERVOREPORT_POSITIONRANGE;
     if(effort < 0) effort = 0;
     if(effort > 1.0) effort = 1.0;
-    servoPkt.m_torqueLimit = effort * 65535.0;
+    servoPkt.m_torque = effort * DOGBOT_PACKETSERVO_FLOATSCALE;
     servoPkt.m_mode = (((int) CM_Velocity) << 2);
 
     SendPacket((uint8_t *)&servoPkt,sizeof servoPkt);
@@ -296,9 +323,9 @@ namespace DogBotN
     servoPkt.m_deviceId = deviceId;
     if(torque > 1) torque = 1;
     if(torque < -1) torque = -1;
-    servoPkt.m_position = torque * 32767.0;
+    servoPkt.m_demand = torque * DOGBOT_PACKETSERVO_FLOATSCALE;
     servoPkt.m_mode = (((int) CM_Torque) << 2);
-    servoPkt.m_torqueLimit = 65535;
+    servoPkt.m_torque = DOGBOT_PACKETSERVO_FLOATSCALE;
 
     SendPacket((uint8_t *)&servoPkt,sizeof servoPkt);
 

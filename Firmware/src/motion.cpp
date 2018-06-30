@@ -103,17 +103,17 @@ bool MotionEstimateOffset(float &value)
 
 static float DemandInt16ToPhasePosition(int16_t position)
 {
-  return (((float) position) * g_actuatorRatio * DOGBOT_SERVOREPORT_POSITIONRANGE/ 32767.0);
+  return (((float) position) * g_actuatorRatio * DOGBOT_SERVOREPORT_POSITIONRANGE/DOGBOT_PACKETSERVO_FLOATSCALE);
 }
 
 static int16_t PhasePositionToDemandInt16(float angle)
 {
-  return (angle * 32767.0) / (g_actuatorRatio * DOGBOT_SERVOREPORT_POSITIONRANGE);
+  return (angle * DOGBOT_PACKETSERVO_FLOATSCALE) / (g_actuatorRatio * DOGBOT_SERVOREPORT_POSITIONRANGE);
 }
 
 static int16_t PhaseVelocityToInt16(float angle)
 {
-  return (angle * 32767.0) / (g_actuatorRatio * DOGBOT_SERVOREPORT_VELOCITYRANGE);
+  return (angle * DOGBOT_PACKETSERVO_FLOATSCALE) / (g_actuatorRatio * DOGBOT_SERVOREPORT_VELOCITYRANGE);
 }
 
 
@@ -154,26 +154,35 @@ void SetMotionUpdatePeriod(float period)
   g_motionTimeOut = g_motionUpdatePeriod * g_PWMFrequency * 16.0; // If we miss more than 16 motion commands stop the velocity match
 }
 
-bool MotionSetPosition(uint8_t jointMode,uint8_t timestamp,int16_t position,uint16_t torqueLimit)
+bool MotionSetDemand(uint8_t jointMode,uint8_t timestamp,int16_t position,int16_t torque)
 {
-  float newCurrentLimit = ((float) torqueLimit) * g_absoluteMaxCurrent / (65536.0);
+  float demandTorque = ((float) torque) * g_absoluteMaxCurrent / DOGBOT_PACKETSERVO_FLOATSCALE;
   // If we're not homed put a limit on the maximum current we'll accept.
   if(g_motionHomedState != MHS_Homed) {
-    if(newCurrentLimit > g_uncalibratedCurrentLimit) {
-      newCurrentLimit = g_uncalibratedCurrentLimit;
+    if(demandTorque > g_uncalibratedCurrentLimit) {
+      demandTorque = g_uncalibratedCurrentLimit;
+    }
+    if(demandTorque < -g_uncalibratedCurrentLimit) {
+      demandTorque = -g_uncalibratedCurrentLimit;
     }
   }
+  if((jointMode &  DOGBOT_PACKETSERVOMODE_DEMANDTORQUE) == 0) {
+    if(demandTorque > 0)
+      g_currentLimit = demandTorque;
+    else
+      g_currentLimit = 0;
+  } else {
+    g_currentLimit = g_userCurrentLimit;
+  }
 
-  g_currentLimit = newCurrentLimit;
-
-  enum PWMControlDynamicT mode = static_cast<enum PWMControlDynamicT>((jointMode >> 2) & 0xf);
+  enum PWMControlDynamicT mode = static_cast<enum PWMControlDynamicT>(DOGBOT_PACKETSERVOMODE_DYNAMIC(jointMode));
   switch(mode)
   {
     case CM_Position:
       {
         float positionAsPhaseAngle = DemandInt16ToPhasePosition(position);
 
-        if((jointMode & 0x1) != 0) { // Calibrated position ?
+        if((jointMode & DOGBOT_PACKETSERVOMODE_ABSOLUTEPOSITION) != 0) { // Calibrated position ?
           // Yes we're dealing with a calibrated position request,
           // this can only be processed if we're homed.
           if(g_motionHomedState != MHS_Homed) return false;
@@ -197,11 +206,17 @@ bool MotionSetPosition(uint8_t jointMode,uint8_t timestamp,int16_t position,uint
         }
         g_motionLastTimestamp = timestamp;
         g_motionLastPositionRequest = positionAsPhaseAngle;
+        int motionTime =  -g_motionUpdatePeriod * g_PWMFrequency;
 
         chMtxLock(&g_demandMutex);
-        g_motionPositionTime = -g_motionUpdatePeriod;
+        g_motionPositionTime = motionTime;
         g_demandPhaseVelocity = velocity;
         g_demandPhasePosition = positionAsPhaseAngle;
+        if((jointMode & DOGBOT_PACKETSERVOMODE_DEMANDTORQUE) != 0) {
+          g_demandTorque = demandTorque;
+        } else {
+          g_demandTorque = 0;
+        }
         chMtxUnlock(&g_demandMutex);
       }
       break;
@@ -210,8 +225,7 @@ bool MotionSetPosition(uint8_t jointMode,uint8_t timestamp,int16_t position,uint
       g_demandPhaseVelocity = DemandInt16ToPhasePosition(position);
       break;
     case CM_Torque:
-      g_demandTorque = (((float)position) * g_absoluteMaxCurrent) / 32767.0f;
-      //g_
+      g_demandTorque = (((float)position) * g_absoluteMaxCurrent) / DOGBOT_PACKETSERVO_FLOATSCALE;
       break;
     default:
       FaultDetected(FC_InvalidCommand);

@@ -114,7 +114,7 @@ namespace DogBotN {
     query += ",";
     query += txn.quote((unsigned) pkt->m_timestamp);
     query += ",";
-    query += txn.quote(ComsC::PositionReport2Angle(pkt->m_position));
+    query += txn.quote(ComsC::PositionReport2Angle(pkt->m_demand));
     query += ",";
     query += txn.quote(ComsC::VelocityReport2Angle(pkt->m_velocity));
     query += ",";
@@ -154,7 +154,7 @@ namespace DogBotN {
     query += ",";
     query += txn.quote(AsISO8601(a.m_when));
     query += ",";
-    query += txn.quote(ComsC::PositionReport2Angle(pkt->m_position));
+    query += txn.quote(ComsC::PositionReport2Angle(pkt->m_demand));
     query += ",";
     query += txn.quote((double) pkt->m_torqueLimit / 65535.0);
     query += ")";

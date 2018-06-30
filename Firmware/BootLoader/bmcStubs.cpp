@@ -3,11 +3,11 @@
 #include "bmc.h"
 
 
-bool MotionSetPosition(uint8_t mode,uint8_t timestamp,int16_t position,uint16_t torqueLimit)
+bool MotionSetPosition(uint8_t mode,uint8_t timestamp,int16_t demand,int16_t torque)
 {
-  (void) position;
+  (void) demand;
   (void) mode;
-  (void) torqueLimit;
+  (void) torque;
   (void) timestamp;
   return false;
 }

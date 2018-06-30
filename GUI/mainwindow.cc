@@ -644,7 +644,7 @@ void MainWindow::SetupComs()
       return;
     }
     const PacketServoC *pkt = (const PacketServoC *) data;
-    std::cout << "Servo " << (int) pkt->m_deviceId << " Position:" << pkt->m_position << " Torque: " << pkt->m_torqueLimit << " State:" << pkt->m_mode << std::endl;
+    std::cout << "Servo " << (int) pkt->m_deviceId << " Position:" << pkt->m_demand << " Torque: " << pkt->m_torqueLimit << " State:" << pkt->m_mode << std::endl;
   });
 
 
@@ -805,7 +805,7 @@ void MainWindow::on_updatePosition(double angle)
 
 void MainWindow::on_sliderPosition_sliderMoved(int position)
 {
-  m_position = position * 2.0 * 3.14159265359/ 360.0;
+  m_demand = position * 2.0 * 3.14159265359/ 360.0;
   //std::cerr << "Mode: " << (int) m_controlMode << std::endl;
   // Convert position to radians
   switch(m_controlMode)
@@ -813,9 +813,9 @@ void MainWindow::on_sliderPosition_sliderMoved(int position)
   case CM_Position:
   {
     //std::cerr << "Sending pos: " << std::endl;
-    m_position = position * 2.0 * 3.14159265359/ 360.0;
+    m_demand = position * 2.0 * 3.14159265359/ 360.0;
     //std::cout << "Sending move. Pos: " << m_position << " Torque:" << m_torque << " Ref:" << (int) g_positionReference << std::endl << std::flush;
-    m_coms->SendMoveWithEffort(m_targetDeviceId,m_position,m_torque,g_positionReference);
+    m_coms->SendMoveWithEffort(m_targetDeviceId,m_demand,m_torque,g_positionReference);
     ui->doubleSpinBoxDemandPosition->setValue(position);
   } break;
   case CM_Velocity:
@@ -841,8 +841,8 @@ void MainWindow::on_sliderTorque_sliderMoved(int torque)
   switch(m_controlMode)
   {
   case CM_Position:
-    std::cout << "Sending move. Pos: " << m_position << " Torque:" << m_torque << " Ref:" << (int) g_positionReference << std::endl << std::flush;
-    m_coms->SendMoveWithEffort(m_targetDeviceId,m_position,m_torque,g_positionReference);
+    std::cout << "Sending move. Pos: " << m_demand << " Torque:" << m_torque << " Ref:" << (int) g_positionReference << std::endl << std::flush;
+    m_coms->SendMoveWithEffort(m_targetDeviceId,m_demand,m_torque,g_positionReference);
     break;
   default:
     break;
@@ -1047,9 +1047,9 @@ void MainWindow::on_doubleSpinBoxDemandPosition_editingFinished()
   case CM_Position:
   {
     double newPosition = DogBotN::Deg2Rad(demandAngleDeg);
-    m_position = newPosition;
-    std::cout << "Sending move. Pos: " << m_position << " Torque:" << m_torque << " Ref:" << (int) g_positionReference << std::endl << std::flush;
-    m_coms->SendMoveWithEffort(m_targetDeviceId,m_position,m_torque/m_maxCurrent,g_positionReference);
+    m_demand = newPosition;
+    std::cout << "Sending move. Pos: " << m_demand << " Torque:" << m_torque << " Ref:" << (int) g_positionReference << std::endl << std::flush;
+    m_coms->SendMoveWithEffort(m_targetDeviceId,m_demand,m_torque/m_maxCurrent,g_positionReference);
     ui->sliderPosition->setValue(demandAngleDeg);
   } break;
   case CM_Velocity:
@@ -1073,8 +1073,8 @@ void MainWindow::on_doubleSpinBoxTorqueLimit_editingFinished()
 {
   double newTorqueLimit = ui->doubleSpinBoxTorqueLimit->value();
   m_torque = newTorqueLimit;
-  std::cout << "Sending move. Pos: " << m_position << " Torque:" << m_torque << " Ref:" << (int) g_positionReference << std::endl  << std::flush;
-  m_coms->SendMoveWithEffort(m_targetDeviceId,m_position,m_torque,g_positionReference);
+  std::cout << "Sending move. Pos: " << m_demand << " Torque:" << m_torque << " Ref:" << (int) g_positionReference << std::endl  << std::flush;
+  m_coms->SendMoveWithEffort(m_targetDeviceId,m_demand,m_torque,g_positionReference);
   ui->sliderTorque->setValue(newTorqueLimit * 10.0);
 }
 

@@ -98,6 +98,25 @@ namespace DogBotN {
     return true;
   }
 
+  //! Set the trajectory
+  bool JointC::SetupTrajectory(float period,float torqueLimit)
+  {
+    m_demandTorqueLimit = torqueLimit;
+    return true;
+  }
+
+  //! Demand a next position in a trajectory
+  bool JointC::DemandTrajectory(float position,float torque)
+  {
+    m_demandPosition = position;
+    for(auto &a : m_demandCallbacks.Calls()) {
+      if(a) a(position,m_demandTorqueLimit);
+    }
+    return true;
+  }
+
+
+
   //! Add a update callback for motor position
   CallbackHandleC JointC::AddPositionUpdateCallback(const PositionUpdateFuncT &callback)
   { return m_positionCallbacks.Add(callback); }

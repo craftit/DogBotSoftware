@@ -430,6 +430,16 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
       }
       g_supplyVoltageScale = newValue;
     } break;
+    case CPI_CurrentLimit: {
+      if(len != 4)
+        return false;
+      float newCurrentLimit =  data->float32[0];
+      if(newCurrentLimit < 0.0)
+        newCurrentLimit = 0.0;
+      if(newCurrentLimit >= g_absoluteMaxCurrent)
+        newCurrentLimit = g_absoluteMaxCurrent;
+      g_userCurrentLimit = newCurrentLimit;
+    } break;
     case CPI_FINAL:
       return false;
     default:
@@ -746,6 +756,10 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
     case CPI_SupplyVoltageScale: {
       *len = 4;
       data->float32[0] = g_supplyVoltageScale;
+    } break;
+    case CPI_CurrentLimit: {
+      *len = 4;
+      data->float32[0] = g_userCurrentLimit;
     } break;
     case CPI_FINAL:
     default:

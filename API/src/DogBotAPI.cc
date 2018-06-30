@@ -312,6 +312,7 @@ namespace DogBotN {
       case CPI_EndStopPhaseAngles: return "EndStopPhaseAngles";
       case CPI_MotionUpdatePeriod: return "MotionUpdatePeriod";
       case CPI_SupplyVoltageScale: return "SupplyVoltageScale";
+      case CPI_CurrentLimit: return "CurrentLimit";
       case CPI_FINAL: return "FINAL";
     }
     printf("Unexpected parameter index %d \n",(int)paramIndex);
@@ -416,6 +417,7 @@ namespace DogBotN {
       case CPI_EndStopPhaseAngles: return CPIT_float32_2;
       case CPI_MotionUpdatePeriod: return CPIT_float32;
       case CPI_SupplyVoltageScale: return CPIT_float32;
+      case CPI_CurrentLimit: return CPIT_float32;
       case CPI_FINAL: return CPIT_Invalid;
     }
 

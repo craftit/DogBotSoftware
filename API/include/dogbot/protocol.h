@@ -237,6 +237,7 @@ extern "C" {
     CPI_PWMFrequency       = 0x63,
     CPI_MotionUpdatePeriod = 0x64,
     CPI_SupplyVoltageScale = 0x65,
+    CPI_CurrentLimit       = 0x66,
 
     CPI_FINAL           = 0xff
   };
@@ -402,13 +403,27 @@ extern "C" {
     uint16_t m_angle;
   } __attribute__((packed));
 
+  // Motion request packet.
+  //
+  // m_mode uses the following bits:
+  //  Bit    0: If set the requested position is absolute relative to homed position, if clear then it is relative to motor power up.
+  //  Bit    1: If set, then m_torque is expected required torque, if clear then it is a torque limit.
+  //  Bits 2-5: Dynamic mode. See enum PWMControlDynamicT
+  //  Bit  6-7: Unused.
+  //
+#define DOGBOT_PACKETSERVOMODE_ABSOLUTEPOSITION (1u<<0)
+#define DOGBOT_PACKETSERVOMODE_DEMANDTORQUE     (1u<<1)
+#define DOGBOT_PACKETSERVOMODE_DYNAMIC_BITOFFSET (2)
+#define DOGBOT_PACKETSERVOMODE_DYNAMIC(x)       (((x) >> DOGBOT_PACKETSERVOMODE_DYNAMIC_BITOFFSET) & 0x07)
+#define DOGBOT_PACKETSERVO_FLOATSCALE           (32767.0f)
+
   struct PacketServoC {
-    uint8_t m_packetType; // CPT_Servo
-    uint8_t m_deviceId;
-    uint8_t m_mode;       //
-    uint8_t m_timestamp;
-    int16_t m_position;   // Or velocity.
-    uint16_t m_torqueLimit;
+    uint8_t m_packetType; // Must be CPT_Servo
+    uint8_t m_deviceId;   // Destination device for packet.
+    uint8_t m_mode;       // See comment above.
+    uint8_t m_timestamp;  // Incremented by one for each successive packet, used for detection dropped packets in a trajectory.
+    int16_t m_demand;     // Position, Velocity or Torque depending on bits set in dynamic mode, in m_mode field.
+    int16_t m_torque;     // Demand torque (for feed forward control) or torque limit, depending on bit 1 in mode.
   } __attribute__((packed));
 
 #define DOGBOT_SERVOREPORTMODE_EMERGENCYSTOP (1u<<7)

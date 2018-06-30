@@ -14,7 +14,7 @@ extern "C" {
 
   void MotionUpdateIndex(bool state,float position,float velocity);
 
-  bool MotionSetPosition(uint8_t mode,uint8_t timestamp,int16_t position,uint16_t torqueLimit);
+  bool MotionSetDemand(uint8_t mode,uint8_t timestamp,int16_t demand,int16_t torqueLimit);
 
   bool MotionReport(int16_t position,int16_t velocity,int16_t torque,enum PositionReferenceT posRef,uint8_t timeStamp);
 

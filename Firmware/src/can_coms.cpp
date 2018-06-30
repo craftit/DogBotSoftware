@@ -207,11 +207,11 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
           CANReportPacketSizeError(msgType,rxmsg.DLC);
           break;
         }
-        int16_t position = (int16_t) rxmsg.data16[0];
-        uint16_t torqueLimit = rxmsg.data16[1];
+        int16_t demand = (int16_t) rxmsg.data16[0];
+        int16_t torque = rxmsg.data16[1];
         uint8_t mode = rxmsg.data8[4];
         uint8_t timestamp = rxmsg.data8[5];
-        MotionSetPosition(mode,timestamp,position,torqueLimit);
+        MotionSetDemand(mode,timestamp,demand,torque);
       }
     } break;
     case CPT_SaveSetup: {
