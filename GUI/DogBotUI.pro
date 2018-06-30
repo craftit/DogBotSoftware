@@ -13,8 +13,8 @@ QMAKE_CXXFLAGS += -std=c++11
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
+macx:PKG_CONFIG=PKG_CONFIG_PATH=/usr/local/lib/pkgconfig pkg-config
 PKGCONFIG += jsoncpp libzmq libusb-1.0
-#spdlog
 
 TARGET = DogBotUI
 TEMPLATE = app

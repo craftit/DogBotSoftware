@@ -6,6 +6,7 @@ build
 .project
 .cproject
 .DS_Store
+.qmake.stash
 
 # Compiled Object files
 *.slo
