@@ -35,7 +35,7 @@ namespace DogBotN {
     // The vector has the angles  indexed in the following order : roll,pitch,knee
     virtual bool GetJointAngles(TimePointT theTime,Eigen::Vector3f &angles);
 
-    //! Compute the force on a foot and where it is.
+    //! Compute an estimate of the force on a foot and where it is.
     bool ComputeFootForce(const DogBotN::TimePointT &atTime,Eigen::Vector3f &position,Eigen::Vector3f &force);
 
     //! Access leg kinematics.
