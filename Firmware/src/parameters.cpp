@@ -115,11 +115,13 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
         case MHS_Lost:
           MotionResetCalibration(MHS_SoftHomed);
         case MHS_Measuring:
-        case MHS_SoftHomed:
-          g_homeAngleOffset = data->float32[0] * g_actuatorRatio;
+        case MHS_SoftHomed: {
+          float newHome;
+          memcpy(&newHome,&data->float32[0],sizeof(float));
+          g_homeAngleOffset = newHome * g_actuatorRatio;
           g_motionHomedState = MHS_SoftHomed;
           SendParamUpdate(CPI_HomedState);
-          break;
+        } break;
         case MHS_Homed:
           SendError(CET_UnavailableInCurrentMode,CPT_SetParam,index);
           break;
@@ -197,52 +199,53 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
     case CPI_MotorIGain:
       if(len != 4)
         return false;
-      g_motor_i_gain = data->float32[0];
+      memcpy(&g_motor_i_gain,&data->float32[0],sizeof(float));
       break;
     case CPI_MotorPGain:
       if(len != 4)
         return false;
-      g_motor_p_gain = data->float32[0];
+      memcpy(&g_motor_p_gain,&data->float32[0],sizeof(float));
       break;
     case CPI_VelocityPGain:
       if(len != 4)
         return false;
-      g_velocityPGain =  data->float32[0];
+      memcpy(&g_velocityPGain,&data->float32[0],sizeof(float));
       break;
     case CPI_VelocityIGain:
       if(len != 4)
         return false;
-      g_velocityIGain =  data->float32[0];
+      memcpy(&g_velocityIGain,&data->float32[0],sizeof(float));
       break;
     case CPI_DemandPhaseVelocity:
       if(len != 4)
         return false;
-      g_demandPhaseVelocity = data->float32[0];
+      memcpy(&g_demandPhaseVelocity,&data->float32[0],sizeof(float));
       break;
     case CPI_VelocityLimit:
       if(len != 4)
         return false;
-      g_velocityLimit = data->float32[0];
+      memcpy(&g_velocityLimit,&data->float32[0],sizeof(float));
       break;
     case CPI_PositionGain:
       if(len != 4)
         return false;
-      g_positionGain = data->float32[0];
+      memcpy(&g_positionGain,&data->float32[0],sizeof(float));
       break;
     case CPI_MaxCurrent:
       if(len != 4)
         return false;
-      g_absoluteMaxCurrent = data->float32[0];
+      memcpy(&g_absoluteMaxCurrent,&data->float32[0],sizeof(float));
       break;
     case CPI_homeIndexPosition:
       if(len != 4)
         return false;
-      g_homeIndexPosition = data->float32[0];
+      memcpy(&g_homeIndexPosition,&data->float32[0],sizeof(float));
       break;
     case CPI_MinSupplyVoltage: {
       if(len != 4)
         return false;
-      float newValue =data->float32[0];
+      float newValue;
+      memcpy(&newValue,&data->float32[0],sizeof(float));
       // Check values are sane.
       if(newValue < 6.0 || newValue > 42.0) {
         SendError(CET_ParameterOutOfRange,CPT_SetParam,index);
@@ -315,7 +318,7 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
     case CPI_FanTemperatureThreshold: {
       if(len != 4)
         return false;
-      g_fanTemperatureThreshold = data->float32[0];
+      memcpy(&g_fanTemperatureThreshold,&data->float32[0],sizeof(float));
     } break;
     case CPI_FanState: {
       return false;
@@ -364,65 +367,67 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
     case CPI_EndStopStart: {
       if(len != 4)
         return false;
-      g_endStopMin = data->float32[0];
+      memcpy(&g_endStopMin,&data->float32[0],sizeof(float));
       SetupEndStops();
     } break;
     case CPI_EndStopStartBounce:{
       if(len != 4)
         return false;
-      g_endStopStartBounce = data->float32[0];
+      memcpy(&g_endStopStartBounce,&data->float32[0],sizeof(float));
       SetupEndStops();
     } break;
 
     case CPI_EndStopFinal:{
       if(len != 4)
         return false;
-      g_endStopMax = data->float32[0];
+      memcpy(&g_endStopMax,&data->float32[0],sizeof(float));
       SetupEndStops();
     } break;
     case CPI_EndStopEndBounce:{
       if(len != 4)
         return false;
-      g_endStopEndBounce = data->float32[0];
+      memcpy(&g_endStopEndBounce,&data->float32[0],sizeof(float));
       SetupEndStops();
     } break;
     case CPI_EndStopTargetBreakForce:{
       if(len != 4)
         return false;
-      g_endStopTargetBreakCurrent = data->float32[0];
+      memcpy(&g_endStopTargetBreakCurrent,&data->float32[0],sizeof(float));
       SetupEndStops();
     } break;
     case CPI_EndStopLimitBreakForce: {
       if(len != 4)
         return false;
-      g_endStopMaxBreakCurrent = data->float32[0];
+      memcpy(&g_endStopMaxBreakCurrent,&data->float32[0],sizeof(float));
       SetupEndStops();
     } break;
     case CPI_JointInertia:{
-      if(len != 4)
-        return false;
-      g_jointInertia = data->float32[0];
-      SetupEndStops();
+      return false;
     } break;
     case CPI_EndStopPhaseAngles:
       return false;
-    case CPI_ServoReportFrequency:
+    case CPI_ServoReportFrequency: {
       if(len != 4)
         return false;
-      SetServoReportRate(data->float32[0]);
-      return true;
+      float newValue;
+      memcpy(&newValue,&data->float32[0],sizeof(float));
+      SetServoReportRate(newValue);
+    } return true;
     case CPI_PWMFrequency:
       // Setting the PWM frequency is not supported at the moment.
       return false;
     case CPI_MotionUpdatePeriod: {
       if(len != 4)
         return false;
-      SetMotionUpdatePeriod(data->float32[0]);
+      float updatePeriod;
+      memcpy(&updatePeriod,&data->float32[0],sizeof(float));
+      SetMotionUpdatePeriod(updatePeriod);
     } break;
     case CPI_SupplyVoltageScale: {
       if(len != 4)
         return false;
-      float newValue = data->float32[0];
+      float newValue;
+      memcpy(&newValue,&data->float32[0],sizeof(float));
       // Limit range to somewhat sensible values.
       if(newValue < 0.8 || newValue > 1.4) {
         SendError(CET_ParameterOutOfRange,CPT_SetParam,index);
@@ -433,7 +438,8 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
     case CPI_CurrentLimit: {
       if(len != 4)
         return false;
-      float newCurrentLimit =  data->float32[0];
+      float newCurrentLimit;
+      memcpy(&newCurrentLimit,data->float32,sizeof(float));
       if(newCurrentLimit < 0.0)
         newCurrentLimit = 0.0;
       if(newCurrentLimit >= g_absoluteMaxCurrent)
@@ -729,8 +735,6 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       data->float32[0] = g_endStopMaxBreakCurrent;
     } break;
     case CPI_JointInertia:{
-      *len = 4;
-      data->float32[0] = g_jointInertia;
     } break;
     case CPI_MotorOffsetVoltage:{
       *len = 4;

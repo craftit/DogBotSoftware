@@ -15,7 +15,7 @@ bool g_packetUSBActive = false;
 
 PacketQueueC g_rxPacketQueue;
 
-static THD_WORKING_AREA(waThreadRxComs, 512);
+static THD_WORKING_AREA(waThreadRxComs, 1024);
 static THD_FUNCTION(ThreadRxComs, arg) {
 
   (void)arg;

@@ -213,6 +213,14 @@ namespace DogBotN {
     float SupplyVoltageScale() const
     { return m_supplyVoltageScale; }
 
+    //! Test if we've had communication with the device.
+    // This checks if we've ever received a firmware version
+    bool IsPresent() const
+    { return m_firmwareVersion >= 0; }
+
+    //! Check if the motor firmware version matches API.
+    bool IsFirmwareVersionOk() const;
+
   protected:
     //! Convert a report value to a torque
     float TorqueReport2Current(int16_t val)
@@ -248,7 +256,7 @@ namespace DogBotN {
 
     //! Handle parameter update.
     //! Returns true if a value has changed.
-    bool HandlePacketReportParam(const PacketParam8ByteC &pkt) override;
+    bool HandlePacketReportParam(const PacketParam8ByteC &pkt,int size) override;
 
     //! Tick from main loop
     //! Used to check for communication timeouts.
@@ -262,6 +270,7 @@ namespace DogBotN {
 
     std::shared_ptr<MotorCalibrationC> m_motorCal;
 
+    int m_firmwareVersion = -1;
     int m_queryCycle = 0;
 
     FaultCodeT m_faultCode = FC_Unknown;
@@ -275,6 +284,7 @@ namespace DogBotN {
     uint8_t m_lastTimestamp = 0;
     uint8_t m_trajectoryTimestamp = 0;
 
+    TimePointT m_lastVersionQuery;
     std::chrono::duration<double> m_tickDuration; // Default is 10ms
     std::chrono::duration<double> m_comsTimeout; // Default is 200ms
     unsigned m_tick = 0;

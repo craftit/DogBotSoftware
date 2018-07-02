@@ -179,6 +179,18 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
     case ColumnStatus:
       if(servo == 0)
         return "";
+      if(!servo->IsPresent()) {
+        return "Disonnected";
+      }
+      if(servo->ControlState() == CS_BootLoader) {
+        return "Waiting";
+      }
+      if(!servo->IsFirmwareVersionOk()) {
+        return "Firmware Mismatch";
+      }
+      if(!servo->IsEnabled()) {
+        return "Disabled";
+      }
       return DogBotN::FaultCodeToString(servo->FaultCode());
     case ColumnMode:
       if(servo != 0)
@@ -281,6 +293,15 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
     case ColumnStatus:
       if(servo == 0)
         return QColor(Qt::white);
+      if(servo->ControlState() == CS_BootLoader) {
+        return QColor(Qt::yellow);
+      }
+      if(!servo->IsPresent() || !servo->IsFirmwareVersionOk()) {
+        return QColor(Qt::red);
+      }
+      if(!servo->IsEnabled()) {
+        return QColor(Qt::yellow);
+      }
       if(servo->FaultCode() == FC_Ok)
         return QColor(Qt::green);
       else

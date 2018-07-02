@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-#define DOGBOT_FIRMWARE_VERSION 6
+#define DOGBOT_FIRMWARE_VERSION 7
 
   /* Message packet types, see end of file for structs transmitted for each message type.
    * These messages are ordered by decreasing priority.
@@ -230,7 +230,7 @@ extern "C" {
     CPI_EndStopEndBounce = 0x5D,
     CPI_EndStopTargetBreakForce = 0x5E,
     CPI_EndStopLimitBreakForce = 0x5F,
-    CPI_JointInertia     = 0x60,
+    CPI_JointInertia     = 0x60,  // Obsolete.
     CPI_EndStopPhaseAngles = 0x61,
 
     CPI_ServoReportFrequency   = 0x62,

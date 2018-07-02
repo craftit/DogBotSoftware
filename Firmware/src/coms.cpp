@@ -108,13 +108,13 @@ bool USBReadParamAndReply(enum ComsParameterIndexT paramIndex)
   int len = 0;
   if(!ReadParam(paramIndex,&len,&reply.m_data))
     return false;
-
   USBSendPacket((uint8_t *)&reply,sizeof(reply.m_header) + len);
   return true;
 }
 
 
-void SendParamUpdate(enum ComsParameterIndexT paramIndex) {
+void SendParamUpdate(enum ComsParameterIndexT paramIndex)
+{
   if(g_deviceId == 0 || g_canBridgeMode) {
     if(!USBReadParamAndReply(paramIndex)) {
       USBSendError(g_deviceId,CET_ParameterOutOfRange,CPT_ReadParam,(uint8_t) paramIndex);
@@ -480,7 +480,6 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
 #if 1
   default: {
     USBSendError(g_deviceId,CET_UnknownPacketType,m_data[0],m_packetLen);
-    //RavlDebug("Unexpected packet type %d ",(int) m_data[1]);
   } break;
 #endif
   }

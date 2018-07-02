@@ -127,7 +127,7 @@ namespace DogBotN {
 
   //! Handle parameter update.
   //! Returns true if a value has changed.
-  bool DeviceC::HandlePacketReportParam(const PacketParam8ByteC &pkt)
+  bool DeviceC::HandlePacketReportParam(const PacketParam8ByteC &pkt,int size)
   {
     std::lock_guard<std::mutex> lock(m_mutexState);
     auto timeNow = std::chrono::steady_clock::now();

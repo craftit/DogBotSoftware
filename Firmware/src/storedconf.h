@@ -33,7 +33,7 @@ struct StoredConfigT {
   float m_endStopEndBounce;
   float m_endStopTargetBreakCurrent;
   float m_endStopMaxBreakCurrent;
-  float m_jointInertia;
+  float m_jointInertia; // Obsolete
   enum SafetyModeT m_safetyMode;
   float m_supplyVoltageScale;
 };

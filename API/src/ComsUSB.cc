@@ -218,6 +218,7 @@ namespace DogBotN
     m_log->info("Device departed. ");
 
     CloseUSB();
+    m_log->info("Close complete. ");
   }
 
 
@@ -375,7 +376,7 @@ namespace DogBotN
               m_log->error("Unexpected packet size at {} of {} ",dat,packetLen);
               break;
             }
-            ONDEBUG(m_log->info("Packet iso at {} Len:{} Type:{} ",dat,packetLen,(int) pdata[dat+1]));
+            ONDEBUG(m_log->info("Packet in iso at {} Len:{} Type:{} ",dat,packetLen,(int) pdata[dat+1]));
             ProcessPacket(&pdata[dat],packetLen);
             dat += packetLen;
           }

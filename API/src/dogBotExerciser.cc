@@ -28,9 +28,11 @@ int main(int argc,char **argv)
   int jointId = -1;
   float torque = 1.0;
   float range = 45.0;
+  float hightRange = 0.78;
   float angle = 0;
   int delay = 5000;
   float speed  = -1.0;
+  bool useTrajectory = false;
   bool useVirtualJoint = false;
   try
   {
@@ -46,6 +48,7 @@ int main(int argc,char **argv)
       ("t,torque","Torque to use", cxxopts::value<float>(torque))
       ("j,joint","Joint name", cxxopts::value<std::string>(jointName))
       ("r,range","Motion range", cxxopts::value<float>(range))
+      ("z,height","Motion range", cxxopts::value<float>(hightRange))
       ("a,angle","Centre angle", cxxopts::value<float>(angle))
       ("p,pose","Dump robot pose", cxxopts::value<bool>(dumpPose))
       ("l,load","Load pose", cxxopts::value<std::string>(loadPoseFile))
@@ -54,6 +57,7 @@ int main(int argc,char **argv)
       ("v,virtual-joint","Use virtual joint",cxxopts::value<bool>(useVirtualJoint))
       ("o,delay","Delay in cycle, default is 5000",cxxopts::value<int>(delay))
       ("n,limits","Dump motion limits",cxxopts::value<bool>(dumpLimits))
+      ("x,trajectory","use trajectories",cxxopts::value<bool>(useTrajectory))
       ("h,help", "Print help")
     ;
 
@@ -85,8 +89,8 @@ int main(int argc,char **argv)
   float minLegExtention = dogbot->DogBotKinematics().MinLegExtension();
   float maxLegExtention = dogbot->DogBotKinematics().MaxLegExtension();
   float legRange = maxLegExtention - minLegExtention;
-  if(range > legRange)
-    range = legRange;
+  if(hightRange > legRange)
+    hightRange = legRange;
   logger->info("Limit Min {}   Max {}  Range:{}",minLegExtention,maxLegExtention,legRange);
   if(dumpLimits) { // Just dump limits and exit ?
     return 0;
@@ -153,7 +157,7 @@ int main(int argc,char **argv)
       for(int i = 0;i < 360;i++) {
         // 0.35 to 0.7
 
-        float z = cos(DogBotN::Deg2Rad(i)) * range + midRange;
+        float z = cos(DogBotN::Deg2Rad(i)) * hightRange + midRange;
 
         for(int i = 0;i < 4;i++) {
           legs[i]->Goto(Eigen::Vector3f(0,0,-z),torque);
@@ -183,12 +187,24 @@ int main(int argc,char **argv)
   if(speed >= 0) {
     float omega = 0;
     float updatePeriod = 0.01;
-    joint->SetupTrajectory(updatePeriod,torque);
+    logger->info("Setting up trajectory. with torque {} ",torque);
+    if(useTrajectory) {
+      if(!joint->SetupTrajectory(updatePeriod,torque)) {
+        logger->error("Failed to setup trajectory. ");
+        return 1;
+      }
+    }
     auto nextTime = std::chrono::steady_clock::now();
     while(true) {
       omega += updatePeriod * speed;
       float goTo = DogBotN::Deg2Rad(angle + (sin(omega) * range/2.0f));
-      joint->DemandTrajectory(goTo);
+      if(useTrajectory) {
+        //logger->info("Going to traj {} ",DogBotN::Rad2Deg(goTo));
+        joint->DemandTrajectory(goTo);
+      } else {
+        //logger->info("Going to pos {}  Range:{} ",DogBotN::Rad2Deg(goTo),range);
+        joint->DemandPosition(goTo,torque);
+      }
       nextTime += std::chrono::microseconds((int)(updatePeriod * 1000000.0f));
       std::this_thread::sleep_until(nextTime);
     }

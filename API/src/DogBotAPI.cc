@@ -1260,16 +1260,15 @@ namespace DogBotN {
                           }
                           const PacketParam8ByteC *pkt = (const PacketParam8ByteC *) data;
                           // Reset
-                          if(((enum ComsParameterIndexT) pkt->m_header.m_index) == CPI_ControlState) {
-                            if(((enum ControlStateT) pkt->m_data.int8[0]) == CS_Standby) {
-                              m_emergencyStopFlags[pkt->m_header.m_deviceId] = false;
-                            }
+                          if(((enum ComsParameterIndexT) pkt->m_header.m_index) == CPI_ControlState &&
+                              ((enum ControlStateT) pkt->m_data.int8[0]) == CS_Standby) {
+                            m_emergencyStopFlags[pkt->m_header.m_deviceId] = false;
                           }
                           // We can only deal with devices after they've been allocated an id.
                           std::shared_ptr<DeviceC> device = DeviceEntry(pkt->m_header.m_deviceId);
                           if(!device)
                             return ;
-                          if(device->HandlePacketReportParam(*pkt)) {
+                          if(device->HandlePacketReportParam(*pkt,size)) {
                             DeviceStatusUpdate(device.get(),SUT_Updated);
                           }
 

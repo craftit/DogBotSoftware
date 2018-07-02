@@ -139,8 +139,6 @@ private slots:
 
   void on_comboBoxFanState_activated(int index);
 
-  void on_checkBoxJointRelative_stateChanged(int arg1);
-
   void on_lineEditFanTempThreshold_editingFinished();
 
   void on_comboBoxFanState_currentIndexChanged(const QString &arg1);
@@ -152,8 +150,6 @@ private slots:
   void on_doubleSpinBoxEndStopEnd_valueChanged(double arg1);
 
   void on_checkBoxEndStopEnable_toggled(bool checked);
-
-  void on_doubleSpinBoxJointInertia_valueChanged(double arg1);
 
   void LocalProcessParam(PacketParam8ByteC psp);
 
@@ -200,6 +196,10 @@ private slots:
   void on_pushButtonResetSupplyVoltageCal_clicked();
 
   void on_doubleSpinBoxSupplyVoltageScale_valueChanged(double arg1);
+
+  void on_doubleSpinBoxMotionUpdate_valueChanged(double arg1);
+
+  void on_doubleSpinBoxCurrentLimit_valueChanged(double arg1);
 
 signals:
   void setLogText(const QString &str);

@@ -152,8 +152,8 @@ namespace DogBotN {
     SetupConstants();
 
     // Things to query
-    m_updateQuery.push_back(CPI_FaultCode);
     m_updateQuery.push_back(CPI_ControlState);
+    m_updateQuery.push_back(CPI_FaultCode);
     m_updateQuery.push_back(CPI_SafetyMode);
     m_updateQuery.push_back(CPI_Indicator);
 
@@ -190,6 +190,7 @@ namespace DogBotN {
   {
     // See https://en.wikipedia.org/wiki/Motor_constants#Motor_Torque_constant
     m_servoKt = (60.0f * m_gearRatio) / (2 * M_PI * m_motorKv);
+    m_log->info("Setting servoKt to {} ",m_servoKt);
   }
 
 #if 0
@@ -343,16 +344,32 @@ namespace DogBotN {
   //! Handle parameter update.
   //! Returns true if a value has changed.
 
-  bool ServoC::HandlePacketReportParam(const PacketParam8ByteC &pkt)
+  bool ServoC::HandlePacketReportParam(const PacketParam8ByteC &pkt,int size)
   {
     char buff[64];
     bool ret = false;
 
-    DeviceC::HandlePacketReportParam(pkt);
+    DeviceC::HandlePacketReportParam(pkt,size);
+
+    int dataLen = size - sizeof(PacketParamHeaderC);
+    if(dataLen < 0) {
+      m_log->error("Parameter packet too short with length {} !",size);
+      return false;
+    }
 
     std::lock_guard<std::mutex> lock(m_mutexState);
     ComsParameterIndexT cpi = (enum ComsParameterIndexT) pkt.m_header.m_index;
     switch (cpi) {
+    case CPI_FirmwareVersion: {
+      if(dataLen != 1) {
+        m_log->error("Firmware version has length {}, expected 1",dataLen);
+        return false;
+      }
+      m_firmwareVersion = (unsigned) pkt.m_data.int8[0];
+      if(m_firmwareVersion != DOGBOT_FIRMWARE_VERSION && m_controlState != CS_BootLoader) {
+        m_log->warn("Mismatch between firmware version and API. Servo firmware is {}, API has {} ",m_firmwareVersion,DOGBOT_FIRMWARE_VERSION);
+      }
+    } break;
     case CPI_DriveTemp: {
       float newTemp = pkt.m_data.float32[0];
       ret = (newTemp != m_driveTemperature);
@@ -605,6 +622,8 @@ namespace DogBotN {
 
         ret = true;
         m_log->warn("Lost contact with servo {}  for {} seconds",m_id,timeSinceLastReport.count());
+        m_toQuery = -1;
+        m_firmwareVersion = -1;
 
         // Set velocity estimate to zero.
         m_velocity = 0;
@@ -616,8 +635,9 @@ namespace DogBotN {
         if((m_faultCode == FC_Unknown) &&
             (m_toQuery == (int) m_updateQuery.size()))
         {
+          m_toQuery = -1;
+          m_firmwareVersion = -1;
           m_log->warn("Regained contact with servo {}, querying.",m_id);
-          m_toQuery = 0;
         }
       }
 #endif
@@ -626,12 +646,31 @@ namespace DogBotN {
     // Go through updating things, and avoiding flooding the bus.
     if(m_toQuery < (int) m_updateQuery.size() && m_coms && m_coms->IsReady()) {
       // Don't query everything in boot-loader mode.
-      if(m_controlState != CS_BootLoader || m_toQuery < m_bootloaderQueryCount) {
-        m_coms->SendQueryParam(m_id,m_updateQuery[m_toQuery]);
-        m_toQuery++;
+      if(m_toQuery < m_bootloaderQueryCount) {
+        if(m_controlState == CS_BootLoader) {
+          TimePointT now = TimePointT::clock::now();
+          if((now - m_lastVersionQuery) > std::chrono::seconds(1)) {
+            m_coms->SendQueryParam(m_id,CPI_ControlState);
+          }
+        } else {
+          // Don't proceed until we have a firmware version number
+          if(m_firmwareVersion < 0) {
+            TimePointT now = TimePointT::clock::now();
+            if(m_toQuery < 0 || (now - m_lastVersionQuery) > std::chrono::seconds(2) ) {
+              // Do we need a timeout / retry ?
+              m_coms->SendQueryParam(m_id,CPI_ControlState);
+              m_coms->SendQueryParam(m_id,CPI_FirmwareVersion);
+              m_lastVersionQuery = now;
+              m_toQuery = 0;
+            }
+          } else {
+            if(m_toQuery < 0) m_toQuery = 0;
+            m_coms->SendQueryParam(m_id,m_updateQuery[m_toQuery]);
+            m_toQuery++;
+          }
+        }
       }
     }
-
     return ret;
   }
 
@@ -639,6 +678,8 @@ namespace DogBotN {
   //! Update torque for the servo.
   bool ServoC::DemandTorque(float torque)
   {
+    if(!m_enabled || !IsFirmwareVersionOk())
+      return false;
     float current = torque / (m_maxCurrent* m_servoKt);
     m_coms->SendTorque(m_id,current);
     return true;
@@ -647,6 +688,8 @@ namespace DogBotN {
   //! Demand a position for the servo, torque limit is in Newton-meters
   bool ServoC::DemandPosition(float position,float torqueLimit,enum PositionReferenceT positionRef)
   {
+    if(!m_enabled || !IsFirmwareVersionOk())
+      return false;
     float currentLimit = torqueLimit / (m_maxCurrent* m_servoKt);
     m_coms->SendMoveWithEffortLimit(m_id,position,currentLimit,positionRef);
     return true;
@@ -655,6 +698,8 @@ namespace DogBotN {
   //! Demand a position for the servo
   bool ServoC::DemandPosition(float position,float torqueLimit)
   {
+    if(!m_enabled || !IsFirmwareVersionOk())
+      return false;
     if(m_positionRef != PR_Absolute) {
       m_log->warn("Joint not yet homed, ignoring move request. ");
       return false;
@@ -666,10 +711,12 @@ namespace DogBotN {
   //! Set the trajectory update rate in Hz.
   bool ServoC::SetupTrajectory(float period,float torqueLimit)
   {
+    if(!m_enabled || !IsFirmwareVersionOk())
+      return false;
     JointC::SetupTrajectory(period,torqueLimit);
     if(!m_coms->SetParam(m_id,CPI_MotionUpdatePeriod,period))
       return false;
-    float effortLimit = torqueLimit / (m_maxCurrent* m_servoKt);
+    float effortLimit = torqueLimit / m_servoKt;
     if(!m_coms->SetParam(m_id,CPI_CurrentLimit,effortLimit))
       return false;
     return true;
@@ -678,6 +725,14 @@ namespace DogBotN {
   //! Demand next position for the servo, with expected torque
   bool ServoC::DemandTrajectory(float position,float torque)
   {
+    if(!m_enabled) {
+      m_log->warn("Servo not enabled, DemandTrajectory  dropped.");
+      return false;
+    }
+    if(!IsFirmwareVersionOk()) {
+      m_log->warn("Servo firmware mismatch, DemandTrajectory  dropped.");
+      return false;
+    }
     if(m_positionRef != PR_Absolute) {
       m_log->warn("Joint not yet homed, ignoring trajectory request. ");
       return false;
@@ -692,10 +747,8 @@ namespace DogBotN {
 
   void ServoC::QueryRefresh()
   {
-    m_queryCycle = 0;
+    m_queryCycle = -1;
   }
-
-
 
   class HomeStateC
   {
@@ -781,7 +834,14 @@ namespace DogBotN {
   bool ServoC::HomeJoint(bool restorePosition)
   {
     m_log->info("HomeJoint called.");
-
+    if(!IsFirmwareVersionOk()) {
+      m_log->info("Joint {} firmware version mismatch.",Name());
+      return true;
+    }
+    if(!IsEnabled()) {
+      m_log->info("Joint {} disabled.",Name());
+      return true;
+    }
     if(m_homedState == MHS_Homed) {
       m_log->info("Joint {} already homed.",Name());
       return true;
@@ -963,6 +1023,13 @@ namespace DogBotN {
       double timeOut
       )
   {
+    if(!IsFirmwareVersionOk()) {
+      m_log->info("Joint {} firmware version mismatch.",Name());
+      return JMS_Error;
+    }
+    if(!IsEnabled()) {
+      return JMS_IncorrectMode;
+    }
     if(m_controlState != CS_Ready) {
       m_log->error("Move until index change for {} failed, joint not in ready state.",Name());
       return JMS_IncorrectMode;
@@ -1046,5 +1113,9 @@ namespace DogBotN {
     return true;
   }
 
+  bool ServoC::IsFirmwareVersionOk() const
+  {
+    return m_firmwareVersion == DOGBOT_FIRMWARE_VERSION;
+  }
 
 }

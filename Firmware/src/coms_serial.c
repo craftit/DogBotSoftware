@@ -6,7 +6,6 @@
 static virtual_timer_t vt3, vt4, vt5;
 
 static const uint8_t message[] = "0123456789ABCDEF";
-static uint8_t buffer[16];
 
 static void led3off(void *p) {
 

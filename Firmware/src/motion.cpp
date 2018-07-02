@@ -125,13 +125,10 @@ void SetupEndStops()
   if(g_motionHomedState != MHS_Homed && g_motionHomedState != MHS_SoftHomed) {
     g_endStopPhaseMin = 0;
     g_endStopPhaseMax = 0;
-    g_endStopTargetAcceleration = -1; // Disable acceleration based end-stops for the moment.
     return ;
   }
   g_endStopPhaseMin = g_endStopMin * g_actuatorRatio + g_homeAngleOffset;
   g_endStopPhaseMax = g_endStopMax * g_actuatorRatio + g_homeAngleOffset;
-  //g_endStopTargetAcceleration = g_endStopTargetBreakCurrent / g_jointInertia;
-  g_endStopTargetAcceleration = g_jointInertia;
 }
 
 void EnterHomedState()
@@ -150,11 +147,17 @@ int g_motionTimeOut = 1000; // PWM cycles after last motion message before we ab
 
 void SetMotionUpdatePeriod(float period)
 {
+  chMtxLock(&g_demandMutex);
+  g_demandPhaseVelocity = 0;
+  g_demandPhasePosition = g_currentPhasePosition;
+  g_demandTorque = 0;
   g_motionUpdatePeriod = period;
   g_motionTimeOut = g_motionUpdatePeriod * g_PWMFrequency * 16.0; // If we miss more than 16 motion commands stop the velocity match
+  chMtxUnlock(&g_demandMutex);
+
 }
 
-bool MotionSetDemand(uint8_t jointMode,uint8_t timestamp,int16_t position,int16_t torque)
+bool MotionSetDemand(uint8_t jointMode,uint8_t timestamp,int16_t demand,int16_t torque)
 {
   float demandTorque = ((float) torque) * g_absoluteMaxCurrent / DOGBOT_PACKETSERVO_FLOATSCALE;
   // If we're not homed put a limit on the maximum current we'll accept.
@@ -166,7 +169,7 @@ bool MotionSetDemand(uint8_t jointMode,uint8_t timestamp,int16_t position,int16_
       demandTorque = -g_uncalibratedCurrentLimit;
     }
   }
-  if((jointMode &  DOGBOT_PACKETSERVOMODE_DEMANDTORQUE) == 0) {
+  if((jointMode & DOGBOT_PACKETSERVOMODE_DEMANDTORQUE) == 0) {
     if(demandTorque > 0)
       g_currentLimit = demandTorque;
     else
@@ -180,7 +183,7 @@ bool MotionSetDemand(uint8_t jointMode,uint8_t timestamp,int16_t position,int16_
   {
     case CM_Position:
       {
-        float positionAsPhaseAngle = DemandInt16ToPhasePosition(position);
+        float positionAsPhaseAngle = DemandInt16ToPhasePosition(demand);
 
         if((jointMode & DOGBOT_PACKETSERVOMODE_ABSOLUTEPOSITION) != 0) { // Calibrated position ?
           // Yes we're dealing with a calibrated position request,
@@ -201,7 +204,7 @@ bool MotionSetDemand(uint8_t jointMode,uint8_t timestamp,int16_t position,int16_
 
         float velocity = 0;
         uint8_t nextTimeStamp = g_motionLastTimestamp + 1;
-        if(nextTimeStamp == timestamp && g_motionUpdatePeriod != 0) {
+        if(nextTimeStamp == timestamp && g_motionUpdatePeriod >= 0) {
           velocity = (positionAsPhaseAngle - g_motionLastPositionRequest) / g_motionUpdatePeriod;
         }
         g_motionLastTimestamp = timestamp;
@@ -222,10 +225,10 @@ bool MotionSetDemand(uint8_t jointMode,uint8_t timestamp,int16_t position,int16_
       break;
     case CM_Velocity:
       // Uck!
-      g_demandPhaseVelocity = DemandInt16ToPhasePosition(position);
+      g_demandPhaseVelocity = DemandInt16ToPhasePosition(demand);
       break;
     case CM_Torque:
-      g_demandTorque = (((float)position) * g_absoluteMaxCurrent) / DOGBOT_PACKETSERVO_FLOATSCALE;
+      g_demandTorque = (((float)demand) * g_absoluteMaxCurrent) / DOGBOT_PACKETSERVO_FLOATSCALE;
       break;
     default:
       FaultDetected(FC_InvalidCommand);
@@ -415,7 +418,6 @@ enum FaultCodeT LoadSetup(void) {
   g_endStopEndBounce = g_storedConfig.m_endStopEndBounce;
   g_endStopTargetBreakCurrent = g_storedConfig.m_endStopTargetBreakCurrent;
   g_endStopMaxBreakCurrent = g_storedConfig.m_endStopMaxBreakCurrent;
-  g_jointInertia = g_storedConfig.m_jointInertia;
   g_safetyMode = g_storedConfig.m_safetyMode;
   g_supplyVoltageScale = g_storedConfig.m_supplyVoltageScale;
   SetupEndStops();
@@ -455,7 +457,6 @@ enum FaultCodeT SaveSetup(void) {
   g_storedConfig.m_endStopEndBounce = g_endStopEndBounce;
   g_storedConfig.m_endStopTargetBreakCurrent = g_endStopTargetBreakCurrent;
   g_storedConfig.m_endStopMaxBreakCurrent = g_endStopMaxBreakCurrent;
-  g_storedConfig.m_jointInertia = g_jointInertia;
   g_storedConfig.m_safetyMode = g_safetyMode;
   g_storedConfig.m_supplyVoltageScale = g_supplyVoltageScale;
 

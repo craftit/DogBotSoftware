@@ -284,8 +284,6 @@ float g_endStopTargetBreakCurrent = 3;
 float g_endStopMaxBreakCurrent = 6;
 float g_endStopPhaseMin = 0;
 float g_endStopPhaseMax = 0;
-float g_endStopTargetAcceleration = 0;
-float g_jointInertia = 0; // Estimate of inertia of joint
 
 
 int g_phaseRotationCount = 0;
@@ -600,8 +598,8 @@ static void MotorControlLoop(void)
         Monitor_FOC_Current(g_phaseAngle);
         break;
       case CM_Position: {
-        if(g_motionUpdatePeriod != 0)
-          targetPosition += (localDemandVelocity * (float) localMotionTime) / CURRENT_MEAS_PERIOD;
+        if(g_motionUpdatePeriod != 0 && localDemandVelocity != 0)
+          targetPosition += (localDemandVelocity * (float) localMotionTime) * CURRENT_MEAS_PERIOD;
         float positionError = (targetPosition - g_currentPhasePosition);
         targetVelocity = localDemandVelocity + positionError * g_positionGain;
       }

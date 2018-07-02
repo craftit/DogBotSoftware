@@ -566,6 +566,16 @@
            <string>Homing</string>
           </property>
           <layout class="QGridLayout" name="gridLayout_10">
+           <item row="3" column="1">
+            <widget class="QDoubleSpinBox" name="doubleSpinBoxEndStopStart">
+             <property name="minimum">
+              <double>-360.000000000000000</double>
+             </property>
+             <property name="maximum">
+              <double>360.000000000000000</double>
+             </property>
+            </widget>
+           </item>
            <item row="3" column="0">
             <widget class="QLabel" name="label_20">
              <property name="text">
@@ -678,16 +688,6 @@
              </property>
             </widget>
            </item>
-           <item row="3" column="1">
-            <widget class="QDoubleSpinBox" name="doubleSpinBoxEndStopStart">
-             <property name="minimum">
-              <double>-360.000000000000000</double>
-             </property>
-             <property name="maximum">
-              <double>360.000000000000000</double>
-             </property>
-            </widget>
-           </item>
            <item row="5" column="2">
             <widget class="QCheckBox" name="checkBoxEndStopEnable">
              <property name="text">
@@ -715,16 +715,6 @@
               <string>Set End</string>
              </property>
             </widget>
-           </item>
-           <item row="6" column="0">
-            <widget class="QLabel" name="label_35">
-             <property name="text">
-              <string>Joint Intertia</string>
-             </property>
-            </widget>
-           </item>
-           <item row="6" column="1">
-            <widget class="QDoubleSpinBox" name="doubleSpinBoxJointInertia"/>
            </item>
           </layout>
          </widget>
@@ -887,28 +877,28 @@
            <string>PID Parameters</string>
           </property>
           <layout class="QGridLayout" name="gridLayout_11">
-           <item row="2" column="0">
+           <item row="3" column="0">
             <widget class="QLabel" name="label_22">
              <property name="text">
               <string>Position I gain:</string>
              </property>
             </widget>
            </item>
-           <item row="6" column="0">
+           <item row="7" column="0">
             <widget class="QLabel" name="label_24">
              <property name="text">
               <string>Velocity P Gain:</string>
              </property>
             </widget>
            </item>
-           <item row="1" column="0">
+           <item row="2" column="0">
             <widget class="QLabel" name="label_27">
              <property name="text">
               <string>PositionGain:</string>
              </property>
             </widget>
            </item>
-           <item row="1" column="1">
+           <item row="2" column="1">
             <widget class="QDoubleSpinBox" name="doubleSpinBoxPositionGain">
              <property name="minimum">
               <double>-1000.000000000000000</double>
@@ -918,21 +908,21 @@
              </property>
             </widget>
            </item>
-           <item row="2" column="1">
+           <item row="3" column="1">
             <widget class="QDoubleSpinBox" name="doubleSpinBoxIGain">
              <property name="maximum">
               <double>1000000.000000000000000</double>
              </property>
             </widget>
            </item>
-           <item row="7" column="0">
+           <item row="8" column="0">
             <widget class="QLabel" name="label_25">
              <property name="text">
               <string>Velocity I Gain:</string>
              </property>
             </widget>
            </item>
-           <item row="6" column="1">
+           <item row="7" column="1">
             <widget class="QDoubleSpinBox" name="doubleSpinBoxVelocityGain">
              <property name="decimals">
               <number>4</number>
@@ -945,14 +935,14 @@
              </property>
             </widget>
            </item>
-           <item row="7" column="1">
+           <item row="8" column="1">
             <widget class="QDoubleSpinBox" name="doubleSpinBoxVelocityIGain">
              <property name="maximum">
               <double>1000.000000000000000</double>
              </property>
             </widget>
            </item>
-           <item row="3" column="1">
+           <item row="4" column="1">
             <widget class="QDoubleSpinBox" name="doubleSpinBoxVelocityLimit">
              <property name="decimals">
               <number>0</number>
@@ -962,7 +952,7 @@
              </property>
             </widget>
            </item>
-           <item row="3" column="0">
+           <item row="4" column="0">
             <widget class="QLabel" name="label_26">
              <property name="text">
               <string>Velocity limit:</string>
@@ -978,22 +968,41 @@
            </item>
            <item row="0" column="1">
             <widget class="QDoubleSpinBox" name="doubleSpinBoxMotionUpdate">
+             <property name="readOnly">
+              <bool>false</bool>
+             </property>
+             <property name="decimals">
+              <number>6</number>
+             </property>
              <property name="maximum">
-              <double>1000.000000000000000</double>
+              <double>10.000000000000000</double>
+             </property>
+             <property name="singleStep">
+              <double>0.010000000000000</double>
              </property>
             </widget>
            </item>
-           <item row="8" column="0">
+           <item row="9" column="0">
             <widget class="QLabel" name="label_47">
              <property name="text">
               <string>Supply Scale</string>
              </property>
             </widget>
            </item>
-           <item row="8" column="1">
+           <item row="9" column="1">
             <widget class="QDoubleSpinBox" name="doubleSpinBoxSupplyVoltageScale">
              <property name="decimals">
               <number>6</number>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QDoubleSpinBox" name="doubleSpinBoxCurrentLimit"/>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_6">
+             <property name="text">
+              <string>Trajectory current Limit</string>
              </property>
             </widget>
            </item>
