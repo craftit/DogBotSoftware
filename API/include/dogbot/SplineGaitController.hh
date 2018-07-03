@@ -36,7 +36,7 @@ namespace DogBotN {
     float m_tad = 0.2; // Time adjust segment
     float m_tpr = 0.5; // Time propel
 
-    float m_Rpu = 0.03; // Distance push
+    float m_Rpu = 0.0;//0.03; // Distance push
     float m_apu = 0.8; // Angle push
 
   };
@@ -108,7 +108,8 @@ namespace DogBotN {
     //LegKinematicsC m_legKinematics;
 
     std::vector<SplineLinear3dC> m_footTrajectories;
-    //SplineCatmullRom3dC m_footTrajectory;
+    //std::vector<SplineCatmullRom3dC> m_footTrajectories;
+    // m_footTrajectory;
 
   };
 }

@@ -12,9 +12,15 @@ namespace DogBotN {
   class SplinePoint3dC
   {
   public:
-    SplinePoint3dC();
+    SplinePoint3dC()
+    {}
 
     SplinePoint3dC(float t,float x,float y,float z);
+
+    SplinePoint3dC(float t,const Eigen::Vector3f &pnt)
+     : m_timeDelta(t),
+       m_point(pnt)
+    {}
 
     float m_timeDelta = 1.0; // Time since last point
     Eigen::Vector3f m_point;
@@ -32,7 +38,7 @@ namespace DogBotN {
     SplineCatmullRom3dC(std::vector<SplinePoint3dC> &points);
 
     //! Setup control points
-    void Setup(std::vector<SplinePoint3dC> &points);
+    void Setup(const std::vector<SplinePoint3dC> &points);
 
     //! Evaluate position at time t
     bool Evaluate(float t,Eigen::Vector3f &pnt);
@@ -40,6 +46,9 @@ namespace DogBotN {
     //! Access total time
     float TotalTime() const
     { return m_totalTime; }
+
+    std::map<float,SplinePoint3dC> &ControlPoints()
+    { return m_trajectory; }
 
   protected:
     float m_totalTime = 0;
@@ -65,6 +74,8 @@ namespace DogBotN {
     float TotalTime() const
     { return m_totalTime; }
 
+    std::map<float,SplinePoint3dC> &ControlPoints()
+    { return m_trajectory; }
   protected:
     float m_totalTime = 0;
     std::map<float,SplinePoint3dC> m_trajectory;

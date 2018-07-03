@@ -37,6 +37,7 @@ namespace DogBotN {
 
     pnts.push_back(SplinePoint3dC(m_tpr         ,nXc + m_Lpr          ,xoff ,-(zoff + m_Zc)));        // 1
     if(m_Rpu > 0) {
+
       //float timePush = m_Lpr
       pnts.push_back(SplinePoint3dC(2.0*m_tpu/3.0 ,nXc                ,xoff ,-(zoff + m_Zc)));      // 2
       pnts.push_back(SplinePoint3dC(m_tpu / 3.0   ,nXc - Lpu          ,xoff ,-(zoff + m_Zc-Zpu)));  // 3
@@ -53,6 +54,24 @@ namespace DogBotN {
       a.m_point[1] = op[0] * sin(rz) + op[1] * cos(rz);
       a.m_point[2] = op[2];
     }
+
+#if 0
+    // Resample
+    {
+      SplineLinear3dC linear(pnts);
+
+      std::vector<SplinePoint3dC> newPnts;
+      int num = 100;
+      float timeInc = linear.TotalTime()/num;
+      float t = 0;
+      for(int i = 0;i < num;i++,t+=timeInc) {
+        Eigen::Vector3f pnt;
+        linear.Evaluate(t,pnt);
+        newPnts.push_back(SplinePoint3dC(t,pnt));
+      }
+      pnts = newPnts;
+    }
+#endif
 
     return pnts;
   }
@@ -142,16 +161,29 @@ namespace DogBotN {
 
     int numPnts = 100;
 
-    std::ofstream plot("gait.csv");
-    plot << "T,X,Y,Z" << std::endl;
+    {
+      std::ofstream plot("points.csv");
+      plot << "T,X,Y,Z" << std::endl;
 
-    float totalTime = m_footTrajectories[0].TotalTime();
-    float timeStep = totalTime/numPnts;
+      auto &pmap = m_footTrajectories[0].ControlPoints();
+      for(auto it = pmap.begin();it != pmap.end();++it) {
+        Eigen::Vector3f pnt = it->second.m_point;
+        plot << it->first << "," << pnt[0] << "," << pnt[1] << "," << pnt[2] << std::endl;
+      }
+    }
 
-    for(float t = 0;t < totalTime;t+= timeStep) {
-      Eigen::Vector3f pnt;
-      m_footTrajectories[0].Evaluate(t,pnt);
-      plot << t << "," << pnt[0] << ","  << pnt[1] << "," << pnt[2] << std::endl;
+    {
+      std::ofstream plot("gait.csv");
+      plot << "T,X,Y,Z" << std::endl;
+
+      float totalTime = m_footTrajectories[0].TotalTime();
+      float timeStep = totalTime/numPnts;
+
+      for(float t = 0;t < totalTime;t+= timeStep) {
+        Eigen::Vector3f pnt;
+        m_footTrajectories[0].Evaluate(t,pnt);
+        plot << t << "," << pnt[0] << ","  << pnt[1] << "," << pnt[2] << std::endl;
+      }
     }
 
   }
