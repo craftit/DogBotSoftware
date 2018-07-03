@@ -55,6 +55,8 @@ ADD_LIBRARY (DogBotAPI STATIC
         Device.cc
         DeviceIMU.cc
         DogBotKinematics.cc
+        PoseAngles.cc
+        DogBotController.cc
 )
 
 set_target_properties(DogBotAPI PROPERTIES VERSION ${PROJECT_VERSION})
