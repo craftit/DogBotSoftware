@@ -5,6 +5,8 @@
 #include <mutex>
 #include <memory>
 #include <spdlog/spdlog.h>
+#include "dogbot/SimpleQuadrupedPose.hh"
+#include "dogbot/PoseAngles.hh"
 
 namespace DogBotN {
 
@@ -34,6 +36,10 @@ namespace DogBotN {
       assert(m_legKinematicsByNumber[i]);
       return m_legKinematicsByNumber[i];
     }
+
+    //! Convert a set of foot positions to joint angles.
+    //! Returns true if all positions are reachable. false otherwise.
+    bool Pose2Angles(const SimpleQuadrupedPoseC &pose,PoseAnglesC &poseAngles) const;
 
     //! Access an ordered list of leg names
     static const std::vector<std::string> &LegNames();

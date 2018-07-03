@@ -1,3 +1,5 @@
+
+#include "dogbot/DogBotController.hh"
 #include "mainwindow.hh"
 #include "ui_mainwindow.h"
 #include "dogbot/DogBotAPI.hh"
@@ -1437,32 +1439,43 @@ void MainWindow::RunAnimation()
 
   m_dogBotAPI->Connection()->SendSetParam(0,CPI_VelocityLimit,m_lastSpeedLimit);
 
-  std::shared_ptr<DogBotN::LegControllerC> legs[4];
-  for(int i = 0;i < 4;i++)
-    legs[i] = std::make_shared<DogBotN::LegControllerC>(m_dogBotAPI,m_dogBotAPI->LegNames()[i]);
+  DogBotN::DogBotControllerC controller(m_dogBotAPI);
+  DogBotN::DogBotKinematicsC &kinematics = m_dogBotAPI->DogBotKinematics();
+
+  float updatePeriod = 0.01;
+  float torque = 0;
+
+  {
+    std::lock_guard<std::mutex> lock(m_accessGait);
+    torque = m_animationTorque;
+  }
+
+  controller.SetupTrajectory(updatePeriod,torque);
+
+  auto nextTime = std::chrono::steady_clock::now();
+  DogBotN::SimpleQuadrupedPoseC pose;
+  DogBotN::PoseAnglesC poseAngles;
 
   while(m_runAnimation) {
 
-    DogBotN::SimpleQuadrupedPoseC pose;
-
-    float torque = 0;
     float newSpeedLimit = 0;
     {
       std::lock_guard<std::mutex> lock(m_accessGait);
-      m_gaitController.Step(0.01,pose);
+      m_gaitController.Step(updatePeriod,pose);
       torque = m_animationTorque;
       newSpeedLimit = g_animationVelocityLimit;
     }
+
     if(newSpeedLimit != m_lastSpeedLimit) {
       m_lastSpeedLimit = newSpeedLimit;
       m_dogBotAPI->Connection()->SendSetParam(0,CPI_VelocityLimit,m_lastSpeedLimit);
     }
 
-    for(int i = 0;i < 4;i++) {
-      legs[i]->Goto(pose.LegPosition(i),torque);
-    }
+    kinematics.Pose2Angles(pose,poseAngles);
 
-    usleep(10000); // ~100Hz
+    nextTime += std::chrono::microseconds((int)(updatePeriod * 1000000.0f));
+    std::this_thread::sleep_until(nextTime);
+    controller.NextTrajectory(poseAngles);
   }
 }
 

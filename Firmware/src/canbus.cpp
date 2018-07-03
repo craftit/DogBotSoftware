@@ -98,7 +98,7 @@ bool CANSendServo(
 
   CANSetAddress(txmsg,deviceId,CPT_Servo);
   txmsg->RTR = CAN_RTR_DATA;
-  txmsg->DLC = 5;
+  txmsg->DLC = 6;
   txmsg->data16[0] = position;
   txmsg->data16[1] = torque;
   txmsg->data8[4] = state;

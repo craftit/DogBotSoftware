@@ -179,11 +179,11 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
     case ColumnStatus:
       if(servo == 0)
         return "";
-      if(!servo->IsPresent()) {
-        return "Disonnected";
-      }
       if(servo->ControlState() == CS_BootLoader) {
         return "Waiting";
+      }
+      if(!servo->IsPresent()) {
+        return "Disconnected";
       }
       if(!servo->IsFirmwareVersionOk()) {
         return "Firmware Mismatch";

@@ -106,7 +106,7 @@ int main(int argc,char **argv)
       gaitController.Step(0.01,pose);
 
       for(int i = 0;i < 4;i++) {
-        legs[i]->Goto(pose.LegPosition(i),torque);
+        legs[i]->Goto(pose.FootPosition(i),torque);
       }
 
       usleep(10000); // ~100Hz

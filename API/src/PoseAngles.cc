@@ -16,4 +16,16 @@ namespace DogBotN {
     }
     return ret;
   }
+
+  //! Set leg joint angles
+  void PoseAnglesC::SetLegJointAngles(
+      int leg,
+      const Eigen::Vector3f &vec
+      )
+  {
+    for(int i = 0;i < 3;i++) {
+      m_joints[JointId(leg,i)] = JointAngleC(vec[i],0);
+    }
+  }
+
 }

@@ -190,7 +190,7 @@ namespace DogBotN {
   {
     // See https://en.wikipedia.org/wiki/Motor_constants#Motor_Torque_constant
     m_servoKt = (60.0f * m_gearRatio) / (2 * M_PI * m_motorKv);
-    m_log->info("Setting servoKt to {} ",m_servoKt);
+    //m_log->info("Setting servoKt to {} ",m_servoKt);
   }
 
 #if 0
@@ -401,10 +401,11 @@ namespace DogBotN {
         // reflect it in the stored state.
         switch(m_controlState)
         {
+          case CS_BootLoader:
+            QueryRefresh(); // We've changed from the boot loader, so we need to re-query everything
           case CS_StartUp:
           case CS_FactoryCalibrate:
           case CS_Standby:
-          case CS_BootLoader:
             m_homedState = MHS_Lost;
             m_controlDynamic = CM_Off;
             m_position = 0.0;

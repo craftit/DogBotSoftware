@@ -118,6 +118,25 @@ namespace DogBotN {
     return g_legJointNames;
   }
 
+  //! Convert a set of foot positions to joint angles.
+  //! Returns true if all positions are reachable. false otherwise.
+  bool DogBotKinematicsC::Pose2Angles(
+      const SimpleQuadrupedPoseC &pose,
+      PoseAnglesC &poseAngles
+      ) const
+  {
+    bool ret = true;
+    for(int i = 0;i < 4;i++) {
+      assert(m_legKinematicsByNumber[i]);
+      Eigen::Vector3f angles;
+      if(!m_legKinematicsByNumber[i]->InverseDirect(pose.FootPosition(i),angles))
+        ret = false;
+      poseAngles.SetLegJointAngles(i,angles);
+    }
+    return ret;
+  }
+
+
   //! Compute the maximum extension of the legs
   // This is the maximum extension all the legs are capable of
   float DogBotKinematicsC::MaxLegExtension() const
