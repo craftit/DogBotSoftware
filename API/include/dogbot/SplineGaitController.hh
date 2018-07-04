@@ -105,11 +105,9 @@ namespace DogBotN {
     float m_defaultOmega = 4;  //!< Radians / second cycle speed
 
     float m_phases[4] = { 0,0,0,0 };
-    //LegKinematicsC m_legKinematics;
 
     std::vector<SplineLinear3dC> m_footTrajectories;
     //std::vector<SplineCatmullRom3dC> m_footTrajectories;
-    // m_footTrajectory;
 
   };
 }
