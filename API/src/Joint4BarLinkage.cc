@@ -2,26 +2,48 @@
 #include <string>
 #include "dogbot/Joint4BarLinkage.hh"
 #include "dogbot/DogBotAPI.hh"
+#include "dogbot/Util.hh"
 
 namespace DogBotN {
 
   //! Default constructor
   Joint4BarLinkageC::Joint4BarLinkageC()
-  {}
+  {
+  }
 
   //! Constructor
   Joint4BarLinkageC::Joint4BarLinkageC(std::shared_ptr<JointC> &jointDrive,std::shared_ptr<JointC> &jointRef)
     : JointRelativeC(jointDrive,jointRef)
-  {}
+  {
+  }
 
   //! Type of joint
   std::string Joint4BarLinkageC::JointType() const
   { return "4bar"; }
 
+  //! Initialise joint
+  void Joint4BarLinkageC::Init()
+  {
+    if(m_legKinematics) {
+      m_minAngle = m_legKinematics->Linkage4BarForward(0,m_legKinematics->UseAlternateSolution());
+      m_maxAngle = m_legKinematics->Linkage4BarForward(M_PI,m_legKinematics->UseAlternateSolution());
+      if(m_maxAngle < m_minAngle) {
+        std::swap(m_maxAngle,m_minAngle);
+      }
+      std::cerr << "Joint " << Name() << " Angle range: " << Rad2Deg(m_minAngle) << " " << Rad2Deg(m_maxAngle) << std::endl;
+    }
+  }
+
   bool Joint4BarLinkageC::Raw2Simple(
-      float refPosition,float refVelocity,float refTorque,
-      float drivePosition,float driveVelocity,float driveTorque,
-      double &position,double &velocity,double &torque
+      float refPosition,
+      float refVelocity,
+      float refTorque,
+      float drivePosition,
+      float driveVelocity,
+      float driveTorque,
+      double &position,
+      double &velocity,
+      double &torque
   ) const
   {
     float theta = drivePosition - (refPosition * m_refGain + m_refOffset);
@@ -39,12 +61,20 @@ namespace DogBotN {
   }
 
   bool Joint4BarLinkageC::Simple2Raw(
-       float refPosition,float refTorque,
-       float position,float torque,
-       double &drivePosition,double &driveTorque
+       float refPosition,
+       float refTorque,
+       float position,
+       float torque,
+       double &drivePosition,
+       double &driveTorque
   ) const
   {
     float theta;
+    if(position < m_minAngle || position > m_maxAngle) {
+      m_logJoint->error("Requested joint angle {} out of valid range {} to {} for joint {} ",position,m_minAngle,m_maxAngle,Name());
+      return false;
+    }
+
     if(!m_legKinematics->Linkage4BarBack(position,theta,m_legKinematics->UseAlternateSolution())) {
       m_logJoint->error("No solution for angle {} for joint {} ",position,Name());
       return false;
@@ -70,6 +100,7 @@ namespace DogBotN {
       api.Log().error("Failed to configure leg kinematics. '{}' ",legName);
       return false;
     }
+    Init();
     return true;
   }
 

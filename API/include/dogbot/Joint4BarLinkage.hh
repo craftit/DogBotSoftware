@@ -30,7 +30,18 @@ namespace DogBotN {
     //! Get the servo configuration as JSON
     virtual void ConfigAsJSON(Json::Value &value) const override;
 
+    //! Access smallest angle allowed by joint.
+    float MinAngle() const
+    { return m_minAngle; }
+
+    //! Access largest angle allowed by joint.
+    float MaxAngle() const
+    { return m_maxAngle; }
+
   protected:
+    //! Initialise joint
+    void Init();
+
     virtual bool Raw2Simple(
         float refPosition,float refVelocity,float refTorque,
         float drivePosition,float driveVelocity,float driveTorque,
@@ -43,7 +54,8 @@ namespace DogBotN {
          double &drivePosition,double &driveTorque
          ) const override;
 
-
+    float m_minAngle = -M_PI*2;
+    float m_maxAngle = M_PI*2;
     std::shared_ptr<LegKinematicsC> m_legKinematics; //!< Kinematics for linkage
   };
 
