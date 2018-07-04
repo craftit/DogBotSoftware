@@ -98,10 +98,15 @@ namespace DogBotN {
         hightAdjust = 0.15;
         timePush = 0.02;
 
-        m_phases[0] = 0;
-        m_phases[1] = 3* M_PI/2.0;
-        m_phases[2] = M_PI;
-        m_phases[3] = M_PI/2.0;
+        const int LegFL=0; // 1
+        const int LegBL=2; // 2
+        const int LegFR=1; // 3
+        const int LegBR=3; // 4
+
+        m_phases[LegFL] = 0;
+        m_phases[LegBR] = 3* M_PI/2.0;
+        m_phases[LegFR] = M_PI;
+        m_phases[LegBL] = M_PI/2.0;
 
         //m_omega = 1;
       } break;
