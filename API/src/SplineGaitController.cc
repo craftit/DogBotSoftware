@@ -32,7 +32,7 @@ namespace DogBotN {
 
     float LpuFin = 1.333 * Lpu;
     float Sl = LpuFin + m_Lpr; // Total stride length
-    float Oad = -Sl / 9.0; // what fraction of distance to move the half the adjustment vertical distance
+    float Oad = -Sl / 7.0; // Was 9. what fraction of distance to move the half the adjustment vertical distance
     float nXc = m_Xc - Sl/2.0;
 
     pnts.push_back(SplinePoint3dC(m_tpr         ,nXc + m_Lpr          ,xoff ,-(zoff + m_Zc)));        // 1

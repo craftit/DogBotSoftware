@@ -731,6 +731,10 @@ namespace DogBotN {
       return false;
     }
     if(!IsFirmwareVersionOk()) {
+      if(!IsPresent()) {
+        m_log->warn("Servo not present, DemandTrajectory  dropped.");
+        return false;
+      }
       m_log->warn("Servo firmware mismatch, DemandTrajectory  dropped.");
       return false;
     }

@@ -1,0 +1,103 @@
+{
+	"devices" : 
+	[
+		{
+			"deviceId" : 1,
+			"device_name" : "back_right_roll",
+			"device_type" : "servo",
+			"enabled" : true,
+			"endStopEnable" : false,
+			"endStopFinal" : 0,
+			"endStopStart" : 0,
+			"gearRatio" : 21,
+			"homeOffset" : 0,
+			"motorKv" : 260,
+			"name" : "back_right_roll",
+			"notes" : "",
+			"safetyMode" : "Local Stop",
+			"serial_number" : "2752540-1768652619",
+			"supplyVoltageScale" : 1,
+			"type" : "servo",
+			"uid1" : 2752540,
+			"uid2" : 1768652619
+		},
+		{
+			"deviceId" : 2,
+			"device_name" : "back_right_pitch",
+			"device_type" : "servo",
+			"enabled" : true,
+			"endStopEnable" : false,
+			"endStopFinal" : 0,
+			"endStopStart" : 0,
+			"gearRatio" : 21,
+			"homeOffset" : 0,
+			"motorKv" : 260,
+			"name" : "back_right_pitch",
+			"notes" : "",
+			"safetyMode" : "Local Stop",
+			"serial_number" : "3407901-1650753082",
+			"supplyVoltageScale" : 1,
+			"type" : "servo",
+			"uid1" : 3407901,
+			"uid2" : 1650753082
+		},
+		{
+			"deviceId" : 3,
+			"device_name" : "back_right_knee",
+			"device_type" : "servo",
+			"enabled" : true,
+			"endStopEnable" : false,
+			"endStopFinal" : 0,
+			"endStopStart" : 0,
+			"gearRatio" : 21,
+			"homeOffset" : 0,
+			"motorKv" : 260,
+			"name" : "back_right_knee",
+			"notes" : "",
+			"safetyMode" : "Local Stop",
+			"serial_number" : "2883634-1650753082",
+			"supplyVoltageScale" : 1,
+			"type" : "servo",
+			"uid1" : 2883634,
+			"uid2" : 1650753082
+		},
+                {
+                        "deviceId" : 4,
+                        "device_name" : "spare",
+                        "device_type" : "servo",
+                        "enabled" : true,
+                        "endStopEnable" : false,
+                        "endStopFinal" : 0,
+                        "endStopStart" : 0,
+                        "gearRatio" : 21,
+                        "homeOffset" : 0,
+                        "motorKv" : 260,
+                        "name" : "spare",
+                        "notes" : "",
+                        "safetyMode" : "Global Emergency Stop",
+                        "serial_number" : "2883622-1768652619",
+                        "supplyVoltageScale" : 1,
+                        "type" : "servo",
+                        "uid1" : 2883622,
+                        "uid2" : 1768652619
+                }
+	],
+	"kinematics" : 
+	[
+		{
+			"FootDrop" : 0.02500000037252903,
+			"FootSphereRadius" : 0.05000000074505806,
+			"LinkA" : 0.032000001519918442,
+			"LinkB" : 0.039999999105930328,
+			"LinkH" : 0.36300000548362732,
+			"ZOffset" : 0.079999998211860657,
+			"alternateSolution" : true,
+			"dirKnee" : -1,
+			"dirPitch" : 1,
+			"dirRoll" : 1,
+			"l1" : 0.36100000143051147,
+			"l2" : 0.31000000238418579,
+			"name" : "back_right"
+		}
+	]
+}

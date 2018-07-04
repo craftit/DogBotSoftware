@@ -32,7 +32,7 @@ namespace DogBotN {
     //! Get kinematics for leg by name
     const std::shared_ptr<LegKinematicsC> &LegKinematicsByNumber(int i) const
     {
-      assert(i >= 0 && i < 4);
+      assert(i >= 0 && i < m_legKinematicsByNumber.size());
       assert(m_legKinematicsByNumber[i]);
       return m_legKinematicsByNumber[i];
     }

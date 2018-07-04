@@ -35,6 +35,23 @@
 			"uid1" : 3342397,
 			"uid2" : 1650753082
 		},
+                {
+                        "deviceId" : 3,
+                        "enabled" : true,
+                        "endStopEnable" : false,
+                        "endStopFinal" : 0,
+                        "endStopStart" : 0,
+                        "gearRatio" : 21,
+                        "homeOffset" : 0,
+                        "motorKv" : 260,
+                        "name" : "front_left_pitch",
+                        "notes" : "",
+                        "safetyMode" : 1,
+                        "serial_number" : "3211287-1650753082",
+                        "type" : "servo",
+                        "uid1" : 3211287,
+                        "uid2" : 1650753082
+                },
 		{
 			"deviceId" : 4,
 			"enabled" : true,
@@ -203,23 +220,6 @@
 			"serial_number" : "",
 			"type" : "servo",
 			"uid1" : 3342380,
-			"uid2" : 1650753082
-		},
-		{
-			"deviceId" : 3,
-			"enabled" : true,
-			"endStopEnable" : false,
-			"endStopFinal" : 0,
-			"endStopStart" : 0,
-			"gearRatio" : 21,
-			"homeOffset" : 0,
-			"motorKv" : 260,
-			"name" : "front_left_pitch",
-			"notes" : "",
-			"safetyMode" : 1,
-			"serial_number" : "3211287-1650753082",
-			"type" : "servo",
-			"uid1" : 3211287,
 			"uid2" : 1650753082
 		},
                 {
