@@ -3,7 +3,7 @@
 #include "bmc.h"
 
 
-bool MotionSetPosition(uint8_t mode,uint8_t timestamp,int16_t demand,int16_t torque)
+bool MotionSetDemand(uint8_t mode,uint8_t timestamp,int16_t demand,int16_t torque)
 {
   (void) demand;
   (void) mode;
@@ -41,16 +41,6 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT /*cha
   return 0;
 }
 
-uint8_t g_otherJointId = 0xff;
-
-bool MotionOtherJointUpdate(int16_t position,int16_t torque,uint8_t mode,uint8_t timestamp)
-{
-  (void) position;
-  (void) torque;
-  (void) mode;
-  (void) timestamp;
-  return false;
-}
 
 bool MotionSyncTime(void)
 {
