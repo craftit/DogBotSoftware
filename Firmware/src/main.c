@@ -513,6 +513,7 @@ int main(void) {
 
 
   SendParamUpdate(CPI_ControlState);
+  SendParamUpdate(CPI_FirmwareVersion);
 
   while(1) {
     switch(g_controlState)
