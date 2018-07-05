@@ -56,7 +56,10 @@ namespace DogBotN {
   bool LegControllerC::Goto(const Eigen::Vector3f &at,float torque)
   {
     Eigen::Vector3f angles;
-
+    if(!m_kinematics) {
+      m_log->error("No kinematics for leg {} ",m_legName);
+      return false;
+    }
     if(!m_useVirtualKnee) {
       if(!m_kinematics->InverseDirect(at,angles)) {
         m_log->warn("Failed to find solution for direct foot location {} {} {} .",at[0],at[1],at[2]);

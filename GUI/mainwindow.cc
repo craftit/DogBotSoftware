@@ -1544,7 +1544,7 @@ void MainWindow::on_horizontalSliderHeight_valueChanged(int value)
   }
   for(int i = 0;i < 4;i++) {
     Eigen::Vector3f pos = Eigen::Vector3f(0,0,-height);
-    m_legs[i]->Goto(pos,torque);
+    if(m_legs[i]) m_legs[i]->Goto(pos,torque);
   }
 }
 

@@ -97,6 +97,9 @@ target_link_libraries (dogBotExerciser LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS
 add_executable (testDogBotGait testDogBotGait.cc)
 target_link_libraries (testDogBotGait LINK_PUBLIC DogBotAPI )
 
+add_executable (dogBotJig dogBotJig.cc)
+target_link_libraries (dogBotJig LINK_PUBLIC DogBotAPI  ${CMAKE_THREAD_LIBS_INIT})
+
 add_executable (dogBotWalk dogBotWalk.cc)
 target_link_libraries (dogBotWalk LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT} DogBotAPI)
 

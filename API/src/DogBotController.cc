@@ -24,7 +24,7 @@ namespace DogBotN {
     for(int i = 0;i < legNames.size();i++) {
       for(int j = 0;j < 3;j++) {
         m_joints[PoseAnglesC::JointId(i,j)] = m_api->GetJointByName(PoseAnglesC::JointName(i,j));
-        assert(m_joints[PoseAnglesC::JointId(i,j)]);
+        assert(m_joints[PoseAnglesC::JointId(i,j)] && "Joint not found");
       }
     }
     return true;
@@ -50,7 +50,7 @@ namespace DogBotN {
     bool ok = true;
     for(int i = 0;i < 12;i++) {
       const JointAngleC &ja = pose.JointAngle(i);
-      if(!m_joints[i]->DemandTrajectory(ja.Position(),ja.Torque()))
+      if(m_joints[i] && !m_joints[i]->DemandTrajectory(ja.Position(),ja.Torque()))
         ok = false;
     }
     return ok;
