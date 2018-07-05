@@ -214,6 +214,7 @@ namespace DogBotN {
   //! Send an updated demand position
   bool JointRelativeC::UpdateDemand()
   {
+    
     double refPosition = 0;
     double refVelocity = 0;
     double refTorque = 0;
@@ -224,6 +225,7 @@ namespace DogBotN {
 
     //! Do we have a demand from the reference joint ?
     if(!m_jointRef->GetDemand(refPosition,refTorque)) {
+      m_logJoint->info("Failed to get ref joint demand for {}",m_jointRef->Name());
       return false;
     }
 
@@ -233,12 +235,13 @@ namespace DogBotN {
         refPosition,refTorque,
         m_demandPosition,m_demandTorqueLimit,
         drivePosition,driveTorqueLimit)) {
+      m_logJoint->info("Failed calculate demand for {}",m_jointDrive->Name());
       return false;
     }
     //driveTorqueLimit = Max(1.0,fabs(driveTorqueLimit));
     driveTorqueLimit = m_demandTorqueLimit;
 
-    m_logJoint->info("Setting demand angle for {} to {} with torque {} ",m_jointDrive->Name(),Rad2Deg(drivePosition),driveTorqueLimit);
+    //m_logJoint->info("Setting demand angle for {} to {} with torque {} ",m_jointDrive->Name(),Rad2Deg(drivePosition),driveTorqueLimit);
 
     // Only send on if something has changed.
     if(drivePosition != m_lastDrivePosition || driveTorqueLimit != m_lastDriveTorque) {

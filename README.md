@@ -69,11 +69,11 @@ sudo make install
 
 # Operation
 
-Please refer to the product user-guide for warnings and safety considerations.
+**Ensure you have read all relevent documentation before operating DogBot for the first time** Please refer to the product user-guide for warnings and safety considerations.
 
 ## Switch On
 
-Use a benchtop power supply of between 14V and 30V
+Use a benchtop power supply of between 20V and 30V, or the onboard batteries, more details are at [powering up](./resources/poweringup.md)
 
 * Check cables are red-red throughout; check for loose wires, obstructions
 * Connect power supply

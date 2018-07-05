@@ -76,7 +76,7 @@ namespace DogBotN {
     }
 
     if(!m_legKinematics->Linkage4BarBack(position,theta,m_legKinematics->UseAlternateSolution())) {
-      m_logJoint->error("No solution for angle {} for joint {} ",position,Name());
+      m_logJoint->error("No solution for angle {} for joint {} based on torque {}; reference {} and {}; drive {} and {} ",position,Name(),torque,refPosition,refTorque,drivePosition,driveTorque);
       return false;
     }
     float ratio = m_legKinematics->LinkageSpeedRatio(theta,position);
