@@ -187,6 +187,7 @@ protected:
   std::vector<double> joint_velocity_limits_;
   std::vector<double> joint_effort_limits_;
 
+  float m_maxTorque = 10.0;
 };  // class
 
 }  // namespace

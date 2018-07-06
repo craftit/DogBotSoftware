@@ -66,6 +66,7 @@ DogBotHWInterface::DogBotHWInterface(ros::NodeHandle &nh, urdf::Model *urdf_mode
   // Dogbot specific setup
   {
     ros::param::get("enable_control",m_enableControl);
+    ros::param::get("max_torque",m_maxTorque);
 
     auto logger = spdlog::stdout_logger_mt("console");
     logger->info("Starting API");
@@ -406,8 +407,11 @@ void DogBotHWInterface::write(const DogBotN::TimePointT &theTime,ros::Duration &
       std::shared_ptr<DogBotN::JointC> &jnt = m_actuators[joint_id];
       if(!jnt)
         continue;
-      //ROS_INFO("Setting jnt '%s' to position %f ",joint_names_[joint_id].c_str(),joint_position_command_[joint_id]);
-      jnt->DemandPosition(joint_position_command_[joint_id],5.0);
+      float effortLimit = joint_effort_limits_[joint_id];
+      if(effortLimit > m_maxTorque)
+        effortLimit = m_maxTorque;
+      //ROS_INFO("Setting jnt '%s' to position %f EffortLimit:%f ",joint_names_[joint_id].c_str(),joint_position_command_[joint_id],effortLimit);
+      jnt->DemandPosition(joint_position_command_[joint_id],effortLimit);
     }
   }
 }
