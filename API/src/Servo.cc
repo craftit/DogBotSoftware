@@ -727,19 +727,19 @@ namespace DogBotN {
   bool ServoC::DemandTrajectory(float position,float torque)
   {
     if(!m_enabled) {
-      m_log->warn("Servo not enabled, DemandTrajectory  dropped.");
+      m_log->warn("Servo {} not enabled, DemandTrajectory  dropped.",Name());
       return false;
     }
     if(!IsFirmwareVersionOk()) {
       if(!IsPresent()) {
-        m_log->warn("Servo not present, DemandTrajectory  dropped.");
+        m_log->warn("Servo {} not present, DemandTrajectory  dropped.",Name());
         return false;
       }
-      m_log->warn("Servo firmware mismatch, DemandTrajectory  dropped.");
+      m_log->warn("Servo {} firmware mismatch, DemandTrajectory  dropped.",Name());
       return false;
     }
     if(m_positionRef != PR_Absolute) {
-      m_log->warn("Joint not yet homed, ignoring trajectory request. ");
+      m_log->warn("Servo {} not yet homed, ignoring trajectory request. ",Name());
       return false;
     }
     float effort = torque / (m_maxCurrent* m_servoKt);

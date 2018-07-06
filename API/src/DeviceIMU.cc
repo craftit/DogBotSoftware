@@ -50,7 +50,7 @@ namespace DogBotN
       m_whenRange = when;
       m_groundDistance = distance;
     }
-    m_log->info("{} :  Ground distance {} ",DeviceName(),m_groundDistance);
+    //m_log->info("{} :  Ground distance {} ",DeviceName(),m_groundDistance);
 
     for(auto &a : m_rangeCallbacks.Calls()) {
       if(a) a(when,imu->m_sensorId,distance);
