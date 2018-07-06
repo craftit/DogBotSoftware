@@ -65,8 +65,13 @@ DogbotHWControlLoop::DogbotHWControlLoop(
   // Get current time for use with first update
   m_lastTime = DogBotN::TimePointT::clock::now();
 
+  double updatePeriod = 1.0 / loop_hz_;
+
   // Start timer
-  ros::Duration desired_update_freq = ros::Duration(1 / loop_hz_);
+  ros::Duration desired_update_freq = ros::Duration(updatePeriod);
+
+  hardware_interface_->setWritePeriod(updatePeriod);
+
   non_realtime_loop_ = nh_.createTimer(desired_update_freq, &DogbotHWControlLoop::update, this);
 }
 

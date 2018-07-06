@@ -78,6 +78,9 @@ public:
   /** \brief Initialize the hardware interface */
   virtual void init();
 
+  //! Set write update rate
+  void setWritePeriod(float updateLoopHz);
+
   /** \brief Read the state from the robot hardware. */
   virtual void read(const DogBotN::TimePointT &theTime,ros::Duration &elapsed_time);
 

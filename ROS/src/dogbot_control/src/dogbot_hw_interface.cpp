@@ -397,22 +397,33 @@ void DogBotHWInterface::read(const DogBotN::TimePointT &theTime,ros::Duration &e
   }
 }
 
+//! Set write update rate
+void DogBotHWInterface::setWritePeriod(float updateLoopPeriod)
+{
+  for (std::size_t joint_id = 0; joint_id < num_joints_; ++joint_id) {
+    std::shared_ptr<DogBotN::JointC> &jnt = m_actuators[joint_id];
+    float effortLimit = joint_effort_limits_[joint_id];
+    if(effortLimit > m_maxTorque)
+      effortLimit = m_maxTorque;
+    jnt->SetupTrajectory(updateLoopPeriod,effortLimit);
+  }
+}
+
+
 void DogBotHWInterface::write(const DogBotN::TimePointT &theTime,ros::Duration &elapsed_time)
 {
-  if(m_enableControl) {
-    // Safety
-    enforceLimits(elapsed_time);
-    assert(m_actuators.size() >= num_joints_);
-    for (std::size_t joint_id = 0; joint_id < num_joints_; ++joint_id) {
-      std::shared_ptr<DogBotN::JointC> &jnt = m_actuators[joint_id];
-      if(!jnt)
-        continue;
-      float effortLimit = joint_effort_limits_[joint_id];
-      if(effortLimit > m_maxTorque)
-        effortLimit = m_maxTorque;
-      //ROS_INFO("Setting jnt '%s' to position %f EffortLimit:%f ",joint_names_[joint_id].c_str(),joint_position_command_[joint_id],effortLimit);
-      jnt->DemandPosition(joint_position_command_[joint_id],effortLimit);
-    }
+  if(!m_enableControl)
+    return ;
+
+  // Safety
+  enforceLimits(elapsed_time);
+  assert(m_actuators.size() >= num_joints_);
+  for (std::size_t joint_id = 0; joint_id < num_joints_; ++joint_id) {
+    std::shared_ptr<DogBotN::JointC> &jnt = m_actuators[joint_id];
+    if(!jnt)
+      continue;
+    //ROS_INFO("Setting jnt '%s' to position %f ",joint_names_[joint_id].c_str(),joint_position_command_[joint_id]);
+    jnt->DemandTrajectory(joint_position_command_[joint_id]);
   }
 }
 
