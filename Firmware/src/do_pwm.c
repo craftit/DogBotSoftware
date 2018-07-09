@@ -511,7 +511,7 @@ static void MotorControlLoop(void)
 
     if(!palReadPad(GPIOC, GPIOC_PIN15)) { // Check the fault pin
       faultTimer++;
-      if(faultTimer > 2) {
+      if(faultTimer > 3) {
         SetMotorControlMode(CM_Brake);
         g_gateDriverFault = true;
       } else {

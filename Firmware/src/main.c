@@ -603,6 +603,10 @@ int main(void) {
 
         if(g_gateDriverFault) {
           FaultDetected(FC_DriverFault);
+          SendParamUpdate(CPI_DRV8305_01);
+          SendParamUpdate(CPI_DRV8305_02);
+          SendParamUpdate(CPI_DRV8305_03);
+          SendParamUpdate(CPI_DRV8305_04);
           break;
         }
 
@@ -617,6 +621,9 @@ int main(void) {
           if(lastGateStatus != gateDriveStatus) {
             lastGateStatus = gateDriveStatus;
             SendParamUpdate(CPI_DRV8305_01);
+            SendParamUpdate(CPI_DRV8305_02);
+            SendParamUpdate(CPI_DRV8305_03);
+            SendParamUpdate(CPI_DRV8305_04);
           }
         }
         if(gateDriveStatus & DRV8503_WARN_FAULT) {

@@ -4,6 +4,7 @@
 #include "dogbot/Servo.hh"
 #include "dogbot/DogBotAPI.hh"
 #include "dogbot/Util.hh"
+#include "dogbot/Drv8503Registers.hh"
 #include <string>
 #include <cmath>
 
@@ -518,6 +519,139 @@ namespace DogBotN {
       ret = (scale != m_supplyVoltageScale);
       m_supplyVoltageScale = scale;
     } break;
+    case CPI_DRV8305_01: {
+      if(size != 2)
+        m_log->error("Unexpected data size for packet {} of {} ",ComsParameterIndexToString(cpi),size);
+      uint16_t value = pkt.m_data.uint16[0];
+      std::string flagsStr;
+      if(value & DRV8503_WARN_FAULT) {
+        flagsStr += "FAULT,";
+      }
+      if(value & DRV8503_WARN_TEMP_175C) {
+        flagsStr += "+175C,";
+      }
+      if(value & DRV8503_WARN_PVDD_UVFL) {
+        flagsStr += "PVDD Under Voltage,";
+      }
+      if(value & DRV8503_WARN_PVDD_OVFL) {
+        flagsStr += "PVDD Over Voltage,";
+      }
+      if(value & DRV8503_WARN_VDS_STATUS) {
+        flagsStr += "VDS Over Current,";
+      }
+      if(value & DRV8503_WARN_VCHP_UVFL) {
+        flagsStr += "Charge pump under voltage,";
+      }
+      if(value & DRV8503_WARN_TEMP_105C) {
+        flagsStr += "+105C,";
+      }
+      if(value & DRV8503_WARN_TEMP_125C) {
+        flagsStr += "+125C,";
+      }
+      if(value & DRV8503_WARN_TEMP_135C) {
+        flagsStr += "+125C,";
+      }
+      if(value & DRV8503_WARN_OVERTEMP) {
+        flagsStr += "Over temperature warning,";
+      }
+      m_log->error(" {} DRV8305 Reg 1, Warnings {:b} : {} ",Name(),value,flagsStr);
+    } break;
+    case CPI_DRV8305_02: {
+      if(size != 2)
+        m_log->error("Unexpected data size for packet {} of {} ",ComsParameterIndexToString(cpi),size);
+      uint16_t value = pkt.m_data.uint16[0];
+      std::string flagsStr;
+
+      if(value & DRV8503_OVVDS_VDS_HA) {
+        flagsStr += "VDA High A,";
+      }
+      if(value & DRV8503_OVVDS_VDS_LA) {
+        flagsStr += "VDA Low A,";
+      }
+      if(value & DRV8503_OVVDS_VDS_HB) {
+        flagsStr += "VDA High B,";
+      }
+      if(value & DRV8503_OVVDS_VDS_LB) {
+        flagsStr += "VDA Low B,";
+      }
+      if(value & DRV8503_OVVDS_VDS_HC) {
+        flagsStr += "VDA High C,";
+      }
+      if(value & DRV8503_OVVDS_VDS_LC) {
+        flagsStr += "VDA Low C,";
+      }
+      if(value & DRV8503_OVVDS_SNS_C_OCP) {
+        flagsStr += "Sense C over current,";
+      }
+      if(value & DRV8503_OVVDS_SNS_B_OCP) {
+        flagsStr += "Sense B over current,";
+      }
+      if(value & DRV8503_OVVDS_SNS_A_OCP) {
+        flagsStr += "Sense A over current,";
+      }
+      m_log->error(" {} DRV8305 Reg 2, OV/VDS Faults {:b} : {} ",Name(),value,flagsStr);
+    } break;
+    case CPI_DRV8305_03: {
+      if(size != 2)
+        m_log->error("Unexpected data size for packet {} of {} ",ComsParameterIndexToString(cpi),size);
+      uint16_t value = pkt.m_data.uint16[0];
+      std::string flagsStr;
+      if(value & DRV8503_FAULTS_PVDD_UVLO2) {
+        flagsStr += "PVDD Under voltage 2,";
+      }
+      if(value & DRV8503_FAULTS_WD_FAULT) {
+        flagsStr += "Watchdog,";
+      }
+      if(value & DRV8503_FAULTS_OTSD) {
+        flagsStr += "Over temperature,";
+      }
+      if(value & DRV8503_FAULTS_VREG_UV) {
+        flagsStr += "VREG under voltage,";
+      }
+      if(value & DRV8503_FAULTS_AVDD_UVLO) {
+        flagsStr += "AVDD under voltage,";
+      }
+      if(value & DRV8503_FAULTS_VCP_LSD_UVLO2) {
+        flagsStr += "Low side gate supply,";
+      }
+      if(value & DRV8503_FAULTS_VCPH_UVLO2) {
+        flagsStr += "High side charge pump under voltage 2,";
+      }
+      if(value & DRV8503_FAULTS_VCPH_OVLO) {
+        flagsStr += "High side charge pump over voltage,";
+      }
+      if(value & DRV8503_FAULTS_VCPH_OVLO_ABS) {
+        flagsStr += "High side charge pump over voltage ABS,";
+      }
+      m_log->error(" {} DRV8305 Reg 2, Faults {:b} : {} ",Name(),value,flagsStr);
+    } break;
+    case CPI_DRV8305_04: {
+      if(size != 2)
+        m_log->error("Unexpected data size for packet {} of {} ",ComsParameterIndexToString(cpi),size);
+      uint16_t value = pkt.m_data.uint16[0];
+      std::string flagsStr;
+
+      if(value & DRV8503_VGSFAULTS_VGS_HA) {
+        flagsStr += "VGS high side gate A,";
+      }
+      if(value & DRV8503_VGSFAULTS_VGS_LA) {
+        flagsStr += "VGS low side gate A,";
+      }
+      if(value & DRV8503_VGSFAULTS_VGS_HB) {
+        flagsStr += "VGS high side gate B,";
+      }
+      if(value & DRV8503_VGSFAULTS_VGS_LB) {
+        flagsStr += "VGS low side gate B,";
+      }
+      if(value & DRV8503_VGSFAULTS_VGS_HC) {
+        flagsStr += "VGS high side gate C,";
+      }
+      if(value & DRV8503_VGSFAULTS_VGS_LC) {
+        flagsStr += "VGS low side gate C,";
+      }
+      m_log->error(" {} DRV8305 Reg 2, VGS Faults {:b} : {} ",Name(),value,flagsStr);
+    }
+      break;
     default:
       break;
     }
