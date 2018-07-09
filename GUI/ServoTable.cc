@@ -347,18 +347,23 @@ QVariant ServoTable::data(const QModelIndex &index, int role) const
       if(servo->MotorTemperature() < 50.0)
         return QColor(Qt::yellow);
       return QColor(Qt::red);
-    case ColumnSupplyVoltage:
+    case ColumnSupplyVoltage: {
       if(servo == 0)
         return QColor(Qt::white);
       if(servo->FaultCode() == FC_Unknown)
         return QColor(Qt::yellow);
-      if(servo->SupplyVoltage() < 25.0)
+      float numCells = 6;
+      float vMin = 3.2 * numCells;
+      float vMax = 4.2 * numCells;
+      float lowBattery = (vMax - vMin)*0.2 + vMin;
+      if(servo->SupplyVoltage() < vMin)
         return QColor(Qt::red);
-      if(servo->SupplyVoltage() < 28.0)
+      if(servo->SupplyVoltage() < lowBattery)
         return QColor(Qt::yellow);
-      if(servo->SupplyVoltage() > 40.0)
+      if(servo->SupplyVoltage() > 48.0)
         return QColor(Qt::red);
       return QColor(Qt::white);
+    }
     case ColumnTorque:
       // Have we hit a limit ?
       if(servo->IndexState() &
