@@ -520,7 +520,7 @@ namespace DogBotN {
       m_supplyVoltageScale = scale;
     } break;
     case CPI_DRV8305_01: {
-      if(size != 2)
+      if(dataLen != 2)
         m_log->error("Unexpected data size for packet {} of {} ",ComsParameterIndexToString(cpi),size);
       uint16_t value = pkt.m_data.uint16[0];
       std::string flagsStr;
@@ -557,7 +557,7 @@ namespace DogBotN {
       m_log->error(" {} DRV8305 Reg 1, Warnings {:b} : {} ",Name(),value,flagsStr);
     } break;
     case CPI_DRV8305_02: {
-      if(size != 2)
+      if(dataLen != 2)
         m_log->error("Unexpected data size for packet {} of {} ",ComsParameterIndexToString(cpi),size);
       uint16_t value = pkt.m_data.uint16[0];
       std::string flagsStr;
@@ -592,7 +592,7 @@ namespace DogBotN {
       m_log->error(" {} DRV8305 Reg 2, OV/VDS Faults {:b} : {} ",Name(),value,flagsStr);
     } break;
     case CPI_DRV8305_03: {
-      if(size != 2)
+      if(dataLen != 2)
         m_log->error("Unexpected data size for packet {} of {} ",ComsParameterIndexToString(cpi),size);
       uint16_t value = pkt.m_data.uint16[0];
       std::string flagsStr;
@@ -623,10 +623,10 @@ namespace DogBotN {
       if(value & DRV8503_FAULTS_VCPH_OVLO_ABS) {
         flagsStr += "High side charge pump over voltage ABS,";
       }
-      m_log->error(" {} DRV8305 Reg 2, Faults {:b} : {} ",Name(),value,flagsStr);
+      m_log->error(" {} DRV8305 Reg 3, Faults {:b} : {} ",Name(),value,flagsStr);
     } break;
     case CPI_DRV8305_04: {
-      if(size != 2)
+      if(dataLen != 2)
         m_log->error("Unexpected data size for packet {} of {} ",ComsParameterIndexToString(cpi),size);
       uint16_t value = pkt.m_data.uint16[0];
       std::string flagsStr;
@@ -649,7 +649,7 @@ namespace DogBotN {
       if(value & DRV8503_VGSFAULTS_VGS_LC) {
         flagsStr += "VGS low side gate C,";
       }
-      m_log->error(" {} DRV8305 Reg 2, VGS Faults {:b} : {} ",Name(),value,flagsStr);
+      m_log->error(" {} DRV8305 Reg 4, VGS Faults {:b} : {} ",Name(),value,flagsStr);
     }
       break;
     default:
