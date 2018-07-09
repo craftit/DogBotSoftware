@@ -138,10 +138,10 @@ namespace DogBotN {
         timePush    // Tpu, Time push
         );
 
-    m_footTrajectories[0].Setup(trajectory.GenerateTrajectory(-m_footRotate,m_footSeperation,m_tiltX + m_tiltY));
-    m_footTrajectories[1].Setup(trajectory.GenerateTrajectory(-m_footRotate,-m_footSeperation,m_tiltX - m_tiltY));
-    m_footTrajectories[2].Setup(trajectory.GenerateTrajectory(m_footRotate,m_footSeperation,-m_tiltX + m_tiltY));
-    m_footTrajectories[3].Setup(trajectory.GenerateTrajectory(m_footRotate,-m_footSeperation,-m_tiltX - m_tiltY));
+    m_footTrajectories[0].Setup(trajectory.GenerateTrajectory(-m_footRotate,-m_footSeperation,m_tiltX + m_tiltY));
+    m_footTrajectories[1].Setup(trajectory.GenerateTrajectory(-m_footRotate,m_footSeperation,m_tiltX - m_tiltY));
+    m_footTrajectories[2].Setup(trajectory.GenerateTrajectory(m_footRotate,-m_footSeperation,-m_tiltX + m_tiltY));
+    m_footTrajectories[3].Setup(trajectory.GenerateTrajectory(m_footRotate,m_footSeperation,-m_tiltX - m_tiltY));
 
   }
 
