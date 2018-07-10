@@ -651,7 +651,8 @@ int main(void) {
     // Stuff we want to check all the time.
     g_driveTemperature +=  (ReadDriveTemperature() - g_driveTemperature) * 0.1;
     if(g_driveTemperature > 80.0) {
-      FaultDetected(FC_DriverOverTemperature);
+      SetMotorControlMode(CM_Brake);
+      //FaultDetected(FC_DriverOverTemperature);
     }
 #if 1
     // Check fan state.
