@@ -189,7 +189,7 @@ namespace DogBotN {
   {
     bool ret = true;
     Eigen::Vector3f target = at;
-#if 0
+#if 1
     // Set target to closest we can actually reach.
     float ext = at.norm();
     if(ext < m_minExtension) {
@@ -319,7 +319,7 @@ namespace DogBotN {
   }
 
   //! Compute the maximum stride length at a given z offset.
-  float LegKinematicsC::StrideLength(float zoffset)
+  float LegKinematicsC::StrideLength(float zoffset) const
   {
     Eigen::Vector3f anglesIn(0,0,0);
 

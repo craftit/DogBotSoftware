@@ -155,8 +155,8 @@ namespace DogBotN {
     //! Compute the minimum extension of the leg vertically down
     float MinExtension() const;
 
-    //! Compute the maximum stride length at a given z offset.
-    float StrideLength(float zoffset);
+    //! Compute the maximum stride length at a given leg extension.
+    float StrideLength(float extension) const;
 
   protected:
     void Init();
