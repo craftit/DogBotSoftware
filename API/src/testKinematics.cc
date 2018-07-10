@@ -98,16 +98,18 @@ int CheckTargetVirtual(Eigen::Vector3f target) {
   return 0;
 }
 
-int CheckTargetDirect(Eigen::Vector3f target) {
+int CheckTargetDirect(Eigen::Vector3f target,bool verbose = true) {
   DogBotN::LegKinematicsC legKinematics;
   Eigen::Vector3f angles;
   Eigen::Vector3f pos;
 
   if(!g_legKinematics.InverseDirect(target,angles)) {
-    std::cerr << "Failed to find solution for target :" << target << " " << std::endl;
+    if(verbose)
+      std::cerr << "Failed to find solution for target :" << target << " " << std::endl;
     return __LINE__;
   }
-  std::cout << " Direct Angles:" << DogBotN::Rad2Deg(angles[0]) << " " << DogBotN::Rad2Deg(angles[1]) << " " << DogBotN::Rad2Deg(angles[2]) << " " << std::endl;
+  if(verbose)
+    std::cout << " Direct Angles:" << DogBotN::Rad2Deg(angles[0]) << " " << DogBotN::Rad2Deg(angles[1]) << " " << DogBotN::Rad2Deg(angles[2]) << " " << std::endl;
 
   if(!g_legKinematics.ForwardDirect(angles,pos)) {
     std::cerr << "Forward kinematics failed." << std::endl;
@@ -115,8 +117,10 @@ int CheckTargetDirect(Eigen::Vector3f target) {
   }
 
   float dist = (target - pos).norm();
-  std::cout <<" Target: "<< target[0] << " " << target[1] << " " << target[2] << " " << std::endl;
-  std::cout <<" At: "<< pos[0] << " " << pos[1] << " " << pos[2] << "   Distance:" << dist << std::endl;
+  if(verbose) {
+    std::cout <<" Target: "<< target[0] << " " << target[1] << " " << target[2] << " " << std::endl;
+    std::cout <<" At: "<< pos[0] << " " << pos[1] << " " << pos[2] << "   Distance:" << dist << std::endl;
+  }
   if(dist > 1e-6) {
     return __LINE__;
   }
@@ -125,9 +129,9 @@ int CheckTargetDirect(Eigen::Vector3f target) {
 
 int TestReachableTargets()
 {
+  int ln =0;
 
   {
-    int ln = 0;
     Eigen::Vector3f target = {0.15,0.1,0.3};
     if((ln = CheckTargetDirect(target)) != 0) {
       std::cerr << "Check target failed at " << ln << std::endl;
@@ -135,9 +139,9 @@ int TestReachableTargets()
     }
   }
 
+  float maxReach;
   {
-    int ln = 0;
-    float maxReach = g_legKinematics.MaxExtension();
+    maxReach = g_legKinematics.MaxExtension();
     Eigen::Vector3f target = {0,0,maxReach};
     if((ln = CheckTargetDirect(target)) != 0) {
       std::cerr << "Check target failed at " << ln << std::endl;
@@ -145,15 +149,45 @@ int TestReachableTargets()
     }
   }
 
+  float minReach;
   {
-    int ln = 0;
-    float minReach = g_legKinematics.MinExtension();
+    minReach = g_legKinematics.MinExtension();
     Eigen::Vector3f target = {0,0,minReach};
     if((ln = CheckTargetDirect(target)) != 0) {
       std::cerr << "Check target failed at " << ln << std::endl;
       return __LINE__;
     }
   }
+
+  {
+    std::cout << "Stride at max " << (maxReach) << " is " << g_legKinematics.StrideLength(maxReach) << std::endl;
+    {
+      float i = maxReach;
+      float stride = g_legKinematics.StrideLength(i);
+      std::cout << "Stride at " << i << " is " << stride << std::endl;
+
+      Eigen::Vector3f target = {0,(float) (stride/2),i};
+      if((ln = CheckTargetDirect(target,false)) != 0) {
+        std::cerr << "Check target failed at " << ln << std::endl;
+        //return __LINE__;
+      }
+    }
+
+    std::cout << "Stride at min " << (minReach) << " is " << g_legKinematics.StrideLength(minReach) << std::endl;
+  }
+
+  for(float i = minReach;i <= maxReach;i += 0.05) {
+    float stride = g_legKinematics.StrideLength(i);
+    std::cout << "Stride at " << i << " is " << stride << std::endl;
+
+    Eigen::Vector3f target = {0,(float) (stride/2),i};
+    if((ln = CheckTargetDirect(target,false)) != 0) {
+      std::cerr << "Check target failed at " << ln << std::endl;
+      //return __LINE__;
+    }
+  }
+
+
 
   return 0;
 }

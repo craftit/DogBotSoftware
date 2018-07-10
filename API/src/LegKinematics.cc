@@ -189,7 +189,7 @@ namespace DogBotN {
   {
     bool ret = true;
     Eigen::Vector3f target = at;
-#if 1
+#if 0
     // Set target to closest we can actually reach.
     float ext = at.norm();
     if(ext < m_minExtension) {
@@ -297,13 +297,13 @@ namespace DogBotN {
   //! Compute the maximum extension of the leg
   float LegKinematicsC::MaxExtension() const
   {
-    Eigen::Vector3f anglesIn(0,0,0);
-    Eigen::Vector3f at;
-    if(!ForwardDirect(anglesIn,at)) {
-      assert(0 && "Forward kinematics failed.");
-      return 0;
-    }
-    return at.norm();
+    Eigen::Vector3f angles(0,0,0);
+    float theta = angles[2] + angles[1];
+    float psi = Linkage4BarForward(theta,UseAlternateSolution());
+    float y = m_l1 * sin(angles[1]) + m_l2 * sin(angles[1] + psi);
+    float z = m_l1 * cos(angles[1]) + m_l2 * cos(angles[1] + psi);
+    float dist = sqrt(y * y + z*z) + m_zoff;
+    return dist;
   }
 
   //! Compute the minimum extension of the leg
@@ -316,6 +316,27 @@ namespace DogBotN {
     float z = m_l1 * cos(angles[1]) + m_l2 * cos(angles[1] + psi);
     float dist = sqrt(y * y + z*z) + m_zoff;
     return dist;
+  }
+
+  //! Compute the maximum stride length at a given z offset.
+  float LegKinematicsC::StrideLength(float zoffset)
+  {
+    Eigen::Vector3f anglesIn(0,0,0);
+
+    float theta = anglesIn[2] + anglesIn[1];
+    float psi = Linkage4BarForward(theta,UseAlternateSolution());
+    Eigen::Vector3f angles = {anglesIn[0],anglesIn[1],psi};
+
+    float y = m_l1 * sin(angles[1]) + m_l2 * sin(angles[1] + angles[2]);
+    float z = m_l1 * cos(angles[1]) + m_l2 * cos(angles[1] + angles[2]);
+    float r = sqrt(y*y + z*z);
+
+    float rh = zoffset - m_zoff;
+    float sqrs = r*r - rh*rh;
+    if(sqrs <= 0) {
+      return 0;
+    }
+    return 2*sqrt(sqrs);
   }
 
 }

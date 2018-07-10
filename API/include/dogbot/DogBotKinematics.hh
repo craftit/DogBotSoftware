@@ -55,6 +55,8 @@ namespace DogBotN {
     // This is the minimum extension all the legs are capable of
     float MinLegExtension() const;
 
+    //! Compute the maximum stride length at a given z position
+    float StrideLength(float zoffset) const;
   protected:
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("console");
     std::mutex m_mutexKinematics;

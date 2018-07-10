@@ -177,6 +177,25 @@ namespace DogBotN {
     return minExt;
   }
 
+  //! Compute the maximum stride length at a given z position
+  float DogBotKinematicsC::StrideLength(float zoffset) const
+  {
+    float maxStride = 0;
+    auto it = m_legKinematics.begin();
+    if(it != m_legKinematics.end()) {
+      assert(*it);
+      maxStride = (*it)->StrideLength(zoffset);
+      for(;it != m_legKinematics.end();++it) {
+        assert(*it);
+        float ext = (*it)->StrideLength(zoffset);
+        if(ext < maxStride) {
+          maxStride = ext;
+        }
+      }
+    }
+    return maxStride;
+  }
+
 
 
 
