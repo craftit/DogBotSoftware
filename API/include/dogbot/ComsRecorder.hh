@@ -5,7 +5,7 @@
 
 namespace DogBotN {
 
-  //! Utility class for recording a log of commands sent and data recieved.
+  //! Utility class for recording a log of commands sent and data received.
 
   class ComsRecorderC
   {
