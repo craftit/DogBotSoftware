@@ -10,9 +10,9 @@ There are two power options for DogBot, mains power or batteries.  The batteries
 
 # Battery Safety
 
-DogBot carries two powerful lithium ion batteries. Please take care in operation, and read all documenation for the battery chargers you use.
+DogBot carries two powerful lithium polymer batteries. Please take care in operation, and read all documenation for the battery chargers you use.
 
-As a reminder of why, here's a short [video](https://www.youtube.com/watch?v=o6iYxd9lJpA) of a lithium ion battery being recharged at a NASA facility.  And the [longer clip](https://www.youtube.com/watch?v=JECJAgRsp-4) shows how hard to resulting fire is to deal with.
+As a reminder of why, here's a short [video](https://www.youtube.com/watch?v=o6iYxd9lJpA) of a lithium battery being recharged at a NASA facility.  And the [longer clip](https://www.youtube.com/watch?v=JECJAgRsp-4) shows how hard to resulting fire is to deal with.
 
 # Bench Supply Operation
 
