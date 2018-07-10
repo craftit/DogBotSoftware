@@ -35,10 +35,10 @@
 			"name" : "back_right_pitch",
 			"notes" : "",
 			"safetyMode" : "Local Stop",
-			"serial_number" : "3407901-1650753082",
+			"serial_number" : "3407907-1650753082",
 			"supplyVoltageScale" : 1,
 			"type" : "servo",
-			"uid1" : 3407901,
+			"uid1" : 3407907,
 			"uid2" : 1650753082
 		},
 		{
