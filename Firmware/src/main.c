@@ -649,7 +649,7 @@ int main(void) {
 
 
     // Stuff we want to check all the time.
-    g_driveTemperature +=  (ReadDriveTemperature() - g_driveTemperature) * 0.1;
+    g_driveTemperature +=  (ReadDriveTemperature() - g_driveTemperature) * 0.05;
     if(g_driveTemperature > 80.0) {
       SetMotorControlMode(CM_Brake);
       //FaultDetected(FC_DriverOverTemperature);
@@ -664,7 +664,7 @@ int main(void) {
         // FIXME:- Add Fan PWM ?
         if(g_driveTemperature > g_fanTemperatureThreshold) {
           EnableFanPower(true);
-        } else if(g_driveTemperature < (g_fanTemperatureThreshold-5.0f)) {
+        } else if(g_driveTemperature < (g_fanTemperatureThreshold-6.0f)) {
           EnableFanPower(false);
         }
       }
