@@ -970,7 +970,7 @@ namespace DogBotN {
 
   //! Home a point position. This will block until homing is complete.
 
-  bool ServoC::HomeJoint(bool restorePosition)
+  bool ServoC::HomeJoint(bool restorePosition,HomeDirectionHintT directionHint)
   {
     m_log->info("HomeJoint called.");
     if(!IsFirmwareVersionOk()) {
@@ -1035,8 +1035,32 @@ namespace DogBotN {
     m_log->info("Initial position {}, bounds from {} to {} ",Rad2Deg(position),Rad2Deg(homeState.m_minIndexBound),Rad2Deg(homeState.m_maxIndexBound));
 
     float changedAt = 0;
-    float targetPosition = homeState.m_maxIndexBound;
-    bool positiveVelocity = targetPosition > position;
+    float targetPosition = 0; //homeState.m_maxIndexBound;
+    bool positiveVelocity = false; //targetPosition > position;
+
+    switch(directionHint)
+    {
+      case HDH_None:
+      case HDH_Anticlockwise:
+        if(homeState.m_maxIndexBound > position) {
+          targetPosition = homeState.m_maxIndexBound;
+          positiveVelocity = true;
+        } else {
+          targetPosition = homeState.m_minIndexBound;
+          positiveVelocity = false;
+        }
+        break;
+      case HDH_Clockwise:
+        if(homeState.m_minIndexBound < position) {
+          targetPosition = homeState.m_minIndexBound;
+          positiveVelocity = false;
+        } else {
+          targetPosition = homeState.m_maxIndexBound;
+          positiveVelocity = true;
+        }
+        break;
+    }
+
     DemandPosition(targetPosition,torqueLimit,PR_Relative);
     TimePointT startTime = TimePointT::clock::now();
 

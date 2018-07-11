@@ -1377,7 +1377,7 @@ void MainWindow::on_pushButtonHomeJoint_clicked()
   std::thread run = std::thread([servoPtr](){
     std::cerr << "Homing joint " << servoPtr->Name() << std::endl;
     std::lock_guard<std::mutex> lock(access);
-    servoPtr->HomeJoint();
+    servoPtr->HomeJoint(false);
     std::cerr << "Homing joint " << servoPtr->Name() << " done." << std::endl;
   });
   run.detach();

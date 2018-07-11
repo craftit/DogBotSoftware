@@ -9,6 +9,7 @@
 namespace DogBotN {
 
   class DogBotAPIC;
+  enum HomeDirectionHintT { HDH_None, HDH_Anticlockwise, HDH_Clockwise };
 
   //! Motor calibration data.
 
@@ -196,7 +197,7 @@ namespace DogBotN {
 
     //! Home a point position. This will block until homing is complete.
     //! Returns true if homing succeeded.
-    bool HomeJoint(bool restorePosition = true);
+    bool HomeJoint(bool restorePosition,HomeDirectionHintT directionHint = HDH_None);
 
     //! Add a update callback for motor position
     CallbackHandleC AddPositionRefUpdateCallback(const PositionRefUpdateFuncT &callback)

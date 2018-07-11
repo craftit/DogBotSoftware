@@ -796,6 +796,8 @@ namespace DogBotN {
     {
       std::vector<std::thread> threads;
       // Home knees.
+      HomeDirectionHintT hints[4] = { HDH_Clockwise,HDH_Anticlockwise,HDH_Anticlockwise,HDH_Clockwise };
+
       for(int i = 0;i < legNames.size();i++) {
         std::string jointName = legNames[i] + "_knee";
         std::shared_ptr<ServoC> jnt = std::dynamic_pointer_cast<ServoC>(GetJointByName(jointName));
@@ -803,8 +805,9 @@ namespace DogBotN {
           m_log->error("Failed to find joint {} ",jointName);
           return false;
         }
-        threads.push_back(std::thread([jnt,&allOk](){
-          if(!jnt->HomeJoint(false)) {
+        HomeDirectionHintT hint = hints[i];
+        threads.push_back(std::thread([jnt,&allOk,hint](){
+          if(!jnt->HomeJoint(false,hint)) {
             allOk = false;
             return false;
           }
@@ -822,6 +825,8 @@ namespace DogBotN {
 
     {
       std::vector<std::thread> threads;
+      HomeDirectionHintT hints[4] = { HDH_Anticlockwise,HDH_Clockwise,HDH_Clockwise,HDH_Anticlockwise };
+
       // Home pitch
       for(int i = 0;i < legNames.size();i++) {
         std::string jointName = legNames[i] + "_pitch";
@@ -830,8 +835,9 @@ namespace DogBotN {
           m_log->error("Failed to find joint {} ",jointName);
           return false;
         }
-        threads.push_back(std::thread([jnt,&allOk](){
-          if(!jnt->HomeJoint(false)) {
+        HomeDirectionHintT hint = hints[i];
+        threads.push_back(std::thread([jnt,&allOk,hint](){
+          if(!jnt->HomeJoint(false,hint)) {
             allOk = false;
             return false;
           }
