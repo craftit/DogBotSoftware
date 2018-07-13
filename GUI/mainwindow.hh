@@ -9,6 +9,7 @@
 #include "dogbot/LegKinematics.hh"
 #include "dogbot/SplineGaitController.hh"
 #include "dogbot/LegController.hh"
+#include "dogbot/DevicePlatformManager.hh"
 
 #include "ServoTable.hh"
 
@@ -28,6 +29,10 @@ protected:
   void timerEvent(QTimerEvent *event) override;
 
 private slots:
+  void LocalProcessParam(PacketParam8ByteC psp);
+
+  void PlatformProcessParam(PacketParam8ByteC psp);
+
   void on_pushButtonConnect_clicked();
 
   void on_pushButtonPWMReport_clicked();
@@ -151,8 +156,6 @@ private slots:
 
   void on_checkBoxEndStopEnable_toggled(bool checked);
 
-  void LocalProcessParam(PacketParam8ByteC psp);
-
   void on_pushButtonSetEndStopStart_clicked();
 
   void on_pushButtonSetEndStopEnd_clicked();
@@ -200,6 +203,16 @@ private slots:
   void on_doubleSpinBoxMotionUpdate_valueChanged(double arg1);
 
   void on_doubleSpinBoxCurrentLimit_valueChanged(double arg1);
+
+  void on_pushButtonActivityHome_clicked();
+
+  void on_pushButtonActivityWalk_clicked();
+
+  void on_pushButtonActivityPassive_clicked();
+
+  void on_pushButtonActivityIdle_clicked();
+
+  void on_pushButtonActivityAbort_clicked();
 
 signals:
   void setLogText(const QString &str);
@@ -255,6 +268,8 @@ private:
   //! Stop current animation
   void StopAnimation();
 
+  bool SetupPlatformManager();
+
   int m_toQuery = 0;
   std::vector<ComsParameterIndexT> m_displayQuery;
 
@@ -292,7 +307,7 @@ private:
   std::mutex m_accessGait;
   float m_lastSpeedLimit = 0.0;
   std::shared_ptr<DogBotN::LegControllerC> m_legs[4];
-
+  std::shared_ptr<DogBotN::DevicePlatformManagerC> m_platformManager;
 };
 
 #endif // MAINWINDOW_H

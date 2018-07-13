@@ -37,6 +37,7 @@ ADD_LIBRARY (DogBotAPI STATIC
         ComsUSB.cc 
         ComsRecorder.cc
         ComsRoute.cc
+        ComsVirtualDevice.cc
         DogBotAPI.cc 
         Servo.cc 
         LegKinematics.cc 
@@ -58,6 +59,9 @@ ADD_LIBRARY (DogBotAPI STATIC
         PoseAngles.cc
         DogBotController.cc
         SimpleQuadrupedPose.cc
+        DevicePlatformManager.cc
+        PlatformManager.cc
+        Strings.cc
 )
 
 set_target_properties(DogBotAPI PROPERTIES VERSION ${PROJECT_VERSION})

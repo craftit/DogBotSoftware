@@ -5,6 +5,7 @@
 #include "dogbot/DogBotAPI.hh"
 #include "dogbot/Util.hh"
 #include "dogbot/Drv8503Registers.hh"
+#include "dogbot/Strings.hh"
 #include <string>
 #include <cmath>
 
@@ -972,14 +973,14 @@ namespace DogBotN {
 
   bool ServoC::HomeJoint(bool restorePosition,HomeDirectionHintT directionHint)
   {
-    m_log->info("HomeJoint called.");
+    //m_log->info("HomeJoint called.");
     if(!IsFirmwareVersionOk()) {
       m_log->info("Joint {} firmware version mismatch.",Name());
-      return true;
+      return false;
     }
     if(!IsEnabled()) {
       m_log->info("Joint {} disabled.",Name());
-      return true;
+      return false;
     }
     if(m_homedState == MHS_Homed) {
       m_log->info("Joint {} already homed.",Name());

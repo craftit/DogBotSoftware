@@ -109,7 +109,7 @@ extern "C" {
   enum DeviceTypeT
   {
     DT_Unknown = 0,
-    DT_SystemController = 1,
+    DT_PlatformManager = 1,
     DT_MotorDriver = 2,
     DT_BootLoader = 3,
     DT_IMU = 4
@@ -238,6 +238,8 @@ extern "C" {
     CPI_MotionUpdatePeriod = 0x64,
     CPI_SupplyVoltageScale = 0x65,
     CPI_CurrentLimit       = 0x66,
+    CPI_PlatformActivity   = 0x67, // Used for platform manager
+    CPI_RequestedPlatformActivity = 0x68, // Used for platform manager
 
     CPI_FINAL           = 0xff
   };
@@ -321,6 +323,10 @@ extern "C" {
     PR_Absolute = 1
   };
 
+  /* Fan management
+   * This should be left on Auto unless testing
+   */
+
   enum FanModeT {
     FM_Off = 0,
     FM_On  = 1,
@@ -338,6 +344,23 @@ extern "C" {
     MHS_Measuring  = 1,
     MHS_Homed      = 2,
     MHS_SoftHomed= 3
+  };
+
+  /* Platform activities
+   *
+   */
+
+  enum PlatformActivityT {
+    PA_Passive,
+    PA_Idle,
+    PA_Bootloader,
+    PA_Home,
+    PA_Falling,
+    PA_Stand,
+    PA_Walking,
+    PA_Shutdown,
+    PA_ROS,
+    PA_User
   };
 
   struct PacketErrorC {

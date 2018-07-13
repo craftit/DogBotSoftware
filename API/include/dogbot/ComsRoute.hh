@@ -24,6 +24,9 @@ namespace DogBotN {
     //! Add coms channel
     void AddComs(const std::shared_ptr<ComsC> &coms);
 
+    //! Remove coms channel
+    void RemoveComs(const std::shared_ptr<ComsC> &coms);
+
     //! Set the logger to use
     virtual void SetLogger(const std::shared_ptr<spdlog::logger> &log) override;
 
@@ -41,8 +44,18 @@ namespace DogBotN {
 
 
   protected:
-    std::vector<CallbackHandleC> m_genericHandlerId;
-    std::vector<std::shared_ptr<ComsC> > m_coms; // Array of coms handles
+
+    struct ComsChannelC
+    {
+      ComsChannelC(const CallbackHandleC &callBack,const std::shared_ptr<ComsC> &coms)
+        : m_callBack(callBack),
+          m_coms(coms)
+      {}
+      CallbackHandleC m_callBack;
+      std::shared_ptr<ComsC> m_coms;
+    };
+
+    std::vector<ComsChannelC> m_coms; // Array of coms handles
     std::vector<std::shared_ptr<ComsC> > m_route; // Coms class to use for each device, index by device id
     mutable std::mutex m_accessTx;
 

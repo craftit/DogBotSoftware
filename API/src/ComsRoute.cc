@@ -30,23 +30,30 @@ namespace DogBotN
     assert(coms.get() != this); // On the off chance something tried to make a loop.
     if(!coms)
       return ;
-    std::lock_guard<std::mutex> lock(m_accessTx);
 
-    m_coms.push_back(coms);
-    m_genericHandlerId.push_back(coms->SetGenericHandler([this,coms](const uint8_t *data,int len) mutable
-                              {
-                                if(len > 2 && ((enum ComsPacketTypeT) data[0]) == CPT_AnnounceId) {
-                                  int destId = data[1];
-                                  std::lock_guard<std::mutex> lock(m_accessTx);
-                                  if(m_route.size() <= destId) {
-                                    m_route.reserve(destId+1);
-                                    while(m_route.size() <= destId)
-                                      m_route.push_back(std::shared_ptr<ComsC>());
-                                  }
-                                  m_route[destId] = coms;
-                                }
-                                ProcessPacket(data,len);
-                              }));
+    {
+      auto callBack = coms->SetGenericHandler([this,coms](const uint8_t *data,int len) mutable
+                                      {
+                                        if(len > 2 && ((enum ComsPacketTypeT) data[0]) == CPT_AnnounceId) {
+                                          int destId = data[1];
+                                          if(destId != 0) {
+                                            std::lock_guard<std::mutex> lock(m_accessTx);
+                                            if(m_route.size() <= destId) {
+                                              m_route.reserve(destId+1);
+                                              while(m_route.size() <= destId)
+                                                m_route.push_back(std::shared_ptr<ComsC>());
+                                            }
+                                            m_log->info("Adding route for device {} ",destId);
+                                            m_route[destId] = coms;
+                                          }
+                                        }
+                                        ProcessPacket(data,len);
+                                      });
+
+      std::lock_guard<std::mutex> lock(m_accessTx);
+      coms->SetLogger(m_log);
+      m_coms.push_back(ComsChannelC(callBack,coms));
+    }
 
     // Send a query devices packet.
     {
@@ -56,15 +63,32 @@ namespace DogBotN
     }
   }
 
+  //! Remove coms channel
+  void ComsRouteC::RemoveComs(const std::shared_ptr<ComsC> &coms)
+  {
+    if(!coms)
+      return ;
+
+    {
+      std::lock_guard<std::mutex> lock(m_accessTx);
+      for(auto it = m_coms.begin();it != m_coms.end();it++) {
+        if(it->m_coms == coms) {
+          m_coms.erase(it);
+          break;
+        }
+      }
+    }
+
+  }
+
+
   //! Close connection
   void ComsRouteC::Close()
   {
+    std::unique_lock<std::mutex> lock(m_accessTx);
     while(m_coms.size() > 0) {
-      assert(m_genericHandlerId.size() == m_coms.size());
-      m_coms.back()->Close();
+      m_coms.back().m_coms->Close();
       m_coms.pop_back();
-      m_genericHandlerId.back().Remove();
-      m_genericHandlerId.pop_back();
     }
   }
 
@@ -83,7 +107,7 @@ namespace DogBotN
     ComsC::SetLogger(log);
     std::lock_guard<std::mutex> lock(m_accessTx);
     for(auto &a : m_coms)
-      a->SetLogger(log);
+      a.m_coms->SetLogger(log);
   }
 
 
@@ -112,19 +136,17 @@ namespace DogBotN
   //! Send packet
   void ComsRouteC::SendPacketWire(const uint8_t *buff,int len)
   {
-    if(len > 1) {
-      if(buff[0] != CPT_SetDeviceId) {
-        int dest = buff[1];
-        std::lock_guard<std::mutex> lock(m_accessTx);
-        if(dest != 0 && m_route.size() > dest && m_route[dest]) {
-          m_route[dest]->SendPacket(buff,len);
-          return ;
-        }
+    if(len > 1 && buff[0] != CPT_SetDeviceId) {
+      int dest = buff[1];
+      std::unique_lock<std::mutex> lock(m_accessTx);
+      if(dest != 0 && m_route.size() > dest && m_route[dest]) {
+        m_route[dest]->SendPacket(buff,len);
+        return ;
       }
     }
     // Send it everywhere
     for(auto &a : m_coms)
-      a->SendPacket(buff,len);
+      a.m_coms->SendPacket(buff,len);
   }
 
 

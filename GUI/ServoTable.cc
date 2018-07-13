@@ -1,4 +1,5 @@
 #include "ServoTable.hh"
+#include "dogbot/Strings.hh"
 #include <QColor>
 #include <QTimer>
 

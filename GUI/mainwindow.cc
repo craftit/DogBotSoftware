@@ -7,6 +7,7 @@
 #include "dogbot/ComsProxy.hh"
 #include "dogbot/LegController.hh"
 #include "dogbot/Util.hh"
+#include "dogbot/Strings.hh"
 #include <iostream>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -73,7 +74,7 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(this,SIGNAL(setFanMode(const QString &)),ui->comboBoxFanState,SLOT(setCurrentText(QString)));
   connect(this,SIGNAL(updatePosition(double)),this,SLOT(on_updatePosition(double)));
 
-  connect(this,SIGNAL(callLocalProcessParam(PacketParam8ByteC)),this,SLOT(LocalProcessParam(PacketParam8ByteC)));
+  //connect(this,SIGNAL(callLocalProcessParam(PacketParam8ByteC)),this,SLOT(LocalProcessParam(PacketParam8ByteC)));
 
 
   startTimer(10);
@@ -452,6 +453,9 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     ret = false;
   } break;
 
+  case CPI_PlatformActivity: {
+    emit PlatformProcessParam(*psp);
+  } break;
   default:
     break;
   }
@@ -517,11 +521,27 @@ void MainWindow::LocalProcessParam(PacketParam8ByteC psp)
   }
 }
 
+void MainWindow::PlatformProcessParam(PacketParam8ByteC psp)
+{
+  switch ((enum ComsParameterIndexT) psp.m_header.m_index)
+  {
+  case CPI_PlatformActivity: {
+    uint32_t activityKey = psp.m_data.uint32[0];
+    enum PlatformActivityT activity = (enum PlatformActivityT) psp.m_data.uint8[4];
+    ui->lineEditActivityKey->setText(QString::number(activityKey,16));
+    ui->lineEditCurrentActivity->setText(DogBotN::ComsPlatformActivityToString(activity));
+  } break;
+  default:
+    break;
+  }
+}
+
+
 void MainWindow::SetupComs()
 {
   auto logger = spdlog::stdout_logger_mt("console");
 
-  logger->info("Starting bark");
+  logger->info("Starting DogBotUI ");
   m_coms = std::make_shared<DogBotN::ComsProxyC>();
   m_coms->SetLogger(logger);
   m_dogBotAPI = std::make_shared<DogBotN::DogBotAPIC>(
@@ -1599,4 +1619,66 @@ void MainWindow::on_doubleSpinBoxMotionUpdate_valueChanged(double arg1)
 void MainWindow::on_doubleSpinBoxCurrentLimit_valueChanged(double arg1)
 {
   m_coms->SendSetParam(m_targetDeviceId,CPI_CurrentLimit,arg1);
+}
+
+bool MainWindow::SetupPlatformManager()
+{
+  if(m_platformManager)
+    return true;
+  std::shared_ptr<DogBotN::DeviceC> theDevice = m_dogBotAPI->GetDeviceByName("PlatformManager");
+  if(!theDevice) {
+    std::cerr << "Failed to find platform manager. " << std::endl;
+    return false;
+  }
+  m_platformManager = std::dynamic_pointer_cast<DogBotN::DevicePlatformManagerC>(theDevice);
+  if(!m_platformManager) {
+    std::cerr << "Platform manager of unexpected type '" << typeid(*theDevice.get()).name() << "'. " << std::endl;
+    return false;
+  }
+  return true;
+}
+
+void MainWindow::on_pushButtonActivityHome_clicked()
+{
+  if(!SetupPlatformManager()) {
+    std::cerr << "Failed to setup platform manager. " << std::endl;
+    return ;
+  }
+  m_platformManager->StartActivity(PA_Home);
+}
+
+void MainWindow::on_pushButtonActivityWalk_clicked()
+{
+  if(!SetupPlatformManager()) {
+    std::cerr << "Failed to setup platform manager. " << std::endl;
+    return ;
+  }
+  m_platformManager->StartActivity(PA_Walking);
+}
+
+void MainWindow::on_pushButtonActivityPassive_clicked()
+{
+  if(!SetupPlatformManager()) {
+    std::cerr << "Failed to setup platform manager. " << std::endl;
+    return ;
+  }
+  m_platformManager->StartActivity(PA_Passive);
+}
+
+void MainWindow::on_pushButtonActivityIdle_clicked()
+{
+  if(!SetupPlatformManager()) {
+    std::cerr << "Failed to setup platform manager. " << std::endl;
+    return ;
+  }
+  m_platformManager->StartActivity(PA_Idle);
+}
+
+void MainWindow::on_pushButtonActivityAbort_clicked()
+{
+  if(!SetupPlatformManager()) {
+    std::cerr << "Failed to setup platform manager. " << std::endl;
+    return ;
+  }
+  m_platformManager->AbortActivity();
 }

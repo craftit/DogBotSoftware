@@ -2,6 +2,7 @@
 #include "dogbot/ComsZMQServer.hh"
 #include "dogbot/DogBotAPI.hh"
 #include "dogbot/ZMQContext.hh"
+#include "dogbot/Strings.hh"
 
 namespace DogBotN {
 

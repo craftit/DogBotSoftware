@@ -17,6 +17,7 @@
 //#include <sys/termios.h>
 #include "dogbot/Coms.hh"
 #include "dogbot/DogBotAPI.hh"
+#include "dogbot/Strings.hh"
 
 namespace DogBotN
 {
@@ -214,6 +215,19 @@ namespace DogBotN
     memcpy(&msg.m_data,&buff,len);
     SendPacket((uint8_t*) &msg,sizeof(msg.m_header)+len);
   }
+
+  //! Send set plaform activity
+  void ComsC::SendSetPlaformActivity(int deviceId,uint32_t key,enum PlatformActivityT pa)
+  {
+    PacketParam8ByteC msg;
+    msg.m_header.m_packetType = CPT_SetParam;
+    msg.m_header.m_deviceId = deviceId;
+    msg.m_header.m_index = (uint16_t) CPI_PlatformActivity;
+    msg.m_data.uint32[0] = key;
+    msg.m_data.uint8[4] = (uint8_t) pa;
+    SendPacket((uint8_t*) &msg,sizeof(msg.m_header)+5);
+  }
+
 
   //! Query a parameter
   void ComsC::SendQueryParam(int deviceId,ComsParameterIndexT param)

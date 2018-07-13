@@ -8,6 +8,7 @@
 #include "dogbot/ComsZMQServer.hh"
 #include "dogbot/ComsRecorder.hh"
 #include "dogbot/ComsRoute.hh"
+#include "dogbot/PlatformManager.hh"
 #include "cxxopts.hpp"
 #include <sched.h>
 
@@ -75,6 +76,7 @@ int main(int argc,char **argv)
 
   std::shared_ptr<DogBotN::ComsRouteC> coms = std::make_shared<DogBotN::ComsRouteC>();
 
+
   if(!coms->Open(devFilename)) {
     logger->error("Failed to open {} ",devFilename);
     return 1;
@@ -88,7 +90,7 @@ int main(int argc,char **argv)
 
   std::shared_ptr<DogBotN::ComsC> pureComs(coms);
 
-  DogBotN::DogBotAPIC dogbot(
+  std::shared_ptr<DogBotN::DogBotAPIC> dogbot = std::make_shared<DogBotN::DogBotAPIC>(
       pureComs,
       DogBotN::DogBotAPIC::DefaultConfigFile(),
       logger,
@@ -96,12 +98,17 @@ int main(int argc,char **argv)
       managerMode ? DogBotN::DogBotAPIC::DMM_DeviceManager : DogBotN::DogBotAPIC::DMM_ClientOnly
           );
 
+  if(1) {
+    std::shared_ptr<DogBotN::PlatformManagerC> platformManager = std::make_shared<DogBotN::PlatformManagerC>(dogbot);
+    coms->AddComs(platformManager);
+    platformManager->Init();
+  }
 
-  DogBotN::ComsZMQServerC server(dogbot.Connection(),logger);
+  DogBotN::ComsZMQServerC server(pureComs,logger);
 
   std::shared_ptr<DogBotN::ComsRecorderC> logRecorder;
   if(!logFile.empty()) {
-    logRecorder = std::make_shared<DogBotN::ComsRecorderC>(dogbot.Connection(),logger,logFile);
+    logRecorder = std::make_shared<DogBotN::ComsRecorderC>(pureComs,logger,logFile);
     logRecorder->Start();
   }
 

@@ -11,10 +11,10 @@
 #include <mutex>
 #include <string.h>
 
+#include <cstdint>
 #include "dogbot/protocol.h"
 #include "dogbot/CallbackArray.hh"
 #include <spdlog/spdlog.h>
-#include <cstdint>
 
 namespace DogBotN {
 
@@ -151,6 +151,9 @@ namespace DogBotN {
 
     //! Set a parameter
     void SendSetParam(int deviceId,ComsParameterIndexT param,BufferTypeT &buff,int len);
+
+    //! Set set plaform activity
+    void SendSetPlaformActivity(int deviceId,uint32_t key,enum PlatformActivityT pa);
 
     //! Query a parameter
     void SendQueryParam(int deviceId,ComsParameterIndexT param);
