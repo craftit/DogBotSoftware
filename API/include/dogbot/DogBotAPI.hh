@@ -26,6 +26,9 @@ namespace DogBotN {
     const char *m_msg;
   };
 
+
+  class LegControllerC;
+
   //! Dogbot device control
 
   //! This does low level management of the robot, configuration of the drivers and status monitoring.
@@ -105,11 +108,8 @@ namespace DogBotN {
     //! return true if started ok. It will return false if API has already been initialised.
     bool Init();
 
-    //! Home whole robot;
+    //! Home all the joints in the robot
     bool HomeAll();
-
-    //! Home from squatting position
-    bool HomeSquat();
 
     //! Tell all servos to hold the current position
     void DemandHoldPosition();
@@ -193,6 +193,9 @@ namespace DogBotN {
     { return DogBotKinematicsC::LegJointNames(); }
 
   protected:
+    //! Home from squatting position (Not implemented yet)
+    bool HomeSquat();
+
     // Call a method for all connected servos
     bool ForAllServos(const std::function<void (ServoC *)> &func);
 

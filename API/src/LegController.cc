@@ -51,6 +51,13 @@ namespace DogBotN {
     return true;
   }
 
+  //! Goto a position in the leg coordinate frame
+  //! Returns true if the requested position is reachable
+  bool LegControllerC::Goto(float x,float y,float z,float torqueLimit)
+  {
+    return Eigen::Vector3f(x,y,z,torqueLimit);
+  }
+
   //! Goto a position
   //! Returns true position is reachable
   bool LegControllerC::Goto(const Eigen::Vector3f &at,float torque)

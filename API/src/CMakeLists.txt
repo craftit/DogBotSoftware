@@ -66,6 +66,8 @@ ADD_LIBRARY (DogBotAPI STATIC
 
 set_target_properties(DogBotAPI PROPERTIES VERSION ${PROJECT_VERSION})
 
+set_property(TARGET DogBotAPI PROPERTY POSITION_INDEPENDENT_CODE ON)
+
 target_link_libraries (DogBotAPI LINK_PUBLIC ${JSONCPP_LIBRARIES} ${ZMQ_LIBRARIES} ${LIBUSB_LIBRARIES})
 
 # Define headers for this library. PUBLIC headers are used for

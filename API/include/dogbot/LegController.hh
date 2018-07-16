@@ -26,7 +26,11 @@ namespace DogBotN {
 
     //! Goto a position in the leg coordinate frame
     //! Returns true if the requested position is reachable
-    virtual bool Goto(const Eigen::Vector3f &at,float torque);
+    bool Goto(float x,float y,float z,float torqueLimit);
+
+    //! Goto a position in the leg coordinate frame
+    //! Returns true if the requested position is reachable
+    virtual bool Goto(const Eigen::Vector3f &at,float torqueLimit);
 
     //! Goto a joint angles
     virtual bool GotoJointAngles(const Eigen::Vector3f &angles,float torque);

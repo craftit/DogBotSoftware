@@ -1296,7 +1296,6 @@ namespace DogBotN {
     return m_dogBotKinematics.LegKinematicsByName(name);
   }
 
-
   //! Get list of configured servos
   std::vector<std::shared_ptr<ServoC> > DogBotAPIC::ListServos()
   {
