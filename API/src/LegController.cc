@@ -55,7 +55,7 @@ namespace DogBotN {
   //! Returns true if the requested position is reachable
   bool LegControllerC::Goto(float x,float y,float z,float torqueLimit)
   {
-    return Eigen::Vector3f(x,y,z,torqueLimit);
+    return Goto(Eigen::Vector3f(x,y,z),torqueLimit);
   }
 
   //! Goto a position
