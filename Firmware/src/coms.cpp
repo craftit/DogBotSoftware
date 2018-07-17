@@ -115,18 +115,22 @@ bool USBReadParamAndReply(enum ComsParameterIndexT paramIndex)
 
 void SendParamUpdate(enum ComsParameterIndexT paramIndex)
 {
-  if(g_deviceId == 0 || g_canBridgeMode) {
-    if(!USBReadParamAndReply(paramIndex)) {
+  struct PacketParam8ByteC reply;
+  reply.m_header.m_packetType = CPT_ReportParam;
+  reply.m_header.m_deviceId = g_deviceId;
+  reply.m_header.m_index = paramIndex;
+  int len = 0;
+  if(!ReadParam(paramIndex,&len,&reply.m_data)) {
+    if(g_canBridgeMode || g_deviceId == 0) {
       USBSendError(g_deviceId,CET_ParameterOutOfRange,CPT_ReadParam,(uint8_t) paramIndex);
     }
+    return ;
+  }
+  if(g_deviceId == 0 || g_canBridgeMode) {
+    USBSendPacket((uint8_t *)&reply,sizeof(reply.m_header) + len);
   }
   if(g_deviceId != 0) {
-    CANSendParam(paramIndex);
-#if 0
-    if(!CANSendReadParam(g_deviceId,paramIndex)) {
-      USBSendError(g_deviceId,CET_CANTransmitFailed,CPT_ReadParam,(uint8_t) paramIndex);
-    }
-#endif
+    CANSendParamData(paramIndex,&reply.m_data,len);
   }
 }
 

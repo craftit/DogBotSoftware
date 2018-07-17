@@ -249,6 +249,15 @@ bool CANSendParam(enum ComsParameterIndexT index)
     // Report error ?
     return false;
   }
+  return CANSendParamData(index,&buff,len);
+}
+
+bool CANSendParamData(
+    enum ComsParameterIndexT index,
+    const union BufferTypeT *buff,
+    int len
+    )
+{
   if(len <= 0 || len > 7) {
     CANSendError(CET_InternalError, CPT_ReadParam,(uint8_t) index);
     // Report error ?
@@ -263,7 +272,7 @@ bool CANSendParam(enum ComsParameterIndexT index)
   txmsg->data8[0] = (uint8_t) index;
 
   txmsg->DLC = len+1;
-  memcpy(&txmsg->data8[1],buff.uint8,len);
+  memcpy(&txmsg->data8[1],buff->uint8,len);
   return g_txCANQueue.PostFullPacket(txmsg);
 }
 
