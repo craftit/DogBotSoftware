@@ -1,6 +1,6 @@
 
 
-%module DogBotAPI
+%module PyDogBotAPI
 
 %include <std_shared_ptr.i>
 
