@@ -79,6 +79,12 @@ namespace DogBotN {
       m_threadMonitor.join();
   }
 
+  //! Get the time now
+  double DogBotAPIC::TimeNow()
+  {
+    return TimePointT::clock::now().time_since_epoch().count();
+  }
+
   //! Set the logger to use
   void DogBotAPIC::SetLogger(const std::shared_ptr<spdlog::logger> &log)
   {

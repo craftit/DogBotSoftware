@@ -9,6 +9,16 @@
 #include "dogbot/LegController.hh"
 #include "dogbot/DogBotController.hh"
 #include "dogbot/PoseAngles.hh"
+
+namespace DogBotN {
+
+  std::shared_ptr<DogBotAPIC> OpenAPI(std::string &connection)
+  {
+    return std::make_shared<DogBotAPIC>(connection,DogBotAPIC::DefaultConfigFile());
+  }
+
+}
+
 %}
 
 %shared_ptr(DogBotN::JointC)
@@ -18,13 +28,11 @@
 
 namespace DogBotN {
 
+//! Interface for a single joint
 
 class JointC 
 {
-  public:
-    JointC();
-    virtual ~JointC();
-    
+  public:    
     //! Setup a trajectory, with an update rate and torque limit
     bool SetupTrajectory(float updatePeriod,float torqueLimit);
 
@@ -61,17 +69,19 @@ class JointC
     float Velocity() const;
 };
 
+//! Servo level API
+
 class DogBotAPIC 
 {
   public:
-    DogBotAPIC();
-    ~DogBotAPIC();
-
     //! Get a joint by name
     std::shared_ptr<JointC> GetJointByName(const std::string &name);
     
     //! Access a list of joints
     std::vector<std::shared_ptr<JointC> > ListJoints();
+
+    //! Get the current time
+    static double TimeNow();
 
     //! Access an ordered list of the four leg names
     static const std::vector<std::string> &LegNames();
@@ -93,13 +103,14 @@ class DogBotAPIC
     void StandbyAll();
 };
 
+std::shared_ptr<DogBotAPIC> OpenAPI(std::string &connection);
 
 //! Class to manage the positioning of a single leg.
 
 class LegControllerC
 {
 public:
-
+  //! Create a leg controller
   LegControllerC(std::shared_ptr<DogBotAPIC> &api,const std::string &legName,bool useVirtualKnee);
 
   //! Goto a position in the leg coordinate frame
@@ -109,6 +120,16 @@ public:
   //! Goto a joint angles
   bool GotoJointAngles(float roll,float pitch,float knee,float torqueLimit);
   
+  //! Get current joint states
+  bool GetJointStates(double theTime,
+                    float &angleRoll,float &anglePitch,float &angleknee,
+                    float &velocityRoll,float &velocityPitch,float &velocityKnee,
+                    float &torqueRoll,float &torquePitch,float &torqueknee
+                    );
+
+  //! Compute an estimate of the force on a foot and where it is.
+  bool ComputeFootForce(double atTime,float &positionX,float &positionY,float &positionZ,float &forceX,float &forceY,float &forceZ);
+
 };
 
 //! Robot pose in terms of joint angles and expected torques.
@@ -126,11 +147,8 @@ public:
   //! Name of joint for the given leg and joint number.
   static std::string JointName(int leg,int legJnt);
 
-  //! Set leg joint angles
-  void SetLegJointAngles(int leg,const Eigen::Vector3f &vec);
-
-  //! Set angle for a particular joint
-  void SetJoint(int jnt,float pos,float torque);
+  //! Set angle and optionally torque for a particular joint
+  void SetJoint(int jnt,float pos,float torque = 0);
 
   //! Access joint information
   float JointPosition(int jnt) const;
@@ -138,9 +156,9 @@ public:
   //! Access joint information
   float JointTorque(int jnt) const;
 
-protected:
-  JointAngleC m_joints[12];
 };
+
+//! Robot pose stored as foot positions in the robot coordinate system
 
 class SimpleQuadrupedPoseC
 {
@@ -168,6 +186,11 @@ public:
   //! Send next trajectory position, this should be called at 'updatePeriod' intervals as setup
   //! with SetupTrajectory.
   bool NextTrajectory(const PoseAnglesC &pose);
+
+  //! Compute the joint angles from pose information
+  // If the angle computation fails, this will use the closest reachable point to one requested.
+  // Returns false if the updates succeeded for all servos.
+  bool NextTrajectory(const SimpleQuadrupedPoseC &pose);
 
 };
 

@@ -128,6 +128,59 @@ namespace DogBotN {
     return ret;
   }
 
+  //! Get current joint angles
+  bool LegControllerC::GetJointAngles(double theTime,float &roll,float &pitch,float &knee)
+  {
+    Eigen::Vector3f angles;
+    DogBotN::TimePointT::duration timeSinceEpoch(theTime);
+    DogBotN::TimePointT atTimePoint(timeSinceEpoch);
+    if(!GetJointAngles(atTimePoint,angles))
+      return false;
+    roll  = angles[0];
+    pitch = angles[1];
+    knee  = angles[2];
+    return true;
+  }
+
+  //! Get current joint states
+  bool LegControllerC::GetJointStates(
+      double theTime,
+      float &angleRoll,float &anglePitch,float &angleKnee,
+      float &velocityRoll,float &velocityPitch,float &velocityKnee,
+      float &torqueRoll,float &torquePitch,float &torqueKnee
+  )
+  {
+    DogBotN::TimePointT::duration timeSinceEpoch(theTime);
+    DogBotN::TimePointT atTimePoint(timeSinceEpoch);
+
+    bool ret = true;
+    {
+      double angle= 0,velocity = 0,torque = 0;
+      if(!m_joints[0]->GetStateAt(atTimePoint,angle,velocity,torque))
+        ret = false;
+      angleRoll = angle;
+      velocityRoll = velocity;
+      torqueRoll = torque;
+    }
+    {
+      double angle= 0,velocity = 0,torque = 0;
+      if(!m_joints[1]->GetStateAt(atTimePoint,angle,velocity,torque))
+        ret = false;
+      anglePitch = angle;
+      velocityPitch = velocity;
+      torquePitch = torque;
+    }
+    {
+      double angle= 0,velocity = 0,torque = 0;
+      if(!m_joints[2]->GetStateAt(atTimePoint,angle,velocity,torque))
+        ret = false;
+      angleKnee = angle;
+      velocityKnee = velocity;
+      torqueKnee = torque;
+    }
+    return ret;
+  }
+
   //! Compute the force on a foot and where it is.
   bool LegControllerC::ComputeFootForce(const TimePointT &atTime,Eigen::Vector3f &footAt,Eigen::Vector3f &force)
   {
@@ -249,6 +302,27 @@ namespace DogBotN {
     return true;
   }
 
+  //! Compute an estimate of the force on a foot and where it is.
+  bool LegControllerC::ComputeFootForce(
+      double atTime,
+      float &positionX,float &positionY,float &positionZ,
+      float &forceX,float &forceY,float &forceZ)
+  {
+    DogBotN::TimePointT::duration timeSinceEpoch(atTime);
+    DogBotN::TimePointT atTimePoint(timeSinceEpoch);
+
+    Eigen::Vector3f footAt;
+    Eigen::Vector3f force;
+    if(!ComputeFootForce(atTimePoint,footAt,force))
+      return false;
+    positionX = footAt[0];
+    positionY = footAt[1];
+    positionZ = footAt[2];
+    forceX = force[0];
+    forceY = force[1];
+    forceZ = force[2];
+    return true;
+  }
 
 
 }
