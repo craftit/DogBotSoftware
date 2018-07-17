@@ -118,7 +118,7 @@ namespace DogBotN {
     void ResetAll();
 
     //! Request all controllers go into low power mode
-    void LowPowerAll();
+    void StandbyAll();
 
     //! Refresh information on all controllers.
     void RefreshAll();

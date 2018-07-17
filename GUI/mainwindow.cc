@@ -1362,7 +1362,7 @@ void MainWindow::on_comboBoxSafetyMode_activated(const QString &arg1)
 void MainWindow::on_pushButtonLowPower_clicked()
 {
   StopAnimation();
-  m_dogBotAPI->LowPowerAll();
+  m_dogBotAPI->StandbyAll();
 }
 
 

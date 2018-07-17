@@ -1146,7 +1146,7 @@ namespace DogBotN {
   }
 
   //! Request all controllers go into low power mode
-  void DogBotAPIC::LowPowerAll()
+  void DogBotAPIC::StandbyAll()
   {
     m_coms->SendSetParam(0,CPI_ControlState,CS_Standby);
     for(int i = 0;i < m_emergencyStopFlags.size();i++)
