@@ -1,4 +1,5 @@
 #include "dogbot/DataRecorder.hh"
+#include "dogbot/Strings.hh"
 #include <math.h>
 
 namespace DogBotN {
