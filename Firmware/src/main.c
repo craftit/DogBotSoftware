@@ -206,8 +206,10 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
       break;
     case CS_Ready:
     case CS_Diagnostic:
-      // Don't let it turn to boot-loader from ready
-      if(newState == CS_BootLoader) {
+      // Don't let it turn to boot-loader from ready, and there is no point in startup once we're ready.
+      if(newState == CS_BootLoader ||
+          newState == CS_StartUp)
+      {
         SendParamUpdate(CPI_ControlState);
         return false;
       }
