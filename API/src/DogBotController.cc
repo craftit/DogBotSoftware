@@ -3,6 +3,7 @@
 #include "dogbot/DogBotController.hh"
 #include "dogbot/Util.hh"
 #include "dogbot/LineABC2d.hh"
+#include "dogbot/DogBotKinematics.hh"
 
 namespace DogBotN {
 
@@ -57,9 +58,13 @@ namespace DogBotN {
   }
 
 
-
-
-
+  //! Compute the joint angles from pose information
+  bool DogBotControllerC::NextTrajectory(const SimpleQuadrupedPoseC &pose)
+  {
+    PoseAnglesC poseAngles;
+    m_api->DogBotKinematics().Pose2Angles(pose,poseAngles);
+    return NextTrajectory(poseAngles);
+  }
 
 }
 

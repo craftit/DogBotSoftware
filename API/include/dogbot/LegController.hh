@@ -37,10 +37,24 @@ namespace DogBotN {
 
     //! Get current joint angles
     // The vector has the angles  indexed in the following order : roll,pitch,knee
-    virtual bool GetJointAngles(TimePointT theTime,Eigen::Vector3f &angles);
+    bool GetJointAngles(TimePointT theTime,Eigen::Vector3f &angles);
+
+    //! Get current joint angles
+    bool GetJointAngles(double theTime,float &roll,float &pitch,float &knee);
+
+    //! Get current joint states, with position velocity and torque
+    bool GetJointStates(double theTime,
+                        float &angleRoll,float &anglePitch,float &angleKnee,
+                        float &velocityRoll,float &velocityPitch,float &velocityKnee,
+                        float &torqueRoll,float &torquePitch,float &torqueKnee
+                        );
 
     //! Compute an estimate of the force on a foot and where it is.
     bool ComputeFootForce(const DogBotN::TimePointT &atTime,Eigen::Vector3f &position,Eigen::Vector3f &force);
+
+    //! Compute an estimate of the force on a foot and where it is.
+    //! Beware, this is done from motor torques and can be extremely noisy!
+    bool ComputeFootForce(double atTime,float &positionX,float &positionY,float &positionZ,float &forceX,float &forceY,float &forceZ);
 
     //! Access leg kinematics.
     DogBotN::LegKinematicsC &Kinematics()

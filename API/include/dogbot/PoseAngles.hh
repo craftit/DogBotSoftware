@@ -38,6 +38,7 @@ namespace DogBotN {
   };
 
   //! Robot pose in terms of joint angles and expected torques.
+  //! This is hard wired to consist of 12 joints, numbered 0 to 11
 
   class PoseAnglesC
   {
@@ -65,7 +66,7 @@ namespace DogBotN {
     void SetLegJointAngles(int leg,float pitch,float roll,float knee);
 
     //! Set angle for a particular joint
-    void SetJoint(int jnt,float pos,float torque)
+    void SetJoint(int jnt,float pos,float torque = 0)
     {
       assert(jnt >= 0 && jnt < 12);
       m_joints[jnt] = JointAngleC(pos,torque);

@@ -26,7 +26,6 @@ namespace DogBotN {
     const char *m_msg;
   };
 
-
   class LegControllerC;
 
   //! Dogbot device control
@@ -80,6 +79,9 @@ namespace DogBotN {
 
     //! Destructor to wait for shutdown
     ~DogBotAPIC();
+
+    //! Get the time now
+    static double TimeNow();
 
     //! Find the default configuration file.
     //! Returns an empty string if one wasn't found
