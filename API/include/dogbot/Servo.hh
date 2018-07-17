@@ -222,6 +222,10 @@ namespace DogBotN {
     //! Check if the motor firmware version matches API.
     bool IsFirmwareVersionOk() const;
 
+    //! Access update tick duration
+    double TickDuration() const override
+    { return m_tickDuration.count();  }
+
   protected:
     //! Convert a report value to a torque
     float TorqueReport2Current(int16_t val)

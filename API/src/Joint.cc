@@ -62,6 +62,30 @@ namespace DogBotN {
     return false;
   }
 
+  //! Get last reported state of the servo and the time it was taken in seconds.
+  bool JointC::GetState(double &theTime,double &position,double &velocity,double &torque) const
+  {
+    TimePointT tick;
+    if(!GetState(tick,position,velocity,torque))
+      return false;
+    theTime = tick.time_since_epoch().count();
+    return true;
+  }
+
+  //! Estimate state at the given time.
+  //! This will linearly extrapolate position, and assume velocity and torque are
+  //! the same as the last reading.
+  //! If the data is more than 5 ticks away from the current time the method returns false.
+  bool JointC::GetStateAt(double theTime,double &position,double &velocity,double &torque) const
+  {
+    TimePointT::duration timeSinceEpoch(theTime);
+    return GetStateAt(TimePointT(timeSinceEpoch),position,velocity,torque);
+  }
+
+  //! Access update tick duration
+  double JointC::TickDuration() const
+  { return -1; }
+
   //! Estimate state at the given time.
   //! This will linearly extrapolate position, and assume velocity and torque are
   //! the same as the last reading.

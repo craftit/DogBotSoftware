@@ -1,5 +1,5 @@
-#ifndef DOGBOT_JOINTPOSE_HEADER
-#define DOGBOT_JOINTPOSE_HEADER 1
+#ifndef DOGBOT_POSEANGLES_HEADER
+#define DOGBOT_POSEANGLES_HEADER 1
 
 #include <vector>
 #include <iostream>
@@ -61,8 +61,11 @@ namespace DogBotN {
     //! Set leg joint angles
     void SetLegJointAngles(int leg,const Eigen::Vector3f &vec);
 
+    //! Set leg joint angles
+    void SetLegJointAngles(int leg,float pitch,float roll,float knee);
+
     //! Set angle for a particular joint
-    void SetJointAngle(int jnt,float pos,float torque)
+    void SetJoint(int jnt,float pos,float torque)
     {
       assert(jnt >= 0 && jnt < 12);
       m_joints[jnt] = JointAngleC(pos,torque);
@@ -73,6 +76,20 @@ namespace DogBotN {
     {
       assert(jnt >= 0 && jnt < 12);
       return m_joints[jnt];
+    }
+
+    //! Access joint information
+    float JointPosition(int jnt) const
+    {
+      assert(jnt >= 0 && jnt < 12);
+      return m_joints[jnt].Position();
+    }
+
+    //! Access joint information
+    float JointTorque(int jnt) const
+    {
+      assert(jnt >= 0 && jnt < 12);
+      return m_joints[jnt].Torque();
     }
 
   protected:

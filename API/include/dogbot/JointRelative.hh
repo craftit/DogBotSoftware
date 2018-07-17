@@ -41,6 +41,10 @@ namespace DogBotN {
     //! If the data is more than 5 ticks away from the
     virtual bool GetStateAt(TimePointT theTime,double &position,double &velocity,double &torque) const override;
 
+    //! Access update tick duration
+    //! This is the expected time between joint updates.
+    virtual double TickDuration() const;
+
     //! Update torque for the servo.
     virtual bool DemandTorque(float torque) override;
 

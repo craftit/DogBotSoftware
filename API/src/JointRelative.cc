@@ -164,6 +164,15 @@ namespace DogBotN {
                );
   }
 
+  //! Access update tick duration
+  //! This is the expected time between joint updates.
+  double JointRelativeC::TickDuration() const
+  {
+    if(!m_jointDrive)
+      return -1;
+    return m_jointDrive->TickDuration();
+  }
+
   //! Update torque for the servo.
   bool JointRelativeC::DemandTorque(float torque)
   {

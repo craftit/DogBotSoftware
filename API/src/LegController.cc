@@ -104,6 +104,11 @@ namespace DogBotN {
     return ret;
   }
 
+  //! Goto a joint angles
+  bool LegControllerC::GotoJointAngles(float roll,float pitch,float knee,float torqueLimit)
+  {
+    return GotoJointAngles(Eigen::Vector3f(roll,pitch,knee),torqueLimit);
+  }
 
   //! Get current joint angles
   bool LegControllerC::GetJointAngles(TimePointT theTime,Eigen::Vector3f &angles)

@@ -21,19 +21,19 @@ namespace DogBotN {
     //! Destructor
     virtual ~LegControllerC();
 
-    //! Initialise controller
-    virtual bool Init();
-
-    //! Goto a position in the leg coordinate frame
-    //! Returns true if the requested position is reachable
-    bool Goto(float x,float y,float z,float torqueLimit);
-
     //! Goto a position in the leg coordinate frame
     //! Returns true if the requested position is reachable
     virtual bool Goto(const Eigen::Vector3f &at,float torqueLimit);
 
     //! Goto a joint angles
     virtual bool GotoJointAngles(const Eigen::Vector3f &angles,float torque);
+
+    //! Goto a position in the leg coordinate frame
+    //! Returns true if the requested position is reachable
+    bool Goto(float x,float y,float z,float torqueLimit);
+
+    //! Goto a joint angles
+    bool GotoJointAngles(float roll,float pitch,float knee,float torqueLimit);
 
     //! Get current joint angles
     // The vector has the angles  indexed in the following order : roll,pitch,knee
@@ -47,6 +47,9 @@ namespace DogBotN {
     { return *m_kinematics; }
 
   protected:
+    //! Initialise controller
+    virtual bool Init();
+
     bool m_useVirtualKnee = true;
     std::string m_legName;
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("console");

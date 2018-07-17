@@ -28,4 +28,11 @@ namespace DogBotN {
     }
   }
 
+  //! Set leg joint angles
+  void PoseAnglesC::SetLegJointAngles(int leg,float pitch,float roll,float knee)
+  {
+    SetLegJointAngles(leg,Eigen::Vector3f(pitch,roll,knee));
+  }
+
+
 }

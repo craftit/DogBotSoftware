@@ -1,17 +1,13 @@
 #ifndef DOGBOT_DOGBOTCONTROLLER_HEADER
 #define DOGBOT_DOGBOTCONTROLLER_HEADER 1
 
-
-#ifndef DOGBOG_DogBotController_HEADER
-#define DOGBOG_DogBotController_HEADER 1
-
 #include "dogbot/DogBotAPI.hh"
 #include <memory>
 #include "dogbot/PoseAngles.hh"
 
 namespace DogBotN {
 
-  //! Class to manage the positioning of a single leg.
+  //! Class to manage the position of all the leg joints on the robot.
 
   class DogBotControllerC
   {
@@ -24,9 +20,6 @@ namespace DogBotN {
     //! Destructor
     virtual ~DogBotControllerC();
 
-    //! Initialise controller
-    virtual bool Init();
-
     //! Setup trajectory
     virtual bool SetupTrajectory(float updatePeriod,float torqueLimit);
 
@@ -35,6 +28,9 @@ namespace DogBotN {
     virtual bool NextTrajectory(const PoseAnglesC &pose);
 
   protected:
+    //! Initialise controller
+    virtual bool Init();
+
     std::string m_legName;
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("console");
     std::shared_ptr<DogBotAPIC> m_api;
@@ -43,9 +39,5 @@ namespace DogBotN {
   };
 
 }
-
-#endif
-
-
 
 #endif
