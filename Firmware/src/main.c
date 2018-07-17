@@ -610,16 +610,20 @@ int main(void) {
           break;
         }
 
-        // This runs at 100Hz
+        // This runs at update rate,  250Hz
         MotionStep();
 
         // Check the state of the gate driver.
         uint16_t gateDriveStatus = Drv8503ReadRegister(DRV8503_REG_WARNING);
+
         {
           // Update gate status
           static uint16_t lastGateStatus = 0;
-          if(lastGateStatus != gateDriveStatus) {
+          if(lastGateStatus != gateDriveStatus || g_gateDriverWarning) {
             lastGateStatus = gateDriveStatus;
+            if(g_gateDriverWarning)
+              SendError(CET_MotorDriverWarning,0,0);
+            g_gateDriverWarning = false;
             SendParamUpdate(CPI_DRV8305_01);
             SendParamUpdate(CPI_DRV8305_02);
             SendParamUpdate(CPI_DRV8305_03);

@@ -118,6 +118,7 @@ namespace DogBotN {
       case CET_BootLoaderWriteFailed: return "BootLoader write failed";
       case CET_BootLoaderUnalignedAddress: return "BootLoader unaligned address";
       case CET_UnavailableInCurrentMode: return "Command unavailable in current mode.";
+      case CET_MotorDriverWarning: return "Motor driver warning";
     }
     printf("Unexpected error code %d \n",(int)errorCode);
     return "Invalid";

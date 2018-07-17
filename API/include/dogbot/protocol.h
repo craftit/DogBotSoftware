@@ -71,6 +71,7 @@ extern "C" {
     CET_BootLoaderWriteFailed = 12,
     CET_BootLoaderUnalignedAddress = 13,
     CET_UnavailableInCurrentMode = 14,
+    CET_MotorDriverWarning = 15
   };
 
   /* Fault codes.
