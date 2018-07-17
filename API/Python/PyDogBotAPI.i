@@ -5,6 +5,8 @@
 #endif
 
 %include <std_shared_ptr.i>
+%shared_ptr(JointC)
+%shared_ptr(DogBotAPIC)
 
 %{
 #include "dogbot/DogBotAPI.hh"
@@ -38,6 +40,8 @@ class JointC
 
     //! Last reported velocity
     float Velocity() const;
+    
+
 };
 
 class DogBotAPIC 
@@ -46,8 +50,10 @@ class DogBotAPIC
     DogBotAPIC();
     ~DogBotAPIC();
 
+    //! Get a joint by name
     std::shared_ptr<JointC> GetJointByName(const std::string &name);
     
+    //! Access a list of joints
     std::vector<std::shared_ptr<JointC> > ListJoints();
 
     //! Access an ordered list of the four leg names
@@ -56,6 +62,18 @@ class DogBotAPIC
     //! Access names of leg joints.
     static const std::vector<std::string> &LegJointNames();
 
+    //! Home all the joints in the robot
+    //! Returns true if succeeded
+    bool HomeAll();
+
+    //! Tell all servos to hold the current position
+    void DemandHoldPosition();
+
+    //! Reset all controllers.
+    void PowerOnAll();
+
+    //! Request all controllers go into low power mode
+    void StandbyAll();
 };
 
 }

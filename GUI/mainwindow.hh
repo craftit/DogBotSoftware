@@ -136,8 +136,6 @@ private slots:
 
   void on_actionSave_Config_As_triggered();
 
-  void on_pushButtonResetAll_clicked();
-
   void on_pushButtonRefresh_clicked();
 
   void on_actionExit_triggered();
@@ -213,6 +211,8 @@ private slots:
   void on_pushButtonActivityIdle_clicked();
 
   void on_pushButtonActivityAbort_clicked();
+
+  void on_pushButtonPowerOnAll_clicked();
 
 signals:
   void setLogText(const QString &str);

@@ -1138,7 +1138,7 @@ namespace DogBotN {
     // Make sure
   }
 
-  void DogBotAPIC::ResetAll()
+  void DogBotAPIC::PowerOnAll()
   {
     m_coms->SendSetParam(0,CPI_ControlState,CS_StartUp);
     for(int i = 0;i < m_emergencyStopFlags.size();i++)

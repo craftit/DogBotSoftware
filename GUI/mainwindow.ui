@@ -109,7 +109,7 @@
        <bool>true</bool>
       </property>
       <property name="currentIndex">
-       <number>6</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="tab_connect">
        <attribute name="title">
@@ -251,7 +251,7 @@
          </widget>
         </item>
         <item row="1" column="1">
-         <widget class="QPushButton" name="pushButtonResetAll">
+         <widget class="QPushButton" name="pushButtonPowerOnAll">
           <property name="text">
            <string>Power On</string>
           </property>

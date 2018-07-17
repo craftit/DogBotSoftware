@@ -109,13 +109,14 @@ namespace DogBotN {
     bool Init();
 
     //! Home all the joints in the robot
+    //! Returns true if succeeded
     bool HomeAll();
 
     //! Tell all servos to hold the current position
     void DemandHoldPosition();
 
     //! Reset all controllers.
-    void ResetAll();
+    void PowerOnAll();
 
     //! Request all controllers go into low power mode
     void StandbyAll();
@@ -123,7 +124,7 @@ namespace DogBotN {
     //! Refresh information on all controllers.
     void RefreshAll();
 
-    //! Update supply voltage calibration
+    //! Set all supply voltage calibration values to 1
     bool SetSupplyVoltageScaleToOne();
 
     //! Update supply voltage calibration

@@ -1256,9 +1256,9 @@ void MainWindow::on_actionSave_Config_As_triggered()
 
 }
 
-void MainWindow::on_pushButtonResetAll_clicked()
+void MainWindow::on_pushButtonPowerOnAll_clicked()
 {
-  m_dogBotAPI->ResetAll();
+  m_dogBotAPI->PowerOnAll();
 }
 
 void MainWindow::on_pushButtonRefresh_clicked()
@@ -1682,3 +1682,4 @@ void MainWindow::on_pushButtonActivityAbort_clicked()
   }
   m_platformManager->AbortActivity();
 }
+
