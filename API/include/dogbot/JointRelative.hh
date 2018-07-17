@@ -43,7 +43,7 @@ namespace DogBotN {
 
     //! Access update tick duration
     //! This is the expected time between joint updates.
-    virtual double TickDuration() const;
+    virtual double TickDuration() const override;
 
     //! Update torque for the servo.
     virtual bool DemandTorque(float torque) override;
