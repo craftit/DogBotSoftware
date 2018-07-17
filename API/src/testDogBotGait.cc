@@ -2,7 +2,7 @@
 
 #include "dogbot/SplineGaitController.hh"
 
-int testSplineGate() {
+int testSplineGait() {
   DogBotN::SplineGaitControllerC gait;
   gait.PlotGait();
   return 0;
@@ -11,6 +11,6 @@ int testSplineGate() {
 
 int main(int nargs,char **argv)
 {
-  testSplineGate();
+  testSplineGait();
   return 0;
 }
