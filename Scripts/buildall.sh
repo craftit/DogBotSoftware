@@ -9,7 +9,7 @@ cd $DIR/../API
 mkdir -p build
 cd build
 cmake ../src/
-make
+make -j
 sudo make install 
 
 echo "Building API..."
@@ -17,5 +17,5 @@ cd $DIR/../Utilities/DataRecorder
 mkdir -p build
 cd build
 cmake ../src/
-make
+make -j
 sudo make install 

@@ -8,7 +8,7 @@
 
 namespace DogBotN {
 
-  //! Simple Gate generator base class.
+  //! Simple Gait generator base class.
 
   class SimpleQuadrupedControllerC
   {

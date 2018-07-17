@@ -41,7 +41,7 @@ namespace DogBotN {
 
   };
 
-  //! Gate generator base class.
+  //! Gait generator base class.
 
   class SplineGaitControllerC
     : public SimpleQuadrupedControllerC
