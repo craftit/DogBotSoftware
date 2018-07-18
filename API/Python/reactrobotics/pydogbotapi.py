@@ -15,20 +15,20 @@ if version_info >= (2, 6, 0):
         import imp
         fp = None
         try:
-            fp, pathname, description = imp.find_module('_dogbot_api', [dirname(__file__)])
+            fp, pathname, description = imp.find_module('_pydogbotapi', [dirname(__file__)])
         except ImportError:
-            import _dogbot_api
-            return _dogbot_api
+            import _pydogbotapi
+            return _pydogbotapi
         if fp is not None:
             try:
-                _mod = imp.load_module('_dogbot_api', fp, pathname, description)
+                _mod = imp.load_module('_pydogbotapi', fp, pathname, description)
             finally:
                 fp.close()
             return _mod
-    _dogbot_api = swig_import_helper()
+    _pydogbotapi = swig_import_helper()
     del swig_import_helper
 else:
-    import _dogbot_api
+    import _pydogbotapi
 del version_info
 try:
     _swig_property = property
@@ -91,8 +91,8 @@ except AttributeError:
 
 
 
-_dogbot_api.SHARED_PTR_DISOWN_swigconstant(_dogbot_api)
-SHARED_PTR_DISOWN = _dogbot_api.SHARED_PTR_DISOWN
+_pydogbotapi.SHARED_PTR_DISOWN_swigconstant(_pydogbotapi)
+SHARED_PTR_DISOWN = _pydogbotapi.SHARED_PTR_DISOWN
 class JointC(_object):
     __swig_setmethods__ = {}
     __setattr__ = lambda self, name, value: _swig_setattr(self, JointC, name, value)
@@ -101,41 +101,41 @@ class JointC(_object):
     __repr__ = _swig_repr
 
     def SetupTrajectory(self, updatePeriod, torqueLimit):
-        return _dogbot_api.JointC_SetupTrajectory(self, updatePeriod, torqueLimit)
+        return _pydogbotapi.JointC_SetupTrajectory(self, updatePeriod, torqueLimit)
 
     def DemandTrajectory(self, position, torque=0):
-        return _dogbot_api.JointC_DemandTrajectory(self, position, torque)
+        return _pydogbotapi.JointC_DemandTrajectory(self, position, torque)
 
     def DemandPosition(self, position, torqueLimit):
-        return _dogbot_api.JointC_DemandPosition(self, position, torqueLimit)
+        return _pydogbotapi.JointC_DemandPosition(self, position, torqueLimit)
 
     def GetState(self, theTime, position, velocity, torque):
-        return _dogbot_api.JointC_GetState(self, theTime, position, velocity, torque)
+        return _pydogbotapi.JointC_GetState(self, theTime, position, velocity, torque)
 
     def GetStateAt(self, theTime, position, velocity, torque):
-        return _dogbot_api.JointC_GetStateAt(self, theTime, position, velocity, torque)
+        return _pydogbotapi.JointC_GetStateAt(self, theTime, position, velocity, torque)
 
     def TickDuration(self):
-        return _dogbot_api.JointC_TickDuration(self)
+        return _pydogbotapi.JointC_TickDuration(self)
 
     def Position(self):
-        return _dogbot_api.JointC_Position(self)
+        return _pydogbotapi.JointC_Position(self)
 
     def Torque(self):
-        return _dogbot_api.JointC_Torque(self)
+        return _pydogbotapi.JointC_Torque(self)
 
     def Velocity(self):
-        return _dogbot_api.JointC_Velocity(self)
+        return _pydogbotapi.JointC_Velocity(self)
 
     def __init__(self):
-        this = _dogbot_api.new_JointC()
+        this = _pydogbotapi.new_JointC()
         try:
             self.this.append(this)
         except Exception:
             self.this = this
-    __swig_destroy__ = _dogbot_api.delete_JointC
+    __swig_destroy__ = _pydogbotapi.delete_JointC
     __del__ = lambda self: None
-JointC_swigregister = _dogbot_api.JointC_swigregister
+JointC_swigregister = _pydogbotapi.JointC_swigregister
 JointC_swigregister(JointC)
 
 class DogBotAPIC(_object):
@@ -146,59 +146,59 @@ class DogBotAPIC(_object):
     __repr__ = _swig_repr
 
     def GetJointByName(self, name):
-        return _dogbot_api.DogBotAPIC_GetJointByName(self, name)
+        return _pydogbotapi.DogBotAPIC_GetJointByName(self, name)
 
     def ListJoints(self):
-        return _dogbot_api.DogBotAPIC_ListJoints(self)
-    __swig_getmethods__["TimeNow"] = lambda x: _dogbot_api.DogBotAPIC_TimeNow
+        return _pydogbotapi.DogBotAPIC_ListJoints(self)
+    __swig_getmethods__["TimeNow"] = lambda x: _pydogbotapi.DogBotAPIC_TimeNow
     if _newclass:
-        TimeNow = staticmethod(_dogbot_api.DogBotAPIC_TimeNow)
-    __swig_getmethods__["LegNames"] = lambda x: _dogbot_api.DogBotAPIC_LegNames
+        TimeNow = staticmethod(_pydogbotapi.DogBotAPIC_TimeNow)
+    __swig_getmethods__["LegNames"] = lambda x: _pydogbotapi.DogBotAPIC_LegNames
     if _newclass:
-        LegNames = staticmethod(_dogbot_api.DogBotAPIC_LegNames)
-    __swig_getmethods__["LegJointNames"] = lambda x: _dogbot_api.DogBotAPIC_LegJointNames
+        LegNames = staticmethod(_pydogbotapi.DogBotAPIC_LegNames)
+    __swig_getmethods__["LegJointNames"] = lambda x: _pydogbotapi.DogBotAPIC_LegJointNames
     if _newclass:
-        LegJointNames = staticmethod(_dogbot_api.DogBotAPIC_LegJointNames)
+        LegJointNames = staticmethod(_pydogbotapi.DogBotAPIC_LegJointNames)
 
     def HomeAll(self):
-        return _dogbot_api.DogBotAPIC_HomeAll(self)
+        return _pydogbotapi.DogBotAPIC_HomeAll(self)
 
     def DemandHoldPosition(self):
-        return _dogbot_api.DogBotAPIC_DemandHoldPosition(self)
+        return _pydogbotapi.DogBotAPIC_DemandHoldPosition(self)
 
     def PowerOnAll(self):
-        return _dogbot_api.DogBotAPIC_PowerOnAll(self)
+        return _pydogbotapi.DogBotAPIC_PowerOnAll(self)
 
     def StandbyAll(self):
-        return _dogbot_api.DogBotAPIC_StandbyAll(self)
+        return _pydogbotapi.DogBotAPIC_StandbyAll(self)
 
     def __init__(self):
-        this = _dogbot_api.new_DogBotAPIC()
+        this = _pydogbotapi.new_DogBotAPIC()
         try:
             self.this.append(this)
         except Exception:
             self.this = this
-    __swig_destroy__ = _dogbot_api.delete_DogBotAPIC
+    __swig_destroy__ = _pydogbotapi.delete_DogBotAPIC
     __del__ = lambda self: None
-DogBotAPIC_swigregister = _dogbot_api.DogBotAPIC_swigregister
+DogBotAPIC_swigregister = _pydogbotapi.DogBotAPIC_swigregister
 DogBotAPIC_swigregister(DogBotAPIC)
 
 def DogBotAPIC_TimeNow():
-    return _dogbot_api.DogBotAPIC_TimeNow()
-DogBotAPIC_TimeNow = _dogbot_api.DogBotAPIC_TimeNow
+    return _pydogbotapi.DogBotAPIC_TimeNow()
+DogBotAPIC_TimeNow = _pydogbotapi.DogBotAPIC_TimeNow
 
 def DogBotAPIC_LegNames():
-    return _dogbot_api.DogBotAPIC_LegNames()
-DogBotAPIC_LegNames = _dogbot_api.DogBotAPIC_LegNames
+    return _pydogbotapi.DogBotAPIC_LegNames()
+DogBotAPIC_LegNames = _pydogbotapi.DogBotAPIC_LegNames
 
 def DogBotAPIC_LegJointNames():
-    return _dogbot_api.DogBotAPIC_LegJointNames()
-DogBotAPIC_LegJointNames = _dogbot_api.DogBotAPIC_LegJointNames
+    return _pydogbotapi.DogBotAPIC_LegJointNames()
+DogBotAPIC_LegJointNames = _pydogbotapi.DogBotAPIC_LegJointNames
 
 
 def OpenAPI(connection):
-    return _dogbot_api.OpenAPI(connection)
-OpenAPI = _dogbot_api.OpenAPI
+    return _pydogbotapi.OpenAPI(connection)
+OpenAPI = _pydogbotapi.OpenAPI
 class LegControllerC(_object):
     __swig_setmethods__ = {}
     __setattr__ = lambda self, name, value: _swig_setattr(self, LegControllerC, name, value)
@@ -207,26 +207,26 @@ class LegControllerC(_object):
     __repr__ = _swig_repr
 
     def __init__(self, api, legName, useVirtualKnee):
-        this = _dogbot_api.new_LegControllerC(api, legName, useVirtualKnee)
+        this = _pydogbotapi.new_LegControllerC(api, legName, useVirtualKnee)
         try:
             self.this.append(this)
         except Exception:
             self.this = this
 
     def Goto(self, x, y, z, torqueLimit):
-        return _dogbot_api.LegControllerC_Goto(self, x, y, z, torqueLimit)
+        return _pydogbotapi.LegControllerC_Goto(self, x, y, z, torqueLimit)
 
     def GotoJointAngles(self, roll, pitch, knee, torqueLimit):
-        return _dogbot_api.LegControllerC_GotoJointAngles(self, roll, pitch, knee, torqueLimit)
+        return _pydogbotapi.LegControllerC_GotoJointAngles(self, roll, pitch, knee, torqueLimit)
 
     def GetJointStates(self, theTime, angleRoll, anglePitch, angleknee, velocityRoll, velocityPitch, velocityKnee, torqueRoll, torquePitch, torqueknee):
-        return _dogbot_api.LegControllerC_GetJointStates(self, theTime, angleRoll, anglePitch, angleknee, velocityRoll, velocityPitch, velocityKnee, torqueRoll, torquePitch, torqueknee)
+        return _pydogbotapi.LegControllerC_GetJointStates(self, theTime, angleRoll, anglePitch, angleknee, velocityRoll, velocityPitch, velocityKnee, torqueRoll, torquePitch, torqueknee)
 
     def ComputeFootForce(self, atTime, positionX, positionY, positionZ, forceX, forceY, forceZ):
-        return _dogbot_api.LegControllerC_ComputeFootForce(self, atTime, positionX, positionY, positionZ, forceX, forceY, forceZ)
-    __swig_destroy__ = _dogbot_api.delete_LegControllerC
+        return _pydogbotapi.LegControllerC_ComputeFootForce(self, atTime, positionX, positionY, positionZ, forceX, forceY, forceZ)
+    __swig_destroy__ = _pydogbotapi.delete_LegControllerC
     __del__ = lambda self: None
-LegControllerC_swigregister = _dogbot_api.LegControllerC_swigregister
+LegControllerC_swigregister = _pydogbotapi.LegControllerC_swigregister
 LegControllerC_swigregister(LegControllerC)
 
 class PoseAnglesC(_object):
@@ -237,38 +237,38 @@ class PoseAnglesC(_object):
     __repr__ = _swig_repr
 
     def __init__(self):
-        this = _dogbot_api.new_PoseAnglesC()
+        this = _pydogbotapi.new_PoseAnglesC()
         try:
             self.this.append(this)
         except Exception:
             self.this = this
-    __swig_getmethods__["JointId"] = lambda x: _dogbot_api.PoseAnglesC_JointId
+    __swig_getmethods__["JointId"] = lambda x: _pydogbotapi.PoseAnglesC_JointId
     if _newclass:
-        JointId = staticmethod(_dogbot_api.PoseAnglesC_JointId)
-    __swig_getmethods__["JointName"] = lambda x: _dogbot_api.PoseAnglesC_JointName
+        JointId = staticmethod(_pydogbotapi.PoseAnglesC_JointId)
+    __swig_getmethods__["JointName"] = lambda x: _pydogbotapi.PoseAnglesC_JointName
     if _newclass:
-        JointName = staticmethod(_dogbot_api.PoseAnglesC_JointName)
+        JointName = staticmethod(_pydogbotapi.PoseAnglesC_JointName)
 
     def SetJoint(self, jnt, pos, torque=0):
-        return _dogbot_api.PoseAnglesC_SetJoint(self, jnt, pos, torque)
+        return _pydogbotapi.PoseAnglesC_SetJoint(self, jnt, pos, torque)
 
     def JointPosition(self, jnt):
-        return _dogbot_api.PoseAnglesC_JointPosition(self, jnt)
+        return _pydogbotapi.PoseAnglesC_JointPosition(self, jnt)
 
     def JointTorque(self, jnt):
-        return _dogbot_api.PoseAnglesC_JointTorque(self, jnt)
-    __swig_destroy__ = _dogbot_api.delete_PoseAnglesC
+        return _pydogbotapi.PoseAnglesC_JointTorque(self, jnt)
+    __swig_destroy__ = _pydogbotapi.delete_PoseAnglesC
     __del__ = lambda self: None
-PoseAnglesC_swigregister = _dogbot_api.PoseAnglesC_swigregister
+PoseAnglesC_swigregister = _pydogbotapi.PoseAnglesC_swigregister
 PoseAnglesC_swigregister(PoseAnglesC)
 
 def PoseAnglesC_JointId(leg, legJnt):
-    return _dogbot_api.PoseAnglesC_JointId(leg, legJnt)
-PoseAnglesC_JointId = _dogbot_api.PoseAnglesC_JointId
+    return _pydogbotapi.PoseAnglesC_JointId(leg, legJnt)
+PoseAnglesC_JointId = _pydogbotapi.PoseAnglesC_JointId
 
 def PoseAnglesC_JointName(leg, legJnt):
-    return _dogbot_api.PoseAnglesC_JointName(leg, legJnt)
-PoseAnglesC_JointName = _dogbot_api.PoseAnglesC_JointName
+    return _pydogbotapi.PoseAnglesC_JointName(leg, legJnt)
+PoseAnglesC_JointName = _pydogbotapi.PoseAnglesC_JointName
 
 class SimpleQuadrupedPoseC(_object):
     __swig_setmethods__ = {}
@@ -278,20 +278,20 @@ class SimpleQuadrupedPoseC(_object):
     __repr__ = _swig_repr
 
     def __init__(self):
-        this = _dogbot_api.new_SimpleQuadrupedPoseC()
+        this = _pydogbotapi.new_SimpleQuadrupedPoseC()
         try:
             self.this.append(this)
         except Exception:
             self.this = this
 
     def SetLegPosition(self, legId, x, y, z):
-        return _dogbot_api.SimpleQuadrupedPoseC_SetLegPosition(self, legId, x, y, z)
+        return _pydogbotapi.SimpleQuadrupedPoseC_SetLegPosition(self, legId, x, y, z)
 
     def GetLegPosition(self, legId, x, y, z):
-        return _dogbot_api.SimpleQuadrupedPoseC_GetLegPosition(self, legId, x, y, z)
-    __swig_destroy__ = _dogbot_api.delete_SimpleQuadrupedPoseC
+        return _pydogbotapi.SimpleQuadrupedPoseC_GetLegPosition(self, legId, x, y, z)
+    __swig_destroy__ = _pydogbotapi.delete_SimpleQuadrupedPoseC
     __del__ = lambda self: None
-SimpleQuadrupedPoseC_swigregister = _dogbot_api.SimpleQuadrupedPoseC_swigregister
+SimpleQuadrupedPoseC_swigregister = _pydogbotapi.SimpleQuadrupedPoseC_swigregister
 SimpleQuadrupedPoseC_swigregister(SimpleQuadrupedPoseC)
 
 class DogBotControllerC(_object):
@@ -302,20 +302,20 @@ class DogBotControllerC(_object):
     __repr__ = _swig_repr
 
     def __init__(self, api):
-        this = _dogbot_api.new_DogBotControllerC(api)
+        this = _pydogbotapi.new_DogBotControllerC(api)
         try:
             self.this.append(this)
         except Exception:
             self.this = this
 
     def SetupTrajectory(self, updatePeriod, torqueLimit):
-        return _dogbot_api.DogBotControllerC_SetupTrajectory(self, updatePeriod, torqueLimit)
+        return _pydogbotapi.DogBotControllerC_SetupTrajectory(self, updatePeriod, torqueLimit)
 
     def NextTrajectory(self, *args):
-        return _dogbot_api.DogBotControllerC_NextTrajectory(self, *args)
-    __swig_destroy__ = _dogbot_api.delete_DogBotControllerC
+        return _pydogbotapi.DogBotControllerC_NextTrajectory(self, *args)
+    __swig_destroy__ = _pydogbotapi.delete_DogBotControllerC
     __del__ = lambda self: None
-DogBotControllerC_swigregister = _dogbot_api.DogBotControllerC_swigregister
+DogBotControllerC_swigregister = _pydogbotapi.DogBotControllerC_swigregister
 DogBotControllerC_swigregister(DogBotControllerC)
 
 # This file is compatible with both classic and new-style classes.

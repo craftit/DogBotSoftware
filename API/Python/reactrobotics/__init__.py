@@ -2,7 +2,7 @@
 #
 # July 2018, Nic Greenway, React Robotics
 
-import dogbot_api
+import pydogbotapi
 
 def version():
   return "1.0"

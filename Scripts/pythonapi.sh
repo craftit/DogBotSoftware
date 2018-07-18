@@ -6,8 +6,8 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 echo "Installing Python API on local system..."
 cd $DIR/../API/Python
-cp build/dogbot_api.py reactrobotics/dogbot_api.py
-cp build/_dogbot_api.so reactrobotics/_dogbot_api.so
+cp build/pydogbotapi.py reactrobotics/pydogbotapi.py
+cp build/_pydogbotapi.so reactrobotics/_pydogbotapi.so
 sudo pip install -e .
 
 
