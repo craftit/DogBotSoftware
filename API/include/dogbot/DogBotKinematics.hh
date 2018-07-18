@@ -39,7 +39,7 @@ namespace DogBotN {
 
     //! Convert a set of foot positions to joint angles.
     //! Returns true if all positions are reachable. false otherwise.
-    bool Pose2Angles(const SimpleQuadrupedPoseC &pose,PoseAnglesC &poseAngles) const;
+    bool Pose2Angles(const SimpleQuadrupedPoseC &pose,PoseAnglesC &poseAngles,bool useVirtualJoints = false) const;
 
     //! Access an ordered list of leg names
     static const std::vector<std::string> &LegNames();

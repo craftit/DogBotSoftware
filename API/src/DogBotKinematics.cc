@@ -122,15 +122,21 @@ namespace DogBotN {
   //! Returns true if all positions are reachable. false otherwise.
   bool DogBotKinematicsC::Pose2Angles(
       const SimpleQuadrupedPoseC &pose,
-      PoseAnglesC &poseAngles
+      PoseAnglesC &poseAngles,
+      bool useVirtualJoints
       ) const
   {
     bool ret = true;
     for(int i = 0;i < 4;i++) {
       assert(m_legKinematicsByNumber[i]);
       Eigen::Vector3f angles;
-      if(!m_legKinematicsByNumber[i]->InverseDirect(pose.FootPosition(i),angles))
-        ret = false;
+      if(useVirtualJoints) {
+        if(!m_legKinematicsByNumber[i]->InverseVirtual(pose.FootPosition(i),angles))
+          ret = false;
+      } else {
+        if(!m_legKinematicsByNumber[i]->InverseDirect(pose.FootPosition(i),angles))
+          ret = false;
+      }
       poseAngles.SetLegJointAngles(i,angles);
     }
     return ret;

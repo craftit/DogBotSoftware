@@ -7,7 +7,7 @@
 
 namespace DogBotN {
 
-  //! Class to manage the positioning of a single leg.
+  //! Class to manage the position of all the leg joints on the robot.
 
   DogBotControllerC::DogBotControllerC(std::shared_ptr<DogBotAPIC> &api)
    : m_api(api)

@@ -91,7 +91,7 @@ namespace DogBotN {
     float m_footRotate = 0;
     float m_footRotateMax = M_PI/2;
 
-    float m_footSeperation = 0.00;
+    float m_footSeperation = 0.05;
     float m_footSeperationDefault = 0.05;
     float m_footSeperationRange = 0.2;
 
