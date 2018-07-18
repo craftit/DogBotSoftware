@@ -27,6 +27,8 @@ float Diff(const DogBotN::LegKinematicsC &legKinematics,float theta) {
   //return (psiD-psi)/delta;
 }
 
+// Generate a table of servo and joint angles.
+
 int CheckLinkageAngles() {
 
   for(int i = 0;i < 360;i+=10) {
@@ -73,6 +75,8 @@ int TestFixedAngles()
   return 0;
 }
 
+// Check inverse and forward kinematics agree for a virtual joint
+
 int CheckTargetVirtual(Eigen::Vector3f target) {
   DogBotN::LegKinematicsC legKinematics;
   Eigen::Vector3f angles;
@@ -97,6 +101,8 @@ int CheckTargetVirtual(Eigen::Vector3f target) {
   }
   return 0;
 }
+
+// Check inverse and forward kinematics agree for a direct joint
 
 int CheckTargetDirect(Eigen::Vector3f target,bool verbose = true) {
   DogBotN::LegKinematicsC legKinematics;
@@ -126,6 +132,8 @@ int CheckTargetDirect(Eigen::Vector3f target,bool verbose = true) {
   }
   return 0;
 }
+
+//! Check various positions in the foot space a reachable.
 
 int TestReachableTargets()
 {
@@ -187,13 +195,14 @@ int TestReachableTargets()
     }
   }
 
-
-
   return 0;
 }
 
+
+
 int main() {
   int ln = 0;
+#if 1
   if((ln = CheckLinkageAngles()) != 0) {
     std::cerr << "Test failed at " << ln << " " << std::endl;
     return 1;
@@ -202,6 +211,7 @@ int main() {
     std::cerr << "Test failed at " << ln << " " << std::endl;
     return 1;
   }
+#endif
   if((ln = TestReachableTargets()) != 0) {
     std::cerr << "Test failed at " << ln << " " << std::endl;
     return 1;

@@ -218,6 +218,12 @@ namespace DogBotN {
     }
     angles[2] = theta - angles[1];
 
+    // Bring angles into a sensible range.
+    if(angles[2] > M_PI)
+      angles[2] -= M_PI*2;
+    if(angles[2] < -M_PI)
+      angles[2] += M_PI*2;
+
     return ret;
   }
 
