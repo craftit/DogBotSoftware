@@ -471,11 +471,15 @@ namespace DogBotN {
 
 
   //! Find the default configuration file
-  std::string DogBotAPIC::DefaultConfigFile()
+  std::string DogBotAPIC::DefaultConfigFile(const std::string &robotName)
   {
     std::string devFilename = "local";
     std::string homeDir = getenv("HOME");
-    std::string defaultConfig = homeDir + "/.config/dogbot/robot.json";
+
+    std::string theRobotName = robotName;
+    if(theRobotName.empty())
+      theRobotName = "robot";
+    std::string defaultConfig = homeDir + "/.config/dogbot/" + theRobotName + ".json";
     if(!FileExists(defaultConfig))  {
       std::cerr << "Default configuration file '" << defaultConfig << "' doesn't exist. " << std::endl;
       return "";
@@ -1159,9 +1163,32 @@ namespace DogBotN {
       m_emergencyStopFlags[i] = false;
   }
 
+  //! Make the robot go limp by disabling all motors
+  void DogBotAPIC::MotorsOffAll()
+  {
+    m_coms->SendSetParam(0,CPI_PWMMode,CM_Off);
+  }
+
+  //! Switch the break on for all motors
+  void DogBotAPIC::BrakeAll()
+  {
+    m_coms->SendSetParam(0,CPI_PWMMode,CM_Brake);
+  }
+
   void DogBotAPIC::RefreshAll()
   {
     ForAllDevices([](DeviceC *dev){ dev->QueryRefresh(); });
+  }
+
+  //! Initiate an emergency stop
+
+  void DogBotAPIC::EmergencyStop()
+  {
+    // Send several in case of lost packets.
+    for(int i = 0;i < 10;i++) {
+      m_coms->SendEmergencyStop();
+      usleep(10000);
+    }
   }
 
 
