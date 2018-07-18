@@ -1,7 +1,7 @@
 # ros_control_boilerplate Settings -----------------------
 # Settings for ros_control control loop
 dogbot_hw_control_loop:
-  loop_hz: 100
+  loop_hz: 50
   cycle_time_error_threshold: 0.03
 
 # Settings for ros_control hardware interface

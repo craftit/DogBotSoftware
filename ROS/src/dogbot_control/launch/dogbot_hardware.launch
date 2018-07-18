@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="configname" value="robot.json" />
-  <arg name="namespace" value="dogbot" />
+  <arg name="configname" default="robot.json" />
+  <arg name="namespace" default="dogbot" />
   
   <arg name="enable_control" default="true" />
   

@@ -47,19 +47,19 @@ namespace DogBotN {
     m_polarity = std::vector<float>(12);
     m_polarity[0] = 1; // Hip
     m_polarity[1] = 1; // Leg
-    m_polarity[2] = -1; // Knee
+    m_polarity[2] = 1; // Knee
 
     m_polarity[3] = 1;
     m_polarity[4] = 1;
-    m_polarity[5] = -1;
+    m_polarity[5] = 1;
 
     m_polarity[6] = 1;
     m_polarity[7] = 1;
-    m_polarity[8] = -1;
+    m_polarity[8] = 1;
 
     m_polarity[9] = 1;
     m_polarity[10] = 1;
-    m_polarity[11] = -1;
+    m_polarity[11] = 1;
   }
 
 
