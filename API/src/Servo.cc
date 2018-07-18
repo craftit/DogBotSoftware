@@ -555,7 +555,7 @@ namespace DogBotN {
       if(value & DRV8503_WARN_OVERTEMP) {
         flagsStr += "Over temperature warning,";
       }
-      m_log->error(" {} DRV8305 Reg 1, Warnings {:b} : {} ",Name(),value,flagsStr);
+      m_log->error(" {} ({}) DRV8305 Reg 1, Warnings {:b} : {} ",Name(),(int)m_id,value,flagsStr);
     } break;
     case CPI_DRV8305_02: {
       if(dataLen != 2)
@@ -590,7 +590,7 @@ namespace DogBotN {
       if(value & DRV8503_OVVDS_SNS_A_OCP) {
         flagsStr += "Sense A over current,";
       }
-      m_log->error(" {} DRV8305 Reg 2, OV/VDS Faults {:b} : {} ",Name(),value,flagsStr);
+      m_log->error(" {} ({}) DRV8305 Reg 2, OV/VDS Faults {:b} : {} ",Name(),(int) m_id,value,flagsStr);
     } break;
     case CPI_DRV8305_03: {
       if(dataLen != 2)
@@ -624,7 +624,7 @@ namespace DogBotN {
       if(value & DRV8503_FAULTS_VCPH_OVLO_ABS) {
         flagsStr += "High side charge pump over voltage ABS,";
       }
-      m_log->error(" {} DRV8305 Reg 3, Faults {:b} : {} ",Name(),value,flagsStr);
+      m_log->error(" {} ({}) DRV8305 Reg 3, Faults {:b} : {} ",Name(),(int) m_id,value,flagsStr);
     } break;
     case CPI_DRV8305_04: {
       if(dataLen != 2)
@@ -650,7 +650,7 @@ namespace DogBotN {
       if(value & DRV8503_VGSFAULTS_VGS_LC) {
         flagsStr += "VGS low side gate C,";
       }
-      m_log->error(" {} DRV8305 Reg 4, VGS Faults {:b} : {} ",Name(),value,flagsStr);
+      m_log->error(" {} ({}) DRV8305 Reg 4, VGS Faults {:b} : {} ",Name(),(int) m_id,value,flagsStr);
     }
       break;
     default:
