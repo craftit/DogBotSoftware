@@ -254,7 +254,7 @@ bool CANSendParam(enum ComsParameterIndexT index)
 
 bool CANSendParamData(
     enum ComsParameterIndexT index,
-    const union BufferTypeT *buff,
+    const void *buff,
     int len
     )
 {
@@ -272,7 +272,7 @@ bool CANSendParamData(
   txmsg->data8[0] = (uint8_t) index;
 
   txmsg->DLC = len+1;
-  memcpy(&txmsg->data8[1],buff->uint8,len);
+  memcpy(&txmsg->data8[1],buff,len);
   return g_txCANQueue.PostFullPacket(txmsg);
 }
 

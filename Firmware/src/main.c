@@ -612,7 +612,7 @@ int main(void) {
           break;
         }
 
-        // This runs at update rate,  250Hz
+        // This runs at update rate, currently 250Hz
         MotionStep();
 
         // Check the state of the gate driver.
@@ -625,15 +625,7 @@ int main(void) {
             lastGateStatus = gateDriveStatus;
             if(g_gateDriverWarning)
               SendError(CET_MotorDriverWarning,0,0);
-            {
-              // Send data as read.
-              struct PacketParam8ByteC reply;
-              reply.m_header.m_packetType = CPT_ReportParam;
-              reply.m_header.m_deviceId = g_deviceId;
-              reply.m_header.m_index = CPI_DRV8305_01;
-              reply.m_data.int16[0] = gateDriveStatus;
-              USBSendPacket((uint8_t *)&reply,sizeof(reply.m_header) + 2);
-            }
+            SendParamData(CPI_DRV8305_01,&gateDriveStatus,sizeof(gateDriveStatus));
             g_gateDriverWarning = false;
             SendParamUpdate(CPI_DRV8305_02);
             SendParamUpdate(CPI_DRV8305_03);

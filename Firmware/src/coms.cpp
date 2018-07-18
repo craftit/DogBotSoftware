@@ -116,21 +116,42 @@ bool USBReadParamAndReply(enum ComsParameterIndexT paramIndex)
 void SendParamUpdate(enum ComsParameterIndexT paramIndex)
 {
   struct PacketParam8ByteC reply;
-  reply.m_header.m_packetType = CPT_ReportParam;
-  reply.m_header.m_deviceId = g_deviceId;
-  reply.m_header.m_index = paramIndex;
   int len = 0;
   if(!ReadParam(paramIndex,&len,&reply.m_data)) {
-    if(g_canBridgeMode || g_deviceId == 0) {
-      USBSendError(g_deviceId,CET_ParameterOutOfRange,CPT_ReadParam,(uint8_t) paramIndex);
-    }
+    SendError(CET_ParameterOutOfRange,CPT_ReadParam,(uint8_t) paramIndex);
     return ;
   }
   if(g_deviceId == 0 || g_canBridgeMode) {
+    reply.m_header.m_packetType = CPT_ReportParam;
+    reply.m_header.m_deviceId = g_deviceId;
+    reply.m_header.m_index = paramIndex;
     USBSendPacket((uint8_t *)&reply,sizeof(reply.m_header) + len);
   }
   if(g_deviceId != 0) {
     CANSendParamData(paramIndex,&reply.m_data,len);
+  }
+}
+
+//! Send parameter data directly.
+
+void SendParamData(enum ComsParameterIndexT paramIndex,const void *data,int len)
+{
+  struct PacketParam8ByteC reply;
+  if(len <= 0 || len > 7) {
+    SendError(CET_InternalError, CPT_ReadParam,(uint8_t) paramIndex);
+    // Report error ?
+    return ;
+  }
+
+  if(g_deviceId == 0 || g_canBridgeMode) {
+    reply.m_header.m_packetType = CPT_ReportParam;
+    reply.m_header.m_deviceId = g_deviceId;
+    reply.m_header.m_index = paramIndex;
+    memcpy(&reply.m_data,data,len);
+    USBSendPacket((uint8_t *)&reply,sizeof(reply.m_header) + len);
+  }
+  if(g_deviceId != 0) {
+    CANSendParamData(paramIndex,data,len);
   }
 }
 

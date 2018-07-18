@@ -152,6 +152,8 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *dataBuff,int len
     case CPI_MotionUpdatePeriod:
     case CPI_SupplyVoltageScale:
     case CPI_CurrentLimit:
+    case CPI_RequestedPlatformActivity:
+    case CPI_PlatformActivity:
     case CPI_FINAL:
       return false;
 //    default:

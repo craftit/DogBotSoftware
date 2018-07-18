@@ -61,7 +61,7 @@ bool CANSendParam(
 
 bool CANSendParamData(
     enum ComsParameterIndexT index,
-    const union BufferTypeT *data,
+    const void *data,
     int len
     );
 
