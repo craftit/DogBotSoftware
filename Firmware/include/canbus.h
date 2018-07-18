@@ -59,6 +59,12 @@ bool CANSendParam(
     enum ComsParameterIndexT index
     );
 
+bool CANSendParamData(
+    enum ComsParameterIndexT index,
+    const void *data,
+    int len
+    );
+
 bool CANSendReadParam(
     uint8_t deviceId,
     uint16_t index

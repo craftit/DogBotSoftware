@@ -498,7 +498,7 @@ static void MotorControlLoop(void)
   int loopCount = 0;
   g_motorControlLoopReady = true;
 
-  int faultTimer = 0;
+  //int faultTimer = 0;
 
   while (g_pwmRun) {
     //palClearPad(GPIOB, GPIOB_PIN12); // Turn output off to measure timing
@@ -509,6 +509,12 @@ static void MotorControlLoop(void)
 
     ComputeState();
 
+#if 0
+    // The pulse length of 58us is very close to the PWM timing.
+    // This means warnings can look like errors due to aliasing with the
+    // warning pulses. We poll the register at 250Hz, and it is not
+    // clear that responding faster to errors brings any benefit as
+    // the chip shuts down itself in the case of a fault.
     if(!palReadPad(GPIOC, GPIOC_PIN15)) { // Check the fault pin
       faultTimer++;
       if(faultTimer > 3) {
@@ -522,6 +528,7 @@ static void MotorControlLoop(void)
       g_gateDriverFault = false;
       faultTimer = 0;
     }
+#endif
 
 
     static float localDemandTorque = 0;

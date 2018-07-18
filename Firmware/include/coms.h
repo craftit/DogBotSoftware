@@ -74,6 +74,11 @@ extern "C" {
    * */
   void SendParamUpdate(enum ComsParameterIndexT paramIndex);
 
+  /* Broadcast given parameter value.
+   * This will send the update message over the appropriate channels, and will likely broadcast
+   * to all connected devices, so shouldn't be called frequently.
+   * */
+  void SendParamData(enum ComsParameterIndexT paramIndex,const void *data,int len);
 
   /* Count of USB messages dropped due to full buffers */
   extern int g_usbDropCount;

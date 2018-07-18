@@ -612,7 +612,7 @@ int main(void) {
           break;
         }
 
-        // This runs at update rate,  250Hz
+        // This runs at update rate, currently 250Hz
         MotionStep();
 
         // Check the state of the gate driver.
@@ -625,8 +625,8 @@ int main(void) {
             lastGateStatus = gateDriveStatus;
             if(g_gateDriverWarning)
               SendError(CET_MotorDriverWarning,0,0);
+            SendParamData(CPI_DRV8305_01,&gateDriveStatus,sizeof(gateDriveStatus));
             g_gateDriverWarning = false;
-            SendParamUpdate(CPI_DRV8305_01);
             SendParamUpdate(CPI_DRV8305_02);
             SendParamUpdate(CPI_DRV8305_03);
             SendParamUpdate(CPI_DRV8305_04);
