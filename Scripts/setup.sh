@@ -1,8 +1,8 @@
 #! /bin/bash
 
 # Setup steps for local installation of DogBot Firmware
-# if first argument is 1, also build the code
-# second argument is the dog's name
+# first argument is the dog's name
+# if second argument is 1, also build the code
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 DOGNAME="tango"
@@ -27,6 +27,7 @@ if [ $# -gt 1 ]; then
   if [ $BUILDARG -eq 1 ]; then
     echo "building project"
     $DIR/buildall.sh
+    $DIR/pythonapi.sh
     
     echo "building ROS components"
     $DIR/rosbuild.sh
