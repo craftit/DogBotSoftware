@@ -30,7 +30,7 @@ namespace DogBotN {
     //! Compute the joint angles from pose information
     // If the angle computation fails, this will use the closest reachable point to one requested.
     // Returns false if the updates succeeded for all servos.
-    bool NextTrajectory(const SimpleQuadrupedPoseC &pose);
+    virtual bool NextTrajectory(const SimpleQuadrupedPoseC &pose);
 
   protected:
     //! Initialise controller

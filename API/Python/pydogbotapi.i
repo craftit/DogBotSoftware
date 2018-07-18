@@ -12,7 +12,7 @@
 
 namespace DogBotN {
 
-  std::shared_ptr<DogBotAPIC> OpenAPI(std::string &connection)
+  std::shared_ptr<DogBotAPIC> OpenAPI(std::string &connection,const std::string &robotName = "")
   {
     return std::make_shared<DogBotAPIC>(connection,DogBotAPIC::DefaultConfigFile());
   }
@@ -101,9 +101,19 @@ class DogBotAPIC
 
     //! Request all controllers go into low power mode
     void StandbyAll();
+    
+    //! Make the robot go limp by disabling all motors
+    void MotorsOffAll();
+
+    //! Switch the break on for all motors
+    void BrakeAll();
+
+    //! Initiate an emergency stop
+    void EmergencyStop();
 };
 
-std::shared_ptr<DogBotAPIC> OpenAPI(std::string &connection);
+//! Open connection to robot.
+std::shared_ptr<DogBotAPIC> OpenAPI(const std::string &connection,const std::string &robotName = "");
 
 //! Class to manage the positioning of a single leg.
 

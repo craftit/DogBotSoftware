@@ -85,7 +85,7 @@ namespace DogBotN {
 
     //! Find the default configuration file.
     //! Returns an empty string if one wasn't found
-    static std::string DefaultConfigFile();
+    static std::string DefaultConfigFile(const std::string &robotName = "");
 
     //! Connect to a named device
     //! Normally 'usb' or 'local'
@@ -123,8 +123,17 @@ namespace DogBotN {
     //! Request all controllers go into low power mode
     void StandbyAll();
 
+    //! Make the robot go limp by disabling all motors
+    void MotorsOffAll();
+
+    //! Switch the break on for all motors
+    void BrakeAll();
+
     //! Refresh information on all controllers.
     void RefreshAll();
+
+    //! Initiate an emergency stop
+    void EmergencyStop();
 
     //! Set all supply voltage calibration values to 1
     bool SetSupplyVoltageScaleToOne();

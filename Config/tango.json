@@ -34,9 +34,9 @@
 			"name" : "front_left_pitch",
 			"notes" : "",
 			"safetyMode" : 3,
-			"serial_number" : "3538976-1650753082",
+			"serial_number" : "3342391-1650753082",
 			"type" : "servo",
-			"uid1" : 3538976,
+			"uid1" : 3342391,
 			"uid2" : 1650753082
 		},
 		{
@@ -53,9 +53,9 @@
 			"name" : "back_right_roll",
 			"notes" : "",
 			"safetyMode" : 3,
-			"serial_number" : "3342391-1650753082",
+			"serial_number" : "2883634-1650753082",
 			"type" : "servo",
-			"uid1" : 3342391,
+			"uid1" : 2883634,
 			"uid2" : 1650753082
 		},
 		{
@@ -227,25 +227,6 @@
 			"serial_number" : "3407903-1650753082",
 			"type" : "servo",
 			"uid1" : 3407903,
-			"uid2" : 1650753082
-		},
-		{
-			"deviceId" : 13,
-			"device_name" : "spare",
-			"device_type" : "servo",
-			"enabled" : true,
-			"endStopEnable" : false,
-			"endStopFinal" : 0,
-			"endStopStart" : 0,
-			"gearRatio" : 21,
-			"homeOffset" : 0,
-			"motorKv" : 260,
-			"name" : "spare",
-			"notes" : "",
-			"safetyMode" : 1,
-			"serial_number" : "2621480-1650753082",
-			"type" : "servo",
-			"uid1" : 2621480,
 			"uid2" : 1650753082
 		},
                 {
