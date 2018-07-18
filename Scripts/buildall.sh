@@ -12,7 +12,14 @@ cmake ../src/
 make -j
 sudo make install 
 
-echo "Building API..."
+echo "Building Python API..."
+cd $DIR/../API/Python
+mkdir -p build
+cd build
+cmake ..
+make -j
+
+echo "Building Data Recorder..."
 cd $DIR/../Utilities/DataRecorder
 mkdir -p build
 cd build

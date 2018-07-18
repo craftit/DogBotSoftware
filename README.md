@@ -34,10 +34,11 @@ The [DataRecorder](./Utilities/DataRecorder) utility requires [PostgreSQL] 9.5 o
 
 There is an installation script at [setup.sh](./Scripts/setup.sh) to run various setup steps. The first argument is the dog's name.  If the second argument is passed as 1, the build scripts are also called, which should complete all required tasks, e.g. `setup.sh tango 1`
 
-The individual scripts may also be called:
+The individual scripts may also be called as needed:
 * [setup.sh](./Scripts/setup.sh) - sets permissions, links config file; optionally calls the build scripts
 * [buildall.sh](./Scripts/buildall.sh) - wraps the build steps for the C++ projects (API and data recorder)
 * [rosbuild.sh](./Scripts/rosbuild.sh) - wraps catkin build for ROS components
+* [pythonapi.sh](./Scripts/pythonapi.sh) - installs the Python wrapper for the API to the local system.  You may want to source a virtual environment before running this.
 
 ## Setup Steps Manual
 
