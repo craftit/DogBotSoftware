@@ -40,3 +40,4 @@ build
 
 #Dolphin or similar
 .directory
+*.kate-swp
