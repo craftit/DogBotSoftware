@@ -12,7 +12,7 @@
 
 namespace DogBotN {
 
-  std::shared_ptr<DogBotAPIC> OpenAPI(std::string &connection,const std::string &robotName = "")
+  std::shared_ptr<DogBotAPIC> OpenAPI(const std::string &connection,const std::string &robotName = "")
   {
     return std::make_shared<DogBotAPIC>(connection,DogBotAPIC::DefaultConfigFile());
   }
