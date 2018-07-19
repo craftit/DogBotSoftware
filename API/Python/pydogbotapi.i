@@ -4,6 +4,7 @@
 
 %include <std_shared_ptr.i>
 %include <std_string.i>
+%include "std_vector.i"
 
 %{
 #include "dogbot/DogBotAPI.hh"
@@ -26,6 +27,12 @@ namespace DogBotN {
 %shared_ptr(DogBotN::DogBotAPIC)
 %shared_ptr(DogBotN::LegControllerC)
 %shared_ptr(DogBotN::DogBotControllerC)
+
+namespace std {
+   %template(stringvector) vector<string>;
+   %template(jointvector) vector<shared_ptr<DogBotN::JointC>>;
+};
+
 
 namespace DogBotN {
 
