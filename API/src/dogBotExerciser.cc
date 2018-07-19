@@ -153,10 +153,7 @@ int main(int argc,char **argv)
 
     float midRange = (maxLegExtention+minLegExtention)/2.0;
     while(1) {
-
       for(int i = 0;i < 360;i++) {
-        // 0.35 to 0.7
-
         float z = cos(DogBotN::Deg2Rad(i)) * hightRange + midRange;
 
         for(int i = 0;i < 4;i++) {

@@ -148,7 +148,7 @@
       <limit 
         lower ="-${pi/2}" 
         upper="${pi/2}" 
-        effort="500" 
+        effort="1000" 
         velocity="10.0" 
         />
     </joint>
@@ -199,7 +199,8 @@
       <limit 
          lower ="${reflectx *-1.63201375031 - 0.923235541074 }" 
          upper ="${reflectx *-1.63201375031 + 0.923235541074 }" 
-         effort="500" velocity="10.0" />
+         effort="1000" velocity="10.0" 
+       />
     </joint>
 
     <link name="${prefix}_${suffix}_foot">

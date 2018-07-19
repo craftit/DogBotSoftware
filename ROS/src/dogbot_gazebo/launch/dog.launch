@@ -10,7 +10,7 @@
 
   <!-- push robot_description to factory and spawn robot in gazebo -->
   <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model"
-        args="-z 1.0 -unpause -urdf -model dogbot -param robot_description" respawn="false" output="screen" />
+        args="-z 0.8 -unpause -urdf -model dogbot -param robot_description" respawn="false" output="screen" />
   
   <!-- ros/Gazebo controllers -->
   <include file="$(find dogbot_control)/launch/controllers.launch" />  
