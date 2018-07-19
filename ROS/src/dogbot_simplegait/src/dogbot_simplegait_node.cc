@@ -46,6 +46,8 @@ int main(int argc, char **argv)
   float updatePeriod = 1.0f/loopHz;
   legs.SetupTrajectory(updatePeriod,15);
 
+
+
   DogBotN::SplineGaitControllerC gaitGenerator;
   gaitGenerator.SetOmega(omega);
 
