@@ -16,7 +16,7 @@ import sys, getopt, curses
 DEFAULT_CONTROLLER_PATTERN = "{ns}{joint}_position_controller/command"
 DEFAULT_STATE_TOPIC  ="{ns}joint_states"
 NODE_NAME = "keyboard_motor_controller"
-
+ANGLE_INCREMENT = 0.1
 
 class keyboardcontroller(object):
 
@@ -127,7 +127,7 @@ def main(argv):
           node.switchJoint(-1)
         # up arrow
         elif ch == 65 or ch == ord('w'):
-          node.incrementDesiredPosition(1.0)
+          node.incrementDesiredPosition(ANGLE_INCREMENT)
           newMsg = True;
           
         # right arrow
@@ -135,7 +135,7 @@ def main(argv):
           node.switchJoint(1)
         # down arrow
         elif ch == 66 or ch == ord('s'):
-          node.incrementDesiredPosition(-1.0)
+          node.incrementDesiredPosition(-ANGLE_INCREMENT)
           newMsg = True;
         
         #TODO - enter multiple-digit values
