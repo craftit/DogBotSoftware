@@ -224,8 +224,7 @@ namespace DogBotN
 
   void ComsUSBC::HotPlugArrivedCallback(libusb_device *device, libusb_hotplug_event event)
   {
-    m_log->info("Got hotplug event {} ",(int) event);
-    m_log->info("Device arrived ");
+    ONDEBUG(m_log->info("Got hotplug event {} ",(int) event));
 
     struct libusb_device_descriptor desc;
     int rc;
@@ -279,7 +278,7 @@ namespace DogBotN
   //! Open connection to device
   void ComsUSBC::Open(struct libusb_device_handle *handle)
   {
-    m_log->info("BMCV2 device open ");
+    ONDEBUG(m_log->info("BMCV2 device open "));
 
     int rc = libusb_claim_interface(handle, 0);
     if (rc != LIBUSB_SUCCESS) {
@@ -293,7 +292,7 @@ namespace DogBotN
     {
       std::lock_guard<std::mutex> lock(m_accessTx);
 
-      m_log->info("Active transfers on open: {} ",m_activeTransfers.size());
+      ONDEBUG(m_log->debug("Active transfers on open: {} ",m_activeTransfers.size()));
 
       // Setup a series of IN transfers.
       for(int i = 0;i < 2;i++) {
@@ -443,7 +442,7 @@ namespace DogBotN
 #endif
 
     if(libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
-      m_log->info("usb hotplug notifications are available");
+      ONDEBUG(m_log->info("usb hotplug notifications are available"));
 
       int ret = libusb_hotplug_register_callback(
           m_usbContext,
@@ -461,7 +460,7 @@ namespace DogBotN
       }
 
     } else {
-      m_log->info("usb hotplug notifications are not available");
+      m_log->warn("usb hotplug notifications are not available");
     }
 
     m_threadUSB = std::move(std::thread { [this]{ RunUSB(); } });

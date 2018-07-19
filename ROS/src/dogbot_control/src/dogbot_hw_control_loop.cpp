@@ -62,6 +62,8 @@ DogbotHWControlLoop::DogbotHWControlLoop(
   error += !rosparam_shortcuts::get(name_, rpsnh, "cycle_time_error_threshold", cycle_time_error_threshold_);
   rosparam_shortcuts::shutdownIfError(name_, error);
 
+  sleep(1);
+
   // Get current time for use with first update
   m_lastTime = DogBotN::TimePointT::clock::now();
 

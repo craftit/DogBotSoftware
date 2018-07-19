@@ -4,6 +4,13 @@
 #include "dogbot/DogBotAPI.hh"
 #include "dogbot/Util.hh"
 
+#define DODEBUG 0
+#if DODEBUG
+#define ONDEBUG(x) x
+#else
+#define ONDEBUG(x)
+#endif
+
 namespace DogBotN {
 
   //! Default constructor
@@ -30,7 +37,7 @@ namespace DogBotN {
       if(m_maxAngle < m_minAngle) {
         std::swap(m_maxAngle,m_minAngle);
       }
-      std::cerr << "Joint " << Name() << " Angle range: " << Rad2Deg(m_minAngle) << " " << Rad2Deg(m_maxAngle) << std::endl;
+      ONDEBUG(std::cerr << "Joint " << Name() << " Angle range: " << Rad2Deg(m_minAngle) << " " << Rad2Deg(m_maxAngle) << std::endl);
     }
   }
 

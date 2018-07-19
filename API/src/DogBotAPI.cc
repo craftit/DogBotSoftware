@@ -24,6 +24,13 @@
 #include <sys/stat.h>
 #include <sys/unistd.h>
 
+#define DODEBUG 0
+#if DODEBUG
+#define ONDEBUG(x) x
+#else
+#define ONDEBUG(x)
+#endif
+
 namespace DogBotN {
 
   //! Constructor
@@ -269,9 +276,9 @@ namespace DogBotN {
 
   bool DogBotAPIC::Init()
   {
-    m_log->info("Starting API. ");
+    ONDEBUG(m_log->info("Starting API. "));
     if(m_started) {
-      m_log->error("Init already called. ");
+      ONDEBUG(m_log->error("Init already called. "));
       return false;
     }
 
@@ -504,7 +511,7 @@ namespace DogBotN {
   //! Make a new device
   std::shared_ptr<DeviceC> DogBotAPIC::MakeDevice(int deviceId,DeviceTypeT deviceType)
   {
-    m_log->info("Creating device {} of type '{}' ({}) ",deviceId,ComsDeviceTypeToString(deviceType),(int) deviceType);
+    ONDEBUG(m_log->info("Creating device {} of type '{}' ({}) ",deviceId,ComsDeviceTypeToString(deviceType),(int) deviceType));
     switch(deviceType)
     {
       case DT_Unknown: return std::make_shared<DeviceC>(m_coms,deviceId);
@@ -523,7 +530,7 @@ namespace DogBotN {
   std::shared_ptr<DeviceC> DogBotAPIC::MakeDevice(int deviceId,const PacketDeviceIdC &pkt)
   {
     DeviceTypeT deviceType = (DeviceTypeT) ((int) pkt.m_idBytes[3] >> 4);
-    m_log->info("Creating device {} of type '{}' ({}) ID: 0x{:08x} 0x{:08x}  ",deviceId,ComsDeviceTypeToString(deviceType),deviceType,pkt.m_uid[0],pkt.m_uid[1]);
+    ONDEBUG(m_log->info("Creating device {} of type '{}' ({}) ID: 0x{:08x} 0x{:08x}  ",deviceId,ComsDeviceTypeToString(deviceType),deviceType,pkt.m_uid[0],pkt.m_uid[1]));
     switch(deviceType)
     {
       case DT_BootLoader:
@@ -569,7 +576,7 @@ namespace DogBotN {
           {
             std::shared_ptr<JointC> joint = MakeJoint(jointType);
             joint->ConfigureFromJSON(*this,deviceConf);
-            m_log->info("Loaded joint '{}' of type '{}' ",joint->Name(),jointType);
+            //m_log->info("Loaded joint '{}' of type '{}' ",joint->Name(),jointType);
             m_joints.push_back(joint);
             continue;
           }
@@ -625,7 +632,7 @@ namespace DogBotN {
           assert(device);
           if(device) {
             device->ConfigureFromJSON(*this,deviceConf);
-            m_log->info("Loaded device '{}' of type '{}' ",device->DeviceName(),deviceType);
+            ONDEBUG(m_log->info("Loaded device '{}' of type '{}' ",device->DeviceName(),deviceType));
             DeviceStatusUpdate(device.get(),op);
             std::shared_ptr<JointC> jnt = std::dynamic_pointer_cast<JointC>(device);
             if(jnt) m_joints.push_back(jnt);
@@ -729,7 +736,8 @@ namespace DogBotN {
     DeviceTypeT deviceType = (DeviceTypeT) ((int) pkt.m_idBytes[3] >> 4);
     if(deviceType == DT_Unknown)
       deviceType = DT_MotorDriver;
-    m_log->info("Handling device announcement 0x{:08x} 0x{:08x} Type:{} Id:{} ",pkt.m_uid[0],pkt.m_uid[1],ComsDeviceTypeToString(deviceType),(int) pkt.m_deviceId);
+    if(pkt.m_deviceId == 0)
+      m_log->info("Handling device announcement 0x{:08x} 0x{:08x} Type:{} Id:{} ",pkt.m_uid[0],pkt.m_uid[1],ComsDeviceTypeToString(deviceType),(int) pkt.m_deviceId);
     ServoUpdateTypeT updateType = SUT_Updated;
     // Check device id is
     if(deviceId != 0) {
@@ -805,8 +813,7 @@ namespace DogBotN {
   //! Monitor thread
   void DogBotAPIC::RunMonitor()
   {
-    m_log->info("Running monitor. Manager mode: {} ",((m_deviceManagerMode == DMM_DeviceManager) ? "master" : "client"));
-    //logger->info("Starting bark");
+    ONDEBUG(m_log->info("Running monitor. Manager mode: {} ",((m_deviceManagerMode == DMM_DeviceManager) ? "master" : "client")));
 
     if(!m_coms) {
       m_log->error("No coms object, aborting monitor. ");
@@ -819,7 +826,9 @@ namespace DogBotN {
         CPT_Pong, [this](const uint8_t *data,int size) mutable
     {
       struct PacketPingPongC *pkt = (struct PacketPingPongC *) data;
-      m_log->info("Got pong from {} ",(int) pkt->m_deviceId);
+      std::shared_ptr<DeviceC> device = DeviceEntry(pkt->m_deviceId);
+      if(device) device->HandlePacketPong(pkt);
+      ONDEBUG(m_log->info("Got pong from {} ",(int) pkt->m_deviceId));
     });
 
     callbacks += m_coms->SetHandler(
@@ -1189,6 +1198,12 @@ namespace DogBotN {
       m_coms->SendEmergencyStop();
       usleep(10000);
     }
+  }
+
+  //! Set velocity limit for all connected servos.
+  void DogBotAPIC::SetVelocityLimit(float velocityLimit)
+  {
+    m_coms->SendSetParam(0,CPI_VelocityLimit,velocityLimit);
   }
 
 

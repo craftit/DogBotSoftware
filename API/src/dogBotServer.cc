@@ -12,6 +12,13 @@
 #include "cxxopts.hpp"
 #include <sched.h>
 
+#define DODEBUG 0
+#if DODEBUG
+#define ONDEBUG(x) x
+#else
+#define ONDEBUG(x)
+#endif
+
 // This provides a network interface for controlling the servos via ZMQ.
 
 int main(int argc,char **argv)
@@ -68,7 +75,7 @@ int main(int argc,char **argv)
   }
 
 
-  logger->info("Starting dogBotServer");
+  ONDEBUG(logger->info("Starting dogBotServer"));
   logger->info("Manager mode: {}",managerMode);
   logger->info("Using config file: '{}'",configFile);
   logger->info("Using communication type: '{}'",devFilename);
@@ -112,7 +119,7 @@ int main(int argc,char **argv)
     logRecorder->Start();
   }
 
-  logger->info("Setup and ready. ");
+  ONDEBUG(logger->info("Setup and ready. "));
 
   server.Run(zmqAddress);
 

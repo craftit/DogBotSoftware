@@ -19,6 +19,13 @@
 #include "dogbot/DogBotAPI.hh"
 #include "dogbot/Strings.hh"
 
+#define DODEBUG 0
+#if DODEBUG
+#define ONDEBUG(x) x
+#else
+#define ONDEBUG(x)
+#endif
+
 namespace DogBotN
 {
 
@@ -117,7 +124,7 @@ namespace DogBotN
 
             const PacketPingPongC *pkt = (const PacketPingPongC *) packetData;
 
-            m_log->debug("Got pong from %d. ",(int) pkt->m_deviceId);
+            m_log->debug("Got pong from {}. ",(int) pkt->m_deviceId);
           } break;
           case CPT_Error: {
             if(packetLen != sizeof(struct PacketErrorC)) {
@@ -243,7 +250,7 @@ namespace DogBotN
   //! Send query devices message
   void ComsC::SendQueryDevices()
   {
-    m_log->info("Sending device query. ");
+    ONDEBUG(m_log->info("Sending device query. "));
     uint8_t data[2];
     data[0] = CPT_QueryDevices;
     SendPacket(data,1);

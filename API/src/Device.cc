@@ -115,7 +115,7 @@ namespace DogBotN {
   {
     bool ret = false;
     if(pkt.m_deviceId != m_id && isManager) {
-      m_log->info("Updating device {} {} with id {} ",m_uid1,m_uid2,m_id);
+      //m_log->info("Updating device {} {} with id {} ",m_uid1,m_uid2,m_id);
       m_coms->SendSetDeviceId(m_id,m_uid1,m_uid2);
       ret = true;
     }
@@ -123,6 +123,14 @@ namespace DogBotN {
     auto timeNow = std::chrono::steady_clock::now();
     m_timeOfLastComs = timeNow;
     return ret;
+  }
+
+  //! Handle pong packet
+  void DeviceC::HandlePacketPong(const struct PacketPingPongC *pkt)
+  {
+    std::lock_guard<std::mutex> lock(m_mutexState);
+    auto timeNow = std::chrono::steady_clock::now();
+    m_timeOfLastComs = timeNow;
   }
 
   //! Handle parameter update.

@@ -9,6 +9,14 @@
 #include <string>
 #include <cmath>
 
+#define DODEBUG 0
+#if DODEBUG
+#define ONDEBUG(x) x
+#else
+#define ONDEBUG(x)
+#endif
+
+
 namespace DogBotN {
 
   MotorCalibrationC::MotorCalibrationC()
@@ -489,7 +497,9 @@ namespace DogBotN {
       ret = false;
     } break;
     case CPI_FaultState: {
-      m_log->error("Device {} {} Fault state {} ",m_id,m_name,pkt.m_data.uint32[0]);
+      uint32_t faultState = pkt.m_data.uint32[0];
+      if(faultState != 0)
+        m_log->error("Device {} {} Fault state {} ",m_id,m_name,faultState);
       ret = false;
     } break;
     case CPI_SafetyMode: {

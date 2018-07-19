@@ -4,6 +4,13 @@
 #include "dogbot/ZMQContext.hh"
 #include "dogbot/Strings.hh"
 
+#define DODEBUG 0
+#if DODEBUG
+#define ONDEBUG(x) x
+#else
+#define ONDEBUG(x)
+#endif
+
 namespace DogBotN {
 
 
@@ -69,7 +76,7 @@ namespace DogBotN {
                               }
     );
 
-    m_log->info("Server run loop started.");
+    ONDEBUG(m_log->info("Server run loop started."));
     try {
       while(!m_terminate) {
         zmq::message_t msg;
@@ -87,12 +94,12 @@ namespace DogBotN {
     } catch(zmq::error_t &err) {
       m_log->error("Caught exception run thread %d '%s' ",err.num(),err.what());
     }
-    m_log->info("Server run loop exiting.");
+    ONDEBUG(m_log->info("Server run loop exiting."));
 
     // Remove handler with reference to this instance.
     m_genericHandlerId.Remove();
 
-    m_log->info("Server finished.");
+    ONDEBUG(m_log->info("Server finished."));
   }
 
 }

@@ -25,9 +25,10 @@
     <param name="enable_control" value="$(arg enable_control)" />
     
     <!-- On the current (6/7/2018) firmware absolute limit is 15 -->
-    <param name="max_torque" value="12" />
+    <param name="max_torque" value="8" />
     <!-- Make the knee linkage transparent by using a virtual knee joint -->
     <param name="use_virtual_knee_joints" value="true" />
+    <param name="joint_velocity_limit" value="1000.0" />
      
     <!-- Load controller manager -->
     <node name="ros_control_controller_manager" pkg="controller_manager" type="controller_manager" respawn="false"

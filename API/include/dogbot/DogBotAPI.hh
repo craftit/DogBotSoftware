@@ -135,6 +135,9 @@ namespace DogBotN {
     //! Initiate an emergency stop
     void EmergencyStop();
 
+    //! Set velocity limit for all connected servos.
+    void SetVelocityLimit(float velocityLimit);
+
     //! Set all supply voltage calibration values to 1
     bool SetSupplyVoltageScaleToOne();
 
