@@ -3,6 +3,7 @@
 %module pydogbotapi
 
 %include <std_shared_ptr.i>
+%include <std_string.i>
 
 %{
 #include "dogbot/DogBotAPI.hh"
