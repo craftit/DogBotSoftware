@@ -18,12 +18,20 @@
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "dogbot_locomotion");
+  ros::init(argc, argv, "dogbot_simplegait");
   ros::NodeHandle n;
   ros::NodeHandle nPrivate("~");
 
   std::string robotns = "dogbot";
   nPrivate.getParam("robot",robotns);
+
+  float loopHz = 100;
+  float omega = 0.5;
+  nPrivate.getParam("loop_hz",loopHz);
+  nPrivate.getParam("omega",omega);
+
+
+  ros::AsyncSpinner spinner(2);
 
   sensor_msgs::JointState::ConstPtr lastJointState;
 
@@ -35,34 +43,26 @@ int main(int argc, char **argv)
 
   DogBotN::DogBotControllerROSC legs(robotns,dogBotKinematics);
 
-  float defaultUpdatePeriod = 0.02;
-  legs.SetupTrajectory(defaultUpdatePeriod,15);
+  float updatePeriod = 1.0f/loopHz;
+  legs.SetupTrajectory(updatePeriod,15);
 
   DogBotN::SplineGaitControllerC gaitGenerator;
+  gaitGenerator.SetOmega(omega);
 
-  std::string jointStateTopic = robotns + "/joint_states";
+  std::cout << "Starting controller. Updated.  LoopHz:" << loopHz << " Omega:" << omega << std::endl;
 
-  std::cout << "Starting controller. Updated" << std::endl;
+  ros::Timer timer1 = n.createTimer(ros::Duration(updatePeriod), [&legs,&gaitGenerator,updatePeriod](const ros::TimerEvent &te){
+    //! Do a single timestep
+    std::cout << "Update. " << std::endl;
+    DogBotN::SimpleQuadrupedPoseC pose;
+    gaitGenerator.Step(updatePeriod,pose);
+    legs.NextTrajectory(pose);
+  });
 
 
-  ros::Subscriber subJoints = n.subscribe<sensor_msgs::JointState>(jointStateTopic, 3,
-    [&lastJointState,&legs,&gaitGenerator,defaultUpdatePeriod](const sensor_msgs::JointState::ConstPtr& msg) mutable
-    {
-      float diffTime = defaultUpdatePeriod;
-      if(lastJointState) {
-        diffTime = (msg->header.stamp - lastJointState->header.stamp).toSec();
-      }
-      lastJointState = msg;
-      std::cout << "At " << diffTime << std::endl;
-
-      //! Do a single timestep
-      DogBotN::SimpleQuadrupedPoseC pose;
-      gaitGenerator.Step(diffTime,pose);
-      legs.NextTrajectory(pose);
-    }
-  );
-
-  ros::spin();
+  // Wait until shutdown signal received
+  spinner.start();
+  ros::waitForShutdown();
 
   std::cout << "Done " << std::endl;
 
