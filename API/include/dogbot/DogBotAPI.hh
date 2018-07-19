@@ -54,7 +54,7 @@ namespace DogBotN {
     DogBotAPIC();
 
     //! Construct with a string
-    //! \param connectionName Typically 'usb' to connect directly via usb or 'local' to connect via a server.
+    //! \param connectionName default is 'local' for local server.  'usb' for direct usb connection,'none' to nothing,'tcp://[ipaddress]' to connect to remote machine
     //! \param log Where to output log messages
     //! \param devMaster If this instance of the class should manage device ids, management is enabled if connecting directly via usb, and not otherwise
     DogBotAPIC(
@@ -88,7 +88,7 @@ namespace DogBotN {
     static std::string DefaultConfigFile(const std::string &robotName = "");
 
     //! Connect to a named device
-    //! Normally 'usb' or 'local'
+    //! Normally 'usb' or 'local', 'none' for nothing.
     bool Connect(const std::string &name);
 
     //! Connect using an existing communication object.

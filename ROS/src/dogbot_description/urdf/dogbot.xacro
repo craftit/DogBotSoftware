@@ -28,10 +28,18 @@
     <color rgba="1 1 1 1"/>
   </material>
 
-  <xacro:macro name="default_inertial" params="mass">
+  <xacro:macro name="default_inertial" params="mass xSize ySize zSize">
     <inertial>
       <mass value="${mass}" />
-      <inertia ixx="0.2" ixy="0" ixz="0.0" iyy="0.2" iyz="0.0" izz="0.2" />
+      <!-- Approximate mass distribution with a box -->
+      <inertia 
+        ixx="${(1.0 / 12.0) * mass * (pow(ySize, 2) + pow(zSize, 2))}" 
+        ixy="0" 
+        ixz="0.0" 
+        iyy="${(1.0 / 12.0) * mass * (pow(xSize, 2) + pow(zSize, 2))}" 
+        iyz="0.0" 
+        izz="${(1.0 / 12.0) * mass * (pow(xSize, 2) + pow(ySize, 2))}" 
+      />
     </inertial>
   </xacro:macro>
 
@@ -51,8 +59,7 @@
       </geometry>
     </collision>
         
-    <xacro:default_inertial mass="6"/>
-
+    <xacro:default_inertial mass="6" xSize="${bodywidth}" ySize="${bodylen}" zSize="${bodyheight}" />
         
   </link>
 
@@ -85,7 +92,8 @@
           <cylinder radius="${drivediam/2}" length="0.03"/>
         </geometry>
       </collision>
-      <xacro:default_inertial mass="2"/>
+      <!-- FIXME: check the location of center of mass. -->
+      <xacro:default_inertial mass="2.5" xSize="0.25" ySize="0.12" zSize="0.22"/>
     </link>    
     
     <!--  -->
@@ -128,7 +136,7 @@
           <box size="${upperleglen} 0.05 0.02"/>
         </geometry>
       </collision>
-      <xacro:default_inertial mass="0.7"/>
+      <xacro:default_inertial mass="0.5" xSize="0.08" ySize="0.03" zSize="0.38" />
     </link>    
 
     <joint name="${prefix}_${suffix}_pitch_joint" type="revolute">
@@ -140,7 +148,7 @@
       <limit 
         lower ="-${pi/2}" 
         upper="${pi/2}" 
-        effort="500" 
+        effort="1000" 
         velocity="10.0" 
         />
     </joint>
@@ -172,7 +180,7 @@
           <box size="${lowerleglen} 0.005 0.04"/>
         </geometry>
       </collision>
-      <xacro:default_inertial mass="0.3"/>
+      <xacro:default_inertial mass="0.2" xSize="0.03" ySize="0.02" zSize="0.36" />
     </link>    
 
     <gazebo reference="${prefix}_${suffix}_lowerleg">
@@ -184,21 +192,15 @@
     </gazebo>
     
     <joint name="${prefix}_${suffix}_knee_joint" type="revolute">
-      <axis xyz="0 1 0" rpy="0 0 0" />
+      <axis xyz="0 -1 0" rpy="0 0 0" />
       <parent link="${prefix}_${suffix}_upperleg"/>
       <child link="${prefix}_${suffix}_lowerleg"/>
-      <!-- 
-         rpy="0 ${reflectx * pi/6} 0"  
-         lower ="${(pi * (reflectx -1)/3.5) }" 
-         upper ="${(pi * (reflectx +1)/3.5) }" 
-         lower ="${(pi * reflectx - pi*2) }" 
-         upper ="${(pi * reflectx + pi*0) }" 
-      -->
       <origin xyz="${upperleglen * reflectx} 0 0" rpy="0 0 0"/>
       <limit 
-         lower ="${(pi * reflectx - pi*2) }" 
-         upper ="${(pi * reflectx + pi*2) }" 
-         effort="500" velocity="10.0" />
+         lower ="${reflectx *-1.63201375031 - 0.923235541074 }" 
+         upper ="${reflectx *-1.63201375031 + 0.923235541074 }" 
+         effort="1000" velocity="10.0" 
+       />
     </joint>
 
     <link name="${prefix}_${suffix}_foot">
@@ -217,7 +219,7 @@
           <sphere radius = "0.03"/>
         </geometry>
       </collision>
-      <xacro:default_inertial mass="0.0"/>
+      <xacro:default_inertial mass="0.1" xSize="0.05" ySize="0.05" zSize="0.05"/>
     </link> 
 
     <joint name="${prefix}_${suffix}_foot_joint" type="fixed">
