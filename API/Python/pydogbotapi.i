@@ -12,7 +12,7 @@
 
 namespace DogBotN {
 
-  std::shared_ptr<DogBotAPIC> OpenAPI(const std::string &connection,const std::string &robotName = "")
+  std::shared_ptr<DogBotAPIC> OpenAPI(const std::string &robotName = "",const std::string &connection ="local")
   {
     return std::make_shared<DogBotAPIC>(connection,DogBotAPIC::DefaultConfigFile(robotName));
   }
@@ -113,7 +113,7 @@ class DogBotAPIC
 };
 
 //! Open connection to robot.
-std::shared_ptr<DogBotAPIC> OpenAPI(const std::string &connection,const std::string &robotName = "");
+std::shared_ptr<DogBotAPIC> OpenAPI(const std::string &robotName = "",const std::string &connection = "local");
 
 //! Class to manage the positioning of a single leg.
 
