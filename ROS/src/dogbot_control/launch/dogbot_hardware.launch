@@ -26,6 +26,8 @@
     
     <!-- On the current (6/7/2018) firmware absolute limit is 15 -->
     <param name="max_torque" value="12" />
+    <!-- Make the knee linkage transparent by using a virtual knee joint -->
+    <param name="use_virtual_knee_joints" value="true" />
      
     <!-- Load controller manager -->
     <node name="ros_control_controller_manager" pkg="controller_manager" type="controller_manager" respawn="false"

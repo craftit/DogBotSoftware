@@ -66,6 +66,7 @@ DogBotHWInterface::DogBotHWInterface(ros::NodeHandle &nh, urdf::Model *urdf_mode
   // Dogbot specific setup
   {
     ros::param::get("enable_control",m_enableControl);
+    ros::param::get("use_virtual_knee_joints",m_useVirtualKneeJoints);
     ros::param::get("max_torque",m_maxTorque);
 
     auto logger = spdlog::stdout_logger_mt("console");
@@ -96,7 +97,7 @@ DogBotHWInterface::DogBotHWInterface(ros::NodeHandle &nh, urdf::Model *urdf_mode
         atJnt++; // Skip the underscore.
 
         std::string jntType = actname.substr(atJnt,at-atJnt);
-        if(jntType == "knee") {
+        if(jntType == "knee" && m_useVirtualKneeJoints) {
           actname= std::string("virtual_" + legName + "_knee");
         }
         ROS_INFO_NAMED("dogbot_hw_interface", "Found joint '%s' with type '%s' ",actname.c_str(),jntType.c_str());

@@ -142,6 +142,7 @@ protected:
   std::vector<std::shared_ptr<DogBotN::JointC> > m_actuators;
 
   bool m_enableControl = false;
+  bool m_useVirtualKneeJoints = true; //! Use virtual joint coordinates
 
   // Short name of this class
   std::string name_;

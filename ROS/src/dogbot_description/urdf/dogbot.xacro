@@ -10,6 +10,9 @@
   
   <xacro:property name="upperleglen" value="0.30" />
   <xacro:property name="lowerleglen" value="0.31" />
+
+  <xacro:property name="kp" value="1000000" />
+  <xacro:property name="kd" value="1.0" />
   
   <xacro:property name="pi" value="3.1415" />
 
@@ -28,7 +31,7 @@
   <xacro:macro name="default_inertial" params="mass">
     <inertial>
       <mass value="${mass}" />
-      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0" />
+      <inertia ixx="0.2" ixy="0" ixz="0.0" iyy="0.2" iyz="0.0" izz="0.2" />
     </inertial>
   </xacro:macro>
 
@@ -48,7 +51,7 @@
       </geometry>
     </collision>
         
-    <xacro:default_inertial mass="4"/>
+    <xacro:default_inertial mass="6"/>
 
         
   </link>
@@ -62,8 +65,8 @@
   <gazebo reference="body">
     <mu1 value="200.0"/>
     <mu2 value="100.0"/>
-    <kp value="10000000.0" />
-    <kd value="1.0" />
+    <kp value="${kp}" />
+    <kd value="${kd}" />
     <material>Gazebo/white</material>
   </gazebo>
    
@@ -82,7 +85,7 @@
           <cylinder radius="${drivediam/2}" length="0.03"/>
         </geometry>
       </collision>
-      <xacro:default_inertial mass="1"/>
+      <xacro:default_inertial mass="2"/>
     </link>    
     
     <!--  -->
@@ -175,8 +178,8 @@
     <gazebo reference="${prefix}_${suffix}_lowerleg">
       <mu1 value="2000.0"/>
       <mu2 value="1000.0"/>
-      <kp value="10000000.0" />
-      <kd value="1.0" />
+      <kp value="${kp}" />
+      <kd value="${kd}" />
       <material>Gazebo/Grey</material>
     </gazebo>
     
@@ -197,6 +200,40 @@
          upper ="${(pi * reflectx + pi*2) }" 
          effort="500" velocity="10.0" />
     </joint>
+
+    <link name="${prefix}_${suffix}_foot">
+      <visual>
+        <origin xyz="0 0 0" rpy="${pi/2} 0 0" />
+        <geometry>
+          <!--cylinder radius="0.008" length="0.06"/-->
+          <sphere radius = "0.03"/>
+        </geometry>
+        <material name="black"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="${pi/2} 0 0" />
+        <geometry>
+          <!--cylinder radius="0.008" length="0.06"/-->
+          <sphere radius = "0.03"/>
+        </geometry>
+      </collision>
+      <xacro:default_inertial mass="0.0"/>
+    </link> 
+
+    <joint name="${prefix}_${suffix}_foot_joint" type="fixed">
+      <axis xyz="0 1 0" rpy="0 0 0" />
+      <parent link="${prefix}_${suffix}_lowerleg"/>
+      <child link="${prefix}_${suffix}_foot"/>
+      <origin xyz="${lowerleglen * reflectx} 0 0" rpy="0 0 0"/>
+    </joint> 
+
+    <gazebo reference="${prefix}_${suffix}_foot">
+      <mu1 value="2000000.0"/>
+      <mu2 value="1000000.0"/>
+      <kp value="${kp}" />
+      <kd value="${kd}" />
+      <material>Gazebo/Grey</material>
+    </gazebo>
 
     <transmission name="${prefix}_${suffix}_roll_transmition" >
       <type>transmission_interface/SimpleTransmission</type>
