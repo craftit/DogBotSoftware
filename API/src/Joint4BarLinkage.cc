@@ -89,6 +89,8 @@ namespace DogBotN {
     float ratio = m_legKinematics->LinkageSpeedRatio(theta,position);
 
     drivePosition = theta + (refPosition * m_refGain + m_refOffset);
+    if(drivePosition < -M_PI) drivePosition += 2 * M_PI;
+    if(drivePosition > M_PI) drivePosition -= 2 * M_PI;
     driveTorque = torque / ratio + refTorque/m_refGain;
     return true;
   }

@@ -95,6 +95,9 @@ namespace DogBotN {
     //! Get current demand
     virtual bool GetDemand(double &position,double &torqueLimit);
 
+    //! Get current demand
+    virtual bool GetDemandTrajectory(double &position,double &torque);
+
     //! Last reported position
     float Position() const
     { return m_position; }
@@ -123,6 +126,7 @@ namespace DogBotN {
 
     float m_demandPosition = nan("");
     float m_demandTorqueLimit = nan("");
+    float m_demandTorque = nan("");
 
     float m_position = 0; // Radians
     float m_velocity = 0; // Radians per second

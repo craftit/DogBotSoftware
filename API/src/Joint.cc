@@ -115,10 +115,20 @@ namespace DogBotN {
   //! Get current demand
   bool JointC::GetDemand(double &position,double &torqueLimit)
   {
-    if(std::isnan(position) || std::isnan(torqueLimit))
+    if(std::isnan(m_demandPosition) || std::isnan(m_demandTorqueLimit))
       return false;
     position = m_demandPosition;
     torqueLimit = m_demandTorqueLimit;
+    return true;
+  }
+
+  //! Get current demand
+  bool JointC::GetDemandTrajectory(double &position,double &torque)
+  {
+    if(std::isnan(m_demandPosition) || std::isnan(m_demandTorque))
+      return false;
+    position = m_demandPosition;
+    torque = m_demandTorque;
     return true;
   }
 
@@ -133,13 +143,14 @@ namespace DogBotN {
   bool JointC::DemandTrajectory(float position,float torque)
   {
     m_demandPosition = position;
+    m_demandTorque = torque;
+#if 0
     for(auto &a : m_demandCallbacks.Calls()) {
       if(a) a(position,m_demandTorqueLimit);
     }
+#endif
     return true;
   }
-
-
 
   //! Add a update callback for motor position
   CallbackHandleC JointC::AddPositionUpdateCallback(const PositionUpdateFuncT &callback)
