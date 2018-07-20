@@ -8,6 +8,7 @@
 #include "dogbot/ComsZMQServer.hh"
 #include "dogbot/ComsRecorder.hh"
 #include "dogbot/ComsRoute.hh"
+#include "dogbot/ComsUSB.hh"
 #include "dogbot/PlatformManager.hh"
 #include "cxxopts.hpp"
 #include <sched.h>
@@ -82,11 +83,14 @@ int main(int argc,char **argv)
   logger->info("Communication log: '{}'",logFile);
 
   std::shared_ptr<DogBotN::ComsRouteC> coms = std::make_shared<DogBotN::ComsRouteC>();
-
-
-  if(!coms->Open(devFilename)) {
-    logger->error("Failed to open {} ",devFilename);
-    return 1;
+  std::shared_ptr<DogBotN::ComsUSBHotPlugC> hotPlug;
+  if(devFilename == "usb") {
+    hotPlug = std::make_shared<DogBotN::ComsUSBHotPlugC>(coms);
+  } else {
+    if(!coms->Open(devFilename)) {
+      logger->error("Failed to open {} ",devFilename);
+      return 1;
+    }
   }
   if(!devIMUFilename.empty()) {
     if(!coms->Open(devIMUFilename)) {

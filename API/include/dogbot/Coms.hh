@@ -214,6 +214,10 @@ namespace DogBotN {
     static float TorqueReport2Fraction(int16_t val)
     { return ((float) val)/ 32767.0; }
 
+    //! Access logger
+    std::shared_ptr<spdlog::logger> &Logger()
+    { return m_log; }
+
   protected:
     std::string m_name;
 

@@ -2,12 +2,15 @@
 #define DOGBOG_COMSUSB_HEADER 1
 
 #include "dogbot/Coms.hh"
+#include "dogbot/ComsRoute.hh"
 #include <libusb.h>
 #include <deque>
 
 namespace DogBotN {
 
   class ComsUSBC;
+  class ComsUSBHotPlugC;
+
 
   //! Direction for USB transfer, used in USBTransferDataC.
 
@@ -68,13 +71,15 @@ namespace DogBotN {
     unsigned char m_buffer[64];
   };
 
+
   //! Low level serial communication over usb with the driver board
 
   class ComsUSBC
    : public ComsC
   {
   public:
-    ComsUSBC(std::shared_ptr<spdlog::logger> &log);
+    //! Construct from hotplug
+    ComsUSBC(struct libusb_context *usbContext,libusb_device *device,struct libusb_device_handle *handle,std::shared_ptr<spdlog::logger> &log);
 
     //! default
     ComsUSBC();
@@ -95,19 +100,18 @@ namespace DogBotN {
     //! Send packet
     virtual void SendPacketWire(const uint8_t *data,int len) override;
 
-    //! Handle hot plug callback.
-    void HotPlugArrivedCallback(libusb_device *device, libusb_hotplug_event event);
-
-    //! Handle hot plug callback.
-    void HotPlugDepartedCallback(libusb_device *device, libusb_hotplug_event event);
-
     //! Process incoming data.
     void ProcessInTransferIso(USBTransferDataC *data);
 
     //! Process outgoing data complete
     void ProcessOutTransferIso(USBTransferDataC *data);
 
+    //! Access the USB device
+    const struct libusb_device *USBDevice() const
+    { return m_device; }
+
   protected:
+
     //! Close usb handle
     void CloseUSB();
 
@@ -125,25 +129,62 @@ namespace DogBotN {
     std::vector<USBTransferDataC *> m_outDataFree;
     std::vector<USBTransferDataC *> m_activeTransfers;
 
-    struct libusb_device_handle *m_handle = 0;
     struct libusb_device *m_device = 0;
+    struct libusb_device_handle *m_handle = 0;
 
     bool m_claimedInferface = false;
     int m_state = 0;
 
     struct libusb_context *m_usbContext = 0;
 
-    libusb_hotplug_callback_handle m_hotplugCallbackHandle = 0;
-
-    bool RunUSB();
-
-    std::thread m_threadUSB;
 
     std::deque<DataPacketT> m_txQueue;
 
     std::mutex m_accessTx;
     std::timed_mutex m_mutexExitOk;
 
+    friend class ComsUSBHotPlugC;
   };
+
+  //! Deal with hot plug events.
+
+  class ComsUSBHotPlugC
+  {
+  public:
+    //! Construct hot plug
+    ComsUSBHotPlugC(const std::shared_ptr<ComsRouteC> &router);
+
+    //! Destructor
+    ~ComsUSBHotPlugC();
+
+    //! Handle hot plug callback.
+    void HotPlugArrivedCallback(libusb_device *device, libusb_hotplug_event event);
+
+    //! Handle hot plug callback.
+    void HotPlugDepartedCallback(libusb_device *device, libusb_hotplug_event event);
+
+  protected:
+    bool RunUSB();
+
+    void Close();
+
+    bool m_terminate = false;
+
+    std::shared_ptr<spdlog::logger> m_log = spdlog::get("console");
+
+    libusb_hotplug_callback_handle m_hotplugCallbackHandle = 0;
+
+    struct libusb_context *m_usbContext = 0;
+
+    std::mutex m_accessTx;
+
+    std::vector<std::shared_ptr<ComsUSBC> > m_usbDevices;
+    std::shared_ptr<ComsRouteC> m_router;
+
+    std::thread m_threadUSB;
+    std::timed_mutex m_mutexExitOk;
+
+  };
+
 }
 #endif
