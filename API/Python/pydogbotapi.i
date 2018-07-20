@@ -11,6 +11,7 @@
 #include "dogbot/LegController.hh"
 #include "dogbot/DogBotController.hh"
 #include "dogbot/PoseAngles.hh"
+#include "dogbot/Device.hh"
 
 namespace DogBotN {
 
@@ -24,6 +25,7 @@ namespace DogBotN {
 %}
 
 %shared_ptr(DogBotN::JointC)
+%shared_ptr(DogBotN::ServoC)
 %shared_ptr(DogBotN::DogBotAPIC)
 %shared_ptr(DogBotN::LegControllerC)
 %shared_ptr(DogBotN::DogBotControllerC)
@@ -31,6 +33,7 @@ namespace DogBotN {
 namespace std {
    %template(stringvector) vector<string>;
    %template(jointvector) vector<shared_ptr<DogBotN::JointC>>;
+   %template(servovector) vector<shared_ptr<DogBotN::ServoC>>;
 };
 
 
@@ -41,6 +44,9 @@ namespace DogBotN {
 class JointC 
 {
   public:    
+    //! Access the device name
+    std::string Name() const;
+    
     //! Setup a trajectory, with an update rate and torque limit
     bool SetupTrajectory(float updatePeriod,float torqueLimit);
 
@@ -77,7 +83,69 @@ class JointC
     float Velocity() const;
 };
 
-//! Servo level API
+
+//! Interface for a single servo
+
+class ServoC
+  : public JointC,
+    public DeviceC
+{
+  public:
+    
+    //! Access the device name
+    std::string Name() const;
+    
+    //! Update torque for the servo.
+    // torque is in Newton-metres.
+    bool DemandTorque(float torque) override;
+
+    //! Demand a position for the servo
+    //! position in radians
+    //! torqueLimit is in Newton-metres
+    bool DemandPosition(float position,float torqueLimit) override;
+
+    //! Set the trajectory.
+    // period in seconds,
+    // torqueLimit is in Newton-metres
+    bool SetupTrajectory(float period,float torqueLimit) override;
+
+    //! Demand next position for the servo
+    //! position in radians
+    //! Expected torque in Newton-metres
+    bool DemandTrajectory(float position,float torque = 0) override;
+
+    //! Access the type of last position received.
+    enum PositionReferenceT PositionReference() const;
+    
+    //! check if the motor is ready to receive commands
+    bool IsReady() const;
+    
+    //! summary status as a string
+    std::string StatusSummary() const;
+    
+    //! Last fault code received
+    FaultCodeT FaultCode() const;
+
+    //! Get the current calibration state.
+    MotionHomedStateT HomedState() const;
+
+    //! Access the control state.
+    ControlStateT ControlState() const;
+
+    //! Last reported temperature
+    float DriveTemperature() const;
+
+    //! Last reported temperature
+    float MotorTemperature() const;
+
+    //! Access supply voltage
+    float SupplyVoltage() const;
+
+    //! Query setup information from the controller again.
+    void QueryRefresh() override;
+};
+
+//! DogBot-level API
 
 class DogBotAPIC 
 {
@@ -87,7 +155,14 @@ class DogBotAPIC
     
     //! Access a list of joints
     std::vector<std::shared_ptr<JointC> > ListJoints();
+    
+    //! Get servo entry by id
+    std::shared_ptr<ServoC> GetServoById(int id);
 
+    //! Get list of configured servos.  
+    //! These are the actual servos and so may not map directly to virtual joints
+    std::vector<std::shared_ptr<ServoC> > ListServos();
+    
     //! Get the current time
     static double TimeNow();
 

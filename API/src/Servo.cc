@@ -116,7 +116,11 @@ namespace DogBotN {
   }
 
   //! --------------------------
-
+  
+  //! Default constructor
+  ServoC::ServoC()
+  {}
+  
   ServoC::ServoC(const std::shared_ptr<ComsC> &coms, int deviceId, const PacketDeviceIdC &pktAnnounce)
    : DeviceC(coms,deviceId,pktAnnounce)
   {
@@ -210,6 +214,26 @@ namespace DogBotN {
     DeviceC::SetDeviceName(name);
   }
 
+  bool ServoC::IsReady() const
+  {
+    bool homed = (m_homedState==MHS_SoftHomed || m_homedState==MHS_Homed);
+    bool ready = (m_controlState==CS_Ready || m_controlState==CS_Diagnostic);
+    bool isready = homed && ready;
+    return isready;
+  }
+  
+  std::string ServoC::StatusSummary() const
+  {
+    std::string summary = m_name;
+    summary = summary + " control state: " + DogBotN::ControlStateToString( m_controlState);
+    summary = summary + ", homed state: " + DogBotN::HomedStateToString(m_homedState);
+    
+    if(IsReady()){
+      summary = summary  + ". Device is ready and homed.";
+    }
+    return summary;
+  }
+  
   //! Configure from JSON
   bool ServoC::ConfigureFromJSON(DogBotAPIC &api,const Json::Value &conf)
   {

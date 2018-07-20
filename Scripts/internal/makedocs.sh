@@ -5,5 +5,5 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 echo "Generating documentation with Doxygen"
-cd $DIR/../resources/Documentation
+cd $DIR/../../resources/Documentation
 doxygen DogBotAPIdocs.doxygen

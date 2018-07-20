@@ -91,6 +91,9 @@ namespace DogBotN {
   public:
     typedef std::function<void (TimePointT theTime,double position,double velocity,double torque,PositionReferenceT posRef)> PositionRefUpdateFuncT;
 
+    //! Default constructor
+    ServoC();
+    
     // Construct from coms link and deviceId
     ServoC(const std::shared_ptr<ComsC> &coms,int deviceId);
 
@@ -115,7 +118,7 @@ namespace DogBotN {
     //! Get last reported state of the servo and the time it was taken.
     //! Position in radians.
     //! Velocity in radians/second
-    //! torque in Newton-meters
+    //! torque in Newton-metres
     bool GetState(TimePointT &tick,double &position,double &velocity,double &torque) const override;
 
     //! Get raw state information
@@ -124,35 +127,41 @@ namespace DogBotN {
     //! Estimate state at the given time.
     //! Position in radians.
     //! Velocity in radians/second
-    //! torque in Newton-meters
+    //! torque in Newton-metres
     //! This will linearly extrapolate position, and assume velocity and torque are
     //! the same as the last reading.
     //! If the data is more than 5 ticks away from the
     bool GetStateAt(TimePointT theTime,double &position,double &velocity,double &torque) const override;
 
     //! Update torque for the servo.
-    // torque is in Newton-meters.
+    // torque is in Newton-metres.
     bool DemandTorque(float torque) override;
 
     //! Demand a position for the servo
     //! position in radians
-    //! torqueLimit is in Newton-meters
+    //! torqueLimit is in Newton-metres
     bool DemandPosition(float position,float torqueLimit) override;
 
     //! Set the trajectory.
     // period in seconds,
-    // torqueLimit is in Newton-meters
+    // torqueLimit is in Newton-metres
     bool SetupTrajectory(float period,float torqueLimit) override;
 
     //! Demand next position for the servo
     //! position in radians
-    //! Expected torque in Newton-meters
+    //! Expected torque in Newton-metres
     bool DemandTrajectory(float position,float torque = 0) override;
 
     //! Access the type of last position received.
     enum PositionReferenceT PositionReference() const
     { return m_positionRef; }
-
+    
+    //! Check whether the servo is ready to operate
+    bool IsReady() const;
+    
+     //! summary status as a string
+    std::string StatusSummary() const;
+    
     //! Last fault code received
     FaultCodeT FaultCode() const
     { return m_faultCode; }
@@ -242,7 +251,7 @@ namespace DogBotN {
         double timeOut = 3.0
         );
 
-    //! Demand a position for the servo, torque limit is in Newton-meters
+    //! Demand a position for the servo, torque limit is in Newton-metres
     bool DemandPosition(float position,float torqueLimit,enum PositionReferenceT positionRef);
 
     //! Initialise timeouts and setup
