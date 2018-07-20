@@ -875,11 +875,11 @@ namespace DogBotN {
       m_log->warn("Servo {} not enabled, DemandTrajectory  dropped.",Name());
       return false;
     }
+    if(!IsPresent()) {
+      m_log->warn("Servo {} not present, DemandTrajectory  dropped.",Name());
+      return false;
+    }
     if(!IsFirmwareVersionOk()) {
-      if(!IsPresent()) {
-        m_log->warn("Servo {} not present, DemandTrajectory  dropped.",Name());
-        return false;
-      }
       m_log->warn("Servo {} firmware mismatch, DemandTrajectory  dropped.",Name());
       return false;
     }
@@ -983,13 +983,17 @@ namespace DogBotN {
 
   bool ServoC::HomeJoint(bool restorePosition,HomeDirectionHintT directionHint)
   {
-    //m_log->info("HomeJoint called.");
+    if(!IsPresent()) {
+      m_log->warn("Joint {} not present.",Name());
+      return false;
+    }
+
     if(!IsFirmwareVersionOk()) {
-      m_log->info("Joint {} firmware version mismatch.",Name());
+      m_log->warn("Joint {} firmware version mismatch.",Name());
       return false;
     }
     if(!IsEnabled()) {
-      m_log->info("Joint {} disabled.",Name());
+      m_log->warn("Joint {} disabled.",Name());
       return false;
     }
     if(m_homedState == MHS_Homed) {
@@ -1197,6 +1201,10 @@ namespace DogBotN {
       double timeOut
       )
   {
+    if(!IsPresent()) {
+      m_log->info("Joint {} not present.",Name());
+      return JMS_Error;
+    }
     if(!IsFirmwareVersionOk()) {
       m_log->info("Joint {} firmware version mismatch.",Name());
       return JMS_Error;
