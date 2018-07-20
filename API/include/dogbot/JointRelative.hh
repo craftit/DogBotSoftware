@@ -53,12 +53,12 @@ namespace DogBotN {
 
     //! Set the trajectory
     //! update period in seconds, torque limit in Newton-meters
-    virtual bool SetupTrajectory(float updatePeriod,float torqueLimit);
+    virtual bool SetupTrajectory(float updatePeriod,float torqueLimit) override;
 
     //! Demand a next position in a trajectory
     //! position in radians,
     //! torque in Newton-meters
-    virtual bool DemandTrajectory(float position,float torque = 0);
+    virtual bool DemandTrajectory(float position,float torque = 0) override;
 
     //! Add a update callback for motor position
     virtual CallbackHandleC AddPositionUpdateCallback(const PositionUpdateFuncT &callback) override;
