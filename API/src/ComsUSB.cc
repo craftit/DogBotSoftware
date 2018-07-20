@@ -38,13 +38,6 @@ namespace DogBotN
       transferData->ComsUSB()->ProcessInTransferIso(transferData);
     else if(endPoint == BMCUSB_DATA_OUT_EP)
       transferData->ComsUSB()->ProcessOutTransferIso(transferData);
-#if BMC_USE_USB_EXTRA_ENDPOINTS
-    else
-      if(endPoint == BMCUSB_INTR_IN_EP )
-      transferData->ComsUSB()->ProcessInTransferIntr(transferData);
-    else if(endPoint == BMCUSB_INTR_OUT_EP)
-      transferData->ComsUSB()->ProcessOutTransferIntr(transferData);
-#endif
     else
     {
       std::cerr << "Unexpected end point " << endPoint << std::endl;
@@ -79,7 +72,7 @@ namespace DogBotN
       endPoint = BMCUSB_DATA_IN_EP | 0x80;
     else
       endPoint = BMCUSB_DATA_OUT_EP;
-#if 1
+
     libusb_fill_iso_transfer(
         m_transfer,
         handle,
@@ -91,21 +84,6 @@ namespace DogBotN
         this,
         0
         );
-#else
-    m_transfer->dev_handle = handle;
-    if(direction == UTD_IN)
-      m_transfer->endpoint = BMCUSB_DATA_IN_EP | 0x80;
-    else
-      m_transfer->endpoint = BMCUSB_DATA_OUT_EP;
-    m_transfer->flags = 0;
-    m_transfer->type = LIBUSB_TRANSFER_TYPE_ISOCHRONOUS;
-    m_transfer->timeout = 0;
-    m_transfer->callback = usbTransferCB;
-    m_transfer->user_data = this;
-    m_transfer->buffer = m_buffer;
-    m_transfer->length = sizeof(m_buffer);
-    m_transfer->actual_length = sizeof(m_buffer);
-#endif
     m_transfer->num_iso_packets = 1;
     m_transfer->iso_packet_desc[0].actual_length = sizeof(m_buffer);
     m_transfer->iso_packet_desc[0].length = sizeof(m_buffer);
