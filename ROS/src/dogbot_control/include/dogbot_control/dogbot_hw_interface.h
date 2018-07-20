@@ -143,7 +143,7 @@ protected:
 
   bool m_enableControl = false;
   bool m_useVirtualKneeJoints = true; //! Use virtual joint coordinates
-
+  float m_jointVelocityLimit = 1000.0;
   // Short name of this class
   std::string name_;
 

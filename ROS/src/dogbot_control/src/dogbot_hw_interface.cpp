@@ -68,6 +68,7 @@ DogBotHWInterface::DogBotHWInterface(ros::NodeHandle &nh, urdf::Model *urdf_mode
     ros::param::get("enable_control",m_enableControl);
     ros::param::get("use_virtual_knee_joints",m_useVirtualKneeJoints);
     ros::param::get("max_torque",m_maxTorque);
+    ros::param::get("joint_velocity_limit",m_jointVelocityLimit);
 
     auto logger = spdlog::stdout_logger_mt("console");
     logger->info("Starting API");
@@ -83,9 +84,8 @@ DogBotHWInterface::DogBotHWInterface(ros::NodeHandle &nh, urdf::Model *urdf_mode
     boost::filesystem::path tmp{configFile};
     configFile = boost::filesystem::canonical(tmp).c_str();
     m_dogBotAPI = std::make_shared<DogBotN::DogBotAPIC>(devFilename,configFile,logger,DogBotN::DogBotAPIC::DMM_Auto);
-
-    m_dogBotAPI->Init();
-
+    sleep(1);
+    m_dogBotAPI->SetVelocityLimit(m_jointVelocityLimit);
     m_actuators.empty();
     for(auto &name : joint_names_) {
       size_t at = name.rfind("_joint");

@@ -5,6 +5,13 @@
 
 #include <iostream>
 
+#define DODEBUG 0
+#if DODEBUG
+#define ONDEBUG(x) x
+#else
+#define ONDEBUG(x)
+#endif
+
 namespace DogBotN
 {
   //! default
@@ -57,7 +64,7 @@ namespace DogBotN
     m_deviceType = deviceType;
     m_nodeUId1 = (m_nodeUId1 & 0x0fffffffu) | ((uint32_t) m_deviceType) << 28;
     //m_nodeUId2;
-    m_log->info("Setting up device type '{}' with id 0x{:8x} 0x{:8x} ",ComsDeviceTypeToString(m_deviceType),m_nodeUId1,m_nodeUId2);
+    ONDEBUG(m_log->info("Setting up device type '{}' with id 0x{:8x} 0x{:8x} ",ComsDeviceTypeToString(m_deviceType),m_nodeUId1,m_nodeUId2));
   }
 
 
@@ -210,7 +217,7 @@ namespace DogBotN
   void ComsVirtualDeviceC::VirtProcessPacket(const uint8_t *data,int len)
   {
     enum ComsPacketTypeT pktType = (enum ComsPacketTypeT) data[0];
-    m_log->debug("VirtualDevice. Processing packet '{}' for {}  ",DogBotN::ComsPacketTypeToString(pktType),(int) data[1]);
+    ONDEBUG(m_log->debug("VirtualDevice. Processing packet '{}' for {}  ",DogBotN::ComsPacketTypeToString(pktType),(int) data[1]));
     switch(pktType)
     {
       case CPT_NoOp: break;

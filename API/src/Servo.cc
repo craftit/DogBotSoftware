@@ -9,6 +9,14 @@
 #include <string>
 #include <cmath>
 
+#define DODEBUG 0
+#if DODEBUG
+#define ONDEBUG(x) x
+#else
+#define ONDEBUG(x)
+#endif
+
+
 namespace DogBotN {
 
   MotorCalibrationC::MotorCalibrationC()
@@ -513,7 +521,9 @@ namespace DogBotN {
       ret = false;
     } break;
     case CPI_FaultState: {
-      m_log->error("Device {} {} Fault state {} ",m_id,m_name,pkt.m_data.uint32[0]);
+      uint32_t faultState = pkt.m_data.uint32[0];
+      if(faultState != 0)
+        m_log->error("Device {} {} Fault state {} ",m_id,m_name,faultState);
       ret = false;
     } break;
     case CPI_SafetyMode: {
@@ -889,11 +899,11 @@ namespace DogBotN {
       m_log->warn("Servo {} not enabled, DemandTrajectory  dropped.",Name());
       return false;
     }
+    if(!IsPresent()) {
+      m_log->warn("Servo {} not present, DemandTrajectory  dropped.",Name());
+      return false;
+    }
     if(!IsFirmwareVersionOk()) {
-      if(!IsPresent()) {
-        m_log->warn("Servo {} not present, DemandTrajectory  dropped.",Name());
-        return false;
-      }
       m_log->warn("Servo {} firmware mismatch, DemandTrajectory  dropped.",Name());
       return false;
     }
@@ -997,13 +1007,17 @@ namespace DogBotN {
 
   bool ServoC::HomeJoint(bool restorePosition,HomeDirectionHintT directionHint)
   {
-    //m_log->info("HomeJoint called.");
+    if(!IsPresent()) {
+      m_log->warn("Joint {} not present.",Name());
+      return false;
+    }
+
     if(!IsFirmwareVersionOk()) {
-      m_log->info("Joint {} firmware version mismatch.",Name());
+      m_log->warn("Joint {} firmware version mismatch.",Name());
       return false;
     }
     if(!IsEnabled()) {
-      m_log->info("Joint {} disabled.",Name());
+      m_log->warn("Joint {} disabled.",Name());
       return false;
     }
     if(m_homedState == MHS_Homed) {
@@ -1211,6 +1225,10 @@ namespace DogBotN {
       double timeOut
       )
   {
+    if(!IsPresent()) {
+      m_log->info("Joint {} not present.",Name());
+      return JMS_Error;
+    }
     if(!IsFirmwareVersionOk()) {
       m_log->info("Joint {} firmware version mismatch.",Name());
       return JMS_Error;

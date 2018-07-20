@@ -28,6 +28,180 @@
 namespace DogBotN
 {
 
+  static int coms_usb_hotplug_callback(libusb_context *ctx, libusb_device *device, libusb_hotplug_event event, void *user_data)
+  {
+    if(event == LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED)
+      ((ComsUSBHotPlugC *) user_data)->HotPlugArrivedCallback(device,event);
+    if(event == LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT)
+      ((ComsUSBHotPlugC *) user_data)->HotPlugDepartedCallback(device,event);
+    return 0;
+  }
+
+  ComsUSBHotPlugC::ComsUSBHotPlugC(const std::shared_ptr<ComsRouteC> &router)
+   : m_router(router)
+  {
+    //putenv("LIBUSB_DEBUG=4");
+    int r = libusb_init(&m_usbContext);
+    if(r != 0) {
+      m_log->error("Failed to create libusb context {} : {} ",r,libusb_error_name(r));
+      return ;
+    }
+
+#if (LIBUSB_API_VERSION >= 0x01000106)
+    libusb_set_option(m_usbContext,LIBUSB_OPTION_LOG_LEVEL,LIBUSB_LOG_LEVEL_INFO);
+#else
+    libusb_set_debug(m_usbContext,LIBUSB_LOG_LEVEL_INFO);
+#endif
+
+    if(libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
+      ONDEBUG(m_log->info("usb hotplug notifications are available"));
+
+      int ret = libusb_hotplug_register_callback(
+          m_usbContext,
+          (libusb_hotplug_event) (LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED | LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT),
+          LIBUSB_HOTPLUG_ENUMERATE,
+          0x27d8,
+          0x16c0,
+          LIBUSB_HOTPLUG_MATCH_ANY,
+          &coms_usb_hotplug_callback,
+          this,
+          &m_hotplugCallbackHandle
+      );
+      if(ret != LIBUSB_SUCCESS) {
+        m_log->error("Failed to register hotplug callback.{}",libusb_error_name(ret));
+      }
+
+    } else {
+      m_log->warn("usb hotplug notifications are not available");
+    }
+
+    m_threadUSB = std::move(std::thread { [this]{ RunUSB(); } });
+  }
+
+  //! Destructor
+  ComsUSBHotPlugC::~ComsUSBHotPlugC()
+  {
+    if(libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
+      libusb_hotplug_deregister_callback(m_usbContext,m_hotplugCallbackHandle);
+    }
+
+    Close();
+
+    libusb_exit(m_usbContext);
+    m_usbContext = 0;
+  }
+
+  void ComsUSBHotPlugC::Close()
+  {
+    m_log->debug("Close called.");
+    m_terminate = true;
+    if(!m_mutexExitOk.try_lock_for(std::chrono::milliseconds(500))) {
+      m_log->error("Failed to shutdown receiver thread.");
+    }
+    m_threadUSB.join();
+  }
+
+  void ComsUSBHotPlugC::HotPlugArrivedCallback(libusb_device *device, libusb_hotplug_event event)
+  {
+    ONDEBUG(m_log->info("Got hotplug event {} ",(int) event));
+
+    struct libusb_device_descriptor desc;
+    int rc;
+
+    struct libusb_device_handle *handle = 0;
+
+    rc = libusb_get_device_descriptor(device, &desc);
+    if (LIBUSB_SUCCESS != rc) {
+      m_log->error("Error getting device descriptor");
+      return ;
+    }
+
+    if((rc = libusb_open(device,&handle)) != LIBUSB_SUCCESS) {
+      m_log->error("Error opening device. {} ",libusb_error_name(rc));
+      return ;
+    }
+
+    m_log->info("Device attached: {}:{} ", desc.idVendor, desc.idProduct);
+
+    const int buffSize = 128;
+    unsigned char buff[buffSize];
+    int retryCount = 3;
+    while(true) {
+      if((rc = libusb_get_string_descriptor_ascii(handle, desc.iSerialNumber, buff, buffSize)) >= 0)
+        break; // Success.
+      if(retryCount-- < 0)
+      {
+        m_log->error("Error getting serial number. {} ",libusb_error_name(rc));
+        libusb_close(handle);
+        handle = 0;
+        return ;
+      }
+      usleep(100000);
+    }
+    std::string serialNumber((char *)buff);
+    m_log->info("SerialNumber:{}  ",serialNumber);
+    if(serialNumber != "reactai.com:BMCV2") {
+      // Not our device.  Close handle.
+      libusb_close(handle);
+      handle = 0;
+      return ;
+    }
+
+
+    std::shared_ptr<ComsUSBC> newComs = std::make_shared<ComsUSBC>(m_usbContext,device,handle,m_router->Logger());
+
+    {
+      std::lock_guard<std::mutex> lock(m_accessTx);
+      m_usbDevices.push_back(newComs);
+    }
+
+    m_router->AddComs(newComs);
+
+  }
+
+  //! Handle hot plug callback.
+  void ComsUSBHotPlugC::HotPlugDepartedCallback(libusb_device *device, libusb_hotplug_event event)
+  {
+    m_log->info("Device departed. ");
+
+    std::unique_lock<std::mutex> lock(m_accessTx);
+    for(auto it = m_usbDevices.begin();it != m_usbDevices.end();it++) {
+      if((*it)->USBDevice() == device) {
+        std::shared_ptr<ComsUSBC> oldComs = *it;
+        m_usbDevices.erase(it);
+        lock.unlock();
+
+        m_router->RemoveComs(*it);
+        (*it)->CloseUSB();
+        m_log->info("Depart device removed. ");
+        return ;
+      }
+    }
+    m_log->info("Depart device not known. ");
+  }
+
+
+  //! Process received packet.
+
+  bool ComsUSBHotPlugC::RunUSB()
+  {
+    m_log->debug("Running receiver.");
+    int rc = 0;
+    while(!m_terminate) {
+      if((rc = libusb_handle_events(m_usbContext)) < 0) {
+        m_log->error("libusb_handle_events() failed: {}",libusb_error_name(rc));
+      }
+    }
+
+    m_mutexExitOk.unlock();
+    m_log->debug("Exiting receiver. ");
+
+    return true;
+  }
+
+
+  // ====================================================================
+
   static void usbTransferCB(struct libusb_transfer *transfer)
   {
     USBTransferDataC *transferData = (USBTransferDataC *)transfer->user_data;
@@ -38,13 +212,6 @@ namespace DogBotN
       transferData->ComsUSB()->ProcessInTransferIso(transferData);
     else if(endPoint == BMCUSB_DATA_OUT_EP)
       transferData->ComsUSB()->ProcessOutTransferIso(transferData);
-#if BMC_USE_USB_EXTRA_ENDPOINTS
-    else
-      if(endPoint == BMCUSB_INTR_IN_EP )
-      transferData->ComsUSB()->ProcessInTransferIntr(transferData);
-    else if(endPoint == BMCUSB_INTR_OUT_EP)
-      transferData->ComsUSB()->ProcessOutTransferIntr(transferData);
-#endif
     else
     {
       std::cerr << "Unexpected end point " << endPoint << std::endl;
@@ -79,7 +246,7 @@ namespace DogBotN
       endPoint = BMCUSB_DATA_IN_EP | 0x80;
     else
       endPoint = BMCUSB_DATA_OUT_EP;
-#if 1
+
     libusb_fill_iso_transfer(
         m_transfer,
         handle,
@@ -91,21 +258,6 @@ namespace DogBotN
         this,
         0
         );
-#else
-    m_transfer->dev_handle = handle;
-    if(direction == UTD_IN)
-      m_transfer->endpoint = BMCUSB_DATA_IN_EP | 0x80;
-    else
-      m_transfer->endpoint = BMCUSB_DATA_OUT_EP;
-    m_transfer->flags = 0;
-    m_transfer->type = LIBUSB_TRANSFER_TYPE_ISOCHRONOUS;
-    m_transfer->timeout = 0;
-    m_transfer->callback = usbTransferCB;
-    m_transfer->user_data = this;
-    m_transfer->buffer = m_buffer;
-    m_transfer->length = sizeof(m_buffer);
-    m_transfer->actual_length = sizeof(m_buffer);
-#endif
     m_transfer->num_iso_packets = 1;
     m_transfer->iso_packet_desc[0].actual_length = sizeof(m_buffer);
     m_transfer->iso_packet_desc[0].length = sizeof(m_buffer);
@@ -122,10 +274,19 @@ namespace DogBotN
 
   // ====================================================================
 
-  ComsUSBC::ComsUSBC(std::shared_ptr<spdlog::logger> &log)
-   : ComsC(log)
+
+  ComsUSBC::ComsUSBC(
+      struct libusb_context *usbContext,
+      struct libusb_device *device,
+      struct libusb_device_handle *handle,
+      std::shared_ptr<spdlog::logger> &log
+      )
+   : ComsC(log),
+     m_usbContext(usbContext),
+     m_device(device),
+     m_handle(handle)
   {
-    Init();
+    Open(handle);
   }
 
   //! default
@@ -177,109 +338,24 @@ namespace DogBotN
 
     libusb_close(m_handle);
     m_handle = 0;
-    m_device = 0;
   }
+
 
   // Disconnects and closes file descriptors
   ComsUSBC::~ComsUSBC()
   {
     m_terminate = true;
 
-    if(libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
-      libusb_hotplug_deregister_callback(m_usbContext,m_hotplugCallbackHandle);
-    }
-
     CloseUSB();
 
-    if(m_threadUSB.joinable())
-      m_threadUSB.join();
-
-    libusb_exit(m_usbContext);
-    m_usbContext = 0;
   }
 
 
-  static int coms_usb_hotplug_callback(libusb_context *ctx, libusb_device *device, libusb_hotplug_event event, void *user_data)
-  {
-    if(event == LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED)
-      ((ComsUSBC *) user_data)->HotPlugArrivedCallback(device,event);
-    if(event == LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT)
-      ((ComsUSBC *) user_data)->HotPlugDepartedCallback(device,event);
-    return 0;
-  }
-
-  //! Handle hot plug callback.
-  void ComsUSBC::HotPlugDepartedCallback(libusb_device *device, libusb_hotplug_event event)
-  {
-    if(m_device != device) {
-      m_log->info("Another device departed. ");
-      return ;
-    }
-    m_log->info("Device departed. ");
-
-    CloseUSB();
-    m_log->info("Close complete. ");
-  }
-
-
-  void ComsUSBC::HotPlugArrivedCallback(libusb_device *device, libusb_hotplug_event event)
-  {
-    m_log->info("Got hotplug event {} ",(int) event);
-    m_log->info("Device arrived ");
-
-    struct libusb_device_descriptor desc;
-    int rc;
-
-    rc = libusb_get_device_descriptor(device, &desc);
-    if (LIBUSB_SUCCESS != rc) {
-      m_log->error("Error getting device descriptor");
-      return ;
-    }
-
-    if(m_handle != 0) {
-      m_log->info("Drive already open. Ignoring device. ");
-      return ;
-    }
-    if((rc = libusb_open(device,&m_handle)) != LIBUSB_SUCCESS) {
-      m_log->error("Error opening device. {} ",libusb_error_name(rc));
-      return ;
-    }
-
-    m_log->info("Device attached: {}:{} ", desc.idVendor, desc.idProduct);
-
-    const int buffSize = 128;
-    unsigned char buff[buffSize];
-    int retryCount = 3;
-    while(true) {
-      if((rc = libusb_get_string_descriptor_ascii(m_handle, desc.iSerialNumber, buff, buffSize)) >= 0)
-        break; // Success.
-      if(retryCount-- < 0)
-      {
-        m_log->error("Error getting serial number. {} ",libusb_error_name(rc));
-        libusb_close(m_handle);
-        m_handle = 0;
-        return ;
-      }
-      usleep(100000);
-    }
-    std::string serialNumber((char *)buff);
-    m_log->info("SerialNumber:{}  ",serialNumber);
-    if(serialNumber != "reactai.com:BMCV2") {
-      // Not our device.  Close handle.
-      libusb_close(m_handle);
-      m_handle = 0;
-      return ;
-    }
-
-    m_device = device;
-
-    Open(m_handle);
-  }
 
   //! Open connection to device
   void ComsUSBC::Open(struct libusb_device_handle *handle)
   {
-    m_log->info("BMCV2 device open ");
+    ONDEBUG(m_log->info("BMCV2 device open "));
 
     int rc = libusb_claim_interface(handle, 0);
     if (rc != LIBUSB_SUCCESS) {
@@ -293,7 +369,7 @@ namespace DogBotN
     {
       std::lock_guard<std::mutex> lock(m_accessTx);
 
-      m_log->info("Active transfers on open: {} ",m_activeTransfers.size());
+      ONDEBUG(m_log->debug("Active transfers on open: {} ",m_activeTransfers.size()));
 
       // Setup a series of IN transfers.
       for(int i = 0;i < 2;i++) {
@@ -442,41 +518,12 @@ namespace DogBotN
     libusb_set_debug(m_usbContext,LIBUSB_LOG_LEVEL_INFO);
 #endif
 
-    if(libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
-      m_log->info("usb hotplug notifications are available");
-
-      int ret = libusb_hotplug_register_callback(
-          m_usbContext,
-          (libusb_hotplug_event) (LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED | LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT),
-          LIBUSB_HOTPLUG_ENUMERATE,
-          0x27d8,
-          0x16c0,
-          LIBUSB_HOTPLUG_MATCH_ANY,
-          &coms_usb_hotplug_callback,
-          this,
-          &m_hotplugCallbackHandle
-      );
-      if(ret != LIBUSB_SUCCESS) {
-        m_log->error("Failed to register hotplug callback.{}",libusb_error_name(ret));
-      }
-
-    } else {
-      m_log->info("usb hotplug notifications are not available");
-    }
-
-    m_threadUSB = std::move(std::thread { [this]{ RunUSB(); } });
 
   }
 
   //! Close connection
   void ComsUSBC::Close()
   {
-    m_log->debug("Close called.");
-    m_terminate = true;
-    if(!m_mutexExitOk.try_lock_for(std::chrono::milliseconds(500))) {
-      m_log->error("Failed to shutdown receiver thread.");
-    }
-    m_threadUSB.join();
   }
 
   //! Is connection ready ?
@@ -493,25 +540,6 @@ namespace DogBotN
     return true;
   }
 
-  //! Process received packet.
-
-  bool ComsUSBC::RunUSB()
-  {
-    m_log->debug("Running receiver.");
-    int rc = 0;
-    while(!m_terminate) {
-      if((rc = libusb_handle_events(m_usbContext)) < 0) {
-        m_log->error("libusb_handle_events() failed: {}",libusb_error_name(rc));
-      }
-    }
-
-    CloseUSB();
-
-    m_mutexExitOk.unlock();
-    m_log->debug("Exiting receiver. ");
-
-    return true;
-  }
 
   void ComsUSBC::SendTxQueue(USBTransferDataC *txBuffer)
   {

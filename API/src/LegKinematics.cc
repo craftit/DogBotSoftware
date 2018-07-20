@@ -4,6 +4,13 @@
 #include <assert.h>
 #include <iostream>
 
+#define DODEBUG 0
+#if DODEBUG
+#define ONDEBUG(x) x
+#else
+#define ONDEBUG(x)
+#endif
+
 namespace DogBotN {
 
   static float Sqr(float val)
@@ -26,8 +33,8 @@ namespace DogBotN {
      m_l2(l2)
   {
     Init();
-    std::cout << " Name:" << m_name << "  Origin:" << m_legOrigin[0] << " " << m_legOrigin[1] << " " << m_legOrigin[2] << " " << std::endl;
-    std::cout << "  Leg: L1=" << m_l1 << " L2=" << m_l2 << " linkA=" << m_linkA << " linkB=" << m_linkB << " LinkH=" << m_linkH << std::endl;
+    ONDEBUG(std::cout << " Name:" << m_name << "  Origin:" << m_legOrigin[0] << " " << m_legOrigin[1] << " " << m_legOrigin[2] << " " << std::endl);
+    ONDEBUG(std::cout << "  Leg: L1=" << m_l1 << " L2=" << m_l2 << " linkA=" << m_linkA << " linkB=" << m_linkB << " LinkH=" << m_linkH << std::endl);
   }
 
   //! Configure from JSON
@@ -69,8 +76,8 @@ namespace DogBotN {
       m_legOrigin[1] = -m_bodyLength/2.0;
       m_legOrigin[2] = 0;
     }
-    std::cout << " Name:" << m_name << "  Origin:" << m_legOrigin[0] << " " << m_legOrigin[1] << " " << m_legOrigin[2] << " " << std::endl;
-    std::cout << "  Leg: L1=" << m_l1 << " L2=" << m_l2 << " linkA=" << m_linkA << " linkB=" << m_linkB << " LinkH=" << m_linkH << std::endl;
+    ONDEBUG(std::cout << " Name:" << m_name << "  Origin:" << m_legOrigin[0] << " " << m_legOrigin[1] << " " << m_legOrigin[2] << " " << std::endl);
+    ONDEBUG(std::cout << "  Leg: L1=" << m_l1 << " L2=" << m_l2 << " linkA=" << m_linkA << " linkB=" << m_linkB << " LinkH=" << m_linkH << std::endl);
     Init();
     return true;
   }

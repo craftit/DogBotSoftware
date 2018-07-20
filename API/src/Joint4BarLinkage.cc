@@ -4,6 +4,13 @@
 #include "dogbot/DogBotAPI.hh"
 #include "dogbot/Util.hh"
 
+#define DODEBUG 0
+#if DODEBUG
+#define ONDEBUG(x) x
+#else
+#define ONDEBUG(x)
+#endif
+
 namespace DogBotN {
 
   //! Default constructor
@@ -30,7 +37,7 @@ namespace DogBotN {
       if(m_maxAngle < m_minAngle) {
         std::swap(m_maxAngle,m_minAngle);
       }
-      std::cerr << "Joint " << Name() << " Angle range: " << Rad2Deg(m_minAngle) << " " << Rad2Deg(m_maxAngle) << std::endl;
+      ONDEBUG(std::cerr << "Joint " << Name() << " Angle range: " << Rad2Deg(m_minAngle) << " " << Rad2Deg(m_maxAngle) << std::endl);
     }
   }
 
@@ -82,6 +89,8 @@ namespace DogBotN {
     float ratio = m_legKinematics->LinkageSpeedRatio(theta,position);
 
     drivePosition = theta + (refPosition * m_refGain + m_refOffset);
+    if(drivePosition < -M_PI) drivePosition += 2 * M_PI;
+    if(drivePosition > M_PI) drivePosition -= 2 * M_PI;
     driveTorque = torque / ratio + refTorque/m_refGain;
     return true;
   }

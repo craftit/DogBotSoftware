@@ -135,6 +135,9 @@ namespace DogBotN {
     //! Initiate an emergency stop
     void EmergencyStop();
 
+    //! Set velocity limit for all connected servos.
+    void SetVelocityLimit(float velocityLimit);
+
     //! Set all supply voltage calibration values to 1
     bool SetSupplyVoltageScaleToOne();
 
@@ -169,10 +172,12 @@ namespace DogBotN {
 
     //! Get list of configured servos
     //! These are actual devices on the robot. These are 'actuators' in ROS speak.
+    //! Note: List order is unspecified.
     std::vector<std::shared_ptr<ServoC> > ListServos();
 
     //! Get a list of virtual joints giving a simplified picture of the robot.
     //! The 4 bar linkage used for the knees is converted to look like a set of independent joints.
+    //! Note: List order is unspecified.
     std::vector<std::shared_ptr<JointC> > ListJoints();
 
     //! Shutdown controller.

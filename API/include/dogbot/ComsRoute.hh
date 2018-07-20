@@ -54,7 +54,7 @@ namespace DogBotN {
       CallbackHandleC m_callBack;
       std::shared_ptr<ComsC> m_coms;
     };
-
+    bool m_verbose = false;
     std::vector<ComsChannelC> m_coms; // Array of coms handles
     std::vector<std::shared_ptr<ComsC> > m_route; // Coms class to use for each device, index by device id
     mutable std::mutex m_accessTx;

@@ -197,11 +197,19 @@
       <child link="${prefix}_${suffix}_lowerleg"/>
       <origin xyz="${upperleglen * reflectx} 0 0" rpy="0 0 0"/>
       <limit 
-         lower ="${reflectx *-1.63201375031 - 0.923235541074 }" 
-         upper ="${reflectx *-1.63201375031 + 0.923235541074 }" 
+         lower ="${reflectx *-1.63201375031 - 0.9232 }" 
+         upper ="${reflectx *-1.63201375031 + 0.9232 }" 
          effort="1000" velocity="10.0" 
        />
     </joint>
+        
+<!-- 
+    <gazebo reference="${prefix}_${suffix}_knee_joint">
+      <implicitSpringDamper>true</implicitSpringDamper>
+      <springStiffness>1000</springStiffness>
+      <springReference>0</springReference>
+    </gazebo>
+ -->
 
     <link name="${prefix}_${suffix}_foot">
       <visual>
@@ -299,7 +307,7 @@
       <referenceLongitude>0.1278</referenceLongitude>
     </plugin>
   </gazebo>
-
+  
   <!-- Gazebo plugin for ROS Control -->
   <gazebo>
     <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">

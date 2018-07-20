@@ -5,6 +5,13 @@
 #include <chrono>
 #include <thread>
 
+#define DODEBUG 0
+#if DODEBUG
+#define ONDEBUG(x) x
+#else
+#define ONDEBUG(x)
+#endif
+
 namespace DogBotN {
 
   PlatformManagerC::PlatformManagerC(std::shared_ptr<DogBotAPIC> &api)
@@ -149,7 +156,7 @@ namespace DogBotN {
   //! Run activity
   void PlatformManagerC::Run()
   {
-    m_log->info("Starting platform manager thread.");
+    ONDEBUG(m_log->info("Starting platform manager thread."));
     while(m_isRunning) {
       // Are we being asked to abort the current activity ?
       // We probably need to be a bit more careful than this.
@@ -207,7 +214,7 @@ namespace DogBotN {
           std::this_thread::sleep_for(std::chrono::seconds(1));
       }
     }
-    m_log->info("Exiting platform manager thread.");
+    ONDEBUG(m_log->info("Exiting platform manager thread."));
   }
 
 

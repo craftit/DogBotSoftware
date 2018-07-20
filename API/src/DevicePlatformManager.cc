@@ -3,6 +3,13 @@
 #include "dogbot/Strings.hh"
 #include <time.h>
 
+#define DODEBUG 0
+#if DODEBUG
+#define ONDEBUG(x) x
+#else
+#define ONDEBUG(x)
+#endif
+
 namespace DogBotN
 {
 
@@ -11,7 +18,7 @@ namespace DogBotN
    : DeviceC(coms,deviceId)
   {
     SetDeviceName("PlatformManager");
-    m_log->info("DevicePlaformManager created {} ",deviceId);
+    ONDEBUG(m_log->info("DevicePlaformManager created {} ",deviceId));
   }
 
   // Construct with announce packet.
@@ -19,7 +26,7 @@ namespace DogBotN
    : DeviceC(coms,deviceId,pktAnnounce)
   {
     SetDeviceName("PlatformManager");
-    m_log->info("DevicePlaformManager created {} ",deviceId);
+    ONDEBUG(m_log->info("DevicePlaformManager created {} ",deviceId));
   }
 
   //! Get the servo configuration as JSON
@@ -45,7 +52,7 @@ namespace DogBotN
     if(m_activityKey == 0) {
       m_activityKey = getpid() + clock();
     }
-    m_log->info("Sending start activity: {} ",DogBotN::ComsPlatformActivityToString(pa));
+    ONDEBUG(m_log->info("Sending start activity: {} ",DogBotN::ComsPlatformActivityToString(pa)));
     m_coms->SendSetPlaformActivity(m_id,m_activityKey,pa);
 
     return true;
@@ -54,7 +61,7 @@ namespace DogBotN
   //! Stop current activity
   bool DevicePlatformManagerC::StopActivity()
   {
-    m_log->info("Sending stop activity");
+    ONDEBUG(m_log->info("Sending stop activity"));
     m_coms->SendSetPlaformActivity(m_id,m_activityKey,PA_Idle);
     return true;
   }
@@ -62,7 +69,7 @@ namespace DogBotN
   //! Stop any activity
   bool DevicePlatformManagerC::AbortActivity()
   {
-    m_log->info("Sending abort activity");
+    ONDEBUG(m_log->info("Sending abort activity"));
     m_coms->SendSetPlaformActivity(m_id,0,PA_Idle);
     return true;
   }

@@ -4,6 +4,13 @@
 #include "dogbot/DogBotAPI.hh"
 #include "dogbot/Util.hh"
 
+#define DODEBUG 0
+#if DODEBUG
+#define ONDEBUG(x) x
+#else
+#define ONDEBUG(x)
+#endif
+
 namespace DogBotN {
 
   //! Default constructor
@@ -261,12 +268,63 @@ namespace DogBotN {
     return true;
   }
 
-
   //! Demand a position for the servo
   bool JointRelativeC::DemandPosition(float position,float torqueLimit)
   {
     JointC::DemandPosition(position,torqueLimit);
     return UpdateDemand();
   }
+
+  //! Set the trajectory
+  //! update period in seconds, torque limit in Newton-meters
+  bool JointRelativeC::SetupTrajectory(float updatePeriod,float torqueLimit)
+  {
+    if(!m_jointDrive)
+      return false;
+    return m_jointDrive->SetupTrajectory(updatePeriod,torqueLimit);
+  }
+
+  //! Demand a next position in a trajectory
+  //! position in radians,
+  //! torque in Newton-meters
+  bool JointRelativeC::DemandTrajectory(float position,float torque)
+  {
+    double refPosition = 0;
+    double refVelocity = 0;
+    double refTorque = 0;
+    JointC::DemandTrajectory(position,torque);
+
+    if(!m_jointRef) {
+      m_logJoint->warn("No reference joint setup for {}",m_jointRef->Name());
+      return false;
+    }
+    if(!m_jointDrive) {
+      m_logJoint->warn("No drive joint setup for {}",m_jointRef->Name());
+      return false;
+    }
+
+    //! Do we have a demand from the reference joint ?
+    if(!m_jointRef->GetDemandTrajectory(refPosition,refTorque)) {
+      m_logJoint->info("Failed to get reference joint demand for {}",m_jointRef->Name());
+      return false;
+    }
+
+    double drivePosition = 0;
+    double driveTorque = 0;
+    if(!Simple2Raw(
+        refPosition,refTorque,
+        m_demandPosition,torque,
+        drivePosition,driveTorque)) {
+      m_logJoint->info("Failed calculate demand for {}",m_jointDrive->Name());
+      return false;
+    }
+    //driveTorqueLimit = Max(1.0,fabs(driveTorqueLimit));
+    //driveTorque = 0;
+
+    ONDEBUG(m_logJoint->info("Setting demand angle for {} to {} with torque {} ",m_jointDrive->Name(),Rad2Deg(drivePosition),driveTorque));
+
+    return m_jointDrive->DemandTrajectory(drivePosition,driveTorque);
+  }
+
 
 }

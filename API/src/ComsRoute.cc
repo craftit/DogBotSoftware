@@ -43,7 +43,7 @@ namespace DogBotN
                                               while(m_route.size() <= destId)
                                                 m_route.push_back(std::shared_ptr<ComsC>());
                                             }
-                                            m_log->info("Adding route for device {} ",destId);
+                                            if(m_verbose) m_log->info("Adding route for device {} ",destId);
                                             m_route[destId] = coms;
                                           }
                                         }

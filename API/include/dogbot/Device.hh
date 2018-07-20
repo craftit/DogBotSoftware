@@ -84,6 +84,9 @@ namespace DogBotN {
     //! Returns true if a value has changed.
     virtual bool HandlePacketReportParam(const PacketParam8ByteC &pkt,int size);
 
+    //! Handle pong packet
+    virtual void HandlePacketPong(const struct PacketPingPongC *pkt);
+
     //! Tick from main loop
     //! Used to check for communication timeouts.
     //! Returns true if state changed.

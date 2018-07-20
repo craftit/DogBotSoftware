@@ -8,9 +8,17 @@
 #include "dogbot/ComsZMQServer.hh"
 #include "dogbot/ComsRecorder.hh"
 #include "dogbot/ComsRoute.hh"
+#include "dogbot/ComsUSB.hh"
 #include "dogbot/PlatformManager.hh"
 #include "cxxopts.hpp"
 #include <sched.h>
+
+#define DODEBUG 0
+#if DODEBUG
+#define ONDEBUG(x) x
+#else
+#define ONDEBUG(x)
+#endif
 
 // This provides a network interface for controlling the servos via ZMQ.
 
@@ -68,18 +76,21 @@ int main(int argc,char **argv)
   }
 
 
-  logger->info("Starting dogBotServer");
+  ONDEBUG(logger->info("Starting dogBotServer"));
   logger->info("Manager mode: {}",managerMode);
   logger->info("Using config file: '{}'",configFile);
   logger->info("Using communication type: '{}'",devFilename);
   logger->info("Communication log: '{}'",logFile);
 
   std::shared_ptr<DogBotN::ComsRouteC> coms = std::make_shared<DogBotN::ComsRouteC>();
-
-
-  if(!coms->Open(devFilename)) {
-    logger->error("Failed to open {} ",devFilename);
-    return 1;
+  std::shared_ptr<DogBotN::ComsUSBHotPlugC> hotPlug;
+  if(devFilename == "usb") {
+    hotPlug = std::make_shared<DogBotN::ComsUSBHotPlugC>(coms);
+  } else {
+    if(!coms->Open(devFilename)) {
+      logger->error("Failed to open {} ",devFilename);
+      return 1;
+    }
   }
   if(!devIMUFilename.empty()) {
     if(!coms->Open(devIMUFilename)) {
@@ -112,7 +123,7 @@ int main(int argc,char **argv)
     logRecorder->Start();
   }
 
-  logger->info("Setup and ready. ");
+  ONDEBUG(logger->info("Setup and ready. "));
 
   server.Run(zmqAddress);
 

@@ -43,9 +43,10 @@ int main(int argc, char **argv)
 
   DogBotN::DogBotControllerROSC legs(robotns,dogBotKinematics);
 
+  sleep(3);
+
   float updatePeriod = 1.0f/loopHz;
   legs.SetupTrajectory(updatePeriod,15);
-
 
 
   DogBotN::SplineGaitControllerC gaitGenerator;
@@ -55,7 +56,7 @@ int main(int argc, char **argv)
 
   ros::Timer timer1 = n.createTimer(ros::Duration(updatePeriod), [&legs,&gaitGenerator,updatePeriod](const ros::TimerEvent &te){
     //! Do a single timestep
-    std::cout << "Update. " << std::endl;
+    //std::cout << "Update. " << std::endl;
     DogBotN::SimpleQuadrupedPoseC pose;
     gaitGenerator.Step(updatePeriod,pose);
     legs.NextTrajectory(pose);

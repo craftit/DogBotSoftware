@@ -229,6 +229,8 @@ namespace DogBotN {
     { return m_firmwareVersion >= 0; }
 
     //! Check if the motor firmware version matches API.
+    //! Note, if the device is not present this will return false.
+    //! you can check this with the 'IsPresent()' method.
     bool IsFirmwareVersionOk() const;
 
     //! Access update tick duration
