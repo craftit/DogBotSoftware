@@ -30,7 +30,8 @@
     </include>
   </group>
  
-  <node name="dogbot_simplegait_node" pkg="dogbot_simplegait" type="dogbot_simplegait_node" launch-prefix="xterm -hold -e" >
+   <!-- Useful for debug: launch-prefix="xterm -hold -e" -->
+  <node name="dogbot_simplegait_node" pkg="dogbot_simplegait" type="dogbot_simplegait_node"  >
     <param name="loop_hz" value="50" />
     <param name="omega" value="1.0" />
   </node>

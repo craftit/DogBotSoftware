@@ -44,6 +44,9 @@ class JointC
     bool DemandTrajectory(float position,float torque = 0);
 
     //! Goto a given angle
+    //! This follows a trapezoid velocity to the goal position, accelerating
+    //! at its torque limit up to the current velocity limit, then decelerating 
+    //! as it reaches the given position. 
     bool DemandPosition(float position,float torqueLimit);
   
     //! Get last reported state of the servo and the time it was taken in seconds.

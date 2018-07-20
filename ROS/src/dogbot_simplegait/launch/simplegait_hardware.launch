@@ -16,7 +16,8 @@
     <arg name="namespace" value="$(arg namespace)" />
   </include>  
   
-  <node name="dogbot_simplegait_node" pkg="dogbot_simplegait" type="dogbot_simplegait_node" launch-prefix="xterm -hold -e" >
+   <!-- Useful for debug: launch-prefix="xterm -hold -e" -->
+  <node name="dogbot_simplegait_node" pkg="dogbot_simplegait" type="dogbot_simplegait_node"  >
     <param name="loop_hz" value="50" />
     <param name="omega" value="0.5" />
   </node>
