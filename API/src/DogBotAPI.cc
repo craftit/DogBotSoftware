@@ -133,9 +133,11 @@ namespace DogBotN {
         m_deviceManagerMode = DMM_ClientOnly;
       doOpen = false;
     } else if(name == "usb") {
-      m_coms = std::make_shared<ComsUSBC>();
+      //m_coms = std::make_shared<ComsUSBC>();
       if(m_deviceManagerMode == DMM_Auto)
         m_deviceManagerMode = DMM_DeviceManager;
+      m_log->error("Direct USB connection not supported.");
+      return false;
     } else {
       m_coms = std::make_shared<ComsSerialC>();
       if(m_deviceManagerMode == DMM_Auto)
