@@ -81,7 +81,7 @@ namespace DogBotN {
     //! Construct from hotplug
     ComsUSBC(struct libusb_context *usbContext,libusb_device *device,struct libusb_device_handle *handle,std::shared_ptr<spdlog::logger> &log);
 
-    //! default
+    //! This isn't useful anymore as there is currently no way to pick the device.
     ComsUSBC();
 
     //! Destructor

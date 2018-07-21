@@ -5,6 +5,13 @@
 #include "dogbot/ComsUSB.hh"
 #include <iostream>
 
+#define DODEBUG 0
+#if DODEBUG
+#define ONDEBUG(x) x
+#else
+#define ONDEBUG(x)
+#endif
+
 namespace DogBotN
 {
 
@@ -120,7 +127,10 @@ namespace DogBotN
       prefix = portAddr.substr(0,colonAt);
     }
     if(std::string("usb") == portAddr) {
-      coms = std::make_shared<ComsUSBC>();
+      // FIXME:- We could start a hotplug interface here.
+      m_log->error("Direct USB connection not supported.");
+      return false;
+      //coms = std::make_shared<ComsUSBC>();
     } else if(std::string("local") == portAddr || prefix == "tcp" || prefix == "udp") {
       coms = std::make_shared<ComsZMQClientC>();
     } else {

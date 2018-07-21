@@ -66,7 +66,9 @@ namespace DogBotN
     }
     std::cerr << "Got prefix '" << prefix << "' " << std::endl;
     if(std::string("usb") == portAddr) {
-      coms = std::make_shared<ComsUSBC>();
+      ///coms = std::make_shared<ComsUSBC>();
+
+      return false;
     } else if(std::string("local") == portAddr || prefix == "tcp" || prefix == "udp") {
       coms = std::make_shared<ComsZMQClientC>();
     } else {

@@ -83,7 +83,7 @@ namespace DogBotN {
 
     bool m_indicator = false;
 
-    enum DeviceTypeT m_deviceType;
+    enum DeviceTypeT m_deviceType = DT_Unknown;
     uint32_t m_nodeUId1 = 0x01234567;
     uint32_t m_nodeUId2 = 0x89012346;
     uint8_t m_deviceId = 0;
