@@ -80,8 +80,8 @@ MainWindow::MainWindow(QWidget *parent) :
   startTimer(10);
 
   m_displayQuery.push_back(CPI_ControlState);
-  m_displayQuery.push_back(CPI_SafetyMode);
   m_displayQuery.push_back(CPI_FaultCode);
+  m_displayQuery.push_back(CPI_SafetyMode);
   m_displayQuery.push_back(CPI_HomedState);
   m_displayQuery.push_back(CPI_PositionRef);
   m_displayQuery.push_back(CPI_PWMMode);
@@ -120,7 +120,10 @@ MainWindow::MainWindow(QWidget *parent) :
 
 void MainWindow::timerEvent(QTimerEvent *)
 {
-  if(m_toQuery < (int) m_displayQuery.size() && m_coms->IsReady()) {
+  if(m_toQuery < (int) m_displayQuery.size()
+     && m_coms->IsReady()
+     && (m_targetControlState != CS_BootLoader || m_toQuery < 2)
+     ) {
     m_coms->SendQueryParam(m_targetDeviceId,m_displayQuery[m_toQuery]);
     m_toQuery++;
   }
@@ -209,6 +212,7 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
   case CPI_ControlState: {
     enum ControlStateT controlState = (enum ControlStateT) psp->m_data.uint8[0];
     if(psp->m_header.m_deviceId == m_targetDeviceId) {
+      m_targetControlState = controlState;
       emit setControlState(DogBotN::ControlStateToString(controlState));
     }
     ret = false;

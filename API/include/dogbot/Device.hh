@@ -78,7 +78,7 @@ namespace DogBotN {
     virtual void UpdateComs(const std::shared_ptr<ComsC> &coms);
 
     //! Handle an announce packet
-    bool HandlePacketAnnounce(const PacketDeviceIdC &pkt,bool isManager);
+    virtual bool HandlePacketAnnounce(const PacketDeviceIdC &pkt,bool isManager);
 
     //! Handle parameter update.
     //! Returns true if a value has changed.

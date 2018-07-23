@@ -37,6 +37,8 @@ float g_fanTemperatureThreshold = 40.0;
 float g_averageBusVoltage = 20.0;
 int g_safeStopTimer = 0;
 int g_safeStopTimeout = 7500;
+int g_deviceZeroTimeout = 5; // If we have no id announce ourselves every second or so.
+int g_deviceZeroTimer = 0;
 
 /*
  * This is a periodic thread that does nothing except flashing
@@ -149,7 +151,7 @@ void FaultWarning(enum FaultCodeT faultCode)
   SendParamUpdate(CPI_FaultCode);
 }
 
-void FaultDetected(enum FaultCodeT faultCode,bool fatal)
+void FaultDetected(enum FaultCodeT faultCode)
 {
   if(faultCode == FC_Ok)
     return ;
@@ -583,8 +585,15 @@ int main(void) {
         break;
       case CS_SelfTest:
         break;
-      case CS_BootLoader:
       case CS_Standby:
+      case CS_BootLoader: {
+        if(g_deviceId == 0) {
+          if(g_deviceZeroTimer++ > g_deviceZeroTimeout) {
+            g_deviceZeroTimer = 0;
+            CANSendAnnounceId();
+          }
+        }
+      }
       case CS_Fault:
         chThdSleepMilliseconds(200);
         SendBackgroundStateReport();

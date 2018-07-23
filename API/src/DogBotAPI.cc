@@ -150,7 +150,7 @@ namespace DogBotN {
     }
     {
       std::lock_guard<std::mutex> lock(m_mutexDevices);
-      for(auto &a : m_devices)
+      for(auto &a : m_deviceById)
         if(a) a->UpdateComs(m_coms);
     }
     return true;
@@ -550,11 +550,11 @@ namespace DogBotN {
     std::shared_ptr<DeviceC> ret;
     std::lock_guard<std::mutex> lock(m_mutexDevices);
     // Is the device present ?
-    for(int i = 0;i < m_devices.size();i++) {
-      if(!m_devices[i])
+    for(int i = 0;i < m_deviceById.size();i++) {
+      if(!m_deviceById[i])
         continue;
-      if(m_devices[i]->HasUID(uid1,uid2)) {
-        ret = m_devices[i];
+      if(m_deviceById[i]->HasUID(uid1,uid2)) {
+        ret = m_deviceById[i];
         break;
       }
     }
@@ -604,47 +604,30 @@ namespace DogBotN {
           uint32_t uid1 = deviceConf.get("uid1",0u).asUInt();
           uint32_t uid2 = deviceConf.get("uid2",0u).asUInt();
 
+#if 0
           int reqId = deviceConf.get("deviceId",0u).asInt();
-          std::string deviceType = deviceConf.get("device_type","servo").asString();
           // Ignore silly ids
           if(reqId > 255 || reqId < 0)
             reqId = 0;
+#endif
+
+          std::string deviceType = deviceConf.get("device_type","servo").asString();
+
           {
             std::lock_guard<std::mutex> lock(m_mutexDevices);
             // Is the device present ?
-            for(int i = 0;i < m_devices.size();i++) {
-              if(!m_devices[i])
+            for(int i = 0;i < m_deviceById.size();i++) {
+              if(!m_deviceList[i])
                 continue;
-              if(m_devices[i]->HasUID(uid1,uid2)) {
-                deviceId = i;
-                device = m_devices[i];
+              if(m_deviceList[i]->HasUID(uid1,uid2)) {
+                device = m_deviceList[i];
                 break;
               }
             }
-            // Go with the requested configuration id if we can.
-            if(deviceId == 0 && reqId != 0) {
-              if(m_devices.size() > reqId) {
-                if(!m_devices[reqId]) {
-                  deviceId = reqId;
-                  if(deviceId > 0) {
-                    device = MakeDevice(deviceId,deviceType);
-                    m_devices[deviceId] = device;
-                  }
-                }
-              } else {
-                while(m_devices.size() < reqId)
-                  m_devices.push_back(std::shared_ptr<ServoC>());
-                deviceId = reqId;
-                device = MakeDevice(deviceId,deviceType);
-                m_devices.push_back(device);
-                op = SUT_Add;
-              }
-            }
-            // Still no luck... just append it.
-            if(deviceId == 0) {
-              deviceId = (int) m_devices.size();
-              device = MakeDevice(deviceId,deviceType);
-              m_devices.push_back(device);
+            if(!device) {
+              device = MakeDevice(0,deviceType);
+              device->SetUID(uid1,uid2);
+              m_deviceList.push_back(device);
               op = SUT_Add;
             }
           }
@@ -684,7 +667,7 @@ namespace DogBotN {
       std::lock_guard<std::mutex> lock(m_mutexDevices);
       Json::Value deviceList;
       int index =0;
-      for(auto &a : m_devices) {
+      for(auto &a : m_deviceById) {
         if(!a)
           continue;
         a->ConfigAsJSON(deviceList[index++]);
@@ -729,10 +712,10 @@ namespace DogBotN {
     std::lock_guard<std::mutex> lock(m_mutexDevices);
 
     // The device clearly exists, so make sure there is an entry.
-    if(deviceId >= m_devices.size() || deviceId < 0)
+    if(deviceId >= m_deviceById.size() || deviceId < 0)
       return std::shared_ptr<ServoC>();
-    ret = std::dynamic_pointer_cast<ServoC>(m_devices[deviceId]);
-    if(!ret && m_devices[deviceId])
+    ret = std::dynamic_pointer_cast<ServoC>(m_deviceById[deviceId]);
+    if(!ret && m_deviceById[deviceId])
       m_log->warn("Device {} not a servo. ",deviceId);
     return ret;
   }
@@ -743,9 +726,9 @@ namespace DogBotN {
     std::lock_guard<std::mutex> lock(m_mutexDevices);
 
     // The device clearly exists, so make sure there is an entry.
-    if(deviceId >= m_devices.size() || deviceId < 0)
+    if(deviceId >= m_deviceById.size() || deviceId < 0)
       return std::shared_ptr<DeviceC>();
-    return m_devices[deviceId];
+    return m_deviceById[deviceId];
   }
 
   void DogBotAPIC::HandlePacketAnnounce(const PacketDeviceIdC &pkt)
@@ -755,65 +738,82 @@ namespace DogBotN {
     DeviceTypeT deviceType = (DeviceTypeT) ((int) pkt.m_idBytes[3] >> 4);
     if(deviceType == DT_Unknown)
       deviceType = DT_MotorDriver;
-    if(pkt.m_deviceId == 0)
-      m_log->info("Handling device announcement 0x{:08x} 0x{:08x} Type:{} Id:{} ",pkt.m_uid[0],pkt.m_uid[1],ComsDeviceTypeToString(deviceType),(int) pkt.m_deviceId);
-    ServoUpdateTypeT updateType = SUT_Updated;
-    // Check device id is
-    if(deviceId != 0) {
-      // Check device ids match
-      device = DeviceEntry(deviceId);
-      // If no entry found.
-      if(!device) {
-        assert(deviceId <= 255 && deviceId >= 0);
+    uint32_t uid1 = pkt.m_uid[0];
+    uint32_t uid2 = pkt.m_uid[1];
 
-        // Add entry to table with existing id.
-        std::lock_guard<std::mutex> lock(m_mutexDevices);
-        while(m_devices.size() <= deviceId)
-          m_devices.push_back(nullptr);
-        // Look through things previously flagged as unassigned.
-        for(int i = 0;i < m_unassignedDevices.size();i++) {
-          if(m_unassignedDevices[i]->HasUID(pkt.m_uid[0],pkt.m_uid[1])) {
-            // Found it!
-            device = m_unassignedDevices[i];
-            m_unassignedDevices.erase(m_unassignedDevices.begin() + i);
-            break;
-          }
+    if(pkt.m_deviceId == 0)
+      m_log->info("Handling device announcement 0x{:08x} 0x{:08x} Type:{} Id:{} ",uid1,uid2,ComsDeviceTypeToString(deviceType),(int) pkt.m_deviceId);
+    ServoUpdateTypeT updateType = SUT_Updated;
+
+    // Do we know about this device ?
+    {
+      std::unique_lock<std::mutex> lock(m_mutexDevices);
+      // Is the device present ?
+      for(auto &a : m_deviceList) {
+        if(!a)
+          continue;
+        if(a->HasUID(uid1,uid2)) {
+          device = a;
+          if(deviceId == 0)
+            deviceId = device->Id(); // Use the one from the config if possible.
+          break;
         }
-        if(!device)
-          device = MakeDevice(deviceId,pkt);
-        m_devices[deviceId] = device;
+      }
+      // If we don't know about this device, add it
+      if(!device) {
+        device = MakeDevice(deviceId,pkt);
+        m_deviceList.push_back(device);
         updateType = SUT_Add;
-      } else {
-        // Check existing device id matches
-        if(!device->HasUID(pkt.m_uid[0],pkt.m_uid[1])) {
-          // Conflicting id's detected.
+      }
+      assert(deviceId <= 255 && deviceId >= 0);
+      if(deviceId > 0) {
+        // Make sure we have an entry
+        while(m_deviceById.size() <= deviceId)
+          m_deviceById.push_back(nullptr);
+
+        std::shared_ptr<DeviceC> &existingDevice = m_deviceById[deviceId];
+        if(!existingDevice) {
+          // Make sure it hasn't got another entry in the table.
+          if(device->Id() != deviceId &&
+              device->Id() != 0 &&
+              m_deviceById[device->Id()] == device
+              ) {
+            m_deviceById[device->Id()].reset();
+          }
+
+          // Look through things previously flagged as unassigned.
+          for(int i = 0;i < m_unassignedDevices.size();i++) {
+            if(m_unassignedDevices[i] == device) {
+              // Found it!
+              m_unassignedDevices.erase(m_unassignedDevices.begin() + i);
+              break;
+            }
+          }
+
+          // Change device id
+          device->SetId(deviceId);
+          existingDevice = device;
+
+        } else if(existingDevice != device) {
           deviceId = 0; // Treat device as if it is unassigned.
-          if(m_deviceManagerMode == DMM_DeviceManager)
-            m_coms->SendSetDeviceId(0,pkt.m_uid[0],pkt.m_uid[1]); // Stop it using the conflicting address.
+          device->SetId(0);
           m_log->error(
-             "Conflicting ids detected for device {}, with uid {}-{} and existing device {}-{} '{}' ",
-             (int) pkt.m_deviceId,pkt.m_uid[0],pkt.m_uid[1],
+             "Conflicting ids detected for device {}, with uid {:08x}-{:08x} and existing device {:08x}-{:08x} '{}' ",
+             (int) pkt.m_deviceId,uid1,uid2,
              device->UId1(),device->UId2(),device->DeviceName()
              );
+          if(m_deviceManagerMode == DMM_DeviceManager) {
+            lock.unlock();
+            m_coms->SendSetDeviceId(0,uid1,uid2); // Stop it using the conflicting address.
+            lock.lock();
+          }
         }
       }
-    }
-    if(deviceId == 0) {
-      // Look through devices for a matching id.
-      std::lock_guard<std::mutex> lock(m_mutexDevices);
-      // 0 is a reserved id, so start from 1
-      for(int i = 1;i < m_devices.size();i++) {
-        if(m_devices[i] && m_devices[i]->HasUID(pkt.m_uid[0],pkt.m_uid[1])) {
-          deviceId = i;
-          device = m_devices[i];
-        }
-      }
-      // No matching id found ?
-      if(!device && m_deviceManagerMode == DMM_DeviceManager) {
-        device = MakeDevice(0,pkt);
+
+      if(deviceId == 0 && m_deviceManagerMode == DMM_DeviceManager) {
         m_timeLastUnassignedUpdate = std::chrono::steady_clock::now();
         for(auto &a : m_unassignedDevices) {
-          if(a->HasUID(pkt.m_uid[0],pkt.m_uid[1])) {
+          if(a->HasUID(uid1,uid2)) {
             return ; // Already in list.
           }
         }
@@ -821,6 +821,7 @@ namespace DogBotN {
         return ;
       }
     }
+
     assert(device || m_deviceManagerMode != DMM_DeviceManager);
     if(device) {
       device->HandlePacketAnnounce(pkt,m_deviceManagerMode == DMM_DeviceManager);
@@ -1046,7 +1047,7 @@ namespace DogBotN {
           std::vector<std::shared_ptr<DeviceC> > devicesList;
           {
             std::lock_guard<std::mutex> lock(m_mutexDevices);
-            devicesList = m_devices;
+            devicesList = m_deviceById;
             if(m_unassignedDevices.size() > 0) {
               std::chrono::duration<double> elapsed_seconds = now-m_timeLastUnassignedUpdate;
               //std::cerr << "Time: " << elapsed_seconds.count() << std::endl;
@@ -1060,8 +1061,10 @@ namespace DogBotN {
               DeviceStatusUpdate(a.get(),SUT_Updated);
             }
           }
-          if(unassignedDevicesFound)
-            ProcessUnassignedDevices();
+          if(m_deviceManagerMode == DMM_DeviceManager) {
+            if(unassignedDevicesFound)
+              ProcessUnassignedDevices();
+          }
         } break;
         case DS_Calibrated:
         case DS_Error:
@@ -1085,25 +1088,26 @@ namespace DogBotN {
         // Has device been an assigned an id after
         // it was initially queued ?
         if(device->Id() != 0) {
+          m_log->warn("Device '{}' already has an id {} . ",device->DeviceName(),device->Id());
           // A bit of paranoia to make sure things aren't getting confused.
-          assert(m_devices.size() > device->Id());
-          assert(m_devices[device->Id()] == device);
+          assert(m_deviceById.size() > device->Id());
+          assert(m_deviceById[device->Id()] == device);
           continue;
         }
         int deviceId = 0;
         // 0 is a reserved id, so start from 1
-        for(int i = 1;i < m_devices.size();i++) {
-          if(!m_devices[i]) {
+        for(int i = 1;i < m_deviceById.size();i++) {
+          if(!m_deviceById[i]) {
             deviceId = i;
             op = SUT_Updated;
             break;
           }
         }
         if(deviceId == 0) {
-          deviceId = m_devices.size();
-          m_devices.push_back(device);
+          deviceId = m_deviceById.size();
+          m_deviceById.push_back(device);
         } else {
-          m_devices[deviceId] = device;
+          m_deviceById[deviceId] = device;
         }
         m_log->info("Adding new device {} of type '{}' named '{}' ",deviceId,device->DeviceType(),device->DeviceName());
         device->SetId(deviceId);
@@ -1125,15 +1129,15 @@ namespace DogBotN {
     size_t deviceCount = 0;
     {
       std::lock_guard<std::mutex> lock(m_mutexDevices);
-      deviceCount = m_devices.size();
+      deviceCount = m_deviceById.size();
     }
     for(int i = 0;i < deviceCount;i++) {
       std::shared_ptr<ServoC> servo;
       {
         std::lock_guard<std::mutex> lock(m_mutexDevices);
-        deviceCount = m_devices.size();
+        deviceCount = m_deviceById.size();
         if(i < deviceCount)
-          servo = std::dynamic_pointer_cast<ServoC>(m_devices[i]);
+          servo = std::dynamic_pointer_cast<ServoC>(m_deviceById[i]);
       }
       if(!servo || servo->Id() == 0)
         continue;
@@ -1148,15 +1152,15 @@ namespace DogBotN {
     size_t deviceCount = 0;
     {
       std::lock_guard<std::mutex> lock(m_mutexDevices);
-      deviceCount = m_devices.size();
+      deviceCount = m_deviceById.size();
     }
     for(int i = 0;i < deviceCount;i++) {
       std::shared_ptr<DeviceC> dev;
       {
         std::lock_guard<std::mutex> lock(m_mutexDevices);
-        deviceCount = m_devices.size();
+        deviceCount = m_deviceById.size();
         if(i < deviceCount)
-          dev = m_devices[i];
+          dev = m_deviceById[i];
       }
       if(!dev || dev->Id() == 0)
         continue;
@@ -1232,15 +1236,15 @@ namespace DogBotN {
     size_t deviceCount = 0;
     {
       std::lock_guard<std::mutex> lock(m_mutexDevices);
-      deviceCount = m_devices.size();
+      deviceCount = m_deviceById.size();
     }
     for(int i = 0;i < deviceCount;i++) {
       std::shared_ptr<ServoC> servo;
       {
         std::lock_guard<std::mutex> lock(m_mutexDevices);
-        deviceCount = m_devices.size();
+        deviceCount = m_deviceById.size();
         if(i < deviceCount)
-          servo = std::dynamic_pointer_cast<ServoC>(m_devices[i]);
+          servo = std::dynamic_pointer_cast<ServoC>(m_deviceById[i]);
       }
       if(!servo || servo->Id() == 0)
         continue;
@@ -1263,15 +1267,15 @@ namespace DogBotN {
 
     {
       std::lock_guard<std::mutex> lock(m_mutexDevices);
-      deviceCount = m_devices.size();
+      deviceCount = m_deviceById.size();
     }
     for(int i = 0;i < deviceCount;i++) {
       std::shared_ptr<ServoC> servo;
       {
         std::lock_guard<std::mutex> lock(m_mutexDevices);
-        deviceCount = m_devices.size();
+        deviceCount = m_deviceById.size();
         if(i < deviceCount)
-          servo = std::dynamic_pointer_cast<ServoC>(m_devices[i]);
+          servo = std::dynamic_pointer_cast<ServoC>(m_deviceById[i]);
       }
       if(!servo || servo->Id() == 0)
         continue;
@@ -1295,16 +1299,16 @@ namespace DogBotN {
     size_t deviceCount = 0;
     {
       std::lock_guard<std::mutex> lock(m_mutexDevices);
-      deviceCount = m_devices.size();
+      deviceCount = m_deviceById.size();
     }
     bool ok = true;
     for(int i = 0;i < deviceCount;i++) {
       std::shared_ptr<ServoC> servo;
       {
         std::lock_guard<std::mutex> lock(m_mutexDevices);
-        deviceCount = m_devices.size();
+        deviceCount = m_deviceById.size();
         if(i < deviceCount)
-          servo = std::dynamic_pointer_cast<ServoC>(m_devices[i]);
+          servo = std::dynamic_pointer_cast<ServoC>(m_deviceById[i]);
       }
       if(!servo || servo->Id() == 0)
         continue;
@@ -1328,9 +1332,9 @@ namespace DogBotN {
     if(id < 0)
       return std::shared_ptr<ServoC>();
     std::lock_guard<std::mutex> lock(m_mutexDevices);
-    if(id >= m_devices.size())
+    if(id >= m_deviceById.size())
       return std::shared_ptr<ServoC>();
-    return std::dynamic_pointer_cast<ServoC>(m_devices[id]);
+    return std::dynamic_pointer_cast<ServoC>(m_deviceById[id]);
   }
 
   //! Get joint entry by name
@@ -1343,7 +1347,7 @@ namespace DogBotN {
   std::shared_ptr<DeviceC> DogBotAPIC::GetDeviceByName(const std::string &name)
   {
     std::lock_guard<std::mutex> lock(m_mutexDevices);
-    for(auto &a : m_devices) {
+    for(auto &a : m_deviceById) {
       if(a && a->DeviceName() == name)
         return a;
     }
@@ -1354,7 +1358,7 @@ namespace DogBotN {
   std::shared_ptr<JointC> DogBotAPIC::GetJointByName(const std::string &name)
   {
     std::lock_guard<std::mutex> lock(m_mutexDevices);
-    for(auto &a : m_devices) {
+    for(auto &a : m_deviceById) {
       if(a && a->DeviceName() == name)
         return std::dynamic_pointer_cast<JointC>(a);
     }
@@ -1376,7 +1380,7 @@ namespace DogBotN {
   {
     std::lock_guard<std::mutex> lock(m_mutexDevices);
     std::vector<std::shared_ptr<ServoC> > servos;
-    for(auto &a : m_devices) {
+    for(auto &a : m_deviceById) {
       std::shared_ptr<ServoC> ptr = std::dynamic_pointer_cast<ServoC>(a);
       if(ptr)
         servos.push_back(ptr);

@@ -114,10 +114,14 @@ namespace DogBotN {
   bool DeviceC::HandlePacketAnnounce(const PacketDeviceIdC &pkt,bool isManager)
   {
     bool ret = false;
-    if(pkt.m_deviceId != m_id && isManager) {
-      //m_log->info("Updating device {} {} with id {} ",m_uid1,m_uid2,m_id);
+    if(pkt.m_deviceId != m_id && m_id != 0 && isManager) {
+      m_log->info("Updating device {} {} with id {} ",m_uid1,m_uid2,m_id);
       m_coms->SendSetDeviceId(m_id,m_uid1,m_uid2);
       ret = true;
+    }
+    if(pkt.m_deviceId == m_id) {
+      m_coms->SendQueryParam(m_id,CPI_ControlState);
+      m_coms->SendQueryParam(m_id,CPI_FirmwareVersion);
     }
     std::lock_guard<std::mutex> lock(m_mutexState);
     auto timeNow = std::chrono::steady_clock::now();

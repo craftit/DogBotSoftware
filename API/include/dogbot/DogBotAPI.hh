@@ -283,9 +283,9 @@ namespace DogBotN {
     std::mutex m_mutexDevices;
 
     std::chrono::time_point<std::chrono::steady_clock> m_timeLastUnassignedUpdate;
-    std::vector<std::shared_ptr<DeviceC> > m_deviceById; // Devices indexed by id.
+    std::vector<std::shared_ptr<DeviceC> > m_deviceList; // All known devices
     std::vector<std::shared_ptr<DeviceC> > m_unassignedDevices; // Unassigned devices.
-    std::vector<std::shared_ptr<DeviceC> > m_devices; // All known devices
+    std::vector<std::shared_ptr<DeviceC> > m_deviceById; // Devices indexed by id.
     std::vector<std::shared_ptr<JointC> > m_joints; // List of available joints.
 
     std::thread m_threadMonitor;

@@ -109,7 +109,7 @@
        <bool>true</bool>
       </property>
       <property name="currentIndex">
-       <number>4</number>
+       <number>5</number>
       </property>
       <widget class="QWidget" name="tab_connect">
        <attribute name="title">
@@ -1545,74 +1545,52 @@
           <property name="title">
            <string>Animation</string>
           </property>
-          <widget class="QDial" name="dialAnimationOmega">
-           <property name="geometry">
-            <rect>
-             <x>11</x>
-             <y>53</y>
-             <width>100</width>
-             <height>100</height>
-            </rect>
-           </property>
-           <property name="value">
-            <number>20</number>
-           </property>
-           <property name="wrapping">
-            <bool>false</bool>
-           </property>
-           <property name="notchesVisible">
-            <bool>true</bool>
-           </property>
-          </widget>
-          <widget class="QLabel" name="label_41">
-           <property name="geometry">
-            <rect>
-             <x>50</x>
-             <y>160</y>
-             <width>38</width>
-             <height>16</height>
-            </rect>
-           </property>
-           <property name="text">
-            <string>Speed</string>
-           </property>
-           <property name="alignment">
-            <set>Qt::AlignCenter</set>
-           </property>
-          </widget>
-          <widget class="QComboBox" name="comboBoxAmimationStyle">
-           <property name="geometry">
-            <rect>
-             <x>130</x>
-             <y>90</y>
-             <width>56</width>
-             <height>22</height>
-            </rect>
-           </property>
-           <item>
-            <property name="text">
-             <string>walk</string>
-            </property>
+          <layout class="QGridLayout" name="gridLayout_22">
+           <item row="0" column="0">
+            <widget class="QCheckBox" name="checkBoxRunAnimation">
+             <property name="text">
+              <string>Run Animation</string>
+             </property>
+            </widget>
            </item>
-           <item>
-            <property name="text">
-             <string>trot</string>
-            </property>
+           <item row="1" column="0">
+            <widget class="QDial" name="dialAnimationOmega">
+             <property name="value">
+              <number>20</number>
+             </property>
+             <property name="wrapping">
+              <bool>false</bool>
+             </property>
+             <property name="notchesVisible">
+              <bool>true</bool>
+             </property>
+            </widget>
            </item>
-          </widget>
-          <widget class="QCheckBox" name="checkBoxRunAnimation">
-           <property name="geometry">
-            <rect>
-             <x>11</x>
-             <y>28</y>
-             <width>112</width>
-             <height>20</height>
-            </rect>
-           </property>
-           <property name="text">
-            <string>Run Animation</string>
-           </property>
-          </widget>
+           <item row="1" column="1">
+            <widget class="QComboBox" name="comboBoxAmimationStyle">
+             <item>
+              <property name="text">
+               <string>walk</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>trot</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_41">
+             <property name="text">
+              <string>Speed</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignCenter</set>
+             </property>
+            </widget>
+           </item>
+          </layout>
          </widget>
         </item>
         <item row="2" column="0" colspan="4">

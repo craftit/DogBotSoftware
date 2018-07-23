@@ -167,6 +167,7 @@ namespace DogBotN {
 
     // Things to query
     m_updateQuery.push_back(CPI_ControlState);
+    m_updateQuery.push_back(CPI_FirmwareVersion);
     m_updateQuery.push_back(CPI_FaultCode);
     m_updateQuery.push_back(CPI_FaultState);
     m_updateQuery.push_back(CPI_SafetyMode);
@@ -434,11 +435,13 @@ namespace DogBotN {
       if(ret) {
         // If we've changed into a control state where motor position becomes unknown.
         // reflect it in the stored state.
+#if 0
         switch(m_controlState)
         {
+          case CS_StartUp:
+            break;
           case CS_BootLoader:
             QueryRefresh(); // We've changed from the boot loader, so we need to re-query everything
-          case CS_StartUp:
           case CS_EmergencyStop:
           case CS_FactoryCalibrate:
           case CS_Standby:
@@ -451,6 +454,7 @@ namespace DogBotN {
           default:
             break;
         }
+#endif
 
         //! Likewise if we change into a state where things are unknown also update it
         switch(controlState)
@@ -779,6 +783,9 @@ namespace DogBotN {
   {
     DeviceC::UpdateTick(timeNow);
 
+    if(m_id == 0)
+      return false;
+
     bool ret = false;
     std::chrono::duration<double> timeSinceLastReport;
     FaultCodeT faultCode = FC_Unknown;
@@ -844,28 +851,21 @@ namespace DogBotN {
     // Go through updating things, and avoiding flooding the bus.
     if(m_toQuery < (int) m_updateQuery.size() && m_coms && m_coms->IsReady()) {
       // Don't query everything in boot-loader mode.
-      if(m_toQuery < m_bootloaderQueryCount) {
-        if(m_controlState == CS_BootLoader) {
+      if(m_controlState != CS_BootLoader || m_toQuery < m_bootloaderQueryCount) {
+        // Don't proceed until we have a firmware version number
+        if(m_firmwareVersion < 0) {
           TimePointT now = TimePointT::clock::now();
-          if((now - m_lastVersionQuery) > std::chrono::seconds(1)) {
+          if(m_toQuery < 0 || (now - m_lastVersionQuery) > std::chrono::seconds(2) ) {
+            // Do we need a timeout / retry ?
             m_coms->SendQueryParam(m_id,CPI_ControlState);
+            m_coms->SendQueryParam(m_id,CPI_FirmwareVersion);
+            m_lastVersionQuery = now;
+            m_toQuery = 0;
           }
         } else {
-          // Don't proceed until we have a firmware version number
-          if(m_firmwareVersion < 0) {
-            TimePointT now = TimePointT::clock::now();
-            if(m_toQuery < 0 || (now - m_lastVersionQuery) > std::chrono::seconds(2) ) {
-              // Do we need a timeout / retry ?
-              m_coms->SendQueryParam(m_id,CPI_ControlState);
-              m_coms->SendQueryParam(m_id,CPI_FirmwareVersion);
-              m_lastVersionQuery = now;
-              m_toQuery = 0;
-            }
-          } else {
-            if(m_toQuery < 0) m_toQuery = 0;
-            m_coms->SendQueryParam(m_id,m_updateQuery[m_toQuery]);
-            m_toQuery++;
-          }
+          if(m_toQuery < 0) m_toQuery = 0;
+          m_coms->SendQueryParam(m_id,m_updateQuery[m_toQuery]);
+          m_toQuery++;
         }
       }
     }
@@ -949,7 +949,7 @@ namespace DogBotN {
 
   void ServoC::QueryRefresh()
   {
-    m_queryCycle = -1;
+    m_toQuery = -1;
   }
 
   class HomeStateC
@@ -1350,6 +1350,14 @@ namespace DogBotN {
   bool ServoC::IsFirmwareVersionOk() const
   {
     return m_firmwareVersion == DOGBOT_FIRMWARE_VERSION;
+  }
+
+  //! Handle an announce packet
+  bool ServoC::HandlePacketAnnounce(const PacketDeviceIdC &pkt,bool isManager)
+  {
+    bool ret = DeviceC::HandlePacketAnnounce(pkt,isManager);
+    QueryRefresh();
+    return ret;
   }
 
 }

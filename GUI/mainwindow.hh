@@ -285,6 +285,7 @@ private:
   float m_torque = 3.0;
   std::shared_ptr<std::ostream> m_logStrm;
   int m_targetDeviceId = 0;
+  enum ControlStateT m_targetControlState = CS_StartUp;
   enum PositionReferenceT g_positionReference = PR_Relative;
 
   float m_servoAngle = 0;

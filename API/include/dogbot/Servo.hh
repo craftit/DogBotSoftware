@@ -241,6 +241,9 @@ namespace DogBotN {
     double TickDuration() const override
     { return m_tickDuration.count();  }
 
+    //! Handle an announce packet
+    bool HandlePacketAnnounce(const PacketDeviceIdC &pkt,bool isManager) override;
+
   protected:
     //! Convert a report value to a torque
     float TorqueReport2Current(int16_t val)
@@ -291,7 +294,6 @@ namespace DogBotN {
     std::shared_ptr<MotorCalibrationC> m_motorCal;
 
     int m_firmwareVersion = -1;
-    int m_queryCycle = 0;
 
     FaultCodeT m_faultCode = FC_Unknown;
     uint32_t m_faultState = 0;
