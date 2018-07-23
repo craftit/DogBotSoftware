@@ -159,6 +159,10 @@ namespace DogBotN {
     //! Check whether the servo is ready to operate
     bool IsReady() const;
     
+    //! Access current fault state bits.
+    uint32_t FaultState() const
+    { return m_faultState; }
+
      //! summary status as a string
     std::string StatusSummary() const;
     
@@ -290,6 +294,7 @@ namespace DogBotN {
     int m_queryCycle = 0;
 
     FaultCodeT m_faultCode = FC_Unknown;
+    uint32_t m_faultState = 0;
     MotionHomedStateT m_homedState = MHS_Lost;
     PWMControlDynamicT m_controlDynamic = CM_Off;
     bool m_homeIndexState = false;

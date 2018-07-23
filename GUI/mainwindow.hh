@@ -208,6 +208,12 @@ private slots:
 
   void on_checkBoxDiagnosticMode_stateChanged(int arg1);
 
+  void on_lineEditFanTempThreshold_textChanged(const QString &arg1);
+
+  void on_lineEditMinimumSupply_editingFinished();
+
+  void on_pushButtonRestoreDefaults_clicked();
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);

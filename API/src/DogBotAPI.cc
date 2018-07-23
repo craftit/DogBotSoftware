@@ -545,6 +545,23 @@ namespace DogBotN {
     return std::make_shared<DeviceC>(m_coms,deviceId,pkt);
   }
 
+  std::shared_ptr<DeviceC> DogBotAPIC::FindDeviceByUID(uint32_t uid1,uint32_t uid2)
+  {
+    std::shared_ptr<DeviceC> ret;
+    std::lock_guard<std::mutex> lock(m_mutexDevices);
+    // Is the device present ?
+    for(int i = 0;i < m_devices.size();i++) {
+      if(!m_devices[i])
+        continue;
+      if(m_devices[i]->HasUID(uid1,uid2)) {
+        ret = m_devices[i];
+        break;
+      }
+    }
+    return ret;
+  }
+
+
   //! Load a configuration file
   bool DogBotAPIC::LoadConfig(const std::string &configFile)
   {
@@ -1295,6 +1312,14 @@ namespace DogBotN {
         ok = true;
     }
     return ok;
+  }
+
+  //! Restore default values for connected controllers.
+  bool DogBotAPIC::RestoreDefaults()
+  {
+    m_coms->SendSetParam(0,CPI_MinSupplyVoltage,19.3);
+    m_coms->SendStoreConfig(0);
+    return true;
   }
 
   //! Get servo entry by id

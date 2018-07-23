@@ -109,6 +109,7 @@ MainWindow::MainWindow(QWidget *parent) :
   m_displayQuery.push_back(CPI_PWMFrequency);
   m_displayQuery.push_back(CPI_ServoReportFrequency);
   m_displayQuery.push_back(CPI_SupplyVoltageScale);
+  m_displayQuery.push_back(CPI_MinSupplyVoltage);
   m_displayQuery.push_back(CPI_MotionUpdatePeriod);
   m_displayQuery.push_back(CPI_CurrentLimit);
 
@@ -519,6 +520,9 @@ void MainWindow::LocalProcessParam(PacketParam8ByteC psp)
   case CPI_DiagnosticMode: {
     ui->checkBoxDiagnosticMode->setChecked(psp.m_data.int8[0] != 0);
   } break;
+  case CPI_MinSupplyVoltage: {
+    ui->lineEditMinimumSupply->setText(QString::number(psp.m_data.float32[0]));
+  }
   default:
     break;
   }
@@ -1664,4 +1668,20 @@ void MainWindow::on_checkBoxDiagnosticMode_stateChanged(int arg1)
   } else {
     m_coms->SendSetParam(m_targetDeviceId,CPI_DiagnosticMode,true);
   }
+}
+
+void MainWindow::on_lineEditFanTempThreshold_textChanged(const QString &arg1)
+{
+
+}
+
+void MainWindow::on_lineEditMinimumSupply_editingFinished()
+{
+  float value = atof(ui->lineEditMinimumSupply->text().toLatin1().data());
+  m_coms->SendSetParam(m_targetDeviceId,CPI_MinSupplyVoltage,value);
+}
+
+void MainWindow::on_pushButtonRestoreDefaults_clicked()
+{
+  m_dogBotAPI->RestoreDefaults();
 }

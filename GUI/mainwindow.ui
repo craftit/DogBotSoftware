@@ -109,7 +109,7 @@
        <bool>true</bool>
       </property>
       <property name="currentIndex">
-       <number>3</number>
+       <number>4</number>
       </property>
       <widget class="QWidget" name="tab_connect">
        <attribute name="title">
@@ -590,17 +590,17 @@
                  </property>
                 </widget>
                </item>
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_44">
+                 <property name="text">
+                  <string>Motion update period:</string>
+                 </property>
+                </widget>
+               </item>
                <item row="7" column="0">
                 <widget class="QLabel" name="label_24">
                  <property name="text">
                   <string>Velocity P Gain:</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="0">
-                <widget class="QLabel" name="label_27">
-                 <property name="text">
-                  <string>PositionGain:</string>
                  </property>
                 </widget>
                </item>
@@ -614,19 +614,8 @@
                  </property>
                 </widget>
                </item>
-               <item row="3" column="1">
-                <widget class="QDoubleSpinBox" name="doubleSpinBoxIGain">
-                 <property name="maximum">
-                  <double>1000000.000000000000000</double>
-                 </property>
-                </widget>
-               </item>
-               <item row="8" column="0">
-                <widget class="QLabel" name="label_25">
-                 <property name="text">
-                  <string>Velocity I Gain:</string>
-                 </property>
-                </widget>
+               <item row="1" column="1">
+                <widget class="QDoubleSpinBox" name="doubleSpinBoxCurrentLimit"/>
                </item>
                <item row="7" column="1">
                 <widget class="QDoubleSpinBox" name="doubleSpinBoxVelocityGain">
@@ -638,37 +627,6 @@
                  </property>
                  <property name="maximum">
                   <double>10.000000000000000</double>
-                 </property>
-                </widget>
-               </item>
-               <item row="8" column="1">
-                <widget class="QDoubleSpinBox" name="doubleSpinBoxVelocityIGain">
-                 <property name="maximum">
-                  <double>1000.000000000000000</double>
-                 </property>
-                </widget>
-               </item>
-               <item row="4" column="1">
-                <widget class="QDoubleSpinBox" name="doubleSpinBoxVelocityLimit">
-                 <property name="decimals">
-                  <number>0</number>
-                 </property>
-                 <property name="maximum">
-                  <double>20000.000000000000000</double>
-                 </property>
-                </widget>
-               </item>
-               <item row="4" column="0">
-                <widget class="QLabel" name="label_26">
-                 <property name="text">
-                  <string>Velocity limit:</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="0" column="0">
-                <widget class="QLabel" name="label_44">
-                 <property name="text">
-                  <string>Motion update period:</string>
                  </property>
                 </widget>
                </item>
@@ -688,27 +646,55 @@
                  </property>
                 </widget>
                </item>
-               <item row="9" column="0">
-                <widget class="QLabel" name="label_47">
+               <item row="4" column="0">
+                <widget class="QLabel" name="label_26">
                  <property name="text">
-                  <string>Supply Scale</string>
+                  <string>Velocity limit:</string>
                  </property>
                 </widget>
                </item>
-               <item row="9" column="1">
-                <widget class="QDoubleSpinBox" name="doubleSpinBoxSupplyVoltageScale">
-                 <property name="decimals">
-                  <number>6</number>
+               <item row="2" column="0">
+                <widget class="QLabel" name="label_27">
+                 <property name="text">
+                  <string>PositionGain:</string>
                  </property>
                 </widget>
                </item>
-               <item row="1" column="1">
-                <widget class="QDoubleSpinBox" name="doubleSpinBoxCurrentLimit"/>
+               <item row="8" column="1">
+                <widget class="QDoubleSpinBox" name="doubleSpinBoxVelocityIGain">
+                 <property name="maximum">
+                  <double>1000.000000000000000</double>
+                 </property>
+                </widget>
                </item>
                <item row="1" column="0">
                 <widget class="QLabel" name="label_6">
                  <property name="text">
                   <string>Trajectory current Limit</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="1">
+                <widget class="QDoubleSpinBox" name="doubleSpinBoxVelocityLimit">
+                 <property name="decimals">
+                  <number>0</number>
+                 </property>
+                 <property name="maximum">
+                  <double>20000.000000000000000</double>
+                 </property>
+                </widget>
+               </item>
+               <item row="8" column="0">
+                <widget class="QLabel" name="label_25">
+                 <property name="text">
+                  <string>Velocity I Gain:</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="1">
+                <widget class="QDoubleSpinBox" name="doubleSpinBoxIGain">
+                 <property name="maximum">
+                  <double>1000000.000000000000000</double>
                  </property>
                 </widget>
                </item>
@@ -1196,72 +1182,6 @@
               </layout>
              </widget>
             </item>
-            <item row="1" column="1">
-             <widget class="QGroupBox" name="groupBox_4">
-              <property name="title">
-               <string>Debug Values</string>
-              </property>
-              <layout class="QGridLayout" name="gridLayout_7">
-               <item row="5" column="0">
-                <widget class="QLabel" name="label_39">
-                 <property name="text">
-                  <string>Report Frequency:</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="5" column="2">
-                <widget class="QLineEdit" name="lineEditServoReportFrequency"/>
-               </item>
-               <item row="1" column="0">
-                <widget class="QLabel" name="label_29">
-                 <property name="text">
-                  <string>Hall:</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="3" column="2">
-                <widget class="QLineEdit" name="lineEditFaultMap"/>
-               </item>
-               <item row="3" column="0" colspan="2">
-                <widget class="QLabel" name="label_32">
-                 <property name="text">
-                  <string>Fault Map:</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="4" column="0">
-                <widget class="QLabel" name="label_38">
-                 <property name="text">
-                  <string>PWM Frequency:</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="6" column="0">
-                <widget class="QLabel" name="label_8">
-                 <property name="text">
-                  <string>Fan Temp Limit</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="4" column="2">
-                <widget class="QLineEdit" name="lineEditPWMFrequency"/>
-               </item>
-               <item row="6" column="2">
-                <widget class="QLineEdit" name="lineEditFanTempThreshold"/>
-               </item>
-               <item row="1" column="2">
-                <widget class="QLineEdit" name="lineEditHallReadings"/>
-               </item>
-               <item row="0" column="2">
-                <widget class="QCheckBox" name="checkBoxDiagnosticMode">
-                 <property name="text">
-                  <string>Diagnostic Mode</string>
-                 </property>
-                </widget>
-               </item>
-              </layout>
-             </widget>
-            </item>
             <item row="2" column="1">
              <widget class="QGroupBox" name="groupBox_12">
               <property name="title">
@@ -1321,6 +1241,96 @@
               </layout>
              </widget>
             </item>
+            <item row="1" column="1">
+             <widget class="QGroupBox" name="groupBox_4">
+              <property name="title">
+               <string>Debug Values</string>
+              </property>
+              <layout class="QGridLayout" name="gridLayout_7">
+               <item row="0" column="1" colspan="2">
+                <widget class="QCheckBox" name="checkBoxDiagnosticMode">
+                 <property name="text">
+                  <string>Diagnostic Mode</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="label_29">
+                 <property name="text">
+                  <string>Hall:</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="2">
+                <widget class="QLineEdit" name="lineEditHallReadings"/>
+               </item>
+               <item row="2" column="0" colspan="2">
+                <widget class="QLabel" name="label_32">
+                 <property name="text">
+                  <string>Fault Map:</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="2">
+                <widget class="QLineEdit" name="lineEditFaultMap"/>
+               </item>
+               <item row="3" column="0" colspan="2">
+                <widget class="QLabel" name="label_38">
+                 <property name="text">
+                  <string>PWM Frequency:</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="2">
+                <widget class="QLineEdit" name="lineEditPWMFrequency"/>
+               </item>
+               <item row="4" column="0" colspan="2">
+                <widget class="QLabel" name="label_39">
+                 <property name="text">
+                  <string>Report Frequency:</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="2">
+                <widget class="QLineEdit" name="lineEditServoReportFrequency"/>
+               </item>
+               <item row="5" column="0" colspan="2">
+                <widget class="QLabel" name="label_8">
+                 <property name="text">
+                  <string>Fan Temp Limit</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="2">
+                <widget class="QLineEdit" name="lineEditFanTempThreshold"/>
+               </item>
+               <item row="6" column="0" colspan="2">
+                <widget class="QLabel" name="label_51">
+                 <property name="text">
+                  <string>Supply Scale</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="6" column="2">
+                <widget class="QDoubleSpinBox" name="doubleSpinBoxSupplyVoltageScale">
+                 <property name="decimals">
+                  <number>6</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="7" column="0" colspan="2">
+                <widget class="QLabel" name="label_52">
+                 <property name="text">
+                  <string>Minimum Supply</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="7" column="2">
+                <widget class="QLineEdit" name="lineEditMinimumSupply"/>
+               </item>
+              </layout>
+             </widget>
+            </item>
            </layout>
           </widget>
          </widget>
@@ -1332,7 +1342,7 @@
         <string>Advanced</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_5">
-        <item row="4" column="0">
+        <item row="5" column="0">
          <spacer name="verticalSpacer_3">
           <property name="orientation">
            <enum>Qt::Vertical</enum>
@@ -1344,39 +1354,6 @@
            </size>
           </property>
          </spacer>
-        </item>
-        <item row="2" column="0">
-         <widget class="QGroupBox" name="groupBox_13">
-          <property name="title">
-           <string>Supply Voltage Calibration</string>
-          </property>
-          <layout class="QGridLayout" name="gridLayout_18">
-           <item row="0" column="2">
-            <widget class="QPushButton" name="pushButtonUpdateSupplyCal">
-             <property name="text">
-              <string>Update</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QLineEdit" name="lineEditMeasuredSupplyVoltage"/>
-           </item>
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_46">
-             <property name="text">
-              <string>Measured Voltage</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QPushButton" name="pushButtonResetSupplyVoltageCal">
-             <property name="text">
-              <string>Reset Calibration</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
         </item>
         <item row="0" column="0">
          <widget class="QGroupBox" name="groupBox_11">
@@ -1467,6 +1444,55 @@
             <widget class="QPushButton" name="pushButtonRestoreConfig">
              <property name="text">
               <string>Restore Configuration From File</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QGroupBox" name="groupBox_13">
+          <property name="title">
+           <string>Supply Voltage Calibration</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_18">
+           <item row="0" column="2">
+            <widget class="QPushButton" name="pushButtonUpdateSupplyCal">
+             <property name="text">
+              <string>Update</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QLineEdit" name="lineEditMeasuredSupplyVoltage"/>
+           </item>
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_46">
+             <property name="text">
+              <string>Measured Voltage</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QPushButton" name="pushButtonResetSupplyVoltageCal">
+             <property name="text">
+              <string>Reset Calibration</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item row="3" column="0">
+         <widget class="QGroupBox" name="groupBox_16">
+          <property name="title">
+           <string>Misc</string>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_3">
+           <item>
+            <widget class="QPushButton" name="pushButtonRestoreDefaults">
+             <property name="text">
+              <string>Restore Defaults</string>
              </property>
             </widget>
            </item>

@@ -18,6 +18,10 @@ void EnableSensorPower(bool enable);
 bool HasSensorPower(void);
 void EnableFanPower(bool enable);
 
+//! Check driver chip status.
+//! Returns true if all is ok. This will also report any errors found
+bool CheckDriverStatus(void);
+
 bool IsEmergencyStopButtonSetToSafe(void);
 void InitEmergencyStop(void);
 void ResetEmergencyStop(void);
@@ -132,12 +136,9 @@ extern enum JointRoleT g_jointRole;
 extern enum SafetyModeT g_safetyMode;
 extern bool g_endStopEnable;
 extern float g_endStopMin;
-extern float g_endStopStartBounce;
 extern float g_endStopMax;
-extern float g_endStopEndBounce;
 extern float g_endStopTargetBreakCurrent;
 extern float g_endStopMaxBreakCurrent;
-extern float g_jointInertia;
 extern float g_endStopPhaseMin;
 extern float g_endStopPhaseMax;
 extern float g_endStopTargetAcceleration;

@@ -277,9 +277,7 @@ float g_demandTorque = 0;
 
 bool g_endStopEnable = false;
 float g_endStopMin = 0;
-float g_endStopStartBounce = 0; // How far we can go beyond the end-stop before we flag a fault.
 float g_endStopMax = 0;
-float g_endStopEndBounce = 0;
 float g_endStopTargetBreakCurrent = 3;
 float g_endStopMaxBreakCurrent = 6;
 float g_endStopPhaseMin = 0;
@@ -318,15 +316,6 @@ bool CheckMotorSetup(void)
 
   if(g_endStopEnable) {
     if(g_endStopMax <= g_endStopMin) {
-      return false;
-    }
-    if(g_endStopStartBounce > g_endStopMin) {
-      return false;
-    }
-    if(g_endStopEndBounce < g_endStopMax) {
-      return false;
-    }
-    if(g_jointInertia <= 0) {
       return false;
     }
     if(g_endStopMaxBreakCurrent < g_endStopTargetBreakCurrent) {
@@ -738,6 +727,33 @@ static void MotorControlLoop(void)
   }
 }
 
+//! Check the state of the DRV8503 driver chip
+
+bool CheckDriverStatus(void)
+{
+  // Check the state of the gate driver.
+  uint16_t gateDriveStatus = Drv8503ReadRegister(DRV8503_REG_WARNING);
+
+  // Update gate status
+  static uint16_t lastGateStatus = 0;
+  if(lastGateStatus != gateDriveStatus || g_gateDriverWarning) {
+    lastGateStatus = gateDriveStatus;
+    if(g_gateDriverWarning)
+      SendError(CET_MotorDriverWarning,0,0);
+    SendParamData(CPI_DRV8305_01,&gateDriveStatus,sizeof(gateDriveStatus));
+    g_gateDriverWarning = false;
+    SendParamUpdate(CPI_DRV8305_02);
+    SendParamUpdate(CPI_DRV8305_03);
+    SendParamUpdate(CPI_DRV8305_04);
+  }
+
+  if(gateDriveStatus & DRV8503_WARN_FAULT) {
+    FaultDetected(FC_DriverFault);
+    return false;
+  }
+
+  return true;
+}
 
 
 static THD_FUNCTION(ThreadPWM, arg) {
@@ -764,20 +780,18 @@ static THD_FUNCTION(ThreadPWM, arg) {
     chThdSleepMilliseconds(100);
   }
 
+
   //! Read initial state of endstop switches
   g_lastLimitState = palReadPad(GPIOC, GPIOC_PIN8); // Index
 
-  //! Make sure controller is setup.
+  //! Make sure the driver is setup.
   InitDrv8503();
 
   //! Wait a bit more
   chThdSleepMilliseconds(100);
 
-  //! Check status.
-  uint16_t status = Drv8503ReadRegister(DRV8503_REG_WARNING);
-
-  // Check for any faults.
-  if(status & DRV8503_WARN_FAULT) {
+  //! Check the driver is happy
+  if(!CheckDriverStatus()) {
     palClearPad(GPIOC, GPIOC_PIN14); // Paranoid gate disable
     g_gateDriverWarning = true;
     g_gateDriverFault = true;
@@ -796,6 +810,13 @@ static THD_FUNCTION(ThreadPWM, arg) {
     g_gateDriverWarning = false;
   }
 
+  // Make sure state is reset to something sensible
+  g_velocityISum = 0; // Reset velocity integral
+  g_phaseRotationCount = 0; // Reset the rotation count to zero.
+  g_demandTorque = 0;
+  g_demandPhasePosition = 0;
+  g_demandPhaseVelocity = 0;
+
   // Setup PWM
   InitPWM();
 
@@ -810,12 +831,6 @@ static THD_FUNCTION(ThreadPWM, arg) {
   // Setup motor PID.
   SetupMotorCurrentPID();
 
-  g_velocityISum = 0; // Reset velocity integral
-  g_phaseRotationCount = 0; // Reset the rotation count to zero.
-  g_demandTorque = 0;
-  g_demandPhasePosition = 0;
-  g_demandPhaseVelocity = 0;
-
   // Do main control loop
   MotorControlLoop();
 
@@ -823,6 +838,10 @@ static THD_FUNCTION(ThreadPWM, arg) {
   PWMUpdateDrivePhase(TIM_1_8_PERIOD_CLOCKS/2,TIM_1_8_PERIOD_CLOCKS/2,TIM_1_8_PERIOD_CLOCKS/2);
 
   palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
+  palClearPad(GPIOC, GPIOC_PIN13); // Put to sleep.
+
+  // Disable the PWM timer to save some power
+  rccEnableTIM1(FALSE);
 
   g_pwmThreadRunning = false;
 }
@@ -870,14 +889,15 @@ void InitHall2Angle(void);
 int InitPWM(void)
 {
 
+
   InitHall2Angle();
+
+  // Make sure current integrals are reset.
+  g_current_control_integral_d = 0;
+  g_current_control_integral_q = 0;
 
   rccEnableTIM1(FALSE);
   rccResetTIM1();
-
-  // Make sure integrals are reset.
-  g_current_control_integral_d = 0;
-  g_current_control_integral_q = 0;
 
   stm32_tim_t *tim = (stm32_tim_t *)TIM1_BASE;
 
@@ -915,10 +935,6 @@ int InitPWM(void)
   tim->CCR[3] = TIM_1_8_PERIOD_CLOCKS - 2;
 
   tim->CR2  = STM32_TIM_CR2_CCPC | STM32_TIM_CR2_MMS(7); // Use the COMG bit to update. 7=Tim4 3=Update event  =
-
-
-  //palSetPad(GPIOB, GPIOB_PIN12); // Turn on flag pin
-
 
   return 0;
 }

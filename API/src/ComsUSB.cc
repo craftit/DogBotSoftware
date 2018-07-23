@@ -186,6 +186,16 @@ namespace DogBotN
   bool ComsUSBHotPlugC::RunUSB()
   {
     m_log->debug("Running receiver.");
+#if defined(__APPLE__)
+#elif defined(__linux__)
+  struct sched_param params;
+  params.sched_priority = 50;
+  int ret;
+  if((ret = sched_setscheduler(0,SCHED_RR,&params)) < 0) {
+    m_log->warn("Failed to set priority for USB thread. Error:{} ",strerror(errno));
+  }
+#endif
+
     int rc = 0;
     while(!m_terminate) {
       if((rc = libusb_handle_events(m_usbContext)) < 0) {

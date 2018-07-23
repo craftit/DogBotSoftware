@@ -34,6 +34,9 @@ enum FanModeT g_fanMode = FM_Auto;
 enum SafetyModeT g_safetyMode = SM_GlobalEmergencyStop;
 enum JointRoleT g_jointRole = JR_Spare;
 float g_fanTemperatureThreshold = 40.0;
+float g_averageBusVoltage = 20.0;
+int g_safeStopTimer = 0;
+int g_safeStopTimeout = 7500;
 
 /*
  * This is a periodic thread that does nothing except flashing
@@ -131,7 +134,22 @@ extern pid_t getpid(void);
 
 uint32_t g_faultState = 0;
 
-void FaultDetected(enum FaultCodeT faultCode)
+// Register a fault bit, but don't go into a fault state.
+void FaultWarning(enum FaultCodeT faultCode)
+{
+  if(faultCode == FC_Ok)
+    return ;
+  int faultBit = 1<<((int) faultCode);
+  // Have we already flagged this error?
+  if((g_faultState & faultBit) != 0) {
+    return ;
+  }
+  g_faultState |= faultBit;
+  g_lastFaultCode = faultCode;
+  SendParamUpdate(CPI_FaultCode);
+}
+
+void FaultDetected(enum FaultCodeT faultCode,bool fatal)
 {
   if(faultCode == FC_Ok)
     return ;
@@ -148,7 +166,7 @@ void FaultDetected(enum FaultCodeT faultCode)
   ChangeControlState(CS_Fault,SCS_Fault);
 }
 
-float g_minSupplyVoltage = 6.0;
+float g_minSupplyVoltage = 19.0;
 enum StateChangeSourceT g_stateChangeCause = SCS_Internal;
 
 int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT changeSource)
@@ -251,6 +269,10 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
       SendParamUpdate(CPI_HomedState);
       break;
     case CS_SafeStop:
+      if(g_controlState != newState) {
+        g_safeStopTimer = 0;
+        g_safeStopTimeout = (int) ((g_PWMFrequency * 10.0f) / (float) g_motorReportSampleCount);
+      }
       g_controlState = newState;
       g_stateChangeCause = changeSource;
       g_currentLimit = 0;
@@ -423,6 +445,7 @@ void DoStartup(void)
     for(int i = 0;i < 10;i++)
       sum += ReadSupplyVoltage();
     g_vbus_voltage = sum / 10.0;
+    g_averageBusVoltage = g_vbus_voltage;
   }
 
   if(g_vbus_voltage < g_minSupplyVoltage) {
@@ -503,7 +526,6 @@ int main(void) {
 
   int cycleCount = 0;
 
-
   SendParamUpdate(CPI_ControlState);
   SendParamUpdate(CPI_FirmwareVersion);
 
@@ -579,9 +601,12 @@ int main(void) {
         chThdSleepMilliseconds(100);
         SendBackgroundStateReport();
       } break;
-      case CS_SafeStop:
-        // FIXME- Add a timer to change to LowPower
-        // no break
+      case CS_SafeStop: {
+        if(g_safeStopTimer++ > g_safeStopTimeout) {
+          ChangeControlState(CS_Standby,SCS_Internal);
+          break;
+        }
+      } // no break
       case CS_Ready: {
         if(chBSemWaitTimeout(&g_reportSampleReady,1000) != MSG_OK) {
           g_mainLoopTimeoutCount++;
@@ -601,25 +626,8 @@ int main(void) {
         // This runs at update rate, currently 250Hz
         MotionStep();
 
-        // Check the state of the gate driver.
-        uint16_t gateDriveStatus = Drv8503ReadRegister(DRV8503_REG_WARNING);
-
-        {
-          // Update gate status
-          static uint16_t lastGateStatus = 0;
-          if(lastGateStatus != gateDriveStatus || g_gateDriverWarning) {
-            lastGateStatus = gateDriveStatus;
-            if(g_gateDriverWarning)
-              SendError(CET_MotorDriverWarning,0,0);
-            SendParamData(CPI_DRV8305_01,&gateDriveStatus,sizeof(gateDriveStatus));
-            g_gateDriverWarning = false;
-            SendParamUpdate(CPI_DRV8305_02);
-            SendParamUpdate(CPI_DRV8305_03);
-            SendParamUpdate(CPI_DRV8305_04);
-          }
-        }
-        if(gateDriveStatus & DRV8503_WARN_FAULT) {
-          FaultDetected(FC_DriverFault);
+        // Check the state of the driver chip
+        if(!CheckDriverStatus()) {
           break;
         }
 
@@ -686,29 +694,38 @@ int main(void) {
       }
     }
 
-    g_vbus_voltage += (ReadSupplyVoltage() - g_vbus_voltage) * 0.2;
-    if(g_vbus_voltage > g_maxSupplyVoltage) {
-      FaultDetected(FC_OverVoltage);
-    }
-    if(g_controlState != CS_Standby) {
-      if(g_vbus_voltage < g_minSupplyVoltage) {
-        // What to do when we detect low power supply voltage
-        switch(g_controlState)
-        {
-          case CS_Ready:
-            ChangeControlState(CS_SafeStop,SCS_Internal);
-            break;
-          case CS_SelfTest:
-          case CS_FactoryCalibrate:
-          case CS_StartUp:
-            ChangeControlState(CS_Standby,SCS_Internal);
-            break;
-          case CS_SafeStop:
-          case CS_BootLoader:
-          case CS_Fault:
-          case CS_EmergencyStop:
-          case CS_Standby:
-            break;
+    {
+      float busVoltage = ReadSupplyVoltage();
+      g_vbus_voltage += (busVoltage - g_vbus_voltage) * 0.2;
+      static float g_averageBusVoltage = 20;
+      g_averageBusVoltage += (busVoltage - g_averageBusVoltage) * 0.02; // Use a slow average to avoid glitches.
+
+      if(g_vbus_voltage > g_maxSupplyVoltage) {
+        FaultDetected(FC_OverVoltage);
+      }
+      if(g_controlState == CS_Ready) {
+        if(g_averageBusVoltage < g_minSupplyVoltage) {
+          FaultWarning(FC_UnderVoltage);
+          // What to do when we detect low power supply voltage
+          switch(g_controlState)
+          {
+            case CS_Ready:
+              ChangeControlState(CS_SafeStop,SCS_Internal);
+              int8_t mode = CS_SafeStop;
+              SendParamData(CPI_ControlState,&mode,1);
+              break;
+            case CS_SelfTest:
+            case CS_FactoryCalibrate:
+            case CS_StartUp:
+              ChangeControlState(CS_Standby,SCS_Internal);
+              break;
+            case CS_SafeStop:
+            case CS_BootLoader:
+            case CS_Fault:
+            case CS_EmergencyStop:
+            case CS_Standby:
+              break;
+          }
         }
       }
     }

@@ -226,9 +226,9 @@ extern "C" {
     CPI_JointRole        = 0x58,
     CPI_EndStopEnable    = 0x59,
     CPI_EndStopStart     = 0x5A,
-    CPI_EndStopStartBounce = 0x5B,
+    CPI_EndStopStartBounce = 0x5B, // Obsolete
     CPI_EndStopFinal       = 0x5C,
-    CPI_EndStopEndBounce = 0x5D,
+    CPI_EndStopEndBounce = 0x5D, // Obsolete
     CPI_EndStopTargetBreakForce = 0x5E,
     CPI_EndStopLimitBreakForce = 0x5F,
     CPI_JointInertia     = 0x60,  // Obsolete.

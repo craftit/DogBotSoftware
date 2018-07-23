@@ -414,9 +414,7 @@ enum FaultCodeT LoadSetup(void) {
   g_jointRole = g_storedConfig.m_jointRole;
   g_endStopEnable = g_storedConfig.m_endStopEnable;
   g_endStopMin = g_storedConfig.m_endStopMin;
-  g_endStopStartBounce = g_storedConfig.m_endStopStartBounce;
   g_endStopMax = g_storedConfig.m_endStopMax;
-  g_endStopEndBounce = g_storedConfig.m_endStopEndBounce;
   g_endStopTargetBreakCurrent = g_storedConfig.m_endStopTargetBreakCurrent;
   g_endStopMaxBreakCurrent = g_storedConfig.m_endStopMaxBreakCurrent;
   g_safetyMode = g_storedConfig.m_safetyMode;
@@ -453,13 +451,16 @@ enum FaultCodeT SaveSetup(void) {
   g_storedConfig.m_jointRole = g_jointRole;
   g_storedConfig.m_endStopEnable = g_endStopEnable;
   g_storedConfig.m_endStopMin = g_endStopMin;
-  g_storedConfig.m_endStopStartBounce = g_endStopStartBounce;
   g_storedConfig.m_endStopMax = g_endStopMax;
-  g_storedConfig.m_endStopEndBounce = g_endStopEndBounce;
   g_storedConfig.m_endStopTargetBreakCurrent = g_endStopTargetBreakCurrent;
   g_storedConfig.m_endStopMaxBreakCurrent = g_endStopMaxBreakCurrent;
   g_storedConfig.m_safetyMode = g_safetyMode;
   g_storedConfig.m_supplyVoltageScale = g_supplyVoltageScale;
+
+  // Make sure obsolete values are at a fixed value.
+  g_storedConfig.m_endStopStartBounce = 0;
+  g_storedConfig.m_endStopEndBounce = 0;
+  g_storedConfig.m_jointInertia = 0;
 
   if(!StoredConf_Save(&g_storedConfig)) {
     return FC_InternalStoreFailed;

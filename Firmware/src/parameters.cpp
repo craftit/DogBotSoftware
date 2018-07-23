@@ -375,23 +375,10 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
       memcpy(&g_endStopMin,&data->float32[0],sizeof(float));
       SetupEndStops();
     } break;
-    case CPI_EndStopStartBounce:{
-      if(len != 4)
-        return false;
-      memcpy(&g_endStopStartBounce,&data->float32[0],sizeof(float));
-      SetupEndStops();
-    } break;
-
     case CPI_EndStopFinal:{
       if(len != 4)
         return false;
       memcpy(&g_endStopMax,&data->float32[0],sizeof(float));
-      SetupEndStops();
-    } break;
-    case CPI_EndStopEndBounce:{
-      if(len != 4)
-        return false;
-      memcpy(&g_endStopEndBounce,&data->float32[0],sizeof(float));
       SetupEndStops();
     } break;
     case CPI_EndStopTargetBreakForce:{
@@ -714,7 +701,6 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       *len = 1;
       data->uint8[0] = g_safetyMode;
     } break;
-
     case CPI_EndStopEnable: {
       *len = 1;
       data->uint8[0] = g_endStopEnable;
@@ -723,17 +709,9 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       *len = 4;
       data->float32[0] = g_endStopMin;
     } break;
-    case CPI_EndStopStartBounce:{
-      *len = 4;
-      data->float32[0] = g_endStopStartBounce;
-    } break;
     case CPI_EndStopFinal:{
       *len = 4;
       data->float32[0] = g_endStopMax;
-    } break;
-    case CPI_EndStopEndBounce:{
-      *len = 4;
-      data->float32[0] = g_endStopEndBounce;
     } break;
     case CPI_EndStopTargetBreakForce:{
       *len = 4;

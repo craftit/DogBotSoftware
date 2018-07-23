@@ -147,6 +147,9 @@ namespace DogBotN {
     //! Restore configuration from file values.
     bool RestoreConfig();
 
+    //! Restore default values for connected controllers.
+    bool RestoreDefaults();
+
     //! Get device entry by name
     std::shared_ptr<DeviceC> GetDeviceByName(const std::string &name);
 
@@ -210,6 +213,9 @@ namespace DogBotN {
     { return DogBotKinematicsC::LegJointNames(); }
 
   protected:
+    //! Find device by its unique id
+    std::shared_ptr<DeviceC> FindDeviceByUID(uint32_t uid1,uint32_t uid2);
+
     //! Home from squatting position (Not implemented yet)
     bool HomeSquat();
 
@@ -277,8 +283,9 @@ namespace DogBotN {
     std::mutex m_mutexDevices;
 
     std::chrono::time_point<std::chrono::steady_clock> m_timeLastUnassignedUpdate;
+    std::vector<std::shared_ptr<DeviceC> > m_deviceById; // Devices indexed by id.
     std::vector<std::shared_ptr<DeviceC> > m_unassignedDevices; // Unassigned devices.
-    std::vector<std::shared_ptr<DeviceC> > m_devices; // Indexed by device id.
+    std::vector<std::shared_ptr<DeviceC> > m_devices; // All known devices
     std::vector<std::shared_ptr<JointC> > m_joints; // List of available joints.
 
     std::thread m_threadMonitor;

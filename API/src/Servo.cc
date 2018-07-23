@@ -168,6 +168,7 @@ namespace DogBotN {
     // Things to query
     m_updateQuery.push_back(CPI_ControlState);
     m_updateQuery.push_back(CPI_FaultCode);
+    m_updateQuery.push_back(CPI_FaultState);
     m_updateQuery.push_back(CPI_SafetyMode);
     m_updateQuery.push_back(CPI_Indicator);
 
@@ -546,9 +547,11 @@ namespace DogBotN {
     } break;
     case CPI_FaultState: {
       uint32_t faultState = pkt.m_data.uint32[0];
-      if(faultState != 0)
+      if(faultState != 0) {
         m_log->error("Device {} {} Fault state {} ",m_id,m_name,faultState);
-      ret = false;
+      }
+      ret = faultState != m_faultState;
+      m_faultState = faultState;
     } break;
     case CPI_SafetyMode: {
       enum SafetyModeT safetyMode =  (enum SafetyModeT) pkt.m_data.uint8[0];
@@ -786,6 +789,8 @@ namespace DogBotN {
     }
 
     std::chrono::duration<double> comsTimeout = m_comsTimeout;
+
+    // Chose the appropriate timeout depending on what mode we're in
     switch(m_controlState)
     {
     case CS_Ready:
