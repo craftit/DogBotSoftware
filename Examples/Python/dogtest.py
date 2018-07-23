@@ -15,6 +15,11 @@ except Exception, e:
   print "Failed to import reactrobotics, {}".format(e)
   print "Check you have built the code and run the /Scripts/pythonapi.sh install"
 
+
+# == debugging
+__FORCE_EXECUTION = False; #useful for testing/debuggging without robot
+
+
 # ======= Tests ====================
 
 def basicConnect(options):
@@ -150,13 +155,14 @@ class DogWagger(object):
       self.wagtype = wagtype
       self.wagtime = options["waggletime"]
       
-      self.wagLimits = {"roll" : (-0.2, 0.2),
-                        "left_knee" : (-0.9, -2.0),
-                        "right_knee" : (0.9, 2.0),
-                        "pitch" : (-0.8, 0.8)}
-      self.wagPeriod = 2.0 #in s
+      self.wagLimits = {"roll" : (-0.15, 0.15),
+                        "left_knee" : (-0.9, -1.3),
+                        "right_knee" : (0.9, 1.3),
+                        "left_pitch" : (-0.5, 0.6),
+                        "right_pitch" : (0.5, -0.6)}
+      self.wagPeriod = 1.8 #in s
       
-      self.trajectoryUpdatePeriod = 0.02
+      self.trajectoryUpdatePeriod = 0.05 #0.05 =20Hz
       self.trajectorySet = False
       self.torqueLimit = options["torquelimit"]
       
@@ -166,16 +172,23 @@ class DogWagger(object):
       self.jointNames = []
       for joint in self.joints:
         name = joint.Name()
+        #print "Checkng ",name
         self.jointNames.append(name)
         
         interested = "roll" in name or "pitch" in name or "virtual" in name
         self.interested.append(interested)
         
+        setLimits = False
         for wl in self.wagLimits:
           if wl in name:
+            #print "setting {} as {} with limits {}".format(name, wl, self.wagLimits[wl])
             self.jointLimits.append(self.wagLimits[wl])
+            setLimits = True
             break;
-      
+        
+        if not setLimits:
+          self.jointLimits.append( (0.0, 0.0) )
+          
       print "Joint names:", self.jointNames
       print "interested:", self.interested
       print "joint limits:", self.jointLimits
@@ -191,19 +204,22 @@ class DogWagger(object):
         usingTrajectory = True
       
       start = time.time()
-      lasttime = start - 100000.0
-      wp = self.wagPeriod * 1000.0 #in ms, to compare against time.time()
+      lasttime = start - 1000
+      wagp = self.wagPeriod
+      wagt = self.wagtime
       toFrom = True
       firstTime = True
       
       while True:
-        if (time.time()) - start > self.wagtime:
+        #print "checking", time.time(), "against", start, lasttime,time.time() - lasttime, wp, wt
+        if (time.time()) - start > wagt:
+          print "Test timeout reached"
           break;
         
         if not usingTrajectory or firstTime:
           #use DemandPosition
-          duration = (time.time()) - lasttime
-          if duration >= wp:
+          duration = time.time() - lasttime
+          if duration >= wagp:
             lasttime = time.time()
             self.demandPosition(toFrom)
             toFrom = not toFrom
@@ -216,11 +232,12 @@ class DogWagger(object):
     
     def demandPosition(self, toFrom):
       for i, joint in enumerate(self.joints):
+        #print "checking", i, joint.Name(), self.interested[i], self.jointLimits[i]
         if not self.interested[i]:
           continue;
         position = self.jointLimits[i][int(toFrom)]
         print "moving {} to {}".format(self.jointNames[i], position)
-        #joint.DemandPosition(position, self.torqueLimit)
+        joint.DemandPosition(position, self.torqueLimit)
     
     
     def demandTrajectory(self, toFrom):
@@ -231,51 +248,58 @@ class DogWagger(object):
       
       posTo = [ x[int(toFrom)] for x in self.jointLimits ]
       posFrom = [ x[int(not toFrom)] for x in self.jointLimits ]
-      wp = self.wagPeriod
-      steps = int(wp / trajectoryUpdatePeriod)
+      
+      wagp = self.wagPeriod
+      steps = int(wagp / self.trajectoryUpdatePeriod)
       if steps < 10:
         print "Warning, movement period seems short compared to trajectory updates!"
       
-      wp *= 1000.0
-      tup = trajectoryUpdatePeriod*1000.0
+      tup = self.trajectoryUpdatePeriod
       start = time.time()
-      lasttime = start - 100000.0
-      factor = wp / math.pi
+      lasttime = start - tup
+      factor = wagp / math.pi
       step = 0
       
-      while true:
+      while True:
         if time.time() - lasttime >= tup:
           now = time.time()
           duration = now - start
           if now - lasttime > tup*1.1:
             print "Warning: test code can't keep up with desired frequency, duration is {} ms, supposed to be {}!".format(now-lasttime, tup)
             
-          if duration > wp:
+          if duration > wagp:
             if abs(step - steps) > 2:
               print "Warning ,expected {} steps, actually achieved {} across the motion!".format(steps, step)
             break;
           
-          f2 = math.cos( duration / factor )
+          f2 = (math.cos( duration / factor )+1.0) / 2.0
+          
           for i, joint in enumerate(self.joints):
             if not self.interested[i]:
               continue;
-            pFrom = posFrom[i]
-            request = pFrom + (posTo[i] - pFrom)*f2
+            pTo = posTo[i]
+            request = pTo - (pTo - posFrom[i])*f2
+            #print "Setting {} to {}".format(joint.Name(), request)
             joint.DemandTrajectory(request)
             
           lasttime = now
           step += 1
+          #print "Completed {} steps from {}".format(step, steps)
     
     
     def setupTrajectory(self):
-      for joint in self.joints:
-        joint.setupTrajectory(self.trajectoryUpdatePeriod, self.torqueLimit)
+      for i, joint in enumerate(self.joints):
+        if not self.interested[i]:
+          continue;
+        joint.SetupTrajectory(self.trajectoryUpdatePeriod, self.torqueLimit)
       
         
 def wagDogJoints(options, wagtype):
+
     if not servoStatus(options, True):
       print "DogBot not ready to receive commands"
-      return 0;
+      if not __FORCE_EXECUTION:
+        return 0;
 
     try:
       dogw = DogWagger(options, wagtype)
@@ -290,7 +314,7 @@ def wagDogJoints(options, wagtype):
 def dogtestArgs():
     parser = argparse.ArgumentParser(description="Run some basic tests on the API and your DogBot") 
     parser.add_argument("-d","--dogname", help="The DogBot's name", default="")
-    parser.add_argument("-t","--test", help="Test to run: connect, status, state, wave, waggle. Default is all", default="all")
+    parser.add_argument("-t","--test", help="Test to run: connect, status (check whether DogBot joints are ready to receive commands), state (report servo states), wave (move legs to set positions), waggle (move legs along smoothed trajectories). Default is all", default="all")
     parser.add_argument("-c","--connection", help="Connection: local, USB, none.  Default is local", default="local")
     parser.add_argument("-wt","--waggletime", help="Time to run waggle test, seconds, default 4", default=4, type=int)
     parser.add_argument("-tl","--torquelimit", help="Torque limit for joints, default 3.5Nm", default=3.5, type=int)
