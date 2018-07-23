@@ -31,6 +31,7 @@ extern "C" {
   extern enum ControlStateT g_controlState;
   extern float g_homeAngleOffset;      // Offset from phase position to actuator position.
   extern bool g_indicatorState;
+  extern bool g_diagnosticMode;  //! When true extra parameter information is reported
   extern float g_absoluteMaxCurrent; // Maximum current allowed
   extern float g_actuatorRatio;
   extern float g_homeIndexPosition;

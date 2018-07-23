@@ -87,6 +87,11 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
         return false;
       g_canBridgeMode = data->uint8[0] > 0;
       break;
+    case CPI_DiagnosticMode:
+      if(len != 1)
+        return false;
+      g_diagnosticMode = data->uint8[0] > 0;
+      break;
     case CPI_IndexSensor:
     case CPI_BoardUID:
     case CPI_DRV8305_01:
@@ -487,6 +492,10 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
     case CPI_CANBridgeMode:
       *len = 1;
       data->uint8[0] = g_canBridgeMode;
+      break;
+    case CPI_DiagnosticMode:
+      *len = 1;
+      data->uint8[0] = g_diagnosticMode;
       break;
     case CPI_BoardUID:
       *len = 8;

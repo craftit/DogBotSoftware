@@ -184,7 +184,7 @@ extern "C" {
     CPI_DRV8305_05      = 36,
 
     CPI_5VRail          = 37,
-    // 38 - Free Was fan mode
+    CPI_DiagnosticMode  = 38,
     CPI_MaxCurrent      = 39,
     CPI_homeIndexPosition = 40,
     CPI_HallSensors      = 41,
@@ -281,12 +281,8 @@ extern "C" {
     CS_EmergencyStop = 4, //!< Motor in break state.
     CS_SelfTest      = 5, //!< Doing a self test.
     CS_FactoryCalibrate = 6, //!< Calibrating motor
-    CS_Home          = 7, //!< Auto homing motor, NOT IMPLEMENTED
     CS_Fault         = 8, //!< Hardware or configuration fault detected.
-    //CS_Teach         = 9, //!< Motor position monitored but no torque. NOT IMPLEMENTED
-    CS_Diagnostic    = 10, //!< As CS_Ready, but with extra status reporting.
-    CS_BootLoader    = 11, //!< Ready for firmware update
-    CS_MotionCalibrate = 12 //!< Calibrating motion parameters of joint
+    CS_BootLoader    = 11 //!< Ready for firmware update
   };
 
   /* Safety mode, this sets the behaviour if a fault is detected on a controller.
