@@ -68,15 +68,12 @@ namespace DogBotN {
     switch(controlState) {
     case CS_EmergencyStop: return "Emergency Stop";
     case CS_FactoryCalibrate: return "Factory Calibrate";
-    case CS_MotionCalibrate: return "Motion Calibrate";
     case CS_SafeStop: return "Safe Stop";
     case CS_Standby: return "Standby";
     case CS_Ready: return "Ready";
-    case CS_Home: return "Auto Home";
     case CS_SelfTest: return "Self Test";
     case CS_Fault: return "Fault";
     case CS_StartUp: return "Power Up";
-    case CS_Diagnostic: return "Diagnostic";
     case CS_BootLoader: return "Boot Loader";
     }
     printf("Unexpected state %d \n",(int)controlState);

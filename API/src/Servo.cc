@@ -225,7 +225,7 @@ namespace DogBotN {
   bool ServoC::IsReady() const
   {
     bool homed = (m_homedState==MHS_SoftHomed || m_homedState==MHS_Homed);
-    bool ready = (m_controlState==CS_Ready || m_controlState==CS_Diagnostic);
+    bool ready = (m_controlState==CS_Ready);
     bool isready = homed && ready;
     return isready;
   }
@@ -438,6 +438,7 @@ namespace DogBotN {
           case CS_BootLoader:
             QueryRefresh(); // We've changed from the boot loader, so we need to re-query everything
           case CS_StartUp:
+          case CS_EmergencyStop:
           case CS_FactoryCalibrate:
           case CS_Standby:
             m_homedState = MHS_Lost;
@@ -449,6 +450,29 @@ namespace DogBotN {
           default:
             break;
         }
+
+        //! Likewise if we change into a state where things are unknown also update it
+        switch(controlState)
+        {
+          case CS_BootLoader:
+            QueryRefresh(); // We've changed into the boot loader, so we need to re-query things
+          case CS_StartUp:
+          case CS_FactoryCalibrate:
+          case CS_Standby:
+            m_homedState = MHS_Lost;
+            m_controlDynamic = CM_Off;
+            m_position = 0.0;
+            m_torque = 0.0;
+            m_velocity = 0.0;
+            break;
+          case CS_EmergencyStop:
+            m_homedState = MHS_Lost;
+            // Leave other state alone as it may be useful to work out why the emergency stop was triggered.
+            break;
+          default:
+            break;
+        }
+
       }
       m_controlState = controlState;
     } break;
@@ -765,7 +789,6 @@ namespace DogBotN {
     switch(m_controlState)
     {
     case CS_Ready:
-    case CS_Diagnostic:
       comsTimeout = m_comsTimeout;
     break;
     case CS_FactoryCalibrate:

@@ -80,7 +80,6 @@ static THD_FUNCTION(ThreadGreenLED, arg) {
       } break;
       case CS_SelfTest:
       case CS_FactoryCalibrate:
-      case CS_Home:
       default: {
         palSetPad(GPIOC, GPIOC_PIN4);       /* Green.  */
         chThdSleepMilliseconds(500);
@@ -205,7 +204,6 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
       }
       break;
     case CS_Ready:
-    case CS_Diagnostic:
       // Don't let it turn to boot-loader from ready, and there is no point in startup once we're ready.
       if(newState == CS_BootLoader ||
           newState == CS_StartUp)
@@ -216,9 +214,7 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
       break;
     case CS_StartUp:
     case CS_SelfTest:
-    case CS_Home:
     case CS_BootLoader:
-    case CS_MotionCalibrate:
     default:
       break;
   }
@@ -259,12 +255,6 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
       g_stateChangeCause = changeSource;
       g_currentLimit = 0;
       SetMotorControlMode(CM_Brake);
-      break;
-    case CS_MotionCalibrate:
-    case CS_Diagnostic:
-    case CS_Home:
-      if(g_controlState != CS_Ready)
-        break;
       break;
     case CS_Ready:
       // This can only happen from startup
@@ -402,7 +392,7 @@ void SendBackgroundStateReport(void)
       break;
     case 6:
       // Finish here unless we're in diagnostic mode.
-      if(g_controlState != CS_Diagnostic) {
+      if(!g_diagnosticMode) {
         stateCount = -1;
         return ;
       }
@@ -590,12 +580,8 @@ int main(void) {
         SendBackgroundStateReport();
       } break;
       case CS_SafeStop:
-
         // FIXME- Add a timer to change to LowPower
         // no break
-      case CS_MotionCalibrate:
-      case CS_Home:
-      case CS_Diagnostic:
       case CS_Ready: {
         if(chBSemWaitTimeout(&g_reportSampleReady,1000) != MSG_OK) {
           g_mainLoopTimeoutCount++;
@@ -710,9 +696,6 @@ int main(void) {
         switch(g_controlState)
         {
           case CS_Ready:
-          case CS_Diagnostic:
-          case CS_Home:
-          case CS_MotionCalibrate:
             ChangeControlState(CS_SafeStop,SCS_Internal);
             break;
           case CS_SelfTest:

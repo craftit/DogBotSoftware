@@ -25,6 +25,7 @@ enum PositionReferenceT g_motionPositionReference = PR_Absolute;
 enum ControlStateT g_controlState = CS_Standby;
 enum FaultCodeT g_lastFaultCode = FC_Ok;
 
+bool g_diagnosticMode = false;
 bool g_indicatorState = false;
 bool g_newCalibrationData = false;
 
