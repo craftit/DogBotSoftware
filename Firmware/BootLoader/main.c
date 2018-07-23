@@ -56,6 +56,7 @@ int main(void) {
   RCC->CSR |= RCC_CSR_RMVF;
 
   bool sentBootloaderMode = false;
+  int deviceZeroTimeout = 0;
 
   if(g_controlState == CS_BootLoader) {
     chSysInit();
@@ -81,6 +82,14 @@ int main(void) {
         /* Make sure the world knows we're in bootloader mode. */
         SendParamUpdate(CPI_ControlState);
         sentBootloaderMode = true;
+      }
+
+      // Keep generating announcments every second until we've been given an id.
+      if(g_deviceId == 0) {
+        if(deviceZeroTimeout++ > 10) {
+          deviceZeroTimeout = 0;
+          SendAnnounceId();
+        }
       }
 
       // Just send this regularly so the controller knows we're alive

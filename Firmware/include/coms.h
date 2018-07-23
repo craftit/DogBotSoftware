@@ -80,6 +80,11 @@ extern "C" {
    * */
   void SendParamData(enum ComsParameterIndexT paramIndex,const void *data,int len);
 
+  /* Broadcast our device id.
+   *  This will also announce our id with device 0 if it not set.
+   *  */
+  void SendAnnounceId(void);
+
   /* Count of USB messages dropped due to full buffers */
   extern int g_usbDropCount;
 

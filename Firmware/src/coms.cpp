@@ -132,6 +132,24 @@ void SendParamUpdate(enum ComsParameterIndexT paramIndex)
   }
 }
 
+void USBSendAnnounceId(void)
+{
+  struct PacketDeviceIdC pkt;
+  pkt.m_packetType = CPT_AnnounceId;
+  pkt.m_deviceId = g_deviceId;
+  pkt.m_uid[0] = g_nodeUId[0];
+  pkt.m_uid[1] = g_nodeUId[1];
+  USBSendPacket((uint8_t *) &pkt,sizeof(struct PacketDeviceIdC));
+}
+
+void SendAnnounceId(void)
+{
+  if(g_canBridgeMode){
+    USBSendAnnounceId();
+  }
+  CANSendAnnounceId();
+}
+
 //! Send parameter data directly.
 
 void SendParamData(enum ComsParameterIndexT paramIndex,const void *data,int len)
@@ -274,12 +292,7 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
   } break;
   case CPT_QueryDevices: {
     // First report about myself
-    struct PacketDeviceIdC pkt;
-    pkt.m_packetType = CPT_AnnounceId;
-    pkt.m_deviceId = g_deviceId;
-    pkt.m_uid[0] = g_nodeUId[0];
-    pkt.m_uid[1] = g_nodeUId[1];
-    USBSendPacket((uint8_t *) &pkt,sizeof(struct PacketDeviceIdC));
+    USBSendAnnounceId();
 
     // Are we bridging ?
     if(g_canBridgeMode) {
@@ -299,15 +312,7 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
         pkt->m_uid[1] == g_nodeUId[1]) {
       g_deviceId = pkt->m_deviceId;
 
-      // Announce change.
-      {
-        struct PacketDeviceIdC rpkt;
-        rpkt.m_packetType = CPT_AnnounceId;
-        rpkt.m_deviceId = g_deviceId;
-        rpkt.m_uid[0] = g_nodeUId[0];
-        rpkt.m_uid[1] = g_nodeUId[1];
-        USBSendPacket((uint8_t *) &rpkt,sizeof(struct PacketDeviceIdC));
-      }
+      USBSendAnnounceId();
     } else {
       if(g_canBridgeMode) {
         if(!CANSendSetDevice(pkt->m_deviceId,pkt->m_uid[0],pkt->m_uid[1])) {

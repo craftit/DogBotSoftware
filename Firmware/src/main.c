@@ -590,10 +590,11 @@ int main(void) {
         if(g_deviceId == 0) {
           if(g_deviceZeroTimer++ > g_deviceZeroTimeout) {
             g_deviceZeroTimer = 0;
-            CANSendAnnounceId();
+            SendAnnounceId();
           }
         }
       }
+      // no break
       case CS_Fault:
         chThdSleepMilliseconds(200);
         SendBackgroundStateReport();
@@ -615,7 +616,8 @@ int main(void) {
           ChangeControlState(CS_Standby,SCS_Internal);
           break;
         }
-      } // no break
+      }
+      // no break
       case CS_Ready: {
         if(chBSemWaitTimeout(&g_reportSampleReady,1000) != MSG_OK) {
           g_mainLoopTimeoutCount++;
