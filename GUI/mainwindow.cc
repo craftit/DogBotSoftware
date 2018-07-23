@@ -516,6 +516,9 @@ void MainWindow::LocalProcessParam(PacketParam8ByteC psp)
   case CPI_CurrentLimit: {
     ui->doubleSpinBoxCurrentLimit->setValue(psp.m_data.float32[0]);
   } break;
+  case CPI_DiagnosticMode: {
+    ui->checkBoxDiagnosticMode->setChecked(psp.m_data.int8[0] != 0);
+  } break;
   default:
     break;
   }
@@ -979,26 +982,17 @@ void MainWindow::on_comboBoxControlState_activated(const QString &arg1)
   if(arg1 == "Factory Calibrate") {
     controlState = CS_FactoryCalibrate;
   }
-  if(arg1 == "Motion Calibrate") {
-    controlState = CS_MotionCalibrate;
-  }
   if(arg1 == "Standby") {
     controlState = CS_Standby;
   }
   if(arg1 == "Ready") {
     controlState = CS_Ready;
   }
-  if(arg1 == "Auto Home") {
-    controlState = CS_Home;
-  }
   if(arg1 == "Safe Stop") {
     controlState = CS_SafeStop;
   }
   if(arg1 == "Power Up") {
     controlState = CS_StartUp;
-  }
-  if(arg1 == "Diagnostic") {
-    controlState = CS_Diagnostic;
   }
   if(arg1 == "Boot Loader") {
     controlState = CS_BootLoader;
@@ -1051,16 +1045,6 @@ void MainWindow::on_pushButtonCalZero_clicked()
 {
   std::cout << "Sending cal zero. " << std::endl;
   m_coms->SendCalZero(m_targetDeviceId);
-}
-
-void MainWindow::on_doubleSpinBoxJointRelGain_valueChanged(double arg1)
-{
-   m_coms->SendSetParam(m_targetDeviceId,CPI_OtherJointGain,(float) arg1);
-}
-
-void MainWindow::on_doubleSpinBoxJointRelOffset_valueChanged(double arg1)
-{
-  m_coms->SendSetParam(m_targetDeviceId,CPI_OtherJointOffset,DogBotN::Deg2Rad(arg1));
 }
 
 void MainWindow::on_doubleSpinBoxDemandPosition_editingFinished()
@@ -1182,12 +1166,6 @@ void MainWindow::on_pushButtonQueryHomed_clicked()
   m_coms->SendQueryParam(m_targetDeviceId,CPI_homeIndexPosition);
 }
 
-void MainWindow::on_pushButtonBrake_clicked()
-{
-  StopAnimation();
-  m_coms->SendSetParam(0,CPI_PWMMode,CM_Brake);
-}
-
 void MainWindow::on_pushButtonOff_clicked()
 {
   StopAnimation();
@@ -1259,11 +1237,6 @@ void MainWindow::on_actionSave_Config_As_triggered()
 void MainWindow::on_pushButtonPowerOnAll_clicked()
 {
   m_dogBotAPI->PowerOnAll();
-}
-
-void MainWindow::on_pushButtonRefresh_clicked()
-{
-  m_dogBotAPI->RefreshAll();
 }
 
 void MainWindow::on_actionExit_triggered()
@@ -1683,3 +1656,12 @@ void MainWindow::on_pushButtonActivityAbort_clicked()
   m_platformManager->AbortActivity();
 }
 
+
+void MainWindow::on_checkBoxDiagnosticMode_stateChanged(int arg1)
+{
+  if(arg1 == 0) {
+    m_coms->SendSetParam(m_targetDeviceId,CPI_DiagnosticMode,false);
+  } else {
+    m_coms->SendSetParam(m_targetDeviceId,CPI_DiagnosticMode,true);
+  }
+}

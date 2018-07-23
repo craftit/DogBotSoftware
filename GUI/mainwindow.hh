@@ -85,10 +85,6 @@ private slots:
 
   void on_pushButtonCalZero_clicked();
 
-  void on_doubleSpinBoxJointRelGain_valueChanged(double arg1);
-
-  void on_doubleSpinBoxJointRelOffset_valueChanged(double arg1);
-
   void on_doubleSpinBoxDemandPosition_editingFinished();
 
   void on_doubleSpinBoxTorqueLimit_editingFinished();
@@ -126,8 +122,6 @@ private slots:
 
   void on_pushButtonHold_clicked();
 
-  void on_pushButtonBrake_clicked();
-
   void on_comboBoxServoName_activated(const QString &arg1);
 
   void on_actionSaveConfig_triggered();
@@ -135,8 +129,6 @@ private slots:
   void on_actionLoadConfig_triggered();
 
   void on_actionSave_Config_As_triggered();
-
-  void on_pushButtonRefresh_clicked();
 
   void on_actionExit_triggered();
 
@@ -213,6 +205,8 @@ private slots:
   void on_pushButtonActivityAbort_clicked();
 
   void on_pushButtonPowerOnAll_clicked();
+
+  void on_checkBoxDiagnosticMode_stateChanged(int arg1);
 
 signals:
   void setLogText(const QString &str);
