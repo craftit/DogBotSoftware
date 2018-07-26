@@ -438,6 +438,8 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
         newCurrentLimit = g_absoluteMaxCurrent;
       g_userCurrentLimit = newCurrentLimit;
     } break;
+    case CPI_MaxCurrentSense:
+      return false;
     case CPI_FINAL:
       return false;
     default:
@@ -751,6 +753,10 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
     case CPI_CurrentLimit: {
       *len = 4;
       data->float32[0] = g_userCurrentLimit;
+    } break;
+    case CPI_MaxCurrentSense: {
+      *len = 4;
+      data->float32[0] = g_maxCurrentSense;
     } break;
     case CPI_FINAL:
     default:

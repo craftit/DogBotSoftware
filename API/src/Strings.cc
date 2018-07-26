@@ -307,6 +307,7 @@ namespace DogBotN {
       case CPI_CurrentLimit: return "CurrentLimit";
       case CPI_PlatformActivity: return "PlatformActivity";
       case CPI_RequestedPlatformActivity: return "RequestedPlatformActivity";
+      case CPI_MaxCurrentSense: return "MaxCurrentSense";
       case CPI_FINAL: return "FINAL";
     }
     printf("Unexpected parameter index %d \n",(int)paramIndex);
@@ -414,6 +415,7 @@ namespace DogBotN {
       case CPI_CurrentLimit: return CPIT_float32;
       case CPI_PlatformActivity: return CPIT_Custom;
       case CPI_RequestedPlatformActivity: return CPIT_Custom;
+      case CPI_MaxCurrentSense: return CPIT_float32;
       case CPI_FINAL: return CPIT_Invalid;
     }
 

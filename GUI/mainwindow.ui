@@ -109,7 +109,7 @@
        <bool>true</bool>
       </property>
       <property name="currentIndex">
-       <number>5</number>
+       <number>3</number>
       </property>
       <widget class="QWidget" name="tab_connect">
        <attribute name="title">
@@ -1247,6 +1247,9 @@
                <string>Debug Values</string>
               </property>
               <layout class="QGridLayout" name="gridLayout_7">
+               <item row="1" column="2">
+                <widget class="QLineEdit" name="lineEditHallReadings"/>
+               </item>
                <item row="0" column="1" colspan="2">
                 <widget class="QCheckBox" name="checkBoxDiagnosticMode">
                  <property name="text">
@@ -1261,9 +1264,6 @@
                  </property>
                 </widget>
                </item>
-               <item row="1" column="2">
-                <widget class="QLineEdit" name="lineEditHallReadings"/>
-               </item>
                <item row="2" column="0" colspan="2">
                 <widget class="QLabel" name="label_32">
                  <property name="text">
@@ -1274,6 +1274,9 @@
                <item row="2" column="2">
                 <widget class="QLineEdit" name="lineEditFaultMap"/>
                </item>
+               <item row="3" column="2">
+                <widget class="QLineEdit" name="lineEditPWMFrequency"/>
+               </item>
                <item row="3" column="0" colspan="2">
                 <widget class="QLabel" name="label_38">
                  <property name="text">
@@ -1281,8 +1284,8 @@
                  </property>
                 </widget>
                </item>
-               <item row="3" column="2">
-                <widget class="QLineEdit" name="lineEditPWMFrequency"/>
+               <item row="4" column="2">
+                <widget class="QLineEdit" name="lineEditServoReportFrequency"/>
                </item>
                <item row="4" column="0" colspan="2">
                 <widget class="QLabel" name="label_39">
@@ -1291,8 +1294,8 @@
                  </property>
                 </widget>
                </item>
-               <item row="4" column="2">
-                <widget class="QLineEdit" name="lineEditServoReportFrequency"/>
+               <item row="5" column="2">
+                <widget class="QLineEdit" name="lineEditFanTempThreshold"/>
                </item>
                <item row="5" column="0" colspan="2">
                 <widget class="QLabel" name="label_8">
@@ -1300,9 +1303,6 @@
                   <string>Fan Temp Limit</string>
                  </property>
                 </widget>
-               </item>
-               <item row="5" column="2">
-                <widget class="QLineEdit" name="lineEditFanTempThreshold"/>
                </item>
                <item row="6" column="0" colspan="2">
                 <widget class="QLabel" name="label_51">
@@ -1318,6 +1318,9 @@
                  </property>
                 </widget>
                </item>
+               <item row="7" column="2">
+                <widget class="QLineEdit" name="lineEditMinimumSupply"/>
+               </item>
                <item row="7" column="0" colspan="2">
                 <widget class="QLabel" name="label_52">
                  <property name="text">
@@ -1325,8 +1328,15 @@
                  </property>
                 </widget>
                </item>
-               <item row="7" column="2">
-                <widget class="QLineEdit" name="lineEditMinimumSupply"/>
+               <item row="8" column="0">
+                <widget class="QLabel" name="label_35">
+                 <property name="text">
+                  <string>Max Current Sense</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="8" column="2">
+                <widget class="QLineEdit" name="lineEditMaxCurrentSense"/>
                </item>
               </layout>
              </widget>

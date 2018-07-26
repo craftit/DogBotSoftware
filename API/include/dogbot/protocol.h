@@ -241,6 +241,7 @@ extern "C" {
     CPI_CurrentLimit       = 0x66,
     CPI_PlatformActivity   = 0x67, // Used for platform manager
     CPI_RequestedPlatformActivity = 0x68, // Used for platform manager
+    CPI_MaxCurrentSense    = 0x69,
 
     CPI_FINAL           = 0xff
   };

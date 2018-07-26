@@ -94,6 +94,7 @@ MainWindow::MainWindow(QWidget *parent) :
   m_displayQuery.push_back(CPI_PositionGain);
   m_displayQuery.push_back(CPI_homeIndexPosition);
   m_displayQuery.push_back(CPI_MaxCurrent);
+  m_displayQuery.push_back(CPI_MaxCurrentSense);
   m_displayQuery.push_back(CPI_USBPacketDrops);
   m_displayQuery.push_back(CPI_USBPacketErrors);
   m_displayQuery.push_back(CPI_CANPacketDrops);
@@ -505,6 +506,9 @@ void MainWindow::LocalProcessParam(PacketParam8ByteC psp)
     break;
   case CPI_MaxCurrent: {
     ui->lineEditMaxCurrent->setText(QString::number(psp.m_data.float32[0]));
+  } break;
+  case CPI_MaxCurrentSense: {
+    ui->lineEditMaxCurrentSense->setText(QString::number(psp.m_data.float32[0]));
   } break;
   case CPI_PWMFrequency: {
     ui->lineEditPWMFrequency->setText(QString::number(psp.m_data.float32[0]));
