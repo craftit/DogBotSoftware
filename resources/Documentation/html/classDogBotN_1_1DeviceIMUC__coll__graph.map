@@ -1,0 +1,8 @@
+<map id="DogBotN::DeviceIMUC" name="DogBotN::DeviceIMUC">
+<area shape="rect" id="node2" href="$classDogBotN_1_1DeviceC.html" title="Base device class. " alt="" coords="659,13,793,39"/>
+<area shape="rect" id="node3" href="$classDogBotN_1_1CallbackArrayC.html" title="DogBotN::CallbackArrayC\l\&lt; ParameterUpdateFuncT \&gt;" alt="" coords="239,5,424,47"/>
+<area shape="rect" id="node4" href="$classDogBotN_1_1AbstractCallbackArrayC.html" title="DogBotN::AbstractCallback\lArrayC" alt="" coords="5,64,189,105"/>
+<area shape="rect" id="node5" href="$classDogBotN_1_1CallbackArrayC.html" title="DogBotN::CallbackArrayC\l\&lt; IMUUpdateFuncT \&gt;" alt="" coords="448,61,624,103"/>
+<area shape="rect" id="node7" href="$classDogBotN_1_1CallbackArrayC.html" title="DogBotN::CallbackArrayC\l\&lt; RangeUpdateFuncT \&gt;" alt="" coords="448,119,624,160"/>
+<area shape="rect" id="node6" href="$classDogBotN_1_1IMUFrameC.html" title="Single frame of IMU data. " alt="" coords="648,189,804,215"/>
+</map>

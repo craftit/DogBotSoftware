@@ -1,0 +1,12 @@
+<map id="pydogbotapi._object" name="pydogbotapi._object">
+<area shape="rect" id="node2" href="$classpydogbotapi_1_1DogBotAPIC.html" title="pydogbotapi.DogBotAPIC" alt="" coords="209,5,381,32"/>
+<area shape="rect" id="node3" href="$classpydogbotapi_1_1DogBotControllerC.html" title="pydogbotapi.DogBotControllerC" alt="" coords="192,56,399,83"/>
+<area shape="rect" id="node4" href="$classpydogbotapi_1_1JointC.html" title="pydogbotapi.JointC" alt="" coords="228,107,363,133"/>
+<area shape="rect" id="node6" href="$classpydogbotapi_1_1jointvector.html" title="pydogbotapi.jointvector" alt="" coords="217,157,373,184"/>
+<area shape="rect" id="node7" href="$classpydogbotapi_1_1LegControllerC.html" title="pydogbotapi.LegControllerC" alt="" coords="204,208,387,235"/>
+<area shape="rect" id="node8" href="$classpydogbotapi_1_1PoseAnglesC.html" title="pydogbotapi.PoseAnglesC" alt="" coords="207,259,383,285"/>
+<area shape="rect" id="node9" href="$classpydogbotapi_1_1servovector.html" title="pydogbotapi.servovector" alt="" coords="213,309,377,336"/>
+<area shape="rect" id="node10" href="$classpydogbotapi_1_1SimpleQuadrupedPoseC.html" title="pydogbotapi.SimpleQuadruped\lPoseC" alt="" coords="196,361,395,402"/>
+<area shape="rect" id="node11" href="$classpydogbotapi_1_1stringvector.html" title="pydogbotapi.stringvector" alt="" coords="213,427,377,453"/>
+<area shape="rect" id="node5" href="$classpydogbotapi_1_1ServoC.html" title="pydogbotapi.ServoC" alt="" coords="447,107,587,133"/>
+</map>
