@@ -81,11 +81,11 @@ namespace DogBotN
   //! Destructor
   ComsUSBHotPlugC::~ComsUSBHotPlugC()
   {
+    Close();
+
     if(libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG)) {
       libusb_hotplug_deregister_callback(m_usbContext,m_hotplugCallbackHandle);
     }
-
-    Close();
 
     libusb_exit(m_usbContext);
     m_usbContext = 0;
