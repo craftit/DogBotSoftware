@@ -1,0 +1,10 @@
+<map id="cxxopts::OptionParseException" name="cxxopts::OptionParseException">
+<area shape="rect" id="node4" href="$classcxxopts_1_1argument__incorrect__type.html" title="cxxopts::argument_incorrect_type" alt="" coords="607,5,825,32"/>
+<area shape="rect" id="node5" href="$classcxxopts_1_1missing__argument__exception.html" title="cxxopts::missing_argument\l_exception" alt="" coords="625,57,807,98"/>
+<area shape="rect" id="node6" href="$classcxxopts_1_1option__not__exists__exception.html" title="cxxopts::option_not\l_exists_exception" alt="" coords="648,122,784,163"/>
+<area shape="rect" id="node7" href="$classcxxopts_1_1option__not__has__argument__exception.html" title="cxxopts::option_not\l_has_argument_exception" alt="" coords="629,187,803,229"/>
+<area shape="rect" id="node8" href="$classcxxopts_1_1option__not__present__exception.html" title="cxxopts::option_not\l_present_exception" alt="" coords="648,253,784,294"/>
+<area shape="rect" id="node9" href="$classcxxopts_1_1option__required__exception.html" title="cxxopts::option_required\l_exception" alt="" coords="634,318,798,359"/>
+<area shape="rect" id="node10" href="$classcxxopts_1_1option__requires__argument__exception.html" title="cxxopts::option_requires\l_argument_exception" alt="" coords="634,383,798,425"/>
+<area shape="rect" id="node2" href="$classcxxopts_1_1OptionException.html" title="cxxopts::OptionException" alt="" coords="132,195,304,221"/>
+</map>

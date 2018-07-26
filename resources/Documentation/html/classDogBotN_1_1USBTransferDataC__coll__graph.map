@@ -1,0 +1,6 @@
+<map id="DogBotN::USBTransferDataC" name="DogBotN::USBTransferDataC">
+<area shape="rect" id="node2" href="$classDogBotN_1_1ComsUSBC.html" title="Low level serial communication over usb with the driver board. " alt="" coords="26,291,183,317"/>
+<area shape="rect" id="node3" href="$classDogBotN_1_1ComsC.html" title="Low level communication interface. " alt="" coords="40,215,169,241"/>
+<area shape="rect" id="node4" href="$classDogBotN_1_1CallbackArrayC.html" title="DogBotN::CallbackArrayC\l\&lt; PacketFuncT \&gt;" alt="" coords="17,96,193,137"/>
+<area shape="rect" id="node5" href="$classDogBotN_1_1AbstractCallbackArrayC.html" title="DogBotN::AbstractCallback\lArrayC" alt="" coords="13,5,197,47"/>
+</map>
