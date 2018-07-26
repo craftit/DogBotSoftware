@@ -108,37 +108,66 @@ int CheckHallInRange(void) {
 }
 
 
-static void queue_modulation_timings(float mod_alpha, float mod_beta) {
+static void queue_modulation_timings(float mod_alpha, float mod_beta,bool unsymetricSwitching) {
   float tA = 0, tB = 0, tC = 0;
   SVM(mod_alpha, mod_beta, &tA, &tB, &tC);
   uint16_t a = (uint16_t)(tA * (float)TIM_1_8_PERIOD_CLOCKS);
   uint16_t b = (uint16_t)(tB * (float)TIM_1_8_PERIOD_CLOCKS);
   uint16_t c = (uint16_t)(tC * (float)TIM_1_8_PERIOD_CLOCKS);
+
+#if 1
+  if(unsymetricSwitching) {
+    uint16_t min = a;
+    if(b < min) min = b;
+    if(c < min) min = c;
+    a -= min;
+    b -= min;
+    c -= min;
+
+    // If the pulse is too short it won't actually switch the MOSFETS
+    // so it's better to do nothing.
+    // FIXME:- Measure the switching time and use that.
+    if(a < 50) a = 0;
+    if(b < 50) b = 0;
+    if(c < 50) c = 0;
+  }
+#endif
+
   PWMUpdateDrivePhase(a,b,c);
 }
 
-static void queue_voltage_timings(float v_alpha, float v_beta) {
+static void queue_voltage_timings(float v_alpha, float v_beta,bool unsymetricSwitching) {
   float vfactor = 1.0f / ((2.0f / 3.0f) * g_vbus_voltage);
   float mod_alpha = vfactor * v_alpha;
   float mod_beta = vfactor * v_beta;
-  queue_modulation_timings(mod_alpha, mod_beta);
+  queue_modulation_timings(mod_alpha, mod_beta,unsymetricSwitching);
 }
 
 
 
 void ShuntCalibration(void)
 {
-  // Enable shunt calibration mode.
+
+#if 1
+  // Set the gain
   int gainMode = DRV8503_GAIN_CS1_40 | DRV8503_GAIN_CS2_40 | DRV8503_GAIN_CS3_40 |
       DRV8503_CS_BLANK_2_5US ;
 
-  // The following can deal with +- 40 Amps or so
+  // The following can deal with +- 39 Amps
 
   float ampGain = 40.0; // V/V gain
+#else
+  // Set the gain
+  int gainMode = DRV8503_GAIN_CS1_20 | DRV8503_GAIN_CS2_20 | DRV8503_GAIN_CS3_20 |
+      DRV8503_CS_BLANK_2_5US ;
+
+  // The following can deal with +- 78 Amps
+  float ampGain = 20.0; // V/V gain
+#endif
   float shuntResistance = 0.001;
 
   // 95% of half the range of possible values.
-  g_maxCurrentSense = (3.3 * 0.5 * 0.95) / (ampGain/shuntResistance);
+  g_maxCurrentSense = (3.3 * 0.5 * 0.95)/ (shuntResistance * ampGain);
   SendParamUpdate(CPI_MaxCurrent);
 
   Drv8503SetRegister(DRV8503_REG_SHUNT_AMPLIFIER_CONTROL,
@@ -265,7 +294,25 @@ static bool FOC_current(float phaseAngle,float Id_des, float Iq_des) {
   float mod_alpha = c*mod_d - s*mod_q;
   float mod_beta  = c*mod_q + s*mod_d;
 
-  queue_modulation_timings(mod_alpha, mod_beta);
+  float current = fabs(Id_des) + fabs(Iq_des);
+
+  // In general it is more efficient to reduce switching keeping the current running through the low
+  // side MOSFETs reduces switching losses and makes things more efficient.   The down side of this
+  // is that all the heat is dissipated in in the component which may over heat.  To mitigate this
+  // we change to symetric switching when the current gets too high for one MOSFET to handle.
+
+  static bool lastSwitchState = true;
+
+  // Add some hysteresis as the two methods offer a different average resistance.
+  bool useUnsymetricSwitching;
+  if(lastSwitchState) {
+    useUnsymetricSwitching = current < 5.0;
+  } else {
+    useUnsymetricSwitching = current < 4.0;
+  }
+  lastSwitchState = useUnsymetricSwitching;
+
+  queue_modulation_timings(mod_alpha, mod_beta,useUnsymetricSwitching);
 
   return true;
 }
@@ -766,7 +813,7 @@ static THD_FUNCTION(ThreadPWM, arg) {
 
   palSetPad(GPIOC, GPIOC_PIN13); // Wake
 
-  //! Wait for powerup to complete
+  //! Wait for power up to complete
   int timeOut = 10;
   while (!palReadPad(GPIOD, GPIOD_PIN2) && g_pwmRun ) {
     if(timeOut-- < 0) {
@@ -781,7 +828,7 @@ static THD_FUNCTION(ThreadPWM, arg) {
   }
 
 
-  //! Read initial state of endstop switches
+  //! Read initial state of index switch
   g_lastLimitState = palReadPad(GPIOC, GPIOC_PIN8); // Index
 
   //! Make sure the driver is setup.
@@ -793,6 +840,7 @@ static THD_FUNCTION(ThreadPWM, arg) {
   //! Check the driver is happy
   if(!CheckDriverStatus()) {
     palClearPad(GPIOC, GPIOC_PIN14); // Paranoid gate disable
+    palClearPad(GPIOC, GPIOC_PIN13); // Put to sleep.
     g_gateDriverWarning = true;
     g_gateDriverFault = true;
     g_pwmRun = false;
@@ -989,7 +1037,9 @@ int PWMStop()
   // Don't claim to be calibrated.
   MotionResetCalibration(MHS_Lost);
 
-  //palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
+  palClearPad(GPIOC, GPIOC_PIN14); // Paranoid gate disable
+  palClearPad(GPIOC, GPIOC_PIN13); // Go back to sleep
+
   return 0;
 }
 
@@ -1016,7 +1066,7 @@ int PWMSVMScan(BaseSequentialStream *chp)
       chprintf(chp, "PWM: %d %d  ->   %d %d %d   \r\n",(int)(v_alpha*1000.0),(int)(v_beta*1000.0),
           (int)a,(int)b,(int)c);
 
-      queue_modulation_timings(v_alpha, v_beta);
+      queue_modulation_timings(v_alpha, v_beta,false);
 
       if (!palReadPad(GPIOB, GPIOA_PIN2)) {
         break;
@@ -1234,8 +1284,11 @@ enum FaultCodeT PWMMotorCalResistance()
     if (testVoltage > maxVoltage) testVoltage = maxVoltage;
     if (testVoltage < -maxVoltage) testVoltage = -maxVoltage;
 
-    queue_voltage_timings(testVoltage, 0.0f);
+    queue_voltage_timings(testVoltage, 0.0f,false);
   }
+
+  // Turn off motor
+  queue_voltage_timings(0.0, 0.0f,false);
 
   if(ret == FC_Ok) {
     if(testVoltage >= maxVoltage || testVoltage <= -maxVoltage) {
@@ -1331,12 +1384,12 @@ enum FaultCodeT PWMMotorCalInductance()
       Ialphas[i] += -(g_current[1] + g_current[2]);
 
       // Test voltage along phase A
-      queue_voltage_timings( i != 0 ? (voltage_low - g_phaseOffsetVoltage): (voltage_high+g_phaseOffsetVoltage), 0.0f);
+      queue_voltage_timings( i != 0 ? (voltage_low - g_phaseOffsetVoltage): (voltage_high+g_phaseOffsetVoltage), 0.0f,false);
     }
   }
 
   // De-energize motor
-  queue_voltage_timings(0.0f, 0.0f);
+  queue_voltage_timings(0.0f, 0.0f,false);
 
   float v_L = 0.5f * (voltage_high - voltage_low);
   // Note: A more correct formula would also take into account that there is a finite timestep.
@@ -1472,7 +1525,7 @@ int PWMCalSVM(BaseSequentialStream *chp)
     float v_alpha = voltage_magnitude * arm_cos_f32(phaseAngle);
     float v_beta  = voltage_magnitude * arm_sin_f32(phaseAngle);
 
-    queue_modulation_timings(v_alpha, v_beta);
+    queue_modulation_timings(v_alpha, v_beta,false);
 
     // Wait for position to settle
     chThdSleepMilliseconds(1000);
