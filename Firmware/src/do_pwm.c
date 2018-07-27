@@ -299,16 +299,16 @@ static bool FOC_current(float phaseAngle,float Id_des, float Iq_des) {
   // In general it is more efficient to reduce switching keeping the current running through the low
   // side MOSFETs reduces switching losses and makes things more efficient.   The down side of this
   // is that all the heat is dissipated in in the component which may over heat.  To mitigate this
-  // we change to symetric switching when the current gets too high for one MOSFET to handle.
+  // we change to symmetric switching when the current gets too high for one MOSFET to handle.
 
   static bool lastSwitchState = true;
 
   // Add some hysteresis as the two methods offer a different average resistance.
   bool useUnsymetricSwitching;
   if(lastSwitchState) {
-    useUnsymetricSwitching = current < 5.0;
+    useUnsymetricSwitching = current < 6.0;
   } else {
-    useUnsymetricSwitching = current < 4.0;
+    useUnsymetricSwitching = current < 5.0;
   }
   lastSwitchState = useUnsymetricSwitching;
 
