@@ -283,6 +283,7 @@ extern "C" {
     CS_SelfTest      = 5, //!< Doing a self test.
     CS_FactoryCalibrate = 6, //!< Calibrating motor
     CS_Fault         = 8, //!< Hardware or configuration fault detected.
+    CS_Sleep         = 9, //!< Sleep mode, go into lowest power mode possible, including disabling communications
     CS_BootLoader    = 11 //!< Ready for firmware update
   };
 

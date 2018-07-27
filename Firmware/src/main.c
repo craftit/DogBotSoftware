@@ -27,6 +27,9 @@
 #include "exec.h"
 #include "shell/shell.h"
 
+extern pid_t getpid(void);
+
+
 unsigned g_mainLoopTimeoutCount = 0;
 unsigned g_emergencyStopTimer = 0;
 
@@ -126,12 +129,6 @@ static THD_FUNCTION(ThreadOrangeLED, arg) {
 /* Generic code.                                                             */
 /*===========================================================================*/
 
-extern void InitDrv8503(void);
-extern void RunTerminal(void);
-extern void InitUSB(void);
-extern void InitADC(void);
-
-extern pid_t getpid(void);
 
 
 uint32_t g_faultState = 0;
@@ -331,6 +328,8 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
 
       usbDisconnectBus(&USBD1);
       usbStop(&USBD1);
+
+      StopADC();
 
       //chSysLockFromIsr();
       chSysDisable();
@@ -730,6 +729,7 @@ int main(void) {
             case CS_StartUp:
               ChangeControlState(CS_Standby,SCS_Internal);
               break;
+            case CS_Sleep:
             case CS_SafeStop:
             case CS_BootLoader:
             case CS_Fault:
