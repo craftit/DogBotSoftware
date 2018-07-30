@@ -526,13 +526,19 @@ static void ComputeState(void)
     static float pllPhase = 0;
     static float pllVel = 0;
 
-#if 1
+#if 0
     float eta[2];
     if(SensorlessEstimatorUpdate(eta)) {
 
       // Average the senseless feedback with hall data, the faster we go
       // the larger the eta values are and the more reliable they are.
+
       float scale = 0.2/0.00188590826924;
+      // Scaling factor based on the magnitude of eta[] when the motor is stationary.
+
+      // FIXME :- We need a scaling factor that better reflects the confidence of the
+      // motor position.
+
       float psin,pcos;
       FastSinCos(rawPhase,psin,pcos);
       rawPhase = fast_atan2(eta[1] * scale+ psin, eta[0] * scale + pcos);
@@ -546,7 +552,6 @@ static void ComputeState(void)
 
     // update PLL velocity
     pllVel += CURRENT_MEAS_PERIOD * pllKi * phaseError;
-
 
     g_currentPhaseVelocity = pllVel;
 
