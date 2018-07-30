@@ -77,7 +77,7 @@ static THD_WORKING_AREA(waThreadPWM, 512);
 
 void PWMUpdateDrivePhase(int pa,int pb,int pc);
 
-static bool SensorlessEstimatorUpdate(float *eta,float *eta2);
+static bool SensorlessEstimatorUpdate(float *eta);
 
 void SetupMotorCurrentPID(void);
 
@@ -528,11 +528,10 @@ static void ComputeState(void)
 
 #if 1
     float eta[2];
-    float eta2;
-    if(SensorlessEstimatorUpdate(eta,&eta2)) {
+    if(SensorlessEstimatorUpdate(eta)) {
 
       // Average the senseless feedback with hall data, the faster we go
-      // the larger the eta values are and the more reliable.
+      // the larger the eta values are and the more reliable they are.
       float scale = 0.2/0.00188590826924;
       float psin,pcos;
       FastSinCos(rawPhase,psin,pcos);
@@ -553,7 +552,6 @@ static void ComputeState(void)
 
     //g_phaseAngle = rawPhase; //pll_pos;
     g_phaseAngle = pllPhase;
-
 
   }
 
@@ -1804,7 +1802,7 @@ float hallToAngle(uint16_t *sensors)
 
 float g_debugValue = 0;
 
-static bool SensorlessEstimatorUpdate(float *eta_out,float *eta2)
+static bool SensorlessEstimatorUpdate(float *eta_out)
 {
   static const float pm_flux_linkage_ = 1.58e-3f;          // [V / (rad/s)]  { 5.51328895422 / (<pole pairs> * <rpm/v>) }
   static float flux_state_[2] = {0,0};
@@ -1864,39 +1862,11 @@ static bool SensorlessEstimatorUpdate(float *eta_out,float *eta2)
     eta[i] = flux_state_[i] - g_phaseInductance * I_alpha_beta[i];
   }
 
-  //g_debugValue += (est_pm_flux_sqr -g_debugValue) * 0.01;
-#if 0
-  static float pll_vel_ = 0;
-  static float pll_pos_ = 0;
-  static float phase_ = 0;
-
-  // Check that we don't get problems with discrete time approximation
-  static const float pll_kp_ = 2.0f * g_pllBandwidth;
-  static const float pll_ki_ = 0.25f * (pll_kp_ * pll_kp_); // Critically damped
-
-  if (!(CURRENT_MEAS_PERIOD * pll_kp_ < 1.0f)) {
-    // Unstable gain
-    return false;
-  }
-
-  // PLL
-  // TODO: the PLL part has some code duplication with the encoder PLL
-  // predict PLL phase with velocity
-  pll_pos_ = wrapAngle(pll_pos_ + CURRENT_MEAS_PERIOD * pll_vel_);
-  // update PLL phase with observer permanent magnet phase
-  phase_ = fast_atan2(eta[1], eta[0]);
-  float delta_phase = wrapAngle(phase_ - pll_pos_);
-  pll_pos_ = wrapAngle(pll_pos_ + CURRENT_MEAS_PERIOD * pll_kp_ * delta_phase);
-  // update PLL velocity
-  pll_vel_ += CURRENT_MEAS_PERIOD * pll_ki_ * delta_phase;
-#else
   eta_out[0] = eta[0];
   eta_out[1] = eta[1];
-  *eta2 = pm_flux_sqr - est_pm_flux_sqr;
   g_debugValue = pm_flux_sqr - est_pm_flux_sqr;
 
   //*phase = fast_atan2(eta[1], eta[0]);
-#endif
   return true;
 };
 
