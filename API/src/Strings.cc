@@ -75,6 +75,7 @@ namespace DogBotN {
     case CS_Fault: return "Fault";
     case CS_StartUp: return "Power Up";
     case CS_BootLoader: return "Boot Loader";
+    case CS_Sleep: return "Sleep";
     }
     printf("Unexpected state %d \n",(int)controlState);
     return "Invalid";
@@ -308,6 +309,7 @@ namespace DogBotN {
       case CPI_PlatformActivity: return "PlatformActivity";
       case CPI_RequestedPlatformActivity: return "RequestedPlatformActivity";
       case CPI_MaxCurrentSense: return "MaxCurrentSense";
+      case CPI_DiagnosticMode: return "DiagnosticMode";
       case CPI_DebugFloat: return "DebugFloat";
       case CPI_FINAL: return "FINAL";
     }
@@ -418,6 +420,7 @@ namespace DogBotN {
       case CPI_RequestedPlatformActivity: return CPIT_Custom;
       case CPI_MaxCurrentSense: return CPIT_float32;
       case CPI_DebugFloat: return CPIT_float32;
+      case CPI_DiagnosticMode: return CPIT_bool;
       case CPI_FINAL: return CPIT_Invalid;
     }
 
