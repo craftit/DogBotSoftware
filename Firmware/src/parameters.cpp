@@ -440,6 +440,11 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
     } break;
     case CPI_MaxCurrentSense:
       return false;
+    case CPI_DebugFloat:
+      if(len != 4)
+        return false;
+      memcpy(&g_debugValue,data->float32,sizeof(float));
+      break;
     case CPI_FINAL:
       return false;
     default:
@@ -757,6 +762,10 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
     case CPI_MaxCurrentSense: {
       *len = 4;
       data->float32[0] = g_maxCurrentSense;
+    } break;
+    case CPI_DebugFloat: {
+      *len = 4;
+      data->float32[0] = g_debugValue;
     } break;
     case CPI_FINAL:
     default:

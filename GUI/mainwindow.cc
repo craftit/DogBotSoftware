@@ -462,6 +462,10 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
   case CPI_PlatformActivity: {
     emit PlatformProcessParam(*psp);
   } break;
+  case CPI_DebugFloat: {
+    std::cerr << "Debug " << psp->m_data.float32[0] << std::endl;
+    ret = false;
+  } break;
   default:
     break;
   }
@@ -530,6 +534,9 @@ void MainWindow::LocalProcessParam(PacketParam8ByteC psp)
   } break;
   case CPI_MinSupplyVoltage: {
     ui->lineEditMinimumSupply->setText(QString::number(psp.m_data.float32[0]));
+  }
+  case CPI_DebugFloat: {
+
   }
   default:
     break;

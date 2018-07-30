@@ -143,6 +143,8 @@ extern float g_endStopPhaseMin;
 extern float g_endStopPhaseMax;
 extern float g_endStopTargetAcceleration;
 
+extern float g_debugValue;
+
 #ifdef __cplusplus
 }
 #endif

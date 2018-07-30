@@ -125,7 +125,6 @@ CSRC = $(STARTUPSRC) \
        coms_serial.c \
        do_adc.c \
        drv8503.c \
-       do_pwm.c \
        svm.c \
        eeprom.c \
        storedconf.c \
@@ -159,7 +158,8 @@ CPPSRC = \
   can_coms.cpp \
   parameters.cpp \
   flashStubs.cpp \
-  emergency_stop.cpp
+  do_pwm.cpp \
+  emergency_stop.cpp 
 
 
 # C sources to be compiled in ARM mode regardless of the global setting.

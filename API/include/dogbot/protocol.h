@@ -242,7 +242,7 @@ extern "C" {
     CPI_PlatformActivity   = 0x67, // Used for platform manager
     CPI_RequestedPlatformActivity = 0x68, // Used for platform manager
     CPI_MaxCurrentSense    = 0x69,
-
+    CPI_DebugFloat         = 0x6A, //
     CPI_FINAL           = 0xff
   };
 

@@ -18,6 +18,8 @@
 
 #include "stm32f4xx_adc.h"
 
+const float g_pllBandwidth = 1000.0f; // [rad/s]
+
 float g_maxSupplyVoltage = 40.0;
 float g_maxOperatingTemperature = 75.0;
 
@@ -50,6 +52,9 @@ float g_current_Ibus = 0;
 float g_motor_p_gain = 1.2;  // 1.2
 float g_motor_i_gain = 0.0;  // 0.0
 
+float g_lastVoltageAlpha = 0;
+float g_lastVoltageBeta = 0;
+
 int g_phaseAngles[g_calibrationPointCount][3];
 float g_phaseDistance[g_calibrationPointCount];
 
@@ -72,8 +77,36 @@ static THD_WORKING_AREA(waThreadPWM, 512);
 
 void PWMUpdateDrivePhase(int pa,int pb,int pc);
 
+static bool SensorlessEstimatorUpdate(float *eta,float *eta2);
 
 void SetupMotorCurrentPID(void);
+
+// based on https://math.stackexchange.com/a/1105038/81278
+#define MACRO_MAX(x, y) (((x) > (y)) ? (x) : (y))
+#define MACRO_MIN(x, y) (((x) < (y)) ? (x) : (y))
+
+static float fast_atan2(float y, float x)
+{
+  // a := min (|x|, |y|) / max (|x|, |y|)
+  float abs_y = fabsf(y);
+  float abs_x = fabsf(x);
+  float a = MACRO_MIN(abs_x, abs_y) / MACRO_MAX(abs_x, abs_y);
+  //s := a * a
+  float s = a * a;
+  //r := ((-0.0464964749 * s + 0.15931422) * s - 0.327622764) * s * a + a
+  float r = ((-0.0464964749f * s + 0.15931422f) * s - 0.327622764f) * s * a + a;
+  //if |y| > |x| then r := 1.57079637 - r
+  if (abs_y > abs_x)
+      r = 1.57079637f - r;
+  // if x < 0 then r := 3.14159274 - r
+  if (x < 0.0f)
+      r = 3.14159274f - r;
+  // if y < 0 then r := -r
+  if (y < 0.0f)
+      r = -r;
+
+  return r;
+}
 
 // Set the report rate.
 // It must be a integer multiple of
@@ -98,7 +131,7 @@ float GetServoReportRate(void)
 }
 
 
-int CheckHallInRange(void) {
+FaultCodeT CheckHallInRange(void) {
   // Are sensor readings outside the expected range ?
   for(int i = 0;i < 3;i++) {
     if(g_hall[i] < 1000 || g_hall[i] > 3000)
@@ -238,9 +271,8 @@ static bool Monitor_FOC_Current(float phaseAngle)
 
 // The following function is based on that from the ODrive project.
 
-static bool FOC_current(float phaseAngle,float Id_des, float Iq_des) {
-
-
+static bool FOC_current(float phaseAngle,float Id_des, float Iq_des)
+{
   // Clarke transform
   float Ialpha = -g_current[1] - g_current[2];
   float Ibeta = one_by_sqrt3 * (g_current[1] - g_current[2]);
@@ -294,8 +326,7 @@ static bool FOC_current(float phaseAngle,float Id_des, float Iq_des) {
   float mod_alpha = c*mod_d - s*mod_q;
   float mod_beta  = c*mod_q + s*mod_d;
 
-  float current = fabs(Id_des) + fabs(Iq_des);
-
+#if 1
   // In general it is more efficient to reduce switching keeping the current running through the low
   // side MOSFETs reduces switching losses and makes things more efficient.   The down side of this
   // is that all the heat is dissipated in in the component which may over heat.  To mitigate this
@@ -304,6 +335,7 @@ static bool FOC_current(float phaseAngle,float Id_des, float Iq_des) {
   static bool lastSwitchState = true;
 
   // Add some hysteresis as the two methods offer a different average resistance.
+  float current = fabs(Id_des) + fabs(Iq_des);
   bool useUnsymetricSwitching;
   if(lastSwitchState) {
     useUnsymetricSwitching = current < 6.0;
@@ -313,6 +345,14 @@ static bool FOC_current(float phaseAngle,float Id_des, float Iq_des) {
   lastSwitchState = useUnsymetricSwitching;
 
   queue_modulation_timings(mod_alpha, mod_beta,useUnsymetricSwitching);
+#else
+  queue_modulation_timings(mod_alpha, mod_beta,false);
+#endif
+
+  // Report final applied voltage in stationary frame (for sensorless estimator)
+
+  g_lastVoltageAlpha = mod_to_V * mod_alpha;
+  g_lastVoltageBeta = mod_to_V * mod_beta;
 
   return true;
 }
@@ -389,9 +429,9 @@ bool CheckMotorSetup(void)
 
 
 static void UpdateCurrentMeasurementsFromADCValues(void) {
+#if 1
   // Compute motor currents;
   // Make sure they sum to zero
-#if 1
   float sum = 0;
   float tmpCurrent[3];
   for(int i = 0;i < 3;i++) {
@@ -418,6 +458,59 @@ static float wrapAngle(float theta) {
     return theta;
 }
 
+static void FastSinCos(float x,float &sin,float &cos)
+{
+  if (x < -3.14159265)
+      x += 6.28318531;
+  else
+  if (x >  3.14159265)
+      x -= 6.28318531;
+
+  //compute sine
+  if (x < 0)
+  {
+      sin = 1.27323954 * x + .405284735 * x * x;
+
+      if (sin < 0)
+          sin = .225 * (sin *-sin - sin) + sin;
+      else
+          sin = .225 * (sin * sin - sin) + sin;
+  }
+  else
+  {
+      sin = 1.27323954 * x - 0.405284735 * x * x;
+
+      if (sin < 0)
+          sin = .225 * (sin *-sin - sin) + sin;
+      else
+          sin = .225 * (sin * sin - sin) + sin;
+  }
+
+  //compute cosine: sin(x + PI/2) = cos(x)
+  x += 1.57079632;
+  if (x >  3.14159265)
+      x -= 6.28318531;
+
+  if (x < 0)
+  {
+      cos = 1.27323954 * x + 0.405284735 * x * x;
+
+      if (cos < 0)
+          cos = .225 * (cos *-cos - cos) + cos;
+      else
+          cos = .225 * (cos * cos - cos) + cos;
+  }
+  else
+  {
+      cos = 1.27323954 * x - 0.405284735 * x * x;
+
+      if (cos < 0)
+          cos = .225 * (cos *-cos - cos) + cos;
+      else
+          cos = .225 * (cos * cos - cos) + cos;
+  }
+}
+
 
 static void ComputeState(void)
 {
@@ -428,12 +521,24 @@ static void ComputeState(void)
 
   // PLL based position / velocity tracker.
   {
-    const float pllBandwidth = 1000.0f; // [rad/s]
-
-    static const float pllKp = 2.0f * pllBandwidth;
+    static const float pllKp = 2.0f * g_pllBandwidth;
     static const float pllKi = 0.25f * pllKp * pllKp; // Critically damped
     static float pllPhase = 0;
     static float pllVel = 0;
+
+#if 1
+    float eta[2];
+    float eta2;
+    if(SensorlessEstimatorUpdate(eta,&eta2)) {
+
+      // Average the senseless feedback with hall data, the faster we go
+      // the larger the eta values are and the more reliable.
+      float scale = 0.2/0.00188590826924;
+      float psin,pcos;
+      FastSinCos(rawPhase,psin,pcos);
+      rawPhase = fast_atan2(eta[1] * scale+ psin, eta[0] * scale + pcos);
+    }
+#endif
 
     // predict PLL phase with velocity
     pllPhase = wrapAngle(pllPhase + CURRENT_MEAS_PERIOD * pllVel);
@@ -443,10 +548,13 @@ static void ComputeState(void)
     // update PLL velocity
     pllVel += CURRENT_MEAS_PERIOD * pllKi * phaseError;
 
+
     g_currentPhaseVelocity = pllVel;
 
     //g_phaseAngle = rawPhase; //pll_pos;
     g_phaseAngle = pllPhase;
+
+
   }
 
   // Update continuous angle.
@@ -749,7 +857,7 @@ static void MotorControlLoop(void)
     }
 
     // Do some sanity checks
-    int errCode;
+    FaultCodeT errCode;
     if((errCode = CheckHallInRange()) != FC_Ok) {
       FaultDetected(errCode);
     }
@@ -1123,7 +1231,7 @@ enum FaultCodeT PWMSelfTest()
     return FC_Internal; // Not sure what is going on.
   }
 
-  int errCode = FC_Ok;
+  FaultCodeT errCode = FC_Ok;
   // Check hall sensors.
   for(int i = 0;i < 3;i++) {
     // If pins are floating, pull them into a fixed state.
@@ -1517,7 +1625,7 @@ int PWMCalSVM(BaseSequentialStream *chp)
 {
   palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
 
-  float voltage_magnitude = 0.06;
+  float voltage_magnitude = 0.06; // FIXME:- SHould change depending on supply voltage
 
   for(int phase = 0;phase <  g_calibrationPointCount*7;phase++) {
     int phaseStep = phase % g_calibrationPointCount;
@@ -1692,6 +1800,105 @@ float hallToAngle(uint16_t *sensors)
 {
   return hallToAngleDot2(sensors);
 }
+
+
+float g_debugValue = 0;
+
+static bool SensorlessEstimatorUpdate(float *eta_out,float *eta2)
+{
+  static const float pm_flux_linkage_ = 1.58e-3f;          // [V / (rad/s)]  { 5.51328895422 / (<pole pairs> * <rpm/v>) }
+  static float flux_state_[2] = {0,0};
+  static float observer_gain_ = 1000.0f;             // [rad/s]
+
+  // Algorithm based on paper: Sensorless Control of Surface-Mount Permanent-Magnet Synchronous Motors Based on a Nonlinear Observer
+  // http://cas.ensmp.fr/~praly/Telechargement/Journaux/2010-IEEE_TPEL-Lee-Hong-Nam-Ortega-Praly-Astolfi.pdf
+  // In particular, equation 8 (and by extension eqn 4 and 6).
+
+  // The V_alpha_beta applied immediately prior to the current measurement associated with this cycle
+  // is the one computed two cycles ago. To get the correct measurement, it was stored twice:
+  // once by final_v_alpha/final_v_beta in the current control reporting, and once by V_alpha_beta_memory.
+
+  // Clarke transform
+  float I_alpha_beta[2] = {
+      -g_current[1] - g_current[2],
+      one_by_sqrt3 * (g_current[1] - g_current[2])
+  };
+
+  float direction = g_currentPhaseVelocity > 0 ? 1 : 1;
+
+  float V_alpha_beta_memory_[2] = {g_lastVoltageAlpha,g_lastVoltageBeta * direction};
+
+  // Swap sign of I_beta if motor is reversed
+  I_alpha_beta[1] *= direction;
+
+  // alpha-beta vector operations
+  float eta[2];
+  for (int i = 0; i <= 1; ++i) {
+    // y is the total flux-driving voltage (see paper eqn 4)
+    float y = -g_phaseResistance * I_alpha_beta[i] + V_alpha_beta_memory_[i];
+    // flux dynamics (prediction)
+    float x_dot = y;
+    // integrate prediction to current timestep
+    flux_state_[i] += x_dot * CURRENT_MEAS_PERIOD;
+
+    // eta is the estimated permanent magnet flux (see paper eqn 6)
+    eta[i] = flux_state_[i] - g_phaseInductance * I_alpha_beta[i];
+  }
+
+  // Non-linear observer (see paper eqn 8):
+  const float pm_flux_sqr = pm_flux_linkage_ * pm_flux_linkage_;
+  const float bandwidth_factor = 1.0f / pm_flux_sqr;
+  float est_pm_flux_sqr = eta[0] * eta[0] + eta[1] * eta[1];
+  float eta_factor = 0.5f * (observer_gain_ * bandwidth_factor) * (pm_flux_sqr - est_pm_flux_sqr);
+
+  //static float eta_factor_avg_test = 0.0f;
+  //eta_factor_avg_test += 0.001f * (eta_factor - eta_factor_avg_test);
+
+  // alpha-beta vector operations
+  for (int i = 0; i <= 1; ++i) {
+    // add observer action to flux estimate dynamics
+    float x_dot = eta_factor * eta[i];
+    // convert action to discrete-time
+    flux_state_[i] += x_dot * CURRENT_MEAS_PERIOD;
+    // update new eta
+    eta[i] = flux_state_[i] - g_phaseInductance * I_alpha_beta[i];
+  }
+
+  //g_debugValue += (est_pm_flux_sqr -g_debugValue) * 0.01;
+#if 0
+  static float pll_vel_ = 0;
+  static float pll_pos_ = 0;
+  static float phase_ = 0;
+
+  // Check that we don't get problems with discrete time approximation
+  static const float pll_kp_ = 2.0f * g_pllBandwidth;
+  static const float pll_ki_ = 0.25f * (pll_kp_ * pll_kp_); // Critically damped
+
+  if (!(CURRENT_MEAS_PERIOD * pll_kp_ < 1.0f)) {
+    // Unstable gain
+    return false;
+  }
+
+  // PLL
+  // TODO: the PLL part has some code duplication with the encoder PLL
+  // predict PLL phase with velocity
+  pll_pos_ = wrapAngle(pll_pos_ + CURRENT_MEAS_PERIOD * pll_vel_);
+  // update PLL phase with observer permanent magnet phase
+  phase_ = fast_atan2(eta[1], eta[0]);
+  float delta_phase = wrapAngle(phase_ - pll_pos_);
+  pll_pos_ = wrapAngle(pll_pos_ + CURRENT_MEAS_PERIOD * pll_kp_ * delta_phase);
+  // update PLL velocity
+  pll_vel_ += CURRENT_MEAS_PERIOD * pll_ki_ * delta_phase;
+#else
+  eta_out[0] = eta[0];
+  eta_out[1] = eta[1];
+  *eta2 = pm_flux_sqr - est_pm_flux_sqr;
+  g_debugValue = pm_flux_sqr - est_pm_flux_sqr;
+
+  //*phase = fast_atan2(eta[1], eta[0]);
+#endif
+  return true;
+};
 
 
 

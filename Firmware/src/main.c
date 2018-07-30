@@ -357,6 +357,9 @@ void SendBackgroundStateReport(void)
 
   static bool lastIndexSensor = false;
 
+  if(g_diagnosticMode)
+    SendParamUpdate(CPI_DebugFloat);
+
   {
     bool isOn = palReadPad(GPIOC, GPIOC_PIN8);
     if(lastIndexSensor != isOn) {
@@ -441,6 +444,7 @@ void DoStartup(void)
   g_faultState = 0;
   SendParamUpdate(CPI_FaultCode);
   SendParamUpdate(CPI_FaultState);
+
   {
     float sum = 0;
     for(int i = 0;i < 10;i++)
