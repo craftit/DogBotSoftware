@@ -20,6 +20,8 @@
 
 const float g_pllBandwidth = 1000.0f; // [rad/s]
 
+float g_debugValue = 0;
+
 float g_maxSupplyVoltage = 40.0;
 float g_maxOperatingTemperature = 75.0;
 
@@ -72,6 +74,11 @@ bool g_hitLimitPosition = false;
 
 float g_current_control_integral_d = 0;
 float g_current_control_integral_q = 0;
+
+#if ENABLE_ANGLESTATS
+bool g_enableAngleStats = false;
+float g_angleStats[g_angleTableSize][2];
+#endif
 
 static THD_WORKING_AREA(waThreadPWM, 512);
 
@@ -526,22 +533,24 @@ static void ComputeState(void)
     static float pllPhase = 0;
     static float pllVel = 0;
 
-#if 0
+#if ENABLE_ANGLESTATS
     float eta[2];
     if(SensorlessEstimatorUpdate(eta)) {
 
       // Average the senseless feedback with hall data, the faster we go
       // the larger the eta values are and the more reliable they are.
 
-      float scale = 0.2/0.00188590826924;
-      // Scaling factor based on the magnitude of eta[] when the motor is stationary.
 
+#if 0
       // FIXME :- We need a scaling factor that better reflects the confidence of the
       // motor position.
+      // Scaling factor based on the magnitude of eta[] when the motor is stationary.
+      float scale = 0.2/0.00188590826924;
 
       float psin,pcos;
       FastSinCos(rawPhase,psin,pcos);
       rawPhase = fast_atan2(eta[1] * scale+ psin, eta[0] * scale + pcos);
+#endif
     }
 #endif
 
@@ -555,8 +564,18 @@ static void ComputeState(void)
 
     g_currentPhaseVelocity = pllVel;
 
-    //g_phaseAngle = rawPhase; //pll_pos;
     g_phaseAngle = pllPhase;
+
+#if ENABLE_ANGLESTATS
+    if(g_currentPhaseVelocity > 100.0 && g_enableAngleStats) {
+      int angleBin = ((g_phaseAngle + M_PI) * (float) g_angleTableSize / (2.0f*M_PI));
+      if(angleBin < 0) angleBin = 0;
+      if(angleBin >= g_angleTableSize) angleBin = g_angleTableSize-1;
+      g_angleStats[angleBin][0] += (eta[0] - g_angleStats[angleBin][0]) * 0.001;
+      g_angleStats[angleBin][1] += (eta[1] - g_angleStats[angleBin][1]) * 0.001;
+    }
+#endif
+
 
   }
 
@@ -866,18 +885,21 @@ static void MotorControlLoop(void)
     }
 
     // Last send report if needed.
-    if(g_pwmFullReport) {
+    static int g_pwmReportDownSample = 0;
+    if(g_pwmFullReport && g_pwmReportDownSample++ > 2) {
+      g_pwmReportDownSample = 0;
       struct PacketT *pkt;
       if((pkt = USBGetEmptyPacket(TIME_IMMEDIATE)) != 0) {
         struct PacketPWMStateC *ps = (struct PacketPWMStateC *)&(pkt->m_data);
         pkt->m_len = sizeof(struct PacketPWMStateC);
         ps->m_packetType = CPT_PWMState;
-        ps->m_tick = g_adcTickCount;
-        for(int i = 0;i < 3;i++)
-          ps->m_curr[i] = g_currentADCValue[i];
+        ps->m_deviceId = g_deviceId;
+        //ps->m_tick = g_adcTickCount;
+        //for(int i = 0;i < 3;i++)
+        //  ps->m_curr[i] = g_currentADCValue[i];
         for(int i = 0;i < 3;i++)
           ps->m_hall[i] = g_hall[i];
-        ps->m_angle = g_phaseAngle * 32767.0 / (2.0 * M_PI);
+        ps->m_angle = g_phaseAngle * DOGBOT_PACKETSERVO_FLOATSCALE / (2.0 * M_PI);
         USBPostPacket(pkt);
       }
     }
@@ -975,6 +997,15 @@ static THD_FUNCTION(ThreadPWM, arg) {
   g_demandTorque = 0;
   g_demandPhasePosition = 0;
   g_demandPhaseVelocity = 0;
+
+#if ENABLE_ANGLESTATS
+  {
+    for(int i = 0;i < g_angleTableSize;i++){
+      g_angleStats[i][0] = 0.0f;
+      g_angleStats[i][1] = 0.0f;
+    }
+  }
+#endif
 
   // Setup PWM
   InitPWM();
@@ -1519,6 +1550,67 @@ enum FaultCodeT PWMMotorCalInductance()
   return ret;
 }
 
+enum FaultCodeT PWMMotorPhaseCalReading(int phase,int cyclesPerSecond,int numberOfReadings,float torqueValue,float &lastAngle,int *readingCount)
+{
+  enum FaultCodeT ret = FC_Ok;
+
+  g_vbus_voltage = ReadSupplyVoltage();
+
+  int phaseStep = phase % g_calibrationPointCount;
+  float phaseAngle = (float) phase * M_PI * 2.0 / ((float) g_calibrationPointCount) ;
+
+  int shiftPeriod = cyclesPerSecond / 12; // 8 is ok
+
+  // Move to position slowly to reduce vibration
+
+  if(phaseAngle != lastAngle) {
+    for(int i = 0;i < shiftPeriod;i++) {
+      if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
+        ret = FC_InternalTiming;
+        break;
+      }
+      UpdateCurrentMeasurementsFromADCValues();
+      float fract= (float) i / (float) shiftPeriod;
+      float targetAngle = lastAngle * (1.0 - fract) + phaseAngle * fract;
+      FOC_current(targetAngle,torqueValue,0);
+    }
+  }
+  lastAngle = phaseAngle;
+
+  g_vbus_voltage = ReadSupplyVoltage();
+  // Settle
+
+  for(int i = 0;i < shiftPeriod;i++) {
+    if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
+      ret = FC_InternalTiming;
+      break;
+    }
+    UpdateCurrentMeasurementsFromADCValues();
+
+    FOC_current(phaseAngle,torqueValue,0);
+  }
+
+  g_vbus_voltage = ReadSupplyVoltage();
+  // Take some readings.
+
+  for(int i = 0;i < numberOfReadings;i++) {
+    if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
+      ret = FC_InternalTiming;
+      break;
+    }
+    UpdateCurrentMeasurementsFromADCValues();
+
+    FOC_current(phaseAngle,torqueValue,0);
+
+    for(int i = 0;i < 3;i++) {
+      g_phaseAngles[phaseStep][i] += g_hall[i];
+    }
+    readingCount[phaseStep]++;
+  }
+
+  return ret;
+}
+
 enum FaultCodeT PWMMotorPhaseCal()
 {
   enum FaultCodeT ret = FC_Ok;
@@ -1532,10 +1624,10 @@ enum FaultCodeT PWMMotorPhaseCal()
 
   int phaseRotations = 7;
   int numberOfReadings = 8;
+  float torqueValue = 3.0;
 
   int cyclesPerSecond = 1.0 / (1.0 * CURRENT_MEAS_PERIOD);
 
-  float torqueValue = 3.0;
   float lastAngle = 0;
 
   g_vbus_voltage = ReadSupplyVoltage();
@@ -1551,67 +1643,24 @@ enum FaultCodeT PWMMotorPhaseCal()
     float tv = (float) i * torqueValue / (float) cyclesPerSecond;
     FOC_current(lastAngle,tv,0);
   }
+  int readingCount[g_calibrationPointCount];
+  for(int i = 0;i < g_calibrationPointCount;i++)
+    readingCount[i] = 0;
 
-  for(int phase = 0;phase < g_calibrationPointCount*phaseRotations && ret == FC_Ok;phase++) {
-    g_vbus_voltage = ReadSupplyVoltage();
-
-    int phaseStep = phase % g_calibrationPointCount;
-    float phaseAngle = (float) phase * M_PI * 2.0 / ((float) g_calibrationPointCount) ;
-
-    int shiftPeriod = cyclesPerSecond / 12; // 8 is ok
-
-    // Move to position slowly to reduce vibration
-
-    if(phaseAngle != lastAngle) {
-      for(int i = 0;i < shiftPeriod;i++) {
-        if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
-          ret = FC_InternalTiming;
-          break;
-        }
-        UpdateCurrentMeasurementsFromADCValues();
-        float fract= (float) i / (float) shiftPeriod;
-        float targetAngle = lastAngle * (1.0 - fract) + phaseAngle * fract;
-        FOC_current(targetAngle,torqueValue,0);
-      }
-    }
-    lastAngle = phaseAngle;
-
-    g_vbus_voltage = ReadSupplyVoltage();
-    // Settle
-
-    for(int i = 0;i < shiftPeriod;i++) {
-      if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
-        ret = FC_InternalTiming;
-        break;
-      }
-      UpdateCurrentMeasurementsFromADCValues();
-
-      FOC_current(phaseAngle,torqueValue,0);
-    }
-
-    g_vbus_voltage = ReadSupplyVoltage();
-    // Take some readings.
-
-    for(int i = 0;i < numberOfReadings;i++) {
-      if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
-        ret = FC_InternalTiming;
-        break;
-      }
-      UpdateCurrentMeasurementsFromADCValues();
-
-      FOC_current(phaseAngle,torqueValue,0);
-
-      for(int i = 0;i < 3;i++) {
-        g_phaseAngles[phaseStep][i] += g_hall[i];
-      }
-    }
+  int phase = 0;
+  for(;phase < g_calibrationPointCount*phaseRotations && ret == FC_Ok;phase++) {
+    ret = PWMMotorPhaseCalReading(phase,cyclesPerSecond,numberOfReadings,torqueValue,lastAngle,readingCount);
+  }
+  phase--;
+  for(;phase >= 0 && ret == FC_Ok;phase--) {
+    ret = PWMMotorPhaseCalReading(phase,cyclesPerSecond,numberOfReadings,torqueValue,lastAngle,readingCount);
   }
 
   if(ret == FC_Ok) {
     for(int i = 0;i < g_calibrationPointCount;i++) {
-      g_phaseAngles[i][0] /= phaseRotations * numberOfReadings;
-      g_phaseAngles[i][1] /= phaseRotations * numberOfReadings;
-      g_phaseAngles[i][2] /= phaseRotations * numberOfReadings;
+      g_phaseAngles[i][0] /= readingCount[i];
+      g_phaseAngles[i][1] /= readingCount[i];
+      g_phaseAngles[i][2] /= readingCount[i];
     }
   }
 
@@ -1795,17 +1844,17 @@ float hallToAngleDot2(uint16_t *sensors)
   const float calibRange = g_calibrationPointCount*2.0f;
   //if(angle < -g_calibrationPointCount) angle += calibRange;
   if(angle > g_calibrationPointCount) angle -= calibRange;
-  return (angle * M_PI * 2.0 / calibRange);
+  return (angle * M_PI * 2.0 / calibRange); // + g_debugValue;// + 0.60704444;
 }
 
 
 float hallToAngle(uint16_t *sensors)
 {
   return hallToAngleDot2(sensors);
+  //return hallToAngleRef(sensors);
 }
 
 
-float g_debugValue = 0;
 
 static bool SensorlessEstimatorUpdate(float *eta_out)
 {
@@ -1869,7 +1918,6 @@ static bool SensorlessEstimatorUpdate(float *eta_out)
 
   eta_out[0] = eta[0];
   eta_out[1] = eta[1];
-  g_debugValue = pm_flux_sqr - est_pm_flux_sqr;
 
   //*phase = fast_atan2(eta[1], eta[0]);
   return true;

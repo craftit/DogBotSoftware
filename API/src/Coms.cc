@@ -291,7 +291,7 @@ namespace DogBotN
     if(effort < 0.0) effort = 0.0;
     if(effort > 1.0) effort = 1.0;
     servoPkt.m_torque = effort * DOGBOT_PACKETSERVO_FLOATSCALE;
-    servoPkt.m_mode = ((int) posRef) | (((int) CM_Position) << 2);
+    servoPkt.m_mode = ((int) posRef) | (((int) CM_Position) << DOGBOT_PACKETSERVOMODE_DYNAMIC_BITOFFSET);
 
     SendPacket((uint8_t *)&servoPkt,sizeof servoPkt);
   }
@@ -313,7 +313,7 @@ namespace DogBotN
     if(effort < -1.0) effort = -1.0;
     if(effort > 1.0) effort = 1.0;
     servoPkt.m_torque = effort * DOGBOT_PACKETSERVO_FLOATSCALE;
-    servoPkt.m_mode = ((int) posRef) | (((int) CM_Position) << 2) | DOGBOT_PACKETSERVOMODE_DEMANDTORQUE;
+    servoPkt.m_mode = ((int) posRef) | (((int) CM_Position) << DOGBOT_PACKETSERVOMODE_DYNAMIC_BITOFFSET) | DOGBOT_PACKETSERVOMODE_DEMANDTORQUE;
 
     SendPacket((uint8_t *)&servoPkt,sizeof servoPkt);
   }
@@ -330,7 +330,7 @@ namespace DogBotN
     if(effort < 0) effort = 0;
     if(effort > 1.0) effort = 1.0;
     servoPkt.m_torque = effort * DOGBOT_PACKETSERVO_FLOATSCALE;
-    servoPkt.m_mode = (((int) CM_Velocity) << 2);
+    servoPkt.m_mode = (((int) CM_Velocity) << DOGBOT_PACKETSERVOMODE_DYNAMIC_BITOFFSET);
 
     SendPacket((uint8_t *)&servoPkt,sizeof servoPkt);
   }
@@ -345,7 +345,7 @@ namespace DogBotN
     if(torque > 1) torque = 1;
     if(torque < -1) torque = -1;
     servoPkt.m_demand = torque * DOGBOT_PACKETSERVO_FLOATSCALE;
-    servoPkt.m_mode = (((int) CM_Torque) << 2);
+    servoPkt.m_mode = (((int) CM_Torque) << DOGBOT_PACKETSERVOMODE_DYNAMIC_BITOFFSET);
     servoPkt.m_torque = DOGBOT_PACKETSERVO_FLOATSCALE;
 
     SendPacket((uint8_t *)&servoPkt,sizeof servoPkt);
@@ -376,6 +376,15 @@ namespace DogBotN
   {
     struct PacketStoredConfigC pkt;
     pkt.m_packetType = CPT_LoadSetup;
+    pkt.m_deviceId = deviceId;
+    SendPacket((uint8_t *)&pkt,sizeof pkt);
+  }
+
+  //! Send a restore factory setup message. This will take the default factory setup save it to eeprom and load it into the controller.
+  void ComsC::SendRestoreFactorySetup(int deviceId)
+  {
+    struct PacketStoredConfigC pkt;
+    pkt.m_packetType = CPT_RestoreFactorySetup;
     pkt.m_deviceId = deviceId;
     SendPacket((uint8_t *)&pkt,sizeof pkt);
   }

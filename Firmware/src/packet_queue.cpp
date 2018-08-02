@@ -62,6 +62,13 @@ struct PacketT *PacketQueueC::GetEmptyPacketI()
 
 bool PacketQueueC::PostFullPacket(struct PacketT *pkt)
 {
+  if(pkt->m_len == 0 || pkt->m_len > BMC_MAXPACKETSIZE)
+  {
+    g_usbErrorCount++;
+    g_txPacketQueue.ReturnEmptyPacketI(pkt);
+    return false;
+  }
+
   if(chMBPost(&m_fullPackets,(msg_t) pkt,TIME_IMMEDIATE) == MSG_OK)
     return true;
 
@@ -138,7 +145,6 @@ bool USBSendPacket(
     int len
     )
 {
-  if(len <= 0) return false;
   return g_txPacketQueue.SendPacket(buff,len);
 }
 

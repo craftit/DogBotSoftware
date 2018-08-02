@@ -182,6 +182,9 @@ namespace DogBotN {
     //! Send command to load configuration from eeprom.
     void SendLoadConfig(int deviceId);
 
+    //! Send a restore factory setup message. This will take the default factory setup save it to eeprom and load it into the controller.
+    void SendRestoreFactorySetup(int deviceId);
+
     //! Set handler for all received packets, this is called as well as any specific handlers that have been installed.
     CallbackHandleC SetGenericHandler(const PacketFuncT &handler)
     { return m_genericHandler.Add(handler); }

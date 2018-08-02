@@ -108,7 +108,6 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
     case CPI_PhaseVelocity:
     case CPI_HallSensors:
     case CPI_MotorOffsetVoltage:
-    case CPI_DeviceType:
     case CPI_TIM1_SR:
       break;
 
@@ -119,6 +118,7 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
       {
         case MHS_Lost:
           MotionResetCalibration(MHS_SoftHomed);
+          /* no break */
         case MHS_Measuring:
         case MHS_SoftHomed: {
           float newHome;
@@ -445,6 +445,20 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
         return false;
       memcpy(&g_debugValue,data->float32,sizeof(float));
       break;
+    case CPI_EnableAngleStats: {
+#if ENABLE_ANGLESTATS
+      if(len != 1)
+        return false;
+      g_enableAngleStats = data->uint8[0] != 0;
+#else
+      return false;
+#endif
+    } break;
+    case CPI_DeviceType: {
+      if(len != 1)
+        return false;
+      g_deviceType = static_cast<enum DeviceTypeT>(data->uint8[0]);
+    } break;
     case CPI_FINAL:
       return false;
     default:
@@ -461,12 +475,23 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
 
 bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
 {
+#if ENABLE_ANGLESTATS
+  // Deal with angle stats
+  if((int)index >= (int)CPI_AngleStats && index < ((int)CPI_AngleStats+g_angleTableSize) ) {
+    *len = 8;
+    int at = index - (int) CPI_AngleStats;
+    data->float32[0] = g_angleStats[at][0];
+    data->float32[1] = g_angleStats[at][1];
+    return true;
+  }
+#endif
+
   switch(index)
   {
-    case CPI_DeviceType:
+    case CPI_DeviceType: {
       *len = 1;
-      data->uint8[0] = (int) DT_MotorDriver;
-      break;
+      data->uint8[0] = g_deviceType;
+    } break;
     case CPI_FirmwareVersion:
       *len = 1;
       data->uint8[0] = DOGBOT_FIRMWARE_VERSION;
@@ -767,6 +792,16 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       *len = 4;
       data->float32[0] = g_debugValue;
     } break;
+    case CPI_EnableAngleStats: {
+#if ENABLE_ANGLESTATS
+      *len = 4;
+      data->uint8[0] = g_enableAngleStats;
+#else
+      *len = 4;
+      data->uint8[0] = 0;
+#endif
+    } break;
+
     case CPI_FINAL:
     default:
       *len = 0;

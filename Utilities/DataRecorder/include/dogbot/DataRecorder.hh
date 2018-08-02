@@ -66,6 +66,9 @@ namespace DogBotN {
     //! Log an error
     bool LogError(pqxx::work &txn,std::string &query,PGLogEntryC &entry);
 
+    //! Log an error
+    bool LogPWMState(pqxx::work &txn,std::string &query,PGLogEntryC &entry);
+
     //! Issue a query
     bool IssueQuery(pqxx::work &txn,std::string &query);
 

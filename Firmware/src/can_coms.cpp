@@ -238,6 +238,18 @@ bool CANRecieveFrame(CANRxFrame *rxmsgptr)
         }
       }
     } break;
+    case CPT_RestoreFactorySetup: {
+      if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
+        if(rxmsg.DLC != 0) {
+          CANReportPacketSizeError(msgType,rxmsg.DLC);
+          break;
+        }
+        enum FaultCodeT ret = RestoreFactorySetup();
+        if(ret != FC_Ok) {
+          CANSendError(CET_InternalError,CPT_RestoreFactorySetup,ret);
+        }
+      }
+    } break;
     case CPT_CalZero: {
       if(rxDeviceId == g_deviceId || rxDeviceId == 0) {
         if(rxmsg.DLC != 0) {

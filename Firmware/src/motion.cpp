@@ -24,6 +24,7 @@ enum MotionHomedStateT g_motionHomedState = MHS_Lost;
 enum PositionReferenceT g_motionPositionReference = PR_Absolute;
 enum ControlStateT g_controlState = CS_Standby;
 enum FaultCodeT g_lastFaultCode = FC_Ok;
+enum JointRoleT g_jointRole = JR_Spare; // Store a clue about which joint this is, front/back pitch/roll etc..
 
 bool g_diagnosticMode = false;
 bool g_indicatorState = false;
@@ -384,10 +385,6 @@ void MotionStep()
 
 
 enum FaultCodeT LoadSetup(void) {
-  if(!g_eeInitDone) {
-    StoredConf_Init();
-    g_eeInitDone = true;
-  }
   StoredConf_Load(&g_storedConfig);
 
   //g_deviceId = g_storedConfig.deviceId; //!< This can cause Id conflicts, better to let controller give id again
@@ -419,16 +416,13 @@ enum FaultCodeT LoadSetup(void) {
   g_endStopMaxBreakCurrent = g_storedConfig.m_endStopMaxBreakCurrent;
   g_safetyMode = g_storedConfig.m_safetyMode;
   g_supplyVoltageScale = g_storedConfig.m_supplyVoltageScale;
+  g_deviceType = g_storedConfig.m_deviceType;
   SetupEndStops();
 
   return FC_Ok;
 }
 
 enum FaultCodeT SaveSetup(void) {
-  if(!g_eeInitDone) {
-    StoredConf_Init();
-    g_eeInitDone = true;
-  }
 
   g_storedConfig.configState = 1;
   g_storedConfig.deviceId = g_deviceId;
@@ -461,9 +455,21 @@ enum FaultCodeT SaveSetup(void) {
   g_storedConfig.m_endStopStartBounce = 0;
   g_storedConfig.m_endStopEndBounce = 0;
   g_storedConfig.m_jointInertia = 0;
+  g_storedConfig.m_deviceType = g_deviceType;
 
   if(!StoredConf_Save(&g_storedConfig)) {
     return FC_InternalStoreFailed;
   }
   return FC_Ok;
 }
+
+enum FaultCodeT RestoreFactorySetup(void)
+{
+  struct StoredConfigT conf;
+  StoredConf_FactoryDefaults(&conf);
+  if(!StoredConf_Save(&conf))
+    return FC_InternalStoreFailed;
+  return LoadSetup();
+}
+
+

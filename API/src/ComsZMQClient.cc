@@ -45,7 +45,9 @@ namespace DogBotN
   {
     m_terminate = false;
     if(!m_mutexExitOk.try_lock()) {
-      m_log->warn("Exit lock already locked, multiple threads attempting to open coms ?");
+      if(portAddr != m_name && !(portAddr == "local" && m_name == "tcp://127.0.01")) {
+        m_log->warn("Exit lock already locked, multiple threads attempting to open coms with different addresses. Requested '{}', current '{}'",portAddr,m_name);
+      }
       return false;
     }
     m_name = portAddr;
@@ -53,7 +55,6 @@ namespace DogBotN
       m_rootAddress = "tcp://127.0.01";
     else
       m_rootAddress = portAddr;
-    // If nothing set use the default.
     std::string zmqAddr = m_rootAddress + ":7200";
     if(m_terminate)
       return false;

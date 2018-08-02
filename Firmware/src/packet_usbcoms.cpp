@@ -73,7 +73,12 @@ static void QueueTransmitIsoI(USBDriver *usbp) {
     struct PacketT *txPkt = g_txPacketQueue.FetchFullI();
     if(txPkt == 0)
       break;
-    if((at + txPkt->m_len) >= 64) {
+    if(txPkt->m_len == 0) {
+      g_usbErrorCount++;
+      g_txPacketQueue.ReturnEmptyPacketI(txPkt);
+      continue;
+    }
+    if((at + txPkt->m_len + 1) >= 64) {
       // We shouldn't overflow the buffer as all the packets should be less than 14 bytes, but flag a problem and drop the packet.
       g_usbErrorCount++;
       g_txPacketQueue.ReturnEmptyPacketI(txPkt);

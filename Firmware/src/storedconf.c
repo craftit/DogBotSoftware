@@ -7,10 +7,8 @@
 // EEPROM settings
 #define EEPROM_BASE_GENERALCONF              1000
 
-
-bool g_eeInitDone = false;
+static bool g_eeInitDone = false;
 struct StoredConfigT g_storedConfig;
-
 
 // Global variables
 uint16_t VirtAddVarTab[NB_OF_VAR];
@@ -35,6 +33,10 @@ uint16_t g_defaultPhaseAngles[g_calibrationPointCount][3] = {
 
 void StoredConf_Init(void)
 {
+  if(g_eeInitDone) {
+    return ;
+  }
+  g_eeInitDone = true;
   // First, make sure that all relevant virtual addresses are assigned for page swapping.
   memset(VirtAddVarTab, 0, sizeof(VirtAddVarTab));
 
@@ -49,8 +51,48 @@ void StoredConf_Init(void)
   EE_Init();
 }
 
+void StoredConf_FactoryDefaults(struct StoredConfigT *conf)
+{
+  memset(conf,0,sizeof(struct StoredConfigT));
+  for(int i = 0;i < g_calibrationPointCount;i++) {
+    conf->phaseAngles[i][0] = g_defaultPhaseAngles[i][0];
+    conf->phaseAngles[i][1] = g_defaultPhaseAngles[i][1];
+    conf->phaseAngles[i][2] = g_defaultPhaseAngles[i][2];
+  }
+  conf->deviceId = 0;
+  conf->otherJointId = 0;
+  conf->m_motionPositionReference = PR_Absolute;
+  conf->m_relativePositionGain = 1.0;
+  conf->m_relativePositionOffset = 0.0;
+  conf->m_phaseResistance = 0.002;
+  conf->m_phaseInductance = 1e-4;
+  conf->m_phaseOffsetVoltage = 0.1;
+  conf->m_velocityLimit = 100.0;
+  conf->m_absoluteMaxCurrent = 20.0;
+  conf->m_homeIndexPosition = 0.0;
+  conf->m_minSupplyVoltage = 19.0;
+
+  conf->m_jointRole = JR_Spare;
+  conf->m_endStopEnable = false;
+  conf->m_endStopMin = 0;
+  conf->m_endStopStartBounce = 0; // Obsolete
+  conf->m_endStopMax = 0;
+  conf->m_endStopEndBounce = 0; // Obsolete
+  conf->m_endStopTargetBreakCurrent = 3.0;
+  conf->m_endStopMaxBreakCurrent = 0;
+  conf->m_jointInertia = 0.0; // Obsolete
+  conf->m_safetyMode = SM_GlobalEmergencyStop;
+  conf->m_supplyVoltageScale = 1.0;
+  conf->m_deviceType = DT_MotorDriver;
+}
+
+
 bool StoredConf_Load(struct StoredConfigT *conf)
 {
+  if(!g_eeInitDone) {
+    return false;
+  }
+
   bool is_ok = true;
   uint8_t *conf_addr = (uint8_t*)conf;
   uint16_t var;
@@ -67,36 +109,7 @@ bool StoredConf_Load(struct StoredConfigT *conf)
 
   // Set the default configuration
   if (!is_ok) {
-    memset(conf,0,sizeof(struct StoredConfigT));
-    for(int i = 0;i < g_calibrationPointCount;i++) {
-      conf->phaseAngles[i][0] = g_defaultPhaseAngles[i][0];
-      conf->phaseAngles[i][1] = g_defaultPhaseAngles[i][1];
-      conf->phaseAngles[i][2] = g_defaultPhaseAngles[i][2];
-    }
-    conf->deviceId = 0;
-    conf->otherJointId = 0;
-    conf->m_motionPositionReference = PR_Absolute;
-    conf->m_relativePositionGain = 1.0;
-    conf->m_relativePositionOffset = 0.0;
-    conf->m_phaseResistance = 0.002;
-    conf->m_phaseInductance = 1e-4;
-    conf->m_phaseOffsetVoltage = 0.1;
-    conf->m_velocityLimit = 100.0;
-    conf->m_absoluteMaxCurrent = 20.0;
-    conf->m_homeIndexPosition = 0.0;
-    conf->m_minSupplyVoltage = 19.0;
-
-    conf->m_jointRole = JR_Spare;
-    conf->m_endStopEnable = false;
-    conf->m_endStopMin = 0;
-    conf->m_endStopStartBounce = 0; // Obsolete
-    conf->m_endStopMax = 0;
-    conf->m_endStopEndBounce = 0; // Obsolete
-    conf->m_endStopTargetBreakCurrent = 3.0;
-    conf->m_endStopMaxBreakCurrent = 0;
-    conf->m_jointInertia = 0.0; // Obsolete
-    conf->m_safetyMode = SM_GlobalEmergencyStop;
-    conf->m_supplyVoltageScale = 1.0;
+    StoredConf_FactoryDefaults(conf);
   }
 
   return is_ok;
@@ -104,6 +117,10 @@ bool StoredConf_Load(struct StoredConfigT *conf)
 
 bool StoredConf_Save(struct StoredConfigT *conf)
 {
+  if(!g_eeInitDone) {
+    return false;
+  }
+
   bool is_ok = true;
   uint8_t *conf_addr = (uint8_t*)conf;
   uint16_t var;

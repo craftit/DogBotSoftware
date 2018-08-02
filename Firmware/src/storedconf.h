@@ -36,13 +36,14 @@ struct StoredConfigT {
   float m_jointInertia; // Obsolete
   enum SafetyModeT m_safetyMode;
   float m_supplyVoltageScale;
+  enum DeviceTypeT m_deviceType;
 };
 
 void StoredConf_Init(void);
 bool StoredConf_Load(struct StoredConfigT *conf);
 bool StoredConf_Save(struct StoredConfigT *conf);
+void StoredConf_FactoryDefaults(struct StoredConfigT *conf);
 
-extern bool g_eeInitDone;
 extern struct StoredConfigT g_storedConfig;
 
 #ifdef __cplusplus

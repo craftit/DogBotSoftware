@@ -35,7 +35,8 @@ unsigned g_emergencyStopTimer = 0;
 
 enum FanModeT g_fanMode = FM_Auto;
 enum SafetyModeT g_safetyMode = SM_GlobalEmergencyStop;
-enum JointRoleT g_jointRole = JR_Spare;
+enum DeviceTypeT g_deviceType = DT_MotorDriver;
+
 float g_fanTemperatureThreshold = 40.0;
 float g_averageBusVoltage = 20.0;
 int g_safeStopTimer = 0;
@@ -181,7 +182,8 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
       // no break
     case CS_EmergencyStop:
       if(newState != CS_Fault &&
-         newState != CS_Standby
+         newState != CS_Standby  &&
+         newState != CS_Sleep
           )
       {
         SendParamUpdate(CPI_ControlState);
@@ -191,7 +193,8 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
     case CS_SafeStop:
       if(newState != CS_Standby &&
           newState != CS_EmergencyStop &&
-          newState != CS_Fault )
+          newState != CS_Fault &&
+          newState != CS_Sleep )
       {
         SendParamUpdate(CPI_ControlState);
         return false;
@@ -203,7 +206,8 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
           newState != CS_EmergencyStop &&
           newState != CS_SelfTest &&
           newState != CS_StartUp  &&
-          newState != CS_Fault
+          newState != CS_Fault &&
+          newState != CS_Sleep
           )
       {
         SendParamUpdate(CPI_ControlState);
@@ -229,7 +233,9 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
         return false;
       }
       break;
+    case CS_USBBridge:
     case CS_StartUp:
+    case CS_Sleep:
     case CS_SelfTest:
     case CS_BootLoader:
     default:
@@ -319,6 +325,37 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
       g_currentLimit = 0;
       SetMotorControlMode(CM_Brake);
       break;
+      // Try and save as much power as possible
+
+    case CS_Sleep: {
+      g_stateChangeCause = changeSource;
+      g_controlState = newState;
+
+      // Turn off everything we can.
+      PWMStop();
+      ShutdownCAN();
+      EnableSensorPower(false);
+      usbDisconnectBus(&USBD1);
+      usbStop(&USBD1);
+      StopADC();
+      EnableFanPower(false);
+
+      // Make sure LEDs are off
+      palClearPad(GPIOC, GPIOC_PIN4);     /* Green.  */
+      palClearPad(GPIOC, GPIOC_PIN5);     /* Yellow.  */
+
+      chSysDisable();
+
+      // Spin waiting for interrupts.
+      while(true) {
+        __asm__ ("wfi;");
+      }
+
+    } break;
+    case CS_USBBridge: {
+      g_stateChangeCause = changeSource;
+      g_controlState = newState;
+    } break;
     case CS_BootLoader: {
 
       g_stateChangeCause = changeSource;
@@ -509,16 +546,24 @@ int main(void) {
 
   InitADC();
 
-  InitDrv8503();
-
   InitSerial();
   InitUSB();
   InitCAN();
 
-  g_eeInitDone = true;
   StoredConf_Init();
 
   LoadSetup();
+
+  switch(g_deviceType)
+  {
+    default: // Report an error?
+    case DT_MotorDriver:
+      g_controlState = CS_Standby;
+      break;
+    case DT_USBBridge:
+      g_controlState = CS_USBBridge;
+      break;
+  }
 
 #if 1
   InitComs();
@@ -530,6 +575,7 @@ int main(void) {
   chThdCreateStatic(waThreadOrangeLED, sizeof(waThreadOrangeLED), NORMALPRIO, ThreadOrangeLED, NULL);
 
   int cycleCount = 0;
+  int sleepTimer = 0;
 
   SendParamUpdate(CPI_ControlState);
   SendParamUpdate(CPI_FirmwareVersion);
@@ -588,6 +634,7 @@ int main(void) {
         break;
       case CS_SelfTest:
         break;
+      case CS_USBBridge:
       case CS_Standby:
       case CS_BootLoader: {
         if(g_deviceId == 0) {
@@ -650,6 +697,10 @@ int main(void) {
           cycleCount = 0;
           SendBackgroundStateReport();
         }
+      } break;
+
+      case CS_Sleep: {
+        __asm__ ("wfi;");
       } break;
 #if 1
       // This catches unexpected states, but also suppresses compiler warnings about unused switch values.
@@ -717,28 +768,60 @@ int main(void) {
       if(g_vbus_voltage > g_maxSupplyVoltage) {
         FaultDetected(FC_OverVoltage);
       }
-      if(g_controlState == CS_Ready) {
-        if(g_averageBusVoltage < g_minSupplyVoltage) {
+
+      if(g_averageBusVoltage > g_minSupplyVoltage) {
+        sleepTimer = 0;
+      } else {
+        if(g_controlState == CS_Ready) {
           FaultWarning(FC_UnderVoltage);
           // What to do when we detect low power supply voltage
           switch(g_controlState)
           {
             case CS_Ready:
-              ChangeControlState(CS_SafeStop,SCS_Internal);
+              ChangeControlState(CS_SafeStop, SCS_Internal);
               int8_t mode = CS_SafeStop;
-              SendParamData(CPI_ControlState,&mode,1);
+              SendParamData(CPI_ControlState, &mode, 1);
               break;
             case CS_SelfTest:
             case CS_FactoryCalibrate:
             case CS_StartUp:
-              ChangeControlState(CS_Standby,SCS_Internal);
+              ChangeControlState(CS_Standby, SCS_Internal);
               break;
+            case CS_USBBridge:
             case CS_Sleep:
             case CS_SafeStop:
             case CS_BootLoader:
             case CS_Fault:
             case CS_EmergencyStop:
             case CS_Standby:
+              break;
+          }
+        }
+        else {
+          switch(g_controlState)
+          {
+            case CS_Fault:
+            case CS_EmergencyStop:
+            case CS_Standby: {
+              // Don't shut down on a glitch.
+              if(sleepTimer++ > 10 &&
+                  !g_canBridgeMode // In CAN bridge mode we're powered by USB anyway.
+                  )
+              {
+                int8_t mode = CS_Sleep;
+                SendParamData(CPI_ControlState, &mode, 1);
+                chThdSleepMilliseconds(50); // Wait a bit for message to get out
+                ChangeControlState(CS_Sleep, SCS_Internal);
+              }
+            } break;
+            case CS_USBBridge:
+            case CS_FactoryCalibrate:
+            case CS_StartUp:
+            case CS_SelfTest:
+            case CS_Ready:
+            case CS_Sleep:
+            case CS_SafeStop:
+            case CS_BootLoader:
               break;
           }
         }

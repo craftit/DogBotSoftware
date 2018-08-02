@@ -80,6 +80,7 @@ MainWindow::MainWindow(QWidget *parent) :
   startTimer(10);
 
   m_displayQuery.push_back(CPI_ControlState);
+  m_displayQuery.push_back(CPI_DeviceType);
   m_displayQuery.push_back(CPI_FaultCode);
   m_displayQuery.push_back(CPI_SafetyMode);
   m_displayQuery.push_back(CPI_HomedState);
@@ -113,6 +114,8 @@ MainWindow::MainWindow(QWidget *parent) :
   m_displayQuery.push_back(CPI_MinSupplyVoltage);
   m_displayQuery.push_back(CPI_MotionUpdatePeriod);
   m_displayQuery.push_back(CPI_CurrentLimit);
+  m_displayQuery.push_back(CPI_EnableAngleStats);
+  m_displayQuery.push_back(CPI_DebugFloat);
 
   // Update default position
   ui->sliderTorque->setSliderPosition(m_torque*10.0);
@@ -146,7 +149,8 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
 {
   char buff[64];
   bool ret = true;
-  switch ((enum ComsParameterIndexT) psp->m_header.m_index) {
+  int rawParamIndex = psp->m_header.m_index;
+  switch ((enum ComsParameterIndexT) rawParamIndex) {
   case CPI_DriveTemp: {
     if(psp->m_header.m_deviceId == m_targetDeviceId) {
       sprintf(buff,"%3.1f",((float) psp->m_data.float32[0]));
@@ -467,6 +471,12 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     ret = false;
   } break;
   default:
+    if(rawParamIndex >= (int) CPI_AngleStats) {
+      int at = rawParamIndex - (int) CPI_AngleStats;
+      std::cout << " " << at << " " << psp->m_data.float32[0] << " " << psp->m_data.float32[1] << std::endl;
+      ret = false;
+    }
+
     break;
   }
 
@@ -534,10 +544,16 @@ void MainWindow::LocalProcessParam(PacketParam8ByteC psp)
   } break;
   case CPI_MinSupplyVoltage: {
     ui->lineEditMinimumSupply->setText(QString::number(psp.m_data.float32[0]));
-  }
+  } break;
+  case CPI_EnableAngleStats: {
+    ui->checkBoxEnableAngleStats->setChecked(psp.m_data.uint8[0] > 0);
+  } break;
   case CPI_DebugFloat: {
-
-  }
+    ui->lineEditDebugValue->setText(QString::number(psp.m_data.float32[0]));
+  } break;
+  case CPI_DeviceType: {
+    ui->comboBoxDeviceType->setCurrentText(QString(DogBotN::ComsDeviceTypeToString(static_cast<enum DeviceTypeT>(psp.m_data.uint8[0]))));
+  } break;
   default:
     break;
   }
@@ -577,11 +593,17 @@ void MainWindow::SetupComs()
   {
     char buff[1024];
     PacketPWMStateC *msg = (PacketPWMStateC *) data;
+#if 0
     sprintf(buff,"%5d,%4d,%4d,%4d,%4d,%4d,%4d,%6d   \n",
            msg->m_tick,
            msg->m_hall[0],msg->m_hall[1],msg->m_hall[2],
            msg->m_curr[0],msg->m_curr[1],msg->m_curr[2],
            msg->m_angle);
+#else
+    sprintf(buff,"%4d,%4d,%4d,%6f   \n",
+           msg->m_hall[0],msg->m_hall[1],msg->m_hall[2],
+           ((static_cast<float>(msg->m_angle) * 360)/ (DOGBOT_PACKETSERVO_FLOATSCALE)));
+#endif
 
     if(m_logStrm) {
       *m_logStrm << buff;
@@ -768,7 +790,7 @@ void MainWindow::on_pushButtonConnect_clicked()
   }
 
   if(m_coms->Open(ui->comboBoxConnect->currentText().toStdString().c_str())) {
-    std::cerr << "Connect ok. " << std::endl;
+    //std::cerr << "Connect ok. " << std::endl;
     ui->labelConnectionState->setText("Connection Ok");
     ui->pushButtonConnect->setText("Disconnect");
     emit setLogText("Connect ok");
@@ -1015,6 +1037,9 @@ void MainWindow::on_comboBoxControlState_activated(const QString &arg1)
   }
   if(arg1 == "Boot Loader") {
     controlState = CS_BootLoader;
+  }
+  if(arg1 == "Sleep") {
+    controlState = CS_Sleep;
   }
   if(controlState != CS_Fault)  {
     m_coms->SendSetParam(m_targetDeviceId,CPI_ControlState,controlState);
@@ -1699,4 +1724,53 @@ void MainWindow::on_lineEditMinimumSupply_editingFinished()
 void MainWindow::on_pushButtonRestoreDefaults_clicked()
 {
   m_dogBotAPI->RestoreDefaults();
+}
+
+
+void MainWindow::on_checkBoxEnableAngleStats_stateChanged(int arg1)
+{
+  m_coms->SendSetParam(m_targetDeviceId,CPI_EnableAngleStats,arg1 != 0);
+}
+
+void MainWindow::on_pushButtonDumpAngleStats_clicked()
+{
+  for(int i = 0;i < 36;i++) {
+    m_coms->SendQueryParam(m_targetDeviceId,(enum ComsParameterIndexT) ((int) CPI_AngleStats + i));
+  }
+
+}
+
+void MainWindow::on_lineEditDebugValue_editingFinished()
+{
+  float value = atof(ui->lineEditDebugValue->text().toLatin1().data());
+  m_coms->SendSetParam(m_targetDeviceId,CPI_DebugIndex,value);
+}
+
+void MainWindow::on_lineEditMaxCurrent_editingFinished()
+{
+
+}
+
+void MainWindow::on_pushButtonRestoreFactorySetup_clicked()
+{
+  if(m_targetDeviceId == 0)
+    return ;
+  m_coms->SendRestoreFactorySetup(m_targetDeviceId);
+}
+
+void MainWindow::on_pushButtonSetMinSupplyVoltage_clicked()
+{
+  float value = atof(ui->lineEditMinimumSupply->text().toLatin1().data());
+  m_coms->SendSetParam(0,CPI_MinSupplyVoltage,value);
+}
+
+void MainWindow::on_comboBoxDeviceType_activated(const QString &arg1)
+{
+  enum DeviceTypeT deviceType = DT_MotorDriver;
+  if(arg1 == "USB Bridge") {
+    deviceType = DT_USBBridge;
+  } else if(arg1 == "Motor Driver") {
+    deviceType = DT_MotorDriver;
+  }
+  m_coms->SendSetParam(m_targetDeviceId,CPI_DeviceType,static_cast<uint8_t>(deviceType));
 }
