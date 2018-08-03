@@ -62,7 +62,7 @@ void InitDrv8503(void)
   // Make sure the output of the sense amplifiers is clamped to 3.3V clear any faults
   // before being enabled
   Drv8503SetRegister(DRV8503_REG_IC_CONTROL,
-      DRV8503_IC_FLIP_OTSD |      // Enable over temprature shutdown
+      DRV8503_IC_FLIP_OTSD |      // Enable over temperature shutdown
       DRV8503_IC_EN_SNS_CLAMP |   // Enable sense amplifier clamp to 3.3V
       DRV8503_IC_CLR_FLTS         // Clear faults
       );

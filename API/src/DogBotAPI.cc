@@ -517,6 +517,7 @@ namespace DogBotN {
     switch(deviceType)
     {
       case DT_Unknown: return std::make_shared<DeviceC>(m_coms,deviceId);
+      case DT_USBBridge: return std::make_shared<ServoC>(m_coms,deviceId);
       case DT_MotorDriver: return std::make_shared<ServoC>(m_coms,deviceId);
       case DT_PlatformManager:  return std::make_shared<DevicePlatformManagerC>(m_coms,deviceId);
       case DT_BootLoader: return std::make_shared<DeviceC>(m_coms,deviceId);
@@ -536,6 +537,7 @@ namespace DogBotN {
     switch(deviceType)
     {
       case DT_BootLoader:
+      case DT_USBBridge:
       case DT_MotorDriver:
       case DT_Unknown: return std::make_shared<ServoC>(m_coms,deviceId,pkt);
       case DT_IMU: return std::make_shared<DeviceIMUC>(m_coms,deviceId,pkt);

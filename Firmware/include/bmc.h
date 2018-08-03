@@ -21,6 +21,12 @@ extern float ReadDriveTemperature(void); // Read driver temp
 extern float ReadMotorTemperature(void); // Read driver temp
 extern float Read5VRailVoltage(void);
 
+extern void InitDrv8503(void);
+extern void RunTerminal(void);
+extern void InitUSB(void);
+extern void InitADC(void);
+extern void StopADC(void);
+
 extern void EmergencyStopReceivedSafeFlag(int fromDeviceId);
 
 extern unsigned g_mainLoopTimeoutCount;

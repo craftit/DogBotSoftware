@@ -75,6 +75,8 @@ namespace DogBotN {
     case CS_Fault: return "Fault";
     case CS_StartUp: return "Power Up";
     case CS_BootLoader: return "Boot Loader";
+    case CS_Sleep: return "Sleep";
+    case CS_USBBridge: return "USB Bridge";
     }
     printf("Unexpected state %d \n",(int)controlState);
     return "Invalid";
@@ -156,6 +158,7 @@ namespace DogBotN {
       case CPT_IMU: return "IMU";
       case CPT_Message: return "Message";
       case CPT_Range: return "Range";
+      case CPT_RestoreFactorySetup: return "RestoreFactorySetup";
       case CPT_Final:return "!!Final!!";
     }
     printf("Unexpected packet type %d \n",(int)packetType);
@@ -163,14 +166,15 @@ namespace DogBotN {
   }
 
   //! Convert coms device type to a string
-  const char *ComsDeviceTypeToString(DeviceTypeT deviceType)
+  const char *ComsDeviceTypeToString(enum DeviceTypeT deviceType)
   {
     switch(deviceType) {
       case DT_Unknown: return "unknown";
       case DT_PlatformManager: return "PlatformManager";
-      case DT_MotorDriver: return "Servo";
+      case DT_MotorDriver: return "Motor Driver";
       case DT_BootLoader: return "BootLoader";
       case DT_IMU: return "IMU";
+      case DT_USBBridge: return "USB Bridge";
     }
     printf("Unexpected device type %d \n",(int)deviceType);
     return "Invalid";
@@ -307,6 +311,12 @@ namespace DogBotN {
       case CPI_CurrentLimit: return "CurrentLimit";
       case CPI_PlatformActivity: return "PlatformActivity";
       case CPI_RequestedPlatformActivity: return "RequestedPlatformActivity";
+      case CPI_MaxCurrentSense: return "MaxCurrentSense";
+      case CPI_DiagnosticMode: return "DiagnosticMode";
+      case CPI_DebugFloat: return "DebugFloat";
+      case CPI_EnableAngleStats: return "EnableAngleStats";
+      case CPI_AngleStats: return "AngleStats";
+
       case CPI_FINAL: return "FINAL";
     }
     printf("Unexpected parameter index %d \n",(int)paramIndex);
@@ -414,6 +424,11 @@ namespace DogBotN {
       case CPI_CurrentLimit: return CPIT_float32;
       case CPI_PlatformActivity: return CPIT_Custom;
       case CPI_RequestedPlatformActivity: return CPIT_Custom;
+      case CPI_MaxCurrentSense: return CPIT_float32;
+      case CPI_DebugFloat: return CPIT_float32;
+      case CPI_DiagnosticMode: return CPIT_bool;
+      case CPI_EnableAngleStats: return CPIT_bool;
+      case CPI_AngleStats: return CPIT_float32_2;
       case CPI_FINAL: return CPIT_Invalid;
     }
 

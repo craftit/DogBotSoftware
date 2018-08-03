@@ -3,6 +3,7 @@
 #include "pwm.h"
 #include "chbsem.h"
 #include "math.h"
+#include "bmc.h"
 
 #include "stm32f4xx_adc.h"
 #include "stm32f4xx_rcc.h"
@@ -91,6 +92,13 @@ void ADCSampleVoltage(void) {
 
 }
 
+void StopADC(void)
+{
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, FALSE);
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC2, FALSE);
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC3, FALSE);
+
+}
 
 void InitADC(void)
 {

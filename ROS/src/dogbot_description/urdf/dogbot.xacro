@@ -237,11 +237,12 @@
       <origin xyz="${lowerleglen * reflectx} 0 0" rpy="0 0 0"/>
     </joint> 
 
+    <!--  -->
     <gazebo reference="${prefix}_${suffix}_foot">
-      <mu1 value="2000000.0"/>
-      <mu2 value="1000000.0"/>
-      <kp value="${kp}" />
-      <kd value="${kd}" />
+      <mu1 value="2000000000.0"/>
+      <mu2 value="1000000000.0"/>
+      <kp value="80000" />
+      <kd value="1" />
       <material>Gazebo/Grey</material>
     </gazebo>
 

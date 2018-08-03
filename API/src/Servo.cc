@@ -1060,7 +1060,7 @@ namespace DogBotN {
     }
 
     // Set joint velocity limit to something nice and slow.
-    if(!m_coms->SetParam(m_id,CPI_VelocityLimit,100.0f)) {
+    if(!m_coms->SetParam(m_id,CPI_VelocityLimit,150.0f)) {
       m_log->error("Can't home {}, failed to set velocity limit.",Name());
       return false;
     }

@@ -483,6 +483,9 @@ static THD_FUNCTION(can_tx, p)
   }
 }
 
+static bool g_canInitDone = false;
+static thread_t *g_threadCAN_RX = 0;
+static thread_t *g_threadCAN_TX = 0;
 /*
  * CAN startup code
  */
@@ -494,9 +497,8 @@ int InitCAN(void)
 
   palClearPad(GPIOB, GPIOB_PIN5);       /* Make sure transmitter is in normal mode.  */
 
-  static bool canInitDone = false;
-  if(!canInitDone) {
-    canInitDone = true;
+  if(!g_canInitDone) {
+    g_canInitDone = true;
     /*
      * Activates the CAN driver 1.
      */
@@ -505,9 +507,9 @@ int InitCAN(void)
     /*
      * Starting the transmitter and receiver threads.
      */
-    chThdCreateStatic(can_rx_wa, sizeof(can_rx_wa), NORMALPRIO + 1,
+    g_threadCAN_RX = chThdCreateStatic(can_rx_wa, sizeof(can_rx_wa), NORMALPRIO + 1,
                       can_rx, NULL);
-    chThdCreateStatic(can_tx_wa, sizeof(can_tx_wa), NORMALPRIO + 7,
+    g_threadCAN_TX = chThdCreateStatic(can_tx_wa, sizeof(can_tx_wa), NORMALPRIO + 7,
                       can_tx, NULL);
   }
 
@@ -515,5 +517,26 @@ int InitCAN(void)
   return 0;
 }
 
+int ShutdownCAN(void)
+{
+  palSetPad(GPIOB, GPIOB_PIN5);       /* Put transmitter is in standby mode.  */
+
+  if(!g_canInitDone)
+    return 0;
+
+  chThdTerminate(g_threadCAN_RX);
+  chThdRelease(g_threadCAN_RX);
+  g_threadCAN_RX = 0;
+
+  chThdTerminate(g_threadCAN_TX);
+  chThdRelease(g_threadCAN_TX);
+  g_threadCAN_TX = 0;
+
+  canStop(&CAND1);
+
+  g_canInitDone = false;
+
+  return 1;
+}
 
 

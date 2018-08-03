@@ -317,6 +317,46 @@ namespace DogBotN {
     return true;
   }
 
+  //! Log an error
+  bool PGDataRecorderC::LogPWMState(pqxx::work &txn,std::string &query,PGLogEntryC &entry)
+  {
+    const PacketPWMStateC *pkt = (const PacketPWMStateC *) entry.m_data;
+
+    if(query.empty()) {
+      query.reserve(4096);
+      query += "INSERT INTO error (sourceid,logtime,hall1,hall2,hall3,angle) VALUES ";
+    } else
+      query += ",";
+
+    query += "(";
+    query += txn.quote(DeviceName(pkt->m_deviceId));
+    query += ",";
+    query += txn.quote(AsISO8601(entry.m_when));
+    query += ",";
+    query += txn.quote(static_cast<int>(pkt->m_hall[0]));
+    query += ",";
+    query += txn.quote(static_cast<int>(pkt->m_hall[1]));
+    query += ",";
+    query += txn.quote(static_cast<int>(pkt->m_hall[2]));
+    query += ",";
+    query += txn.quote( (static_cast<float>(pkt->m_angle) * 360.0) / DOGBOT_PACKETSERVO_FLOATSCALE);
+    query += ")";
+
+#if 0
+    query += ",";
+    query += txn.quote(static_cast<int>(pkt->m_tick));
+    query += ",";
+    query += txn.quote(static_cast<int>(pkt->m_curr[0]));
+    query += ",";
+    query += txn.quote(static_cast<int>(pkt->m_curr[1]));
+    query += ",";
+    query += txn.quote(static_cast<int>(pkt->m_curr[2]));
+#endif
+
+    return true;
+  }
+
+
   //! Issue a query
   bool PGDataRecorderC::IssueQuery(pqxx::work &txn,std::string &query)
   {
@@ -386,6 +426,9 @@ namespace DogBotN {
           case CPT_ReadParam: {
             // Just drop these.
           } break;
+          case CPT_PWMState: {
+
+          } break;
           default:
             m_log->warn("Message type {} not handled. ",(int) packetType);
             break;
@@ -441,7 +484,7 @@ namespace DogBotN {
     // Initialise array of servo names
     auto servoList = m_api->ListServos();
 
-    {
+    if(!servoList.empty()) {
       std::string query = "INSERT INTO source (sourceid,devicetype,serialnumber,notes) VALUES ";
       pqxx::work txn(m_connection,"Insert Devices");
 
@@ -475,6 +518,8 @@ namespace DogBotN {
       txn.exec(query,"Setup sources");
 
       txn.commit();
+    } else {
+      m_log->warn("No servos found. ");
     }
 
     m_writeThread = std::thread([this](){ WriteThread(); });

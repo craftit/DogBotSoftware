@@ -48,6 +48,7 @@ extern "C" {
     CPT_IMU              = 28, // IMU Data packet
     CPT_Message          = 29, // Debug message packet
     CPT_Range            = 30, // Range sensor reading
+    CPT_RestoreFactorySetup  = 31, // Restore settings to factory default
     CPT_Final                  // Use to get count of known packet types.
   };
 
@@ -113,7 +114,8 @@ extern "C" {
     DT_PlatformManager = 1,
     DT_MotorDriver = 2,
     DT_BootLoader = 3,
-    DT_IMU = 4
+    DT_IMU = 4,
+    DT_USBBridge = 5
   };
 
 
@@ -241,6 +243,11 @@ extern "C" {
     CPI_CurrentLimit       = 0x66,
     CPI_PlatformActivity   = 0x67, // Used for platform manager
     CPI_RequestedPlatformActivity = 0x68, // Used for platform manager
+    CPI_MaxCurrentSense    = 0x69,
+    CPI_DebugFloat         = 0x6A, //
+    CPI_EnableAngleStats   = 0x6B,
+
+    CPI_AngleStats         = 0x80, // Including 36 entries after this
 
     CPI_FINAL           = 0xff
   };
@@ -282,6 +289,8 @@ extern "C" {
     CS_SelfTest      = 5, //!< Doing a self test.
     CS_FactoryCalibrate = 6, //!< Calibrating motor
     CS_Fault         = 8, //!< Hardware or configuration fault detected.
+    CS_Sleep         = 9, //!< Sleep mode, go into lowest power mode possible, including disabling communications
+    CS_USBBridge     = 10, //!< Act as a USB controller, similar to standby, but no under voltage shutdown.
     CS_BootLoader    = 11 //!< Ready for firmware update
   };
 
@@ -417,10 +426,11 @@ extern "C" {
 
   struct PacketPWMStateC {
     uint8_t m_packetType;
-    uint16_t m_tick;
+    uint8_t m_deviceId;
+//    uint16_t m_tick;
     uint16_t m_hall[3];
-    uint16_t m_curr[3];
-    uint16_t m_angle;
+//    uint16_t m_curr[3];
+    int16_t m_angle;
   } __attribute__((packed));
 
   // Motion request packet.

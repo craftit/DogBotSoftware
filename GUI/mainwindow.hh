@@ -214,6 +214,20 @@ private slots:
 
   void on_pushButtonRestoreDefaults_clicked();
 
+  void on_checkBoxEnableAngleStats_stateChanged(int arg1);
+
+  void on_pushButtonDumpAngleStats_clicked();
+
+  void on_lineEditDebugValue_editingFinished();
+
+  void on_lineEditMaxCurrent_editingFinished();
+
+  void on_pushButtonRestoreFactorySetup_clicked();
+
+  void on_pushButtonSetMinSupplyVoltage_clicked();
+
+  void on_comboBoxDeviceType_activated(const QString &arg1);
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);

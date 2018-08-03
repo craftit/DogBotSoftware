@@ -321,6 +321,7 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
       }
     }
   } break;
+  case CPT_RestoreFactorySetup:
   case CPT_LoadSetup:
   case CPT_SaveSetup: { // Save setup from eeprom
     if(m_packetLen != sizeof(struct PacketStoredConfigC)) {
@@ -334,10 +335,11 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
       switch(cpt) {
       case CPT_SaveSetup: ret = SaveSetup(); break;
       case CPT_LoadSetup: ret = LoadSetup(); break;
+      case CPT_RestoreFactorySetup: ret = RestoreFactorySetup(); break;
       default: ret = FC_Internal; break;
       }
       if(ret != FC_Ok) {
-        USBSendError(g_deviceId,CET_InternalError,CPT_LoadSetup,ret);
+        USBSendError(g_deviceId,CET_InternalError,cpt,ret);
       }
     }
     if(g_canBridgeMode) {

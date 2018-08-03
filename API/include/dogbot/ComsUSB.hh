@@ -65,6 +65,7 @@ namespace DogBotN {
     //! Test if the object if for a particular device.
     bool IsForUSBDevice(struct libusb_device_handle *handle) const;
   protected:
+
     ComsUSBC *m_comsUSB = 0;
     USBTransferDirectionT m_direction = UTD_IN;
     struct libusb_transfer* m_transfer = 0;
@@ -111,6 +112,11 @@ namespace DogBotN {
     { return m_device; }
 
   protected:
+    //! No copy.
+    ComsUSBC(const ComsUSBC &) = delete;
+
+    //! No assignment
+    const ComsUSBC &operator=(const ComsUSBC &) = delete;
 
     //! Close usb handle
     void CloseUSB();
@@ -164,6 +170,12 @@ namespace DogBotN {
     void HotPlugDepartedCallback(libusb_device *device, libusb_hotplug_event event);
 
   protected:
+    //! No copy.
+    ComsUSBHotPlugC(const ComsUSBHotPlugC &) = delete;
+
+    //! No assignment
+    const ComsUSBHotPlugC &operator=(const ComsUSBHotPlugC &) = delete;
+
     bool RunUSB();
 
     void Close();

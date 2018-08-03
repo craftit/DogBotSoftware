@@ -5,6 +5,13 @@
 #include "dogbot/ComsUSB.hh"
 #include <iostream>
 
+#define DODEBUG 0
+#if DODEBUG
+#define ONDEBUG(x) x
+#else
+#define ONDEBUG(x)
+#endif
+
 namespace DogBotN
 {
 
@@ -43,7 +50,7 @@ namespace DogBotN
   void ComsProxyC::Close()
   {
     m_coms->Close();
-    std::cerr << "Disconnecting proxy. " << std::endl;
+    ONDEBUG(std::cerr << "Disconnecting proxy. " << std::endl);
     SetComs(std::make_shared<ComsC>());
   }
 
@@ -64,7 +71,7 @@ namespace DogBotN
     if(colonAt != std::string::npos) {
       prefix = portAddr.substr(0,colonAt);
     }
-    std::cerr << "Got prefix '" << prefix << "' " << std::endl;
+    ONDEBUG(std::cerr << "Got prefix '" << prefix << "' " << std::endl);
     if(std::string("usb") == portAddr) {
       ///coms = std::make_shared<ComsUSBC>();
 

@@ -63,6 +63,22 @@ value text
 
 CREATE INDEX IF NOT EXISTS parameter_report_sourceid_parameter_logtime_idx ON parameter_report (sourceid,parameter,logtime);
 
+
+CREATE TABLE IF NOT EXISTS motor_state (id BIGSERIAL PRIMARY KEY, 
+sourceid text,
+logtime TIMESTAMPTZ DEFAULT now(),
+tick int,
+hall0 int, 
+hall1 int, 
+hall2 int,
+curr0 real,
+curr1 real,
+curr2 real,
+angle real
+);
+
+
+
 -- Information about emergency stops
 CREATE TABLE IF NOT EXISTS emergency_stop (id BIGSERIAL PRIMARY KEY, 
 sourceid text,

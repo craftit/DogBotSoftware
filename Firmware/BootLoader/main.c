@@ -79,12 +79,12 @@ int main(void) {
       chThdSleepMilliseconds(100);
 
       if(g_deviceId != 0 && !sentBootloaderMode) {
-        /* Make sure the world knows we're in bootloader mode. */
+        /* Make sure the world knows we're in boot loader mode. */
         SendParamUpdate(CPI_ControlState);
         sentBootloaderMode = true;
       }
 
-      // Keep generating announcments every second until we've been given an id.
+      // Keep generating announcements every second until we've been given an id.
       if(g_deviceId == 0) {
         if(deviceZeroTimeout++ > 10) {
           deviceZeroTimeout = 0;
