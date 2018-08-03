@@ -431,7 +431,6 @@ enum FaultCodeT SaveSetup(void) {
   g_storedConfig.m_phaseResistance = g_phaseResistance;
   g_storedConfig.m_phaseInductance = g_phaseInductance;
   g_storedConfig.m_phaseOffsetVoltage = g_phaseOffsetVoltage;
-  g_storedConfig.m_velocityLimit = g_velocityLimit;
   g_storedConfig.m_absoluteMaxCurrent = g_absoluteMaxCurrent;
   g_storedConfig.m_homeIndexPosition = g_homeIndexPosition;
   g_storedConfig.m_minSupplyVoltage = g_minSupplyVoltage;
@@ -452,9 +451,6 @@ enum FaultCodeT SaveSetup(void) {
   g_storedConfig.m_supplyVoltageScale = g_supplyVoltageScale;
 
   // Make sure obsolete values are at a fixed value.
-  g_storedConfig.m_endStopStartBounce = 0;
-  g_storedConfig.m_endStopEndBounce = 0;
-  g_storedConfig.m_jointInertia = 0;
   g_storedConfig.m_deviceType = g_deviceType;
 
   if(!StoredConf_Save(&g_storedConfig)) {

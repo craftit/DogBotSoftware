@@ -146,7 +146,7 @@ extern float g_endStopTargetAcceleration;
 extern float g_debugValue;
 
 #define ENABLE_ANGLESTATS 1
-#define g_angleTableSize 48
+#define g_angleTableSize 36
 extern bool g_enableAngleStats;
 #if ENABLE_ANGLESTATS
 extern float g_angleStats[g_angleTableSize][2];

@@ -60,14 +60,10 @@ void StoredConf_FactoryDefaults(struct StoredConfigT *conf)
     conf->phaseAngles[i][2] = g_defaultPhaseAngles[i][2];
   }
   conf->deviceId = 0;
-  conf->otherJointId = 0;
   conf->m_motionPositionReference = PR_Absolute;
-  conf->m_relativePositionGain = 1.0;
-  conf->m_relativePositionOffset = 0.0;
   conf->m_phaseResistance = 0.002;
   conf->m_phaseInductance = 1e-4;
   conf->m_phaseOffsetVoltage = 0.1;
-  conf->m_velocityLimit = 100.0;
   conf->m_absoluteMaxCurrent = 20.0;
   conf->m_homeIndexPosition = 0.0;
   conf->m_minSupplyVoltage = 19.0;
@@ -75,17 +71,23 @@ void StoredConf_FactoryDefaults(struct StoredConfigT *conf)
   conf->m_jointRole = JR_Spare;
   conf->m_endStopEnable = false;
   conf->m_endStopMin = 0;
-  conf->m_endStopStartBounce = 0; // Obsolete
   conf->m_endStopMax = 0;
-  conf->m_endStopEndBounce = 0; // Obsolete
   conf->m_endStopTargetBreakCurrent = 3.0;
   conf->m_endStopMaxBreakCurrent = 0;
-  conf->m_jointInertia = 0.0; // Obsolete
   conf->m_safetyMode = SM_GlobalEmergencyStop;
   conf->m_supplyVoltageScale = 1.0;
   conf->m_deviceType = DT_MotorDriver;
 }
 
+uint16_t ComputeChecksum(const struct StoredConfigT *conf)
+{
+  uint8_t *at = (uint8_t*)(conf);
+  uint8_t *endConf = at + offsetof(struct StoredConfigT,m_checksum);
+  uint16_t checksum = sizeof(conf)<<8;
+  for(;at != endConf;at++)
+    checksum += *at;
+  return checksum;
+}
 
 bool StoredConf_Load(struct StoredConfigT *conf)
 {
@@ -107,13 +109,20 @@ bool StoredConf_Load(struct StoredConfigT *conf)
     }
   }
 
+  uint16_t checksum = ComputeChecksum(conf);
+  if(checksum != conf->m_checksum)
+    is_ok = false;
+
   // Set the default configuration
-  if (!is_ok) {
+  if (!is_ok || conf->configState != BMC_STOREDCONFIG_VERSION) {
     StoredConf_FactoryDefaults(conf);
+    is_ok = false;
   }
+
 
   return is_ok;
 }
+
 
 bool StoredConf_Save(struct StoredConfigT *conf)
 {
@@ -121,9 +130,13 @@ bool StoredConf_Save(struct StoredConfigT *conf)
     return false;
   }
 
+  conf->configState = BMC_STOREDCONFIG_VERSION;
+  conf->m_checksum = ComputeChecksum(conf);
+
   bool is_ok = true;
-  uint8_t *conf_addr = (uint8_t*)conf;
   uint16_t var;
+  uint8_t *conf_addr = (uint8_t*)conf;
+
 
   FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
                   FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);

@@ -1743,7 +1743,7 @@ void MainWindow::on_pushButtonDumpAngleStats_clicked()
 void MainWindow::on_lineEditDebugValue_editingFinished()
 {
   float value = atof(ui->lineEditDebugValue->text().toLatin1().data());
-  m_coms->SendSetParam(m_targetDeviceId,CPI_DebugIndex,value);
+  m_coms->SendSetParam(m_targetDeviceId,CPI_DebugFloat,value);
 }
 
 void MainWindow::on_lineEditMaxCurrent_editingFinished()

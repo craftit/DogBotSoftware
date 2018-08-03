@@ -346,6 +346,8 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
 
       chSysDisable();
 
+      // FIXME:- Can we turn the clock off / down ?
+
       // Spin waiting for interrupts.
       while(true) {
         __asm__ ("wfi;");
@@ -803,8 +805,9 @@ int main(void) {
             case CS_Fault:
             case CS_EmergencyStop:
             case CS_Standby: {
+#if 1
               // Don't shut down on a glitch.
-              if(sleepTimer++ > 10 &&
+              if(sleepTimer++ > 15 &&
                   !g_canBridgeMode // In CAN bridge mode we're powered by USB anyway.
                   )
               {
@@ -813,6 +816,7 @@ int main(void) {
                 chThdSleepMilliseconds(50); // Wait a bit for message to get out
                 ChangeControlState(CS_Sleep, SCS_Internal);
               }
+#endif
             } break;
             case CS_USBBridge:
             case CS_FactoryCalibrate:

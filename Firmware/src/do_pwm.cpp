@@ -537,19 +537,27 @@ static void ComputeState(void)
     float eta[2];
     if(SensorlessEstimatorUpdate(eta)) {
 
-      // Average the senseless feedback with hall data, the faster we go
-      // the larger the eta values are and the more reliable they are.
-
-
 #if 0
-      // FIXME :- We need a scaling factor that better reflects the confidence of the
-      // motor position.
-      // Scaling factor based on the magnitude of eta[] when the motor is stationary.
-      float scale = 0.2/0.00188590826924;
+      static bool useSenorless = false;
+      if(useSenorless && fabs(g_currentPhaseVelocity) < 10) {
+        useSenorless = false;
+      } else if(fabs(g_currentPhaseVelocity) > 12) {
+        useSenorless = true;
+      }
+      if(g_debugValue > 0 && useSenorless) {
+        const float phaseError = 0.65;
+        // Average the senseless feedback with hall data, the faster we go
+        // the larger the eta values are and the more reliable they are.
 
-      float psin,pcos;
-      FastSinCos(rawPhase,psin,pcos);
-      rawPhase = fast_atan2(eta[1] * scale+ psin, eta[0] * scale + pcos);
+        // FIXME :- We need a scaling factor that better reflects the confidence of the
+        // motor position.
+        // Scaling factor based on the magnitude of eta[] when the motor is stationary.
+        float scale = g_debugValue/0.00188590826924;
+
+        float psin,pcos;
+        FastSinCos(rawPhase+phaseError,psin,pcos);
+        rawPhase = fast_atan2(eta[1] * scale+ psin, eta[0] * scale + pcos)-phaseError;
+      }
 #endif
     }
 #endif
@@ -1842,9 +1850,8 @@ float hallToAngleDot2(uint16_t *sensors)
   angle -= corr;
   //RavlDebug("Last:%f  Max:%f Next:%f Corr:%f ",lastDist,maxCorr,nextDist,corr);
   const float calibRange = g_calibrationPointCount*2.0f;
-  //if(angle < -g_calibrationPointCount) angle += calibRange;
-  if(angle > g_calibrationPointCount) angle -= calibRange;
-  return (angle * M_PI * 2.0 / calibRange); // + g_debugValue;// + 0.60704444;
+  float phaseAngle = (angle * M_PI * 2.0 / calibRange);
+  return wrapAngle(phaseAngle);
 }
 
 
@@ -1866,28 +1873,19 @@ static bool SensorlessEstimatorUpdate(float *eta_out)
   // http://cas.ensmp.fr/~praly/Telechargement/Journaux/2010-IEEE_TPEL-Lee-Hong-Nam-Ortega-Praly-Astolfi.pdf
   // In particular, equation 8 (and by extension eqn 4 and 6).
 
-  // The V_alpha_beta applied immediately prior to the current measurement associated with this cycle
-  // is the one computed two cycles ago. To get the correct measurement, it was stored twice:
-  // once by final_v_alpha/final_v_beta in the current control reporting, and once by V_alpha_beta_memory.
-
   // Clarke transform
   float I_alpha_beta[2] = {
       -g_current[1] - g_current[2],
       one_by_sqrt3 * (g_current[1] - g_current[2])
   };
 
-  float direction = g_currentPhaseVelocity > 0 ? 1 : 1;
-
-  float V_alpha_beta_memory_[2] = {g_lastVoltageAlpha,g_lastVoltageBeta * direction};
-
-  // Swap sign of I_beta if motor is reversed
-  I_alpha_beta[1] *= direction;
+  float V_alpha_beta[2] = {g_lastVoltageAlpha,g_lastVoltageBeta};
 
   // alpha-beta vector operations
   float eta[2];
   for (int i = 0; i <= 1; ++i) {
     // y is the total flux-driving voltage (see paper eqn 4)
-    float y = -g_phaseResistance * I_alpha_beta[i] + V_alpha_beta_memory_[i];
+    float y = -g_phaseResistance * I_alpha_beta[i] + V_alpha_beta[i];
     // flux dynamics (prediction)
     float x_dot = y;
     // integrate prediction to current timestep
@@ -1902,9 +1900,6 @@ static bool SensorlessEstimatorUpdate(float *eta_out)
   const float bandwidth_factor = 1.0f / pm_flux_sqr;
   float est_pm_flux_sqr = eta[0] * eta[0] + eta[1] * eta[1];
   float eta_factor = 0.5f * (observer_gain_ * bandwidth_factor) * (pm_flux_sqr - est_pm_flux_sqr);
-
-  //static float eta_factor_avg_test = 0.0f;
-  //eta_factor_avg_test += 0.001f * (eta_factor - eta_factor_avg_test);
 
   // alpha-beta vector operations
   for (int i = 0; i <= 1; ++i) {
