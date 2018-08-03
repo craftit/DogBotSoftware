@@ -1,4 +1,4 @@
-#currently this is copied across from build by a script
+#currently this is linked across from the build directory by the pythonapi script
 pydogbotapi.py
 
 # Compiled python modules.
