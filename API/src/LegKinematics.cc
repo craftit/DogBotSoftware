@@ -1,5 +1,7 @@
 
 #include "dogbot/LegKinematics.hh"
+#include "dogbot/LineABC2d.hh"
+
 #include <math.h>
 #include <assert.h>
 #include <iostream>
@@ -176,8 +178,12 @@ namespace DogBotN {
     for(int i = 0;i < 3;i++)
       angles[i] = anglesIn[i] * m_jointDirections[i];
 
+    //std::cerr << "FV PSI=" << angles[2] << " Pitch=" << angles[1] << std::endl;
+
     float y = m_l1 * sin(angles[1]) + m_l2 * sin(angles[1] + angles[2]);
     float z = m_l1 * cos(angles[1]) + m_l2 * cos(angles[1] + angles[2]);
+
+    //std::cerr << "FV Y= " << y << " Z=" << z << std::endl;
 
     //float xr = 0;
     at[0] =  -sin(angles[0]) * (m_zoff + z); //  + cos(angles[0]) * xr
@@ -248,8 +254,135 @@ namespace DogBotN {
     return ForwardVirtual(anglesVirtual,at);
   }
 
+  //! Compute an estimate of the force on a foot and where it is given some angles and torques
+  bool LegKinematicsC::ComputeFootForce(
+      const Eigen::Vector3f &jointAngles,
+      const Eigen::Vector3f &jointVelocity,
+      const Eigen::Vector3f &rawTorques,
+      Eigen::Vector3f &footAt,
+      Eigen::Vector3f &footVelocity,
+      Eigen::Vector3f &force
+      ) const
+  {
 
+    Eigen::Vector3f torque = rawTorques;
 
+    Eigen::Vector3f axisRoll(0,-1,0);
+    Eigen::Vector3f axisPitch(-1,0,0);
+    Eigen::Vector3f axisKnee(-1,0,0);
+
+    // Compute current position
+
+    double angleRoll = jointAngles[0] * JointDirection(0);
+    double anglePitch = jointAngles[1] * JointDirection(1);
+    double angleKneeServo = jointAngles[2] * JointDirection(2);
+
+    double velocityRoll = jointVelocity[0] * JointDirection(0);
+    double velocityPitch = jointVelocity[1] * JointDirection(1);
+    double velocityKneeServo = jointVelocity[2] * JointDirection(2);
+
+    for(int i = 0;i < 3;i++)
+      torque[i] *= JointDirection(i);
+
+    //float theta = anglePitch + angleKneeServo;
+    float theta = jointAngles[2] + jointAngles[1];
+
+    // Theta = Knee Servo
+    // Psi = Knee joint
+
+    float psi = Linkage4BarForward(theta,UseAlternateSolution()) * JointDirection(2);
+    float ratio = LinkageSpeedRatio(theta,psi);
+
+    //std::cerr << "CFF PSI=" << psi << " Pitch=" << anglePitch << std::endl;
+
+    float y = m_l1 * sin(anglePitch) + m_l2 * sin(anglePitch + psi);
+    float z = m_l1 * cos(anglePitch) + m_l2 * cos(anglePitch + psi);
+
+    //std::cerr << "CFF Y= " << y << " Z=" << z << std::endl;
+    // kneeOffset, lowerLegOffset and footOffset are in the hip coordinate system
+
+    Eigen::Vector2f upperLegOffset(
+        m_l1 * sin(anglePitch),
+        m_l1 * cos(anglePitch)
+        );
+
+    Eigen::Vector2f lowerLegOffset(
+        m_l2 * sin(anglePitch + psi),
+        m_l2 * cos(anglePitch + psi)
+        );
+
+    Eigen::Vector2f footOffset = upperLegOffset + lowerLegOffset;
+
+    float footOffsetNorm2 = footOffset.squaredNorm();
+
+    float kneeTorque = -torque[2] * ratio;
+    float pitchTorque = torque[1] +torque[2];
+
+    // Pitch force
+    Eigen::Vector2f pf = Perpendicular(footOffset) * pitchTorque / footOffsetNorm2;
+
+    // Knee force
+    Eigen::Vector2f kf = Perpendicular(lowerLegOffset) * kneeTorque / lowerLegOffset.squaredNorm();
+
+    LineABC2dC line1 = LineABC2dC::CreateFromNormalAndPoint(pf,pf);
+    LineABC2dC line2 = LineABC2dC::CreateFromNormalAndPoint(kf,kf);
+
+    Eigen::Vector2f hipf;
+    line1.Intersection(line2,hipf);
+
+#if 0
+    m_log->info("Torque P:{:+2.2f}  K:{:2.2f}  Pf: {:+2.2f} {:+2.2f}  Kf: {:+2.2f} {:+2.2f}  Hip force  {:+2.2f} {:+2.2f} ",
+                pitchTorque,kneeTorque,
+                pf[0],pf[1],
+                kf[0],kf[1],
+                hipf[0],hipf[1]
+                             );
+#endif
+
+    auto rollRot = Eigen::AngleAxisf(angleRoll,axisRoll);
+
+    Eigen::Vector3f legForce = rollRot * Eigen::Vector3f(0,hipf[0],hipf[1]);
+
+    // Location of centre of knee and pitch servos
+    //Eigen::Vector3f hipCentreAt(sin(angleRoll) * zoff,0,cos(angleRoll) * zoff);
+
+    // footAt_fc is in leg coordinates
+    const Eigen::Vector3f footAt_fc(
+        -sin(angleRoll) * (m_zoff + z), //cos(angles[0]) * xr +
+        y,
+        -cos(angleRoll) * (m_zoff + z) //sin(angles[0]) * xr +
+        );
+
+    // Compute the force from roll on the foot.
+    Eigen::Vector3f rollTangent = footAt_fc.cross(axisRoll);
+
+    Eigen::Vector3f rollForce = rollTangent * torque[0] /footAt_fc.squaredNorm();
+
+    // Compute total force in leg coordinates.
+    force = rollForce + legForce;
+
+    // Compute the location of the foot in robot coordinates.
+    footAt = footAt_fc ;// + m_legOrigin
+
+#if 0
+    m_log->info("Torques: {:+2.2f} {:+2.2f} {:+2.2f}  Virt: {:+2.2f} {:+2.2f} {:+2.2f} ({:+1.2})   Leg: {:+2.2f} {:+2.2f} {:+2.2f} ",
+                torque[0],torque[1],torque[2],
+                torque[0],pitchTorque,kneeTorque,
+                ratio,
+                force[0],force[1],force[2]);
+#endif
+
+    // Compute velocities.
+
+    float kneeVelocity = (velocityKneeServo + velocityPitch) / ratio;
+    Eigen::Vector2f kneeVel2d =  Perpendicular(lowerLegOffset) * kneeVelocity ;
+    //std::cerr << "Foot " << footOffset[0] << " " << footOffset[1] <<  " KneeVel:" << kneeVel2d[0] << " " << kneeVel2d[1] << std::endl;
+    Eigen::Vector2f pitchVel2d = Perpendicular(footOffset) * velocityPitch + kneeVel2d;
+
+    footVelocity = rollRot * Eigen::Vector3f(0,-pitchVel2d[0],pitchVel2d[1]) + rollTangent * velocityRoll;
+
+    return true;
+  }
 
   //! 4 bar linkage angle backward,
   // Returns true if angle exists.

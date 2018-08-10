@@ -105,7 +105,7 @@ bool MotionEstimateOffset(float &value)
 
 static float DemandInt16ToPhasePosition(int16_t position)
 {
-  return (((float) position) * g_actuatorRatio * DOGBOT_SERVOREPORT_POSITIONRANGE/DOGBOT_PACKETSERVO_FLOATSCALE);
+  return ((((float) position) * g_actuatorRatio * DOGBOT_SERVOREPORT_POSITIONRANGE)/DOGBOT_PACKETSERVO_FLOATSCALE);
 }
 
 static int16_t PhasePositionToDemandInt16(float angle)
@@ -172,7 +172,7 @@ bool MotionSetDemand(uint8_t jointMode,uint8_t timestamp,int16_t demand,int16_t 
     }
   }
   if((jointMode & DOGBOT_PACKETSERVOMODE_DEMANDTORQUE) == 0) {
-    if(demandTorque > 0)
+    if(demandTorque >= 0)
       g_currentLimit = demandTorque;
     else
       g_currentLimit = 0;
@@ -181,6 +181,9 @@ bool MotionSetDemand(uint8_t jointMode,uint8_t timestamp,int16_t demand,int16_t 
   }
 
   enum PWMControlDynamicT mode = static_cast<enum PWMControlDynamicT>(DOGBOT_PACKETSERVOMODE_DYNAMIC(jointMode));
+  if(mode != g_controlMode) {
+    SendError(CET_UnavailableInCurrentMode,CPT_Servo,(int) mode);
+  }
   switch(mode)
   {
     case CM_Position:
@@ -228,6 +231,7 @@ bool MotionSetDemand(uint8_t jointMode,uint8_t timestamp,int16_t demand,int16_t 
     case CM_Velocity:
       // Uck!
       g_demandPhaseVelocity = DemandInt16ToPhasePosition(demand);
+      g_demandTorque = 0;
       break;
     case CM_Torque:
       g_demandTorque = (((float)demand) * g_absoluteMaxCurrent) / DOGBOT_PACKETSERVO_FLOATSCALE;
@@ -358,7 +362,7 @@ void MotionStep()
   }
 
   float position = g_currentPhasePosition;
-  int16_t reportVelocity = PhaseVelocityToInt16(g_currentPhaseVelocity);
+  int16_t reportVelocity = PhaseVelocityToInt16(g_filteredPhaseVelocity);
 
   enum PositionReferenceT posRef = g_motionPositionReference;
 

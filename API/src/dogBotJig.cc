@@ -25,7 +25,7 @@ int main(int argc,char **argv)
   bool dumpLimits = false;
   int jointId = -1;
   float torque = 1.0;
-  float range = 45.0;
+  float range = -1;
   float hight = 0.4;
   float yoffset = 0;
   float xoffset = 0;
@@ -90,6 +90,10 @@ int main(int argc,char **argv)
     hight = maxLegExtention;
   if(hight < minLegExtention)
     hight = minLegExtention;
+
+  if(range < 0) {
+    range = maxLegExtention - minLegExtention;
+  }
   logger->info("Limit Min {}   Max {}  Range:{}",minLegExtention,maxLegExtention,maxLegExtention - minLegExtention);
   if(dumpLimits) { // Just dump limits and exit ?
     return 0;
@@ -112,12 +116,22 @@ int main(int argc,char **argv)
     sleep(1);
     for(int i = 0;i < 20 || verbose;i++) {
       //! Compute an estimate of the force on a foot and where it is.
-      DogBotN::TimePointT atTime = DogBotN::TimePointT::clock::now();
       Eigen::Vector3f pos;
       Eigen::Vector3f force;
-      leg->ComputeFootForce(atTime,pos,force);
+      Eigen::Vector3f footVel;
+      DogBotN::TimePointT atTime = DogBotN::TimePointT::clock::now();
+      leg->ComputeFootState(atTime,pos,footVel,force);
       pos -= leg->Kinematics().LegOrigin();
-      logger->info("At {} {} {}  force {} {} {} ",pos[0],pos[1],pos[2],force[0],force[1],force[2]);
+#if 1
+      logger->info("At {:1.3} {:1.3} {:1.3}  Force {:1.3} {:1.3} {:1.3}   Velocity {:1.3} {:1.3} {:1.3} ",
+                   pos[0],pos[1],pos[2],
+                   force[0],force[1],force[2],
+                   footVel[0],footVel[1],footVel[2]);
+#else
+      logger->info("At \t{:1.3} \t{:1.3} \t{:1.3}  Velocity \t{:1.3} \t{:1.3} \t{:1.3} ",
+                   pos[0],pos[1],pos[2],
+                   footVel[0],footVel[1],footVel[2]);
+#endif
       usleep(10000);
     }
   } else {
@@ -127,9 +141,21 @@ int main(int argc,char **argv)
       for(int i = 0;i < 360;i++) {
         // 0.35 to 0.7
 
-        float z = cos(DogBotN::Deg2Rad(i)) * hight + midRange;
+        float z = cos(DogBotN::Deg2Rad(i)) * range * 0.5 + midRange;
 
         leg->Goto(Eigen::Vector3f(0,0,-z),torque);
+
+        Eigen::Vector3f pos;
+        Eigen::Vector3f force;
+        Eigen::Vector3f footVel;
+        DogBotN::TimePointT atTime = DogBotN::TimePointT::clock::now();
+        leg->ComputeFootState(atTime,pos,footVel,force);
+
+        logger->info("At {: #1.4} {: #1.4} {: #1.4}  Velocity {:#1.4g} {:#1.4g} {:#1.4g}  Force  {:#1.4g} {:#1.4g} {:#1.4g}",
+                     pos[0],pos[1],pos[2],
+                     footVel[0],footVel[1],footVel[2],
+                     force[0],force[1],force[2]
+                     );
 
         usleep(delay);
       }

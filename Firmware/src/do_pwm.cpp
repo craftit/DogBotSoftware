@@ -36,7 +36,9 @@ float g_phaseInductance = 1e-9;
 //#define TIM_1_8_PERIOD_CLOCKS (4095)  // 10 KHz
 #define CURRENT_MEAS_PERIOD ((float)(TIM_1_8_PERIOD_CLOCKS)/(float)TIM_1_8_CLOCK_HZ)
 
-int g_motorReportSampleCount = (1.0 / (250.0 * CURRENT_MEAS_PERIOD)) + 0.5f;  // The target rate is 100Hz
+const float g_defaultReportRate = 250.0;
+
+int g_motorReportSampleCount = (1.0 / (g_defaultReportRate * CURRENT_MEAS_PERIOD)) + 0.5f;
 float g_PWMFrequency = 1.0/CURRENT_MEAS_PERIOD;
 
 BSEMAPHORE_DECL(g_reportSampleReady,0); // Synchronise motion report loop (Normally 100Hz )
@@ -268,7 +270,7 @@ static bool Monitor_FOC_Current(float phaseAngle)
   g_Id = c*Ialpha + s*Ibeta;
   g_Iq = c*Ibeta  - s*Ialpha;
 
-  g_torqueAverage += (g_Iq - g_torqueAverage)* CURRENT_MEAS_PERIOD * g_motorReportSampleCount;
+  g_torqueAverage += (g_Iq - g_torqueAverage)* CURRENT_MEAS_PERIOD * g_defaultReportRate;
 
   g_Ierr_d = 0;
   g_Ierr_q = 0;
@@ -290,7 +292,7 @@ static bool FOC_current(float phaseAngle,float Id_des, float Iq_des)
   g_Id = c*Ialpha + s*Ibeta;
   g_Iq = c*Ibeta  - s*Ialpha;
 
-  g_torqueAverage += (g_Iq - g_torqueAverage)* CURRENT_MEAS_PERIOD * g_motorReportSampleCount;
+  g_torqueAverage += (g_Iq - g_torqueAverage)* CURRENT_MEAS_PERIOD * g_defaultReportRate;
 
   // Current error
   g_Ierr_d = Id_des - g_Id;
@@ -381,6 +383,8 @@ float g_endStopPhaseMax = 0;
 int g_phaseRotationCount = 0;
 float g_currentPhasePosition = 0;
 float g_currentPhaseVelocity = 0;
+float g_phaseVelocityFilter = CURRENT_MEAS_PERIOD * g_defaultReportRate;
+float g_filteredPhaseVelocity = 0;
 float g_velocityLimit = 4000.0; // Phase velocity in radians a second.
 float g_velocityPGain = 0.03;
 float g_velocityIGain = 3.0;
@@ -539,9 +543,9 @@ static void ComputeState(void)
 
 #if 0
       static bool useSenorless = false;
-      if(useSenorless && fabs(g_currentPhaseVelocity) < 10) {
+      if(useSenorless && fabs(g_currentPhaseVelocity) < 20) {
         useSenorless = false;
-      } else if(fabs(g_currentPhaseVelocity) > 12) {
+      } else if(fabs(g_currentPhaseVelocity) > 40) {
         useSenorless = true;
       }
       if(g_debugValue > 0 && useSenorless) {
@@ -571,11 +575,11 @@ static void ComputeState(void)
     pllVel += CURRENT_MEAS_PERIOD * pllKi * phaseError;
 
     g_currentPhaseVelocity = pllVel;
-
+    g_filteredPhaseVelocity += (g_currentPhaseVelocity - g_filteredPhaseVelocity) * g_phaseVelocityFilter;
     g_phaseAngle = pllPhase;
 
 #if ENABLE_ANGLESTATS
-    if(g_currentPhaseVelocity > 100.0 && g_enableAngleStats) {
+    if(fabs(g_currentPhaseVelocity) > 100.0 && g_enableAngleStats) {
       int angleBin = ((g_phaseAngle + M_PI) * (float) g_angleTableSize / (2.0f*M_PI));
       if(angleBin < 0) angleBin = 0;
       if(angleBin >= g_angleTableSize) angleBin = g_angleTableSize-1;
@@ -726,10 +730,6 @@ static void MotorControlLoop(void)
       localMotionTime = g_motionPositionTime;
       chMtxUnlock(&g_demandMutex);
 
-      if(localMotionTime > g_motionTimeOut) {
-        localMotionTime = g_motionTimeOut;
-        localDemandVelocity = 0;
-      }
     }
 
     float demandCurrent = localDemandTorque;
@@ -779,6 +779,10 @@ static void MotorControlLoop(void)
         Monitor_FOC_Current(g_phaseAngle);
         break;
       case CM_Position: {
+        if(localMotionTime > g_motionTimeOut) {
+          localMotionTime = g_motionTimeOut;
+          localDemandVelocity = 0;
+        }
         if(g_motionUpdatePeriod != 0 && localDemandVelocity != 0)
           targetPosition += (localDemandVelocity * (float) localMotionTime) * CURRENT_MEAS_PERIOD;
         float positionError = (targetPosition - g_currentPhasePosition);
