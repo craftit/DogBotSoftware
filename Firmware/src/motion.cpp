@@ -10,8 +10,8 @@ float g_homeAngleOffset = 0;      // Offset from phase position to actuator posi
 float g_motorPhase2RotationRatio = 7.0;
 float g_actuatorRatio = g_motorPhase2RotationRatio * 21.0; // Gear ratio
 
-float g_absoluteMaxCurrent = 20.0; // Maximum torque allowed
-float g_uncalibratedCurrentLimit = 4.0; // Maximum torque allowed in un-calibrated mode.
+float g_absoluteMaxCurrent = 70.0; // Maximum torque allowed
+float g_uncalibratedCurrentLimit = 10.0; // Maximum torque allowed in un-calibrated mode.
 
 const int g_positionIndexCount = 4;
 bool g_haveIndexPositionSample[g_positionIndexCount];

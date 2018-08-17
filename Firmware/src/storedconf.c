@@ -64,7 +64,7 @@ void StoredConf_FactoryDefaults(struct StoredConfigT *conf)
   conf->m_phaseResistance = 0.002;
   conf->m_phaseInductance = 1e-4;
   conf->m_phaseOffsetVoltage = 0.1;
-  conf->m_absoluteMaxCurrent = 20.0;
+  conf->m_absoluteMaxCurrent = 70.0;
   conf->m_homeIndexPosition = 0.0;
   conf->m_minSupplyVoltage = 19.0;
 

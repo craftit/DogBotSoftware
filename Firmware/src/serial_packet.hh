@@ -10,10 +10,10 @@
 #include "pwm.h"
 #include "mathfunc.h"
 #include "motion.h"
-#include "drv8503.h"
 #include "hal_channels.h"
 
 #include <string.h>
+#include "drv8305.h"
 
 static const uint8_t g_charSTX = 0x02;
 static const uint8_t g_charETX = 0x03;

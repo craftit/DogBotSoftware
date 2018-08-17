@@ -17,7 +17,7 @@ int main(int argc,char **argv)
 {
   std::string devFilename = "local";
   std::string configFile = DogBotN::DogBotAPIC::DefaultConfigFile();
-  std::string jointName = "front_right_knee";
+  std::string legName = "back_right";
   std::string firmwareFile;
 
   auto logger = spdlog::stdout_logger_mt("console");
@@ -45,7 +45,7 @@ int main(int argc,char **argv)
       ("d,device", "Device to use from communication. Typically 'local' for local server or 'usb' for direct connection ", cxxopts::value<std::string>(devFilename))
       ("i,target","Controller id to use", cxxopts::value<int>(jointId))
       ("t,torque","Torque to use", cxxopts::value<float>(torque))
-      ("j,joint","Joint name", cxxopts::value<std::string>(jointName))
+      ("l,leg","Joint name", cxxopts::value<std::string>(legName))
       ("r,range","Motion range", cxxopts::value<float>(range))
       ("z,height","Motion range", cxxopts::value<float>(hight))
       ("y,yoffset","Forward movement", cxxopts::value<float>(yoffset))
@@ -106,7 +106,7 @@ int main(int argc,char **argv)
   // Lift the speed limit a bit
   dogbot->Connection()->SetParam(0,CPI_VelocityLimit,(float) 500.0);
 
-  std::shared_ptr<DogBotN::LegControllerC> leg = std::make_shared<DogBotN::LegControllerC>(dogbot,"back_right",false);
+  std::shared_ptr<DogBotN::LegControllerC> leg = std::make_shared<DogBotN::LegControllerC>(dogbot,legName,false);
 
   if(!cycle) {
 
@@ -122,12 +122,16 @@ int main(int argc,char **argv)
       DogBotN::TimePointT atTime = DogBotN::TimePointT::clock::now();
       leg->ComputeFootState(atTime,pos,footVel,force);
       pos -= leg->Kinematics().LegOrigin();
-#if 1
+#if 0
       logger->info("At {:1.3} {:1.3} {:1.3}  Force {:1.3} {:1.3} {:1.3}   Velocity {:1.3} {:1.3} {:1.3} ",
                    pos[0],pos[1],pos[2],
                    force[0],force[1],force[2],
                    footVel[0],footVel[1],footVel[2]);
 #else
+      for(int i = 0;i < 3;i++) {
+        if(fabs(footVel[i]) < 0.01)
+          footVel[i] = 0;
+      }
       logger->info("At \t{:1.3} \t{:1.3} \t{:1.3}  Velocity \t{:1.3} \t{:1.3} \t{:1.3} ",
                    pos[0],pos[1],pos[2],
                    footVel[0],footVel[1],footVel[2]);

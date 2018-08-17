@@ -5,11 +5,12 @@
 #include "pwm.h"
 #include "mathfunc.h"
 #include "chprintf.h"
-#include "drv8503.h"
 #include "svm.h"
 
 #include "coms.h"
 #include "dogbot/protocol.h"
+
+#include "drv8305.h"
 #include "storedconf.h"
 
 #include "motion.h"
@@ -190,18 +191,18 @@ static void queue_voltage_timings(float v_alpha, float v_beta,bool unsymetricSwi
 void ShuntCalibration(void)
 {
 
-#if 1
+#if 0
   // Set the gain
-  int gainMode = DRV8503_GAIN_CS1_40 | DRV8503_GAIN_CS2_40 | DRV8503_GAIN_CS3_40 |
-      DRV8503_CS_BLANK_2_5US ;
+  int gainMode = DRV8305_GAIN_CS1_40 | DRV8305_GAIN_CS2_40 | DRV8305_GAIN_CS3_40 |
+      DRV8305_CS_BLANK_2_5US ;
 
   // The following can deal with +- 39 Amps
 
   float ampGain = 40.0; // V/V gain
 #else
   // Set the gain
-  int gainMode = DRV8503_GAIN_CS1_20 | DRV8503_GAIN_CS2_20 | DRV8503_GAIN_CS3_20 |
-      DRV8503_CS_BLANK_2_5US ;
+  int gainMode = DRV8305_GAIN_CS1_20 | DRV8305_GAIN_CS2_20 | DRV8305_GAIN_CS3_20 |
+      DRV8305_CS_BLANK_2_5US ;
 
   // The following can deal with +- 78 Amps
   float ampGain = 20.0; // V/V gain
@@ -210,12 +211,12 @@ void ShuntCalibration(void)
 
   // 95% of half the range of possible values.
   g_maxCurrentSense = (3.3 * 0.5 * 0.95)/ (shuntResistance * ampGain);
-  SendParamUpdate(CPI_MaxCurrent);
+  SendParamUpdate(CPI_MaxCurrentSense);
 
-  Drv8503SetRegister(DRV8503_REG_SHUNT_AMPLIFIER_CONTROL,
-      DRV8503_DC_CAL_CH1 |
-      DRV8503_DC_CAL_CH2 |
-      DRV8503_DC_CAL_CH3 |
+  Drv8305SetRegister(DRV8305_REG_SHUNT_AMPLIFIER_CONTROL,
+      DRV8305_DC_CAL_CH1 |
+      DRV8305_DC_CAL_CH2 |
+      DRV8305_DC_CAL_CH3 |
       gainMode
       );
 
@@ -247,7 +248,7 @@ void ShuntCalibration(void)
     g_currentZeroOffset[j] = sums[j] / (float) samples;
 
   // Disable calibration mode.
-  Drv8503SetRegister(DRV8503_REG_SHUNT_AMPLIFIER_CONTROL,
+  Drv8305SetRegister(DRV8305_REG_SHUNT_AMPLIFIER_CONTROL,
       gainMode
       );
 
@@ -335,7 +336,7 @@ static bool FOC_current(float phaseAngle,float Id_des, float Iq_des)
   float mod_alpha = c*mod_d - s*mod_q;
   float mod_beta  = c*mod_q + s*mod_d;
 
-#if 1
+#if 0
   // In general it is more efficient to reduce switching keeping the current running through the low
   // side MOSFETs reduces switching losses and makes things more efficient.   The down side of this
   // is that all the heat is dissipated in in the component which may over heat.  To mitigate this
@@ -386,8 +387,8 @@ float g_currentPhaseVelocity = 0;
 float g_phaseVelocityFilter = CURRENT_MEAS_PERIOD * g_defaultReportRate;
 float g_filteredPhaseVelocity = 0;
 float g_velocityLimit = 4000.0; // Phase velocity in radians a second.
-float g_velocityPGain = 0.03;
-float g_velocityIGain = 3.0;
+float g_velocityPGain = 0.12;
+float g_velocityIGain = 12.0;
 float g_velocityISum = 0.0;
 float g_velocityFilter = 2.0;
 float g_positionGain = 5.0;
@@ -919,12 +920,12 @@ static void MotorControlLoop(void)
   }
 }
 
-//! Check the state of the DRV8503 driver chip
+//! Check the state of the DRV8305 driver chip
 
 bool CheckDriverStatus(void)
 {
   // Check the state of the gate driver.
-  uint16_t gateDriveStatus = Drv8503ReadRegister(DRV8503_REG_WARNING);
+  uint16_t gateDriveStatus = Drv8305ReadRegister(DRV8305_REG_WARNING);
 
   // Update gate status
   static uint16_t lastGateStatus = 0;
@@ -939,7 +940,7 @@ bool CheckDriverStatus(void)
     SendParamUpdate(CPI_DRV8305_04);
   }
 
-  if(gateDriveStatus & DRV8503_WARN_FAULT) {
+  if(gateDriveStatus & DRV8305_WARN_FAULT) {
     FaultDetected(FC_DriverFault);
     return false;
   }
@@ -977,7 +978,7 @@ static THD_FUNCTION(ThreadPWM, arg) {
   g_lastLimitState = palReadPad(GPIOC, GPIOC_PIN8); // Index
 
   //! Make sure the driver is setup.
-  InitDrv8503();
+  InitDrv8305();
 
   //! Wait a bit more
   chThdSleepMilliseconds(100);
@@ -1636,7 +1637,7 @@ enum FaultCodeT PWMMotorPhaseCal()
 
   int phaseRotations = 7;
   int numberOfReadings = 8;
-  float torqueValue = 3.0;
+  float torqueValue = 12.0;
 
   int cyclesPerSecond = 1.0 / (1.0 * CURRENT_MEAS_PERIOD);
 

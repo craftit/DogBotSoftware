@@ -9,9 +9,9 @@
 #include "pwm.h"
 #include "mathfunc.h"
 #include "motion.h"
-#include "drv8503.h"
 #include "hal_channels.h"
 #include <string.h>
+#include "drv8305.h"
 
 uint8_t g_debugIndex = 0x55;
 
@@ -98,7 +98,7 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
     case CPI_DRV8305_02:
     case CPI_DRV8305_03:
     case CPI_DRV8305_04:
-    case CPI_DRV8305_05:
+    case CPI_DRV8305_0A:
     case CPI_VSUPPLY:
     case CPI_5VRail:
     case CPI_DriveTemp:
@@ -110,7 +110,14 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
     case CPI_MotorOffsetVoltage:
     case CPI_TIM1_SR:
       break;
-
+    case CPI_DRV8305_05:
+      if(len != 2) return false;
+      Drv8305SetRegister(5,data->uint16[0]);
+      return true;
+    case CPI_DRV8305_06:
+      if(len != 2) return false;
+      Drv8305SetRegister(6,data->uint16[0]);
+      return true;
     case CPI_CalibrationOffset:
       if(len != 4)
         return false;
@@ -528,9 +535,16 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
     case CPI_DRV8305_05: {
       int reg = ((int) index - CPI_DRV8305)+1;
       *len = 2;
-      data->uint16[0] = Drv8503ReadRegister(reg);
+      data->uint16[0] = Drv8305ReadRegister(reg);
     } break;
-
+    case CPI_DRV8305_06: {
+      *len = 2;
+      data->uint16[0] = Drv8305ReadRegister(6);
+    } break;
+    case CPI_DRV8305_0A: {
+      *len = 2;
+      data->uint16[0] = Drv8305ReadRegister(0x0a);
+    } break;
     case CPI_TIM1_SR: {
       stm32_tim_t *tim = (stm32_tim_t *)TIM1_BASE;
       *len = 2;

@@ -116,6 +116,8 @@ MainWindow::MainWindow(QWidget *parent) :
   m_displayQuery.push_back(CPI_CurrentLimit);
   m_displayQuery.push_back(CPI_EnableAngleStats);
   m_displayQuery.push_back(CPI_DebugFloat);
+  m_displayQuery.push_back(CPI_DRV8305_05);
+  m_displayQuery.push_back(CPI_DRV8305_06);
 
   // Update default position
   ui->sliderTorque->setSliderPosition(m_torque*10.0);
@@ -352,6 +354,11 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     displayStr += buff;
 
    } break;
+  case CPI_DRV8305_06: {
+    int reg = 6;
+    sprintf(buff,"\n Reg %d contents: %04X ",reg,(int) psp->m_data.uint16[0]);
+    displayStr += buff;
+  } break;
   case CPI_5VRail: {
     sprintf(buff,"\n 5VRail: %f ",psp->m_data.float32[0]);
     displayStr += buff;
@@ -553,6 +560,12 @@ void MainWindow::LocalProcessParam(PacketParam8ByteC psp)
   } break;
   case CPI_DeviceType: {
     ui->comboBoxDeviceType->setCurrentText(QString(DogBotN::ComsDeviceTypeToString(static_cast<enum DeviceTypeT>(psp.m_data.uint8[0]))));
+  } break;
+  case CPI_DRV8305_05: {
+    ui->lineEdit_HSReg->setText(QString::number(psp.m_data.uint16[0],2));
+  } break;
+  case CPI_DRV8305_06: {
+    ui->lineEdit_LSReg->setText(QString::number(psp.m_data.uint16[0],2));
   } break;
   default:
     break;
@@ -906,7 +919,7 @@ void MainWindow::on_sliderPosition_sliderMoved(int position)
 
 void MainWindow::on_sliderTorque_sliderMoved(int torque)
 {
-  m_torque = torque / 10.0;
+  m_torque = (float) torque / 100.0;
   switch(m_controlMode)
   {
   case CM_Position:
@@ -978,6 +991,15 @@ void MainWindow::on_pushButtonDrv8305_5_clicked()
   m_coms->SendQueryParam(m_targetDeviceId,CPI_DRV8305_05);
 }
 
+void MainWindow::on_pushButtonDrv8305_6_clicked()
+{
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_DRV8305_06);
+}
+
+void MainWindow::on_pushButton_Drv8305_A_clicked()
+{
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_DRV8305_0A);
+}
 
 void MainWindow::on_pushButtonTim1_clicked()
 {
@@ -1774,3 +1796,106 @@ void MainWindow::on_comboBoxDeviceType_activated(const QString &arg1)
   }
   m_coms->SendSetParam(m_targetDeviceId,CPI_DeviceType,static_cast<uint8_t>(deviceType));
 }
+
+#define DRV8305_PEAK_SINK_20mA        (0b0000 << 4)
+#define DRV8305_PEAK_SINK_30mA        (0b0001 << 4)
+#define DRV8305_PEAK_SINK_40mA        (0b0010 << 4)
+#define DRV8305_PEAK_SINK_50mA        (0b0011 << 4)
+#define DRV8305_PEAK_SINK_60mA        (0b0100 << 4)
+#define DRV8305_PEAK_SINK_70mA        (0b0101 << 4)
+#define DRV8305_PEAK_SINK_80mA        (0b0110 << 4)
+#define DRV8305_PEAK_SINK_250mA       (0b0111 << 4)
+#define DRV8305_PEAK_SINK_500mA       (0b1000 << 4)
+#define DRV8305_PEAK_SINK_750mA       (0b1001 << 4)
+#define DRV8305_PEAK_SINK_1000mA      (0b1010 << 4)
+#define DRV8305_PEAK_SINK_1250mA      (0b1011 << 4)
+
+#define DRV8305_PEAK_SOURCE_10mA          (0b0000)
+#define DRV8305_PEAK_SOURCE_20mA          (0b0001)
+#define DRV8305_PEAK_SOURCE_30mA          (0b0010)
+#define DRV8305_PEAK_SOURCE_40mA          (0b0011)
+#define DRV8305_PEAK_SOURCE_50mA          (0b0100)
+#define DRV8305_PEAK_SOURCE_60mA          (0b0101)
+#define DRV8305_PEAK_SOURCE_70mA          (0b0110)
+#define DRV8305_PEAK_SOURCE_125mA         (0b0111)
+#define DRV8305_PEAK_SOURCE_250mA         (0b1000)
+#define DRV8305_PEAK_SOURCE_500mA         (0b1001)
+#define DRV8305_PEAK_SOURCE_750mA         (0b1010)
+#define DRV8305_PEAK_SOURCE_1000mA        (0b1011)
+
+#define DRV8305_SOURCE_TIME_220ns       (0b00 << 8)
+#define DRV8305_SOURCE_TIME_440ns       (0b01 << 8)
+#define DRV8305_SOURCE_TIME_880ns       (0b10 << 8)
+#define DRV8305_SOURCE_TIME_1780ns      (0b11 << 8)
+
+
+static int16_t DRV8305SourceCurrent(const QString &arg1)
+{
+  if(arg1 == "10") return DRV8305_PEAK_SOURCE_10mA;
+  if(arg1 == "20") return DRV8305_PEAK_SOURCE_20mA;
+  if(arg1 == "30") return DRV8305_PEAK_SOURCE_30mA;
+  if(arg1 == "40") return DRV8305_PEAK_SOURCE_40mA;
+  if(arg1 == "50") return DRV8305_PEAK_SOURCE_50mA;
+  if(arg1 == "60") return DRV8305_PEAK_SOURCE_60mA;
+  if(arg1 == "70") return DRV8305_PEAK_SOURCE_70mA;
+  if(arg1 == "80") return DRV8305_PEAK_SOURCE_125mA;
+  if(arg1 == "250") return DRV8305_PEAK_SOURCE_250mA;
+  if(arg1 == "500") return DRV8305_PEAK_SOURCE_500mA;
+  if(arg1 == "750") return DRV8305_PEAK_SOURCE_750mA;
+  if(arg1 == "1000") return DRV8305_PEAK_SOURCE_1000mA;
+  return 0;
+}
+static int16_t DRV8305SinkCurrent(const QString &arg1)
+{
+  if(arg1 == "20") return DRV8305_PEAK_SINK_20mA;
+  if(arg1 == "30") return DRV8305_PEAK_SINK_30mA;
+  if(arg1 == "40") return DRV8305_PEAK_SINK_40mA;
+  if(arg1 == "50") return DRV8305_PEAK_SINK_50mA;
+  if(arg1 == "60") return DRV8305_PEAK_SINK_60mA;
+  if(arg1 == "70") return DRV8305_PEAK_SINK_70mA;
+  if(arg1 == "125") return DRV8305_PEAK_SINK_80mA;
+  if(arg1 == "250") return DRV8305_PEAK_SINK_250mA;
+  if(arg1 == "500") return DRV8305_PEAK_SINK_500mA;
+  if(arg1 == "750") return DRV8305_PEAK_SINK_750mA;
+  if(arg1 == "1000") return DRV8305_PEAK_SINK_1000mA;
+  if(arg1 == "1250") return DRV8305_PEAK_SINK_1250mA;
+  return 0;
+}
+
+void MainWindow::SendHSCurrentSetup()
+{
+  int16_t regConfig = DRV8305SourceCurrent(ui->comboBox_HSSourceCurrent->currentText());
+  regConfig |= DRV8305SinkCurrent(ui->comboBox_HSSinkCurrent->currentText());
+  regConfig |= DRV8305_SOURCE_TIME_440ns;
+  m_coms->SendSetParam(m_targetDeviceId,CPI_DRV8305_05,static_cast<uint16_t>(regConfig));
+}
+
+void MainWindow::SendLSCurrentSetup()
+{
+  int16_t regConfig = DRV8305SourceCurrent(ui->comboBox_LSSourceCurrent->currentText());
+  regConfig |= DRV8305SinkCurrent(ui->comboBox_LSSinkCurrent->currentText());
+  regConfig |= DRV8305_SOURCE_TIME_440ns;
+  m_coms->SendSetParam(m_targetDeviceId,CPI_DRV8305_06,static_cast<uint16_t>(regConfig));
+}
+
+void MainWindow::on_comboBox_HSSourceCurrent_activated(const QString &arg1)
+{
+  SendHSCurrentSetup();
+}
+
+void MainWindow::on_comboBox_HSSinkCurrent_activated(const QString &arg1)
+{
+  SendHSCurrentSetup();
+}
+
+void MainWindow::on_comboBox_LSSourceCurrent_activated(const QString &arg1)
+{
+  SendLSCurrentSetup();
+}
+
+void MainWindow::on_comboBox_LSSinkCurrent_activated(const QString &arg1)
+{
+  SendLSCurrentSetup();
+}
+
+

@@ -69,7 +69,7 @@ namespace DogBotN {
     void SendMoveWithEffort(int deviceId,float pos,float effort,enum PositionReferenceT posRef,uint8_t timestamp = 0);
 
     //! Send velocity command with a current limit.
-    void SendVelocityWithEffort(int deviceId,float velocity,float currentLimit);
+    void SendVelocityWithEffort(int deviceId,float velocity,float effort);
 
     //! Send torque to apply as a motor current.
     void SendTorque(int deviceId,float current);
@@ -139,6 +139,9 @@ namespace DogBotN {
 
     //! Set a parameter
     void SendSetParam(int deviceId,ComsParameterIndexT param,uint8_t value);
+
+    //! Set a parameter
+    void SendSetParam(int deviceId,ComsParameterIndexT param,uint16_t value);
 
     //! Set a parameter
     void SendSetParam(int deviceId,ComsParameterIndexT param,int value);

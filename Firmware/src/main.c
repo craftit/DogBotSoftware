@@ -7,7 +7,6 @@
 
 #include "serial_usbcfg.h"
 #include "pwm.h"
-#include "drv8503.h"
 #include "eeprom.h"
 #include "storedconf.h"
 #include "canbus.h"
@@ -24,6 +23,7 @@
 #include "chprintf.h"
 
 #include "coms.h"
+#include "drv8305.h"
 #include "exec.h"
 #include "shell/shell.h"
 

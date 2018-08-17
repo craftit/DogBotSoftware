@@ -1,7 +1,7 @@
 
 #include "ch.h"
+#include "drv8305.h"
 #include "hal.h"
-#include "drv8503.h"
 
 /*
  * Low speed SPI configuration (328.125kHz, CPHA=0, CPOL=0, MSb first).
@@ -17,23 +17,23 @@ static const SPIConfig ls_spicfg = {
 
 //| SPI_CR1_DFF
 
-uint16_t Drv8503SetRegister(uint16_t addr,uint16_t value) {
+uint16_t Drv8305SetRegister(uint16_t addr,uint16_t value) {
   uint8_t data[2];
   uint8_t txbuff[2];
-  txbuff[0] = addr << 3 | (value >> 8);
+  txbuff[0] = (addr & 0x0f) << 3 | ((value >> 8) & 0xff);
   txbuff[1] = value & 0xff;
 
   spiAcquireBus(&SPID3);              /* Acquire ownership of the bus.    */
   spiStart(&SPID3, &ls_spicfg);       /* Setup transfer parameters.       */
   spiSelect(&SPID3);                  /* Slave Select assertion.          */
-  spiExchange(&SPID3, 1,
+  spiExchange(&SPID3,2,
               &txbuff, &data);          /* Atomic transfer operations.      */
   spiUnselect(&SPID3);                /* Slave Select de-assertion.       */
   spiReleaseBus(&SPID3);              /* Ownership release.               */
   return data[0];
 }
 
-uint16_t Drv8503ReadRegister(uint16_t addr) {
+uint16_t Drv8305ReadRegister(uint16_t addr) {
   uint8_t cmd[2] ;
   cmd[0] = (1 << 7) | (addr << 3);
   cmd[1] = 0;
@@ -50,37 +50,37 @@ uint16_t Drv8503ReadRegister(uint16_t addr) {
   return (uint16_t) data[0] << 8 | (uint16_t) data[1];
 }
 
-uint16_t Drv8503ReadStatus(void)
+uint16_t Drv8305ReadStatus(void)
 {
-  uint16_t ret= Drv8503ReadRegister(0x5);
+  uint16_t ret= Drv8305ReadRegister(0x5);
   return ret;
 }
 
 
-void InitDrv8503(void)
+void InitDrv8305(void)
 {
   // Make sure the output of the sense amplifiers is clamped to 3.3V clear any faults
   // before being enabled
-  Drv8503SetRegister(DRV8503_REG_IC_CONTROL,
-      DRV8503_IC_FLIP_OTSD |      // Enable over temperature shutdown
-      DRV8503_IC_EN_SNS_CLAMP |   // Enable sense amplifier clamp to 3.3V
-      DRV8503_IC_CLR_FLTS         // Clear faults
+  Drv8305SetRegister(DRV8305_REG_IC_CONTROL,
+      DRV8305_IC_FLIP_OTSD |      // Enable over temperature shutdown
+      DRV8305_IC_EN_SNS_CLAMP |   // Enable sense amplifier clamp to 3.3V
+      DRV8305_IC_CLR_FLTS         // Clear faults
       );
 
-  Drv8503SetRegister(DRV8503_REG_DRIVER_HS,
-      DRV8503_PEAK_SOURCE_1250mA |
-      DRV8503_PEAK_SINK_1000mA |
-      DRV8503_SOURCE_TIME_440ns
+  Drv8305SetRegister(DRV8305_REG_DRIVER_HS,
+      DRV8305_PEAK_SOURCE_1000mA |
+      DRV8305_PEAK_SINK_1250mA |
+      DRV8305_SOURCE_TIME_440ns
       );
-  Drv8503SetRegister(DRV8503_REG_DRIVER_LS,
-      DRV8503_PEAK_SOURCE_1250mA |
-      DRV8503_PEAK_SINK_1000mA |
-      DRV8503_SOURCE_TIME_440ns
+  Drv8305SetRegister(DRV8305_REG_DRIVER_LS,
+      DRV8305_PEAK_SOURCE_1000mA |
+      DRV8305_PEAK_SINK_1250mA |
+      DRV8305_SOURCE_TIME_440ns
       );
 
-  Drv8503SetRegister(DRV8503_REG_VDS_SENSE_CONTROL,
-      DRV8503_VDS_SHUT_DOWN |
-      DRV8503_VDS_THRESHOLD_0V155  // 0V155 is just under 100 amps,
+  Drv8305SetRegister(DRV8305_REG_VDS_SENSE_CONTROL,
+      DRV8305_VDS_SHUT_DOWN |
+      DRV8305_VDS_THRESHOLD_0V155  // 0V155 is just under 100 amps,
       );
 
 
@@ -88,7 +88,7 @@ void InitDrv8503(void)
 
 
 
-uint16_t Drv8503Test(void)
+uint16_t Drv8305Test(void)
 {
   // Turn everything off
   palClearPad(GPIOA, GPIOA_PIN8);  // HC

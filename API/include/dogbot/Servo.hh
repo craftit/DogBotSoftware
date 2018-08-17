@@ -319,7 +319,7 @@ namespace DogBotN {
     float m_motorTemperature = 0;
 
     int m_toQuery = 0;
-    int m_bootloaderQueryCount;
+    int m_bootloaderQueryCount = 0;
     std::vector<ComsParameterIndexT> m_updateQuery;
 
     unsigned m_reportedMode = 0;
@@ -329,7 +329,7 @@ namespace DogBotN {
     float m_motorKv = 260;    //! < Motor speed constant
     float m_gearRatio = 21.0; //!< Gearbox ratio
     float m_servoKt = 0;      //!< Servo torque constant
-    float m_maxCurrent = 20.0;
+    float m_maxCurrent = 70.0;
     float m_velocityLimit = 0;
     float m_currentLimit = 0;
     float m_positionPGain = 0;

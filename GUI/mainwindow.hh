@@ -228,6 +228,18 @@ private slots:
 
   void on_comboBoxDeviceType_activated(const QString &arg1);
 
+  void on_comboBox_HSSourceCurrent_activated(const QString &arg1);
+
+  void on_comboBox_HSSinkCurrent_activated(const QString &arg1);
+
+  void on_comboBox_LSSourceCurrent_activated(const QString &arg1);
+
+  void on_comboBox_LSSinkCurrent_activated(const QString &arg1);
+
+  void on_pushButtonDrv8305_6_clicked();
+
+  void on_pushButton_Drv8305_A_clicked();
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);
@@ -283,6 +295,9 @@ private:
   void StopAnimation();
 
   bool SetupPlatformManager();
+
+  void SendHSCurrentSetup();
+  void SendLSCurrentSetup();
 
   int m_toQuery = 0;
   std::vector<ComsParameterIndexT> m_displayQuery;
