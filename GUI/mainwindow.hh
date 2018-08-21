@@ -240,6 +240,14 @@ private slots:
 
   void on_pushButton_Drv8305_A_clicked();
 
+  void on_comboBox_DeadTime_activated(int index);
+
+  void on_pushButtonDrv8305_7_clicked();
+
+  void on_comboBox_HSDriveTime_activated(int index);
+
+  void on_comboBox_LSDriveTime_activated(int index);
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);

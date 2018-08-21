@@ -164,10 +164,37 @@ extern void InitDrv8305(void);
 #define DRV8305_VDS_REPORT_ONLY             (0b001)
 #define DRV8305_VDS_PROTECTION_DISABLE      (0b010)
 
+#define DRV8305_REG_GATE_DRIVE_CONTROL (0x7)
+
+
+#define DRV8305_COMM_OPTION_ACTIVE_FREE_WHEEL   (0b1 << 9)
+#define DRV8305_COMM_OPTION_DIODE_FREE_WHEEL    (0b0 << 9)
+
+#define DRV8305_PWM_MODE_6_INPUT (0b00 << 7)
+#define DRV8305_PWM_MODE_3_INPUT (0b01 << 7)
+#define DRV8305_PWM_MODE_1_INPUT (0b10 << 7)
+#define DRV8305_PWM_MODE_6B_INPUT (0b11 << 7)
+
+#define DRV8305_DEAD_TIME_35ns   (0b000 << 4)
+#define DRV8305_DEAD_TIME_52ns   (0b001 << 4)
+#define DRV8305_DEAD_TIME_88ns   (0b010 << 4)
+#define DRV8305_DEAD_TIME_440ns  (0b011 << 4)
+#define DRV8305_DEAD_TIME_880ns  (0b100 << 4)
+#define DRV8305_DEAD_TIME_1760ns (0b101 << 4)
+#define DRV8305_DEAD_TIME_3520ns (0b110 << 4)
+#define DRV8305_DEAD_TIME_5280ns (0b111 << 4)
+
+#define DRV8305_VDS_TBLANK_0us    (0b00 << 2)
+#define DRV8305_VDS_TBLANK_1_75us (0b01 << 2)
+#define DRV8305_VDS_TBLANK_3_5us  (0b10 << 2)
+#define DRV8305_VDS_TBLANK_7us    (0b11 << 2)
+
+#define DRV8305_VDS_TVDS_0us    (0b00)
+#define DRV8305_VDS_TVDS_1_75us (0b01)
+#define DRV8305_VDS_TVDS_3_5us  (0b10)
+#define DRV8305_VDS_TVDS_7us    (0b11)
+
 #define DRV8305_REG_VDS_SENSE_CONTROL     (0xC)
-
-
-
 
 #ifdef __cplusplus
 }

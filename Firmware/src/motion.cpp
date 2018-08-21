@@ -11,7 +11,7 @@ float g_motorPhase2RotationRatio = 7.0;
 float g_actuatorRatio = g_motorPhase2RotationRatio * 21.0; // Gear ratio
 
 float g_absoluteMaxCurrent = 70.0; // Maximum torque allowed
-float g_uncalibratedCurrentLimit = 10.0; // Maximum torque allowed in un-calibrated mode.
+float g_uncalibratedCurrentLimit = 14.0; // Maximum torque allowed in un-calibrated mode.
 
 const int g_positionIndexCount = 4;
 bool g_haveIndexPositionSample[g_positionIndexCount];
@@ -402,6 +402,8 @@ enum FaultCodeT LoadSetup(void) {
   g_velocityLimit = 100.0; //!< Load a low default limit, it is up to the control software to raise it when ready
 
   g_absoluteMaxCurrent = g_storedConfig.m_absoluteMaxCurrent;
+  if(g_absoluteMaxCurrent < 25) // Hot fix for change to current scales.
+    g_absoluteMaxCurrent = 70;
   g_homeIndexPosition = g_storedConfig.m_homeIndexPosition;
   g_minSupplyVoltage = g_storedConfig.m_minSupplyVoltage;
 

@@ -359,6 +359,11 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     sprintf(buff,"\n Reg %d contents: %04X ",reg,(int) psp->m_data.uint16[0]);
     displayStr += buff;
   } break;
+  case CPI_DRV8305_07: {
+    int reg = 6;
+    sprintf(buff,"\n Reg %d contents: %04X ",reg,(int) psp->m_data.uint16[0]);
+    displayStr += buff;
+  } break;
   case CPI_5VRail: {
     sprintf(buff,"\n 5VRail: %f ",psp->m_data.float32[0]);
     displayStr += buff;
@@ -994,6 +999,11 @@ void MainWindow::on_pushButtonDrv8305_5_clicked()
 void MainWindow::on_pushButtonDrv8305_6_clicked()
 {
   m_coms->SendQueryParam(m_targetDeviceId,CPI_DRV8305_06);
+}
+
+void MainWindow::on_pushButtonDrv8305_7_clicked()
+{
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_DRV8305_07);
 }
 
 void MainWindow::on_pushButton_Drv8305_A_clicked()
@@ -1838,11 +1848,12 @@ static int16_t DRV8305SourceCurrent(const QString &arg1)
   if(arg1 == "50") return DRV8305_PEAK_SOURCE_50mA;
   if(arg1 == "60") return DRV8305_PEAK_SOURCE_60mA;
   if(arg1 == "70") return DRV8305_PEAK_SOURCE_70mA;
-  if(arg1 == "80") return DRV8305_PEAK_SOURCE_125mA;
+  if(arg1 == "125") return DRV8305_PEAK_SOURCE_125mA;
   if(arg1 == "250") return DRV8305_PEAK_SOURCE_250mA;
   if(arg1 == "500") return DRV8305_PEAK_SOURCE_500mA;
   if(arg1 == "750") return DRV8305_PEAK_SOURCE_750mA;
   if(arg1 == "1000") return DRV8305_PEAK_SOURCE_1000mA;
+  std::cerr << "Source current " << arg1.toUtf8().data() << " not recognised. " << std::endl;
   return 0;
 }
 static int16_t DRV8305SinkCurrent(const QString &arg1)
@@ -1853,29 +1864,41 @@ static int16_t DRV8305SinkCurrent(const QString &arg1)
   if(arg1 == "50") return DRV8305_PEAK_SINK_50mA;
   if(arg1 == "60") return DRV8305_PEAK_SINK_60mA;
   if(arg1 == "70") return DRV8305_PEAK_SINK_70mA;
-  if(arg1 == "125") return DRV8305_PEAK_SINK_80mA;
+  if(arg1 == "80") return DRV8305_PEAK_SINK_80mA;
   if(arg1 == "250") return DRV8305_PEAK_SINK_250mA;
   if(arg1 == "500") return DRV8305_PEAK_SINK_500mA;
   if(arg1 == "750") return DRV8305_PEAK_SINK_750mA;
   if(arg1 == "1000") return DRV8305_PEAK_SINK_1000mA;
   if(arg1 == "1250") return DRV8305_PEAK_SINK_1250mA;
+  std::cerr << "Sink current " << arg1.toUtf8().data() << " not recognised. " << std::endl;
   return 0;
+}
+
+int DRV8305DriveTime(int index) {
+  return (index & 0x03) << 8;
 }
 
 void MainWindow::SendHSCurrentSetup()
 {
   int16_t regConfig = DRV8305SourceCurrent(ui->comboBox_HSSourceCurrent->currentText());
   regConfig |= DRV8305SinkCurrent(ui->comboBox_HSSinkCurrent->currentText());
-  regConfig |= DRV8305_SOURCE_TIME_440ns;
+  regConfig |= DRV8305DriveTime(ui->comboBox_HSDriveTime->currentIndex());
   m_coms->SendSetParam(m_targetDeviceId,CPI_DRV8305_05,static_cast<uint16_t>(regConfig));
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_DRV8305_05);
 }
 
 void MainWindow::SendLSCurrentSetup()
 {
   int16_t regConfig = DRV8305SourceCurrent(ui->comboBox_LSSourceCurrent->currentText());
   regConfig |= DRV8305SinkCurrent(ui->comboBox_LSSinkCurrent->currentText());
-  regConfig |= DRV8305_SOURCE_TIME_440ns;
+  regConfig |= DRV8305DriveTime(ui->comboBox_LSDriveTime->currentIndex());
   m_coms->SendSetParam(m_targetDeviceId,CPI_DRV8305_06,static_cast<uint16_t>(regConfig));
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_DRV8305_06);
+}
+
+void MainWindow::on_comboBox_HSDriveTime_activated(int index)
+{
+  SendHSCurrentSetup();
 }
 
 void MainWindow::on_comboBox_HSSourceCurrent_activated(const QString &arg1)
@@ -1893,9 +1916,53 @@ void MainWindow::on_comboBox_LSSourceCurrent_activated(const QString &arg1)
   SendLSCurrentSetup();
 }
 
+
+void MainWindow::on_comboBox_LSDriveTime_activated(int index)
+{
+  SendLSCurrentSetup();
+}
+
 void MainWindow::on_comboBox_LSSinkCurrent_activated(const QString &arg1)
 {
   SendLSCurrentSetup();
+}
+
+
+
+#define DRV8305_COMM_OPTION_ACTIVE_FREE_WHEEL   (0b1 << 9)
+#define DRV8305_COMM_OPTION_DIODE_FREE_WHEEL    (0b0 << 9)
+
+#define DRV8305_PWM_MODE_6_INPUT (0b00 << 7)
+#define DRV8305_PWM_MODE_3_INPUT (0b01 << 7)
+#define DRV8305_PWM_MODE_1_INPUT (0b10 << 7)
+#define DRV8305_PWM_MODE_6B_INPUT (0b11 << 7)
+
+#define DRV8305_DEAD_TIME_35ns   (0b000 << 4)
+#define DRV8305_DEAD_TIME_52ns   (0b001 << 4)
+#define DRV8305_DEAD_TIME_88ns   (0b010 << 4)
+#define DRV8305_DEAD_TIME_440ns  (0b011 << 4)
+#define DRV8305_DEAD_TIME_880ns  (0b100 << 4)
+#define DRV8305_DEAD_TIME_1760ns (0b101 << 4)
+#define DRV8305_DEAD_TIME_3520ns (0b110 << 4)
+#define DRV8305_DEAD_TIME_5280ns (0b111 << 4)
+
+#define DRV8305_VDS_TBLANK_0us    (0b00 << 2)
+#define DRV8305_VDS_TBLANK_1_75us (0b01 << 2)
+#define DRV8305_VDS_TBLANK_3_5us  (0b10 << 2)
+#define DRV8305_VDS_TBLANK_7us    (0b11 << 2)
+
+#define DRV8305_VDS_TVDS_0us    (0b00)
+#define DRV8305_VDS_TVDS_1_75us (0b01)
+#define DRV8305_VDS_TVDS_3_5us  (0b10)
+#define DRV8305_VDS_TVDS_7us    (0b11)
+
+void MainWindow::on_comboBox_DeadTime_activated(int index)
+{
+  uint16_t value = DRV8305_COMM_OPTION_ACTIVE_FREE_WHEEL | DRV8305_PWM_MODE_6_INPUT | DRV8305_VDS_TBLANK_1_75us | DRV8305_VDS_TVDS_3_5us;
+  value |= (index & 0x07) << 4;
+  printf("\n Setting reg 7 to : %04X ", value);
+
+  m_coms->SendSetParam(m_targetDeviceId,CPI_DRV8305_07,static_cast<uint16_t>(value));
 }
 
 

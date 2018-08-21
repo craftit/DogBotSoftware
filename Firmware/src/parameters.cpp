@@ -118,6 +118,10 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
       if(len != 2) return false;
       Drv8305SetRegister(6,data->uint16[0]);
       return true;
+    case CPI_DRV8305_07:
+      if(len != 2) return false;
+      Drv8305SetRegister(7,data->uint16[0]);
+      return true;
     case CPI_CalibrationOffset:
       if(len != 4)
         return false;
@@ -540,6 +544,10 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
     case CPI_DRV8305_06: {
       *len = 2;
       data->uint16[0] = Drv8305ReadRegister(6);
+    } break;
+    case CPI_DRV8305_07: {
+      *len = 2;
+      data->uint16[0] = Drv8305ReadRegister(7);
     } break;
     case CPI_DRV8305_0A: {
       *len = 2;
