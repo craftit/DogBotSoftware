@@ -1,6 +1,0 @@
-<map id="DogBotN::DogBotAPIC" name="DogBotN::DogBotAPIC">
-<area shape="rect" id="node2" href="$classDogBotN_1_1DogBotKinematicsC.html" title="DogBot kinematics information. " alt="" coords="253,5,456,32"/>
-<area shape="rect" id="node3" href="$classDogBotN_1_1CallbackArrayC.html" title="DogBotN::CallbackArrayC\l\&lt; std::function\&lt; void\l(DogBotN::JointC *, ServoUpdate\lTypeT)\&gt; \&gt;" alt="" coords="245,57,464,127"/>
-<area shape="rect" id="node4" href="$classDogBotN_1_1AbstractCallbackArrayC.html" title="DogBotN::AbstractCallback\lArrayC" alt="" coords="5,111,189,153"/>
-<area shape="rect" id="node5" href="$classDogBotN_1_1CallbackArrayC.html" title="DogBotN::CallbackArrayC\l\&lt; std::function\&lt; void\l(DogBotN::DeviceC *, ServoUpdate\lTypeT)\&gt; \&gt;" alt="" coords="239,151,471,222"/>
-</map>

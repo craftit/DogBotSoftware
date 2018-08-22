@@ -1,6 +1,0 @@
-<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
-<area shape="rect" id="node1" href="$structswig_1_1SwigPyIterator.html" title="swig::SwigPyIterator" alt="" coords="5,60,148,87"/>
-<area shape="rect" id="node2" href="$classswig_1_1SwigPyIterator__T.html" title="swig::SwigPyIterator\l_T\&lt; OutIterator \&gt;" alt="" coords="196,53,339,94"/>
-<area shape="rect" id="node3" href="$classswig_1_1SwigPyIteratorClosed__T.html" title="swig::SwigPyIteratorClosed\l_T\&lt; OutIterator, ValueType,\l FromOper \&gt;" alt="" coords="387,5,572,61"/>
-<area shape="rect" id="node4" href="$classswig_1_1SwigPyIteratorOpen__T.html" title="swig::SwigPyIteratorOpen\l_T\&lt; OutIterator, ValueType,\l FromOper \&gt;" alt="" coords="387,85,572,141"/>
-</map>

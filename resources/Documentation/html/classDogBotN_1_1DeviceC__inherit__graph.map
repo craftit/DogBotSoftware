@@ -1,5 +1,0 @@
-<map id="DogBotN::DeviceC" name="DogBotN::DeviceC">
-<area shape="rect" id="node2" href="$classDogBotN_1_1DeviceIMUC.html" title="Interface to IMU. " alt="" coords="5,80,165,107"/>
-<area shape="rect" id="node3" href="$classDogBotN_1_1DevicePlatformManagerC.html" title="Interface to IMU. " alt="" coords="189,80,424,107"/>
-<area shape="rect" id="node4" href="$classDogBotN_1_1ServoC.html" title="Information about a single servo. " alt="" coords="448,80,576,107"/>
-</map>

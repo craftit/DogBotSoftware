@@ -1,8 +1,0 @@
-<map id="DogBotN::Joint4BarLinkageC" name="DogBotN::Joint4BarLinkageC">
-<area shape="rect" id="node2" href="$classDogBotN_1_1JointRelativeC.html" title="DogBotN::JointRelativeC" alt="" coords="857,113,1028,139"/>
-<area shape="rect" id="node3" href="$classDogBotN_1_1JointC.html" title="DogBotN::JointC" alt="" coords="685,70,808,97"/>
-<area shape="rect" id="node4" href="$classDogBotN_1_1CallbackArrayC.html" title="DogBotN::CallbackArrayC\l\&lt; DemandUpdateFuncT \&gt;" alt="" coords="275,5,451,47"/>
-<area shape="rect" id="node5" href="$classDogBotN_1_1AbstractCallbackArrayC.html" title="DogBotN::AbstractCallback\lArrayC" alt="" coords="5,71,189,112"/>
-<area shape="rect" id="node6" href="$classDogBotN_1_1CallbackArrayC.html" title="DogBotN::CallbackArrayC\l\&lt; PositionUpdateFuncT \&gt;" alt="" coords="275,71,451,112"/>
-<area shape="rect" id="node7" href="$classDogBotN_1_1CallbackHandleC.html" title="Handle for a single callback. " alt="" coords="475,137,661,163"/>
-</map>
