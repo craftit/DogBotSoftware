@@ -17,7 +17,7 @@ int main(int argc,char **argv)
 {
   std::string devFilename = "local";
   std::string configFile = DogBotN::DogBotAPIC::DefaultConfigFile();
-  std::string jointName = "front_right_knee";
+  std::string legName = "back_right";
   std::string firmwareFile;
 
   auto logger = spdlog::stdout_logger_mt("console");
@@ -25,7 +25,7 @@ int main(int argc,char **argv)
   bool dumpLimits = false;
   int jointId = -1;
   float torque = 1.0;
-  float range = 45.0;
+  float range = -1;
   float hight = 0.4;
   float yoffset = 0;
   float xoffset = 0;
@@ -45,7 +45,7 @@ int main(int argc,char **argv)
       ("d,device", "Device to use from communication. Typically 'local' for local server or 'usb' for direct connection ", cxxopts::value<std::string>(devFilename))
       ("i,target","Controller id to use", cxxopts::value<int>(jointId))
       ("t,torque","Torque to use", cxxopts::value<float>(torque))
-      ("j,joint","Joint name", cxxopts::value<std::string>(jointName))
+      ("l,leg","Joint name", cxxopts::value<std::string>(legName))
       ("r,range","Motion range", cxxopts::value<float>(range))
       ("z,height","Motion range", cxxopts::value<float>(hight))
       ("y,yoffset","Forward movement", cxxopts::value<float>(yoffset))
@@ -90,6 +90,10 @@ int main(int argc,char **argv)
     hight = maxLegExtention;
   if(hight < minLegExtention)
     hight = minLegExtention;
+
+  if(range < 0) {
+    range = maxLegExtention - minLegExtention;
+  }
   logger->info("Limit Min {}   Max {}  Range:{}",minLegExtention,maxLegExtention,maxLegExtention - minLegExtention);
   if(dumpLimits) { // Just dump limits and exit ?
     return 0;
@@ -102,7 +106,7 @@ int main(int argc,char **argv)
   // Lift the speed limit a bit
   dogbot->Connection()->SetParam(0,CPI_VelocityLimit,(float) 500.0);
 
-  std::shared_ptr<DogBotN::LegControllerC> leg = std::make_shared<DogBotN::LegControllerC>(dogbot,"back_right",false);
+  std::shared_ptr<DogBotN::LegControllerC> leg = std::make_shared<DogBotN::LegControllerC>(dogbot,legName,false);
 
   if(!cycle) {
 
@@ -112,12 +116,26 @@ int main(int argc,char **argv)
     sleep(1);
     for(int i = 0;i < 20 || verbose;i++) {
       //! Compute an estimate of the force on a foot and where it is.
-      DogBotN::TimePointT atTime = DogBotN::TimePointT::clock::now();
       Eigen::Vector3f pos;
       Eigen::Vector3f force;
-      leg->ComputeFootForce(atTime,pos,force);
+      Eigen::Vector3f footVel;
+      DogBotN::TimePointT atTime = DogBotN::TimePointT::clock::now();
+      leg->ComputeFootState(atTime,pos,footVel,force);
       pos -= leg->Kinematics().LegOrigin();
-      logger->info("At {} {} {}  force {} {} {} ",pos[0],pos[1],pos[2],force[0],force[1],force[2]);
+#if 0
+      logger->info("At {:1.3} {:1.3} {:1.3}  Force {:1.3} {:1.3} {:1.3}   Velocity {:1.3} {:1.3} {:1.3} ",
+                   pos[0],pos[1],pos[2],
+                   force[0],force[1],force[2],
+                   footVel[0],footVel[1],footVel[2]);
+#else
+      for(int i = 0;i < 3;i++) {
+        if(fabs(footVel[i]) < 0.01)
+          footVel[i] = 0;
+      }
+      logger->info("At \t{:1.3} \t{:1.3} \t{:1.3}  Velocity \t{:1.3} \t{:1.3} \t{:1.3} ",
+                   pos[0],pos[1],pos[2],
+                   footVel[0],footVel[1],footVel[2]);
+#endif
       usleep(10000);
     }
   } else {
@@ -127,9 +145,21 @@ int main(int argc,char **argv)
       for(int i = 0;i < 360;i++) {
         // 0.35 to 0.7
 
-        float z = cos(DogBotN::Deg2Rad(i)) * hight + midRange;
+        float z = cos(DogBotN::Deg2Rad(i)) * range * 0.5 + midRange;
 
         leg->Goto(Eigen::Vector3f(0,0,-z),torque);
+
+        Eigen::Vector3f pos;
+        Eigen::Vector3f force;
+        Eigen::Vector3f footVel;
+        DogBotN::TimePointT atTime = DogBotN::TimePointT::clock::now();
+        leg->ComputeFootState(atTime,pos,footVel,force);
+
+        logger->info("At {: #1.4} {: #1.4} {: #1.4}  Velocity {:#1.4g} {:#1.4g} {:#1.4g}  Force  {:#1.4g} {:#1.4g} {:#1.4g}",
+                     pos[0],pos[1],pos[2],
+                     footVel[0],footVel[1],footVel[2],
+                     force[0],force[1],force[2]
+                     );
 
         usleep(delay);
       }

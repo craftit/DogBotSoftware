@@ -177,6 +177,17 @@ namespace DogBotN
   }
 
   //! Set a parameter
+  void ComsC::SendSetParam(int deviceId,ComsParameterIndexT param,uint16_t value)
+  {
+    PacketParam8ByteC msg;
+    msg.m_header.m_packetType = CPT_SetParam;
+    msg.m_header.m_deviceId = deviceId;
+    msg.m_header.m_index = (uint16_t) param;
+    msg.m_data.uint16[0] = value;
+    SendPacket((uint8_t*) &msg,sizeof(msg.m_header)+2);
+  }
+
+  //! Set a parameter
   void ComsC::SendSetParam(int deviceId,ComsParameterIndexT param,int value)
   {
     PacketParam8ByteC msg;

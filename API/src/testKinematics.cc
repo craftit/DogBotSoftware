@@ -198,11 +198,103 @@ int TestReachableTargets()
   return 0;
 }
 
+int CheckVelocity(const Eigen::Vector3f &angles,const Eigen::Vector3f jointVelocities,const Eigen::Vector3f &expected)
+{
+  Eigen::Vector3f torques(0,0,0);
+  Eigen::Vector3f footAt(0,0,0);
+  Eigen::Vector3f footVel(0,0,0);
+  Eigen::Vector3f footForce(0,0,0);
 
+  if(!g_legKinematics.ComputeFootForce(angles,jointVelocities,torques,footAt,footVel,footForce))
+    return __LINE__;
+
+
+  float error = (expected - footVel).norm();
+  if(error > 0.01) {
+    std::cout << "Foot     velocity " << footVel[0] << " " <<  footVel[1] << " " << footVel[2] << std::endl;
+    std::cout << "Error exceeds threshold: " << error << "\n";
+    std::cout << "Expected velocity " << expected[0] << " " <<  expected[1] << " " << expected[2] << std::endl;
+  }
+#if 0
+  Eigen::Vector3f fwdAt(0,0,0);
+  if(!g_legKinematics.ForwardDirect(angles,fwdAt)) {
+    return __LINE__;
+  }
+  std::cout << "Foot position " << footAt[0] << " " <<  footAt[1] << " " << footAt[2] << std::endl;
+  std::cout << "Foot position fwd " << fwdAt[0] << " " <<  fwdAt[1] << " " << fwdAt[2] << std::endl;
+  std::cout << std::endl;
+#endif
+  return 0;
+}
+
+int CheckVelocityAxis(const Eigen::Vector3f &position,const Eigen::Vector3f &axis)
+{
+  int ln;
+
+  Eigen::Vector3f angles1;
+  Eigen::Vector3f angles2;
+
+  float delta = 0.0005;
+  Eigen::Vector3f target1(0,0,-0.5);
+  Eigen::Vector3f target2 = target1 + axis * delta;
+
+  if(!g_legKinematics.InverseDirect(target1,angles1)) {
+    return __LINE__;
+  }
+  if(!g_legKinematics.InverseDirect(target2,angles2)) {
+    return __LINE__;
+  }
+  Eigen::Vector3f jointVelocities = (angles2 - angles1)/delta;
+
+  if((ln = CheckVelocity(angles1,jointVelocities,axis)) != 0) {
+    std::cerr << "Axis check failed on line " << ln << std::endl;
+    return __LINE__;
+  }
+  return 0;
+}
+
+int CheckVelocityPosition(const Eigen::Vector3f &offset)
+{
+  int ln = 0;
+  //std::cout << "X Axis "<< std::endl;
+  if((ln = CheckVelocityAxis(offset,Eigen::Vector3f(1.0,0,0))) != 0) {
+    return __LINE__;
+  }
+  //std::cout << "Y Axis "<< std::endl;
+  if((ln = CheckVelocityAxis(offset,Eigen::Vector3f(0,1.0,0))) != 0) {
+    return __LINE__;
+  }
+  //std::cout << "Z Axis "<< std::endl;
+  if((ln = CheckVelocityAxis(offset,Eigen::Vector3f(0,0,1.0))) != 0) {
+    return __LINE__;
+  }
+  return 0;
+}
+
+int TestFootVelocity()
+{
+  int ln = 0;
+  if(CheckVelocityPosition(Eigen::Vector3f(0,0.0,-0.5)) != 0) {
+    return __LINE__;
+  }
+  if(CheckVelocityPosition(Eigen::Vector3f(0,0.2,-0.3)) != 0) {
+    return __LINE__;
+  }
+  if(CheckVelocityPosition(Eigen::Vector3f(-0.2,0.0,-0.4)) != 0) {
+    return __LINE__;
+  }
+  if(CheckVelocityPosition(Eigen::Vector3f(-0.2,0.0,-0.4)) != 0) {
+    return __LINE__;
+  }
+  if(CheckVelocityPosition(Eigen::Vector3f(0.1,-0.2,-0.3)) != 0) {
+    return __LINE__;
+  }
+  return 0;
+}
 
 int main() {
   int ln = 0;
-#if 1
+#if 0
   if((ln = CheckLinkageAngles()) != 0) {
     std::cerr << "Test failed at " << ln << " " << std::endl;
     return 1;
@@ -211,8 +303,12 @@ int main() {
     std::cerr << "Test failed at " << ln << " " << std::endl;
     return 1;
   }
-#endif
   if((ln = TestReachableTargets()) != 0) {
+    std::cerr << "Test failed at " << ln << " " << std::endl;
+    return 1;
+  }
+#endif
+  if((ln = TestFootVelocity()) != 0) {
     std::cerr << "Test failed at " << ln << " " << std::endl;
     return 1;
   }

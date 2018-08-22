@@ -10,7 +10,11 @@ extern "C" {
 #endif
 
 
+// Setup can drivers
 int InitCAN(void);
+
+// Put can in low power state.
+int ShutdownCAN(void);
 
 // nodeID == 0 is broadcast.
 bool CANSetAddress(CANTxFrame *txmsg,int nodeId,int packetType);
@@ -102,16 +106,12 @@ bool CANSendBootLoaderCheckSum(uint8_t deviceId,uint8_t seqNum,uint32_t addr,uin
 bool CANSendBootLoaderCheckSumResult(uint8_t deviceId,uint8_t seqNum,uint32_t sum);
 
 
-/* The local device id. */
-extern uint8_t g_deviceId;
-
 /* Count of CAN messages dropped due to full buffers */
 extern int g_canDropCount;
 
 /* Count of CAN errors encountered */
 extern int g_canErrorCount;
 
-extern uint32_t g_nodeUId[2];
 
 #ifdef __cplusplus
 }

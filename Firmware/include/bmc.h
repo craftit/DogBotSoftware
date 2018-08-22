@@ -33,6 +33,10 @@ extern unsigned g_mainLoopTimeoutCount;
 extern enum FanModeT g_fanMode;
 extern float g_fanTemperatureThreshold;
 extern enum FaultCodeT g_lastFaultCode;
+extern enum DeviceTypeT g_deviceType;
+
+extern uint8_t g_deviceId;    // The local device id. 0=Broadcast address.
+extern uint32_t g_nodeUId[2]; // Long controller id.
 
 #ifdef __cplusplus
 }

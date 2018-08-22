@@ -10,8 +10,8 @@ float g_homeAngleOffset = 0;      // Offset from phase position to actuator posi
 float g_motorPhase2RotationRatio = 7.0;
 float g_actuatorRatio = g_motorPhase2RotationRatio * 21.0; // Gear ratio
 
-float g_absoluteMaxCurrent = 20.0; // Maximum torque allowed
-float g_uncalibratedCurrentLimit = 4.0; // Maximum torque allowed in un-calibrated mode.
+float g_absoluteMaxCurrent = 70.0; // Maximum torque allowed
+float g_uncalibratedCurrentLimit = 14.0; // Maximum torque allowed in un-calibrated mode.
 
 const int g_positionIndexCount = 4;
 bool g_haveIndexPositionSample[g_positionIndexCount];
@@ -105,7 +105,7 @@ bool MotionEstimateOffset(float &value)
 
 static float DemandInt16ToPhasePosition(int16_t position)
 {
-  return (((float) position) * g_actuatorRatio * DOGBOT_SERVOREPORT_POSITIONRANGE/DOGBOT_PACKETSERVO_FLOATSCALE);
+  return ((((float) position) * g_actuatorRatio * DOGBOT_SERVOREPORT_POSITIONRANGE)/DOGBOT_PACKETSERVO_FLOATSCALE);
 }
 
 static int16_t PhasePositionToDemandInt16(float angle)
@@ -172,7 +172,7 @@ bool MotionSetDemand(uint8_t jointMode,uint8_t timestamp,int16_t demand,int16_t 
     }
   }
   if((jointMode & DOGBOT_PACKETSERVOMODE_DEMANDTORQUE) == 0) {
-    if(demandTorque > 0)
+    if(demandTorque >= 0)
       g_currentLimit = demandTorque;
     else
       g_currentLimit = 0;
@@ -181,6 +181,9 @@ bool MotionSetDemand(uint8_t jointMode,uint8_t timestamp,int16_t demand,int16_t 
   }
 
   enum PWMControlDynamicT mode = static_cast<enum PWMControlDynamicT>(DOGBOT_PACKETSERVOMODE_DYNAMIC(jointMode));
+  if(mode != g_controlMode) {
+    SendError(CET_UnavailableInCurrentMode,CPT_Servo,(int) mode);
+  }
   switch(mode)
   {
     case CM_Position:
@@ -228,6 +231,7 @@ bool MotionSetDemand(uint8_t jointMode,uint8_t timestamp,int16_t demand,int16_t 
     case CM_Velocity:
       // Uck!
       g_demandPhaseVelocity = DemandInt16ToPhasePosition(demand);
+      g_demandTorque = 0;
       break;
     case CM_Torque:
       g_demandTorque = (((float)demand) * g_absoluteMaxCurrent) / DOGBOT_PACKETSERVO_FLOATSCALE;
@@ -358,7 +362,7 @@ void MotionStep()
   }
 
   float position = g_currentPhasePosition;
-  int16_t reportVelocity = PhaseVelocityToInt16(g_currentPhaseVelocity);
+  int16_t reportVelocity = PhaseVelocityToInt16(g_filteredPhaseVelocity);
 
   enum PositionReferenceT posRef = g_motionPositionReference;
 
@@ -398,6 +402,8 @@ enum FaultCodeT LoadSetup(void) {
   g_velocityLimit = 100.0; //!< Load a low default limit, it is up to the control software to raise it when ready
 
   g_absoluteMaxCurrent = g_storedConfig.m_absoluteMaxCurrent;
+  if(g_absoluteMaxCurrent < 25) // Hot fix for change to current scales.
+    g_absoluteMaxCurrent = 70;
   g_homeIndexPosition = g_storedConfig.m_homeIndexPosition;
   g_minSupplyVoltage = g_storedConfig.m_minSupplyVoltage;
 
@@ -431,7 +437,6 @@ enum FaultCodeT SaveSetup(void) {
   g_storedConfig.m_phaseResistance = g_phaseResistance;
   g_storedConfig.m_phaseInductance = g_phaseInductance;
   g_storedConfig.m_phaseOffsetVoltage = g_phaseOffsetVoltage;
-  g_storedConfig.m_velocityLimit = g_velocityLimit;
   g_storedConfig.m_absoluteMaxCurrent = g_absoluteMaxCurrent;
   g_storedConfig.m_homeIndexPosition = g_homeIndexPosition;
   g_storedConfig.m_minSupplyVoltage = g_minSupplyVoltage;
@@ -452,9 +457,6 @@ enum FaultCodeT SaveSetup(void) {
   g_storedConfig.m_supplyVoltageScale = g_supplyVoltageScale;
 
   // Make sure obsolete values are at a fixed value.
-  g_storedConfig.m_endStopStartBounce = 0;
-  g_storedConfig.m_endStopEndBounce = 0;
-  g_storedConfig.m_jointInertia = 0;
   g_storedConfig.m_deviceType = g_deviceType;
 
   if(!StoredConf_Save(&g_storedConfig)) {

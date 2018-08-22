@@ -29,6 +29,7 @@ bool CANSendStoredSetup(
 {
   switch(pktType)
   {
+    case CPT_RestoreFactorySetup:
     case CPT_SaveSetup:
     case CPT_LoadSetup:
       break;

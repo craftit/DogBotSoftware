@@ -124,7 +124,7 @@ CSRC = $(STARTUPSRC) \
        serial_usbcfg.c \
        coms_serial.c \
        do_adc.c \
-       drv8503.c \
+       drv8305.c \
        svm.c \
        eeprom.c \
        storedconf.c \

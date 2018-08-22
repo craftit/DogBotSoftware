@@ -45,14 +45,14 @@ namespace DogBotN
   {
     m_terminate = false;
     if(!m_mutexExitOk.try_lock()) {
-      if(portAddr != m_name && !(portAddr == "local" && m_name == "tcp://127.0.01")) {
+      if(portAddr != m_name && !(portAddr == "local" && m_name == "tcp://127.0.0.1")) {
         m_log->warn("Exit lock already locked, multiple threads attempting to open coms with different addresses. Requested '{}', current '{}'",portAddr,m_name);
       }
       return false;
     }
     m_name = portAddr;
     if(portAddr == "local")
-      m_rootAddress = "tcp://127.0.01";
+      m_rootAddress = "tcp://127.0.0.1";
     else
       m_rootAddress = portAddr;
     std::string zmqAddr = m_rootAddress + ":7200";

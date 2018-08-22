@@ -345,7 +345,7 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
     if(g_canBridgeMode) {
       if((psp->m_deviceId != g_deviceId || psp->m_deviceId == 0) && g_deviceId != 0) {
         if(!CANSendStoredSetup(psp->m_deviceId,cpt)) {
-          USBSendError(g_deviceId,CET_CANTransmitFailed,CPT_SaveSetup,m_data[0]);
+          USBSendError(g_deviceId,CET_CANTransmitFailed,cpt,m_data[0]);
         }
       }
     }

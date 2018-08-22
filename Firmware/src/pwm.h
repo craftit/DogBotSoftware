@@ -117,6 +117,7 @@ extern int g_phaseRotationCount;
 extern float g_currentPhasePosition;
 extern float g_currentPhaseVelocity;
 extern float g_torqueAverage;
+extern float g_filteredPhaseVelocity;
 
 extern float g_motor_p_gain;
 extern float g_motor_i_gain;
@@ -146,7 +147,7 @@ extern float g_endStopTargetAcceleration;
 extern float g_debugValue;
 
 #define ENABLE_ANGLESTATS 1
-#define g_angleTableSize 48
+#define g_angleTableSize 36
 extern bool g_enableAngleStats;
 #if ENABLE_ANGLESTATS
 extern float g_angleStats[g_angleTableSize][2];

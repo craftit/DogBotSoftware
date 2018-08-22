@@ -7,6 +7,8 @@
 
 namespace DogBotN {
 
+  class QuadrupedPoseC;
+
   //! Class to manage the position of all the leg joints on the robot.
 
   class DogBotControllerC
@@ -31,6 +33,9 @@ namespace DogBotN {
     // If the angle computation fails, this will use the closest reachable point to one requested.
     // Returns false if the updates succeeded for all servos.
     virtual bool NextTrajectory(const SimpleQuadrupedPoseC &pose);
+
+    //! Get estimate of current pose
+    virtual bool GetCurrentPose(QuadrupedPoseC &pose);
 
   protected:
     //! Initialise controller

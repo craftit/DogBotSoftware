@@ -94,6 +94,17 @@ namespace DogBotN {
     //! Compute the position of the foot relative to the top of the leg from the joint angles.
     bool ForwardDirect(const Eigen::Vector3f &angles,Eigen::Vector3f &position) const;
 
+    //! Compute an estimate of the force on a foot and where it is given some angles and torques
+    bool ComputeFootForce(
+        const Eigen::Vector3f &angles,
+        const Eigen::Vector3f &jointVelocities,
+        const Eigen::Vector3f &torques,
+        Eigen::Vector3f &position,
+        Eigen::Vector3f &velocity,
+        Eigen::Vector3f &force
+        ) const;
+
+
     //! Use alternate solution ?
     bool UseAlternateSolution() const
     { return m_alternateSolution; }

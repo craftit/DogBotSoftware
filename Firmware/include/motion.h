@@ -43,6 +43,7 @@ extern "C" {
 
   enum FaultCodeT LoadSetup(void);
   enum FaultCodeT SaveSetup(void);
+  enum FaultCodeT RestoreFactorySetup(void);
 
 #ifdef __cplusplus
 }

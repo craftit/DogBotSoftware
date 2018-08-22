@@ -66,6 +66,15 @@ namespace DogBotN {
     return NextTrajectory(poseAngles);
   }
 
+  //! Get estimate of current pose
+  bool DogBotControllerC::GetCurrentPose(QuadrupedPoseC &pose)
+  {
+    for(int i = 0;i < 12;i++) {
+
+    }
+    return false;
+  }
+
 }
 
 
