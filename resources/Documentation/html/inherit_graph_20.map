@@ -1,9 +1,0 @@
-<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
-<area shape="rect" id="node1" href="$classDogBotN_1_1DeviceC.html" title="Base device class. " alt="" coords="5,56,140,83"/>
-<area shape="rect" id="node2" href="$classDogBotN_1_1DeviceIMUC.html" title="Interface to IMU. " alt="" coords="225,5,385,32"/>
-<area shape="rect" id="node3" href="$classDogBotN_1_1DevicePlatformManagerC.html" title="Interface to IMU. " alt="" coords="188,56,423,83"/>
-<area shape="rect" id="node4" href="$classDogBotN_1_1ServoC.html" title="Information about a single servo. " alt="" coords="241,107,369,133"/>
-<area shape="rect" id="node5" href="$classDogBotN_1_1JointC.html" title="DogBotN::JointC" alt="" coords="11,132,134,159"/>
-<area shape="rect" id="node6" href="$classDogBotN_1_1JointRelativeC.html" title="DogBotN::JointRelativeC" alt="" coords="220,157,391,184"/>
-<area shape="rect" id="node7" href="$classDogBotN_1_1Joint4BarLinkageC.html" title="DogBotN::Joint4BarLinkageC" alt="" coords="471,157,665,184"/>
-</map>

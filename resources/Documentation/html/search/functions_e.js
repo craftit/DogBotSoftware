@@ -1,6 +1,0 @@
-var searchData=
-[
-  ['open',['Open',['../classDogBotN_1_1ComsC.html#a3228a66513b2753e8f883b763578cab0',1,'DogBotN::ComsC::Open()'],['../classDogBotN_1_1ComsProxyC.html#ae61b36abf95cc9238310e1fe4b6ed72f',1,'DogBotN::ComsProxyC::Open()'],['../classDogBotN_1_1ComsRouteC.html#add4b9be498081f08d0f44436aaa0ad97',1,'DogBotN::ComsRouteC::Open()'],['../classDogBotN_1_1ComsSerialC.html#a5b7f4ff4f4977338c953ad6832145150',1,'DogBotN::ComsSerialC::Open()'],['../classDogBotN_1_1ComsUSBC.html#ac53091bfcd7cddeddcfeb1cb03f7fe7f',1,'DogBotN::ComsUSBC::Open(const std::string &amp;portAddr) override'],['../classDogBotN_1_1ComsUSBC.html#ac335dd113e98f805c4d2e0070bf8d84f',1,'DogBotN::ComsUSBC::Open(struct libusb_device_handle *handle)'],['../classDogBotN_1_1ComsVirtualDeviceC.html#abcd23b18d76af83d40710853b4e13227',1,'DogBotN::ComsVirtualDeviceC::Open()'],['../classDogBotN_1_1ComsZMQClientC.html#a02fe6a174c95ae5371b1ace9b5c4ac55',1,'DogBotN::ComsZMQClientC::Open()']]],
-  ['operator_2b_3d',['operator+=',['../classDogBotN_1_1CallbackSetC.html#a693133bbb720b19ef982755157772fa1',1,'DogBotN::CallbackSetC']]],
-  ['orientaton',['Orientaton',['../classDogBotN_1_1IMUFrameC.html#a6f07fbf153a3676f9cf9190aa9096e89',1,'DogBotN::IMUFrameC']]]
-];
