@@ -1086,7 +1086,7 @@ namespace DogBotN {
       homeIndexState = m_homeIndexState;
     }
 
-    float torqueLimit = 9; // Limit on torque to use while homing
+    float torqueLimit = 12; // Limit on torque to use while homing
     float timeOut = 40.0;
     int maxCycles = 6;
     HomeStateC homeState;
