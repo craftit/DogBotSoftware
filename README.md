@@ -30,6 +30,8 @@ For ROS operation you may need to install the packages `ros-kinetic-rosparam-sho
 
 The [DataRecorder](./Utilities/DataRecorder) utility requires [PostgreSQL] 9.5 or higher, and is intended to be viewed using [Grafana]
 
+If you are compiling the firmware,  make sure you have the appropriate compilers from arm. Other compilers shipped with distributions often have problems.  These compilers can be found here: `https://developer.arm.com/open-source/gnu-toolchain/gnu-rm/downloads`
+
 ## Setup Steps Scripted
 
 There is an installation script at [setup.sh](./Scripts/setup.sh) to run various setup steps. The first argument is the dog's name.  If the second argument is passed as 1, the build scripts are also called, which should complete all required tasks, e.g. `setup.sh tango 1`

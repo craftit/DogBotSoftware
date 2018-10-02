@@ -211,11 +211,15 @@ namespace DogBotN {
           }
           // Append ?
           if((blockAddress + currentVector.size()) != (baseAddress+address)) {
+            if(blockAddress & 0x1) {
+              m_log->info("Unaligned block {:08X} Len:{:08X} ",blockAddress,currentVector.size());
+              return false;
+            }
             m_dataMap[blockAddress] = currentVector;
             m_log->info("Block {:08X} Len:{:08X} ",blockAddress,currentVector.size());
             currentVector.clear();
             blockAddress = baseAddress+address;
-            //m_log->info("New block {:08X} ",blockAddress);
+            m_log->info("New block {:08X} ",blockAddress);
           }
           for(int i = 0;i < digits;i++)
             currentVector.push_back(data[i]);
@@ -224,11 +228,11 @@ namespace DogBotN {
           goto doneWithFile;
         case 2: { // Extended segment address.
           uint32_t extendedAddress = 0;
-		  if(!Hex2Number(&hexBuff[9],&hexBuff[9+digits*2],extendedAddress)) {
-		    return false;
-	       }
-		   baseAddress += extendedAddress << 4;
-		   m_log->info("Extended address {:x} base now {:x} ",extendedAddress,baseAddress);
+          if(!Hex2Number(&hexBuff[9],&hexBuff[9+digits*2],extendedAddress)) {
+            return false;
+          }
+          baseAddress += extendedAddress << 4;
+          m_log->info("Extended address {:x} base now {:x} ",extendedAddress,baseAddress);
         } break;
         case 3: // Start segment address
           m_log->warn("Don't know how to deal start segment address ");
@@ -362,9 +366,9 @@ namespace DogBotN {
       std::vector<uint8_t> &data = block->second;
       uint32_t at = 0;
       while(at < data.size()) {
-        uint32_t blockSize = data.size();
-        if(blockSize >= (1<<16))
-          blockSize = (1<<16)-1;
+        uint32_t blockSize = data.size() -at;
+        if(blockSize > ((1<<16)-4))
+          blockSize = ((1<<16)-4); // Keep blocks aligned
         m_log->info("Writing block at {:08X} of length {:04X} ",targetAddress+at,blockSize);
         if(!m_dryRun) {
           if(!WriteFlash(targetDevice,targetAddress+at,&data[at],blockSize)) {

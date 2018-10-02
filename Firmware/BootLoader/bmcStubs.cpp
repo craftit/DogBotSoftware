@@ -51,3 +51,9 @@ void EmergencyStopReceivedSafeFlag(int /*fromDeviceId*/)
 {
 
 }
+
+enum FaultCodeT RestoreFactorySetup(void)
+{
+  return FC_Internal;
+}
+
