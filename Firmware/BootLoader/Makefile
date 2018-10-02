@@ -5,7 +5,7 @@
 
 # Compiler options here.
 ifeq ($(USE_OPT),)
-  USE_OPT = -O2 -ggdb -fomit-frame-pointer -falign-functions=16
+  USE_OPT = -O -ggdb -falign-functions=16 -fomit-frame-pointer
 endif
 
 # C specific options here (added to USE_OPT).
@@ -249,7 +249,7 @@ UINCDIR = ../../API/include ../include
 ULIBDIR = ../lib
 
 # List all user libraries here
-ULIBS = -larm_cortexM4lf_math -lm
+ULIBS =
 
 SREC= $(CP) -O srec 
 

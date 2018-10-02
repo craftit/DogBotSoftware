@@ -11,6 +11,7 @@ extern "C" {
 #include "dogbot/protocol.h"
 
   extern bool g_comsInitDone;
+  extern uint8_t g_deviceId;
 
   void InitUSB(void);
   void InitComs(void);

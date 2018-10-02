@@ -29,3 +29,8 @@ int _open_r(void *reent, const char *file, int flags, int mode)
 
 void *__dso_handle = NULL;
 
+void *_sbrk(intptr_t increment)
+{
+  (void) increment;
+  return 0;
+}

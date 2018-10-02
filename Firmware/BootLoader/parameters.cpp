@@ -1,5 +1,6 @@
 
 #include "hal.h"
+#include "bmc.h"
 #include "canbus.h"
 #include "bootloader.h"
 
