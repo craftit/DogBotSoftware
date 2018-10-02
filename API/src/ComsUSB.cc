@@ -125,7 +125,7 @@ namespace DogBotN
 
     const int buffSize = 128;
     unsigned char buff[buffSize];
-    int retryCount = 3;
+    int retryCount = 6;
     while(true) {
       if((rc = libusb_get_string_descriptor_ascii(handle, desc.iSerialNumber, buff, buffSize)) >= 0)
         break; // Success.

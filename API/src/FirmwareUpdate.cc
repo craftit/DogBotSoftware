@@ -205,6 +205,7 @@ namespace DogBotN {
         case 0 : // Data
           if(!inBlock) {
             blockAddress = baseAddress + address;
+            m_log->info("New block {:08X} ",blockAddress);
             inBlock = true;
             currentVector.clear();
           }
@@ -221,16 +222,23 @@ namespace DogBotN {
           break;
         case 1: // End of file
           goto doneWithFile;
-        case 2: // Extended segment address.
+        case 2: { // Extended segment address.
+          uint32_t extendedAddress = 0;
+		  if(!Hex2Number(&hexBuff[9],&hexBuff[9+digits*2],extendedAddress)) {
+		    return false;
+	       }
+		   baseAddress += extendedAddress << 4;
+		   m_log->info("Extended address {:x} base now {:x} ",extendedAddress,baseAddress);
+        } break;
         case 3: // Start segment address
-          m_log->error("Don't know how to deal with record type {:x} ",recordType);
-          return false;
+          m_log->warn("Don't know how to deal start segment address ");
+          break;
         case 4: // Extended linear address.
           if(!Hex2Number(&hexBuff[9],&hexBuff[9+digits*2],baseAddress)) {
             return false;
           }
           baseAddress = baseAddress << 16;
-          //m_log->info("Base address: {:08X} ",baseAddress);
+          m_log->info("Base address: {:08X} ",baseAddress);
           break;
         case 5: // Start linear address.
           if(!Hex2Number(&hexBuff[9],&hexBuff[9+digits*2],startAddress))
