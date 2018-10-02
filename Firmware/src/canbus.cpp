@@ -452,7 +452,7 @@ static THD_FUNCTION(can_rx, p) {
   chRegSetThreadName("can receiver");
   chEvtRegister(&CAND1.rxfull_event, &el, 0);
   while(!chThdShouldTerminateX()) {
-    if (chEvtWaitAnyTimeout(ALL_EVENTS, MS2ST(100)) == 0)
+    if (chEvtWaitAnyTimeout(ALL_EVENTS, TIME_MS2I(100)) == 0)
       continue;
     while (canReceive(&CAND1, CAN_ANY_MAILBOX,
                       &rxmsg, TIME_IMMEDIATE) == MSG_OK) {
@@ -474,10 +474,10 @@ static THD_FUNCTION(can_tx, p)
   chRegSetThreadName("can tx");
 
   while (!chThdShouldTerminateX()) {
-    CANTxFrame *txPkt = g_txCANQueue.FetchFull(MS2ST(100));
+    CANTxFrame *txPkt = g_txCANQueue.FetchFull(TIME_MS2I(100));
     if(txPkt == 0)
       continue;
-    if(canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, txPkt, MS2ST(50)) != MSG_OK) {
+    if(canTransmitTimeout(&CAND1, CAN_ANY_MAILBOX, txPkt, TIME_MS2I(50)) != MSG_OK) {
       g_canDropCount++;
     }
     g_txCANQueue.ReturnEmptyPacketI(txPkt);

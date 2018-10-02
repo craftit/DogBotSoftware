@@ -7,6 +7,7 @@
  * Low speed SPI configuration (328.125kHz, CPHA=0, CPOL=0, MSb first).
  */
 static const SPIConfig ls_spicfg = {
+  false,
   NULL,
   GPIOC,
   9,

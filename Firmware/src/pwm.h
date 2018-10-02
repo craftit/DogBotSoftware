@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 #include "ch.h"
+#include "hal_objects.h"
 #include "hal_streams.h"
 #include "bmc.h"
 

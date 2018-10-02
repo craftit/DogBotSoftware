@@ -436,7 +436,7 @@ static void cmd_doCan(BaseSequentialStream *chp, int argc, char *argv[]) {
 
   while (true) {
     chprintf(chp, "Can send. \r\n");
-    msg_t ret = canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, MS2ST(100));
+    msg_t ret = canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, TIME_MS2I(100));
     if(ret == MSG_OK) {
       chprintf(chp, "Transmit ok. \r\n");
     } else {

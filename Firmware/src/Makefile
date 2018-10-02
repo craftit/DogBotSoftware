@@ -86,7 +86,7 @@ endif
 PROJECT = BMCV2
 
 # Imported source files and paths
-CHIBIOS = ../../../ChibiOS_17.6.3
+CHIBIOS = ../../../ChibiOS_18.2.1
 STDPERIPH = ../ext/STM32F4xx_DSP_StdPeriph_Lib/Libraries/STM32F4xx_StdPeriph_Driver
 
 # Startup files.
@@ -192,7 +192,8 @@ INCDIR = $(CHIBIOS)/os/license \
          $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(TESTINC) \
          $(CHIBIOS)/os/various \
-         $(CHIBIOS)/os/hal/lib/streams 
+         $(CHIBIOS)/os/hal/lib/streams \
+         ../ext/STM32F4xx_DSP_StdPeriph_Lib/Libraries/CMSIS/Include
          
          
 #

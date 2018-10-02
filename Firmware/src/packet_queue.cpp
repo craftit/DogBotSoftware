@@ -13,7 +13,7 @@ PacketQueueC::PacketQueueC()
 void PacketQueueC::Init()
 {
   for(int i = 0;i < PACKET_QUEUE_SIZE;i++) {
-    chMBPost(&m_emptyPackets,reinterpret_cast<msg_t>(&m_packetArray[i]),TIME_IMMEDIATE);
+    chMBPostTimeout(&m_emptyPackets,reinterpret_cast<msg_t>(&m_packetArray[i]),TIME_IMMEDIATE);
   }
 }
 
@@ -35,7 +35,7 @@ struct PacketT *PacketQueueC::FetchFullI() {
 // Fetch a full packet.
 struct PacketT *PacketQueueC::FetchFull(systime_t timeout) {
   msg_t txMsg;
-  if(chMBFetch(&m_fullPackets,&txMsg,timeout) == MSG_OK) {
+  if(chMBFetchTimeout(&m_fullPackets,&txMsg,timeout) == MSG_OK) {
     struct PacketT *packet = reinterpret_cast<struct PacketT *>(txMsg);
     return packet;
   }
@@ -46,7 +46,7 @@ struct PacketT *PacketQueueC::FetchFull(systime_t timeout) {
 struct PacketT *PacketQueueC::GetEmptyPacket(systime_t timeout)
 {
   msg_t msg;
-  if(chMBFetch(&m_emptyPackets,&msg,timeout) != MSG_OK)
+  if(chMBFetchTimeout(&m_emptyPackets,&msg,timeout) != MSG_OK)
     return 0;
   return (PacketT *)msg;
 }
@@ -69,7 +69,7 @@ bool PacketQueueC::PostFullPacket(struct PacketT *pkt)
     return false;
   }
 
-  if(chMBPost(&m_fullPackets,(msg_t) pkt,TIME_IMMEDIATE) == MSG_OK)
+  if(chMBPostTimeout(&m_fullPackets,(msg_t) pkt,TIME_IMMEDIATE) == MSG_OK)
     return true;
 
   g_usbErrorCount++;
@@ -77,7 +77,7 @@ bool PacketQueueC::PostFullPacket(struct PacketT *pkt)
   // This shouldn't happen, as if we can't acquire an empty buffer
   // unless there is space available, but we don't want to loose the buffer
   // so attempt to add it back to the free list
-  if(chMBPost(&m_emptyPackets,(msg_t) pkt,TIME_IMMEDIATE) != MSG_OK) {
+  if(chMBPostTimeout(&m_emptyPackets,(msg_t) pkt,TIME_IMMEDIATE) != MSG_OK) {
     // Things are really screwy. Panic ?
   }
   return false;
