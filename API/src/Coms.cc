@@ -137,7 +137,8 @@ namespace DogBotN
                          (int) pkt->m_deviceId,
                          DogBotN::ComsErrorTypeToString((enum ComsErrorTypeT)pkt->m_errorCode),
                          (int) pkt->m_errorCode,
-                         DogBotN::ComsPacketTypeToString((enum ComsPacketTypeT) pkt->m_causeType),(int) pkt->m_causeType,
+                         DogBotN::ComsPacketTypeToString((enum ComsPacketTypeT) pkt->m_causeType),
+                         (int) pkt->m_causeType,
                          (int) pkt->m_errorData);
           } break;
           default:

@@ -125,7 +125,7 @@ namespace DogBotN
 
     const int buffSize = 128;
     unsigned char buff[buffSize];
-    int retryCount = 6;
+    int retryCount = 20;
     while(true) {
       if((rc = libusb_get_string_descriptor_ascii(handle, desc.iSerialNumber, buff, buffSize)) >= 0)
         break; // Success.
@@ -136,7 +136,9 @@ namespace DogBotN
         handle = 0;
         return ;
       }
-      usleep(100000);
+      if(usleep(200000) != 0) {
+        m_log->error("Failed to sleep {} ",strerror(errno));
+      }
     }
     std::string serialNumber((char *)buff);
     m_log->info("SerialNumber:{}  ",serialNumber);

@@ -300,7 +300,7 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
       EnableSensorPower(true);
       if(PWMRun())
         break; // If we started the PWM ok, just exit.
-      /* no break */
+      // fall through
     default: // If we don't recognise the state, just go into fault mode.
     case CS_Fault:
       if(g_safetyMode == SM_LocalStop ||
@@ -317,7 +317,7 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
         break;
       }
       // In case of a fault on a moving robot, attempt breaking anyway.
-      // no break
+      // fall through
     case CS_EmergencyStop:
       g_stateChangeCause = changeSource;
       g_controlState = CS_EmergencyStop;
@@ -411,7 +411,7 @@ void SendBackgroundStateReport(void)
   {
     default:
       stateCount = 0;
-      /* no break */
+      // fall through
     case 0:
       SendParamUpdate(CPI_VSUPPLY);
       break;
@@ -615,6 +615,8 @@ int main(void) {
           break;
         default:
         case SM_Unknown:
+          // Issue a message to say why it failed ?
+          SendError(CET_MotorDriverWarning,0,CPI_SafetyMode);
           ChangeControlState(CS_Standby,SCS_Internal);
           break;
         }
@@ -646,7 +648,7 @@ int main(void) {
           }
         }
       }
-      // no break
+      // fall through
       case CS_Fault:
         chThdSleepMilliseconds(200);
         SendBackgroundStateReport();
@@ -669,7 +671,7 @@ int main(void) {
           break;
         }
       }
-      // no break
+      // fall through
       case CS_Ready: {
         if(chBSemWaitTimeout(&g_reportSampleReady,1000) != MSG_OK) {
           g_mainLoopTimeoutCount++;
@@ -735,7 +737,7 @@ int main(void) {
           EnableFanPower(false);
         }
       }
-      /* no break */
+      // fall through
       case FM_On: {
         if(!palReadPad(GPIOB, GPIOB_PIN11)) { // Status feedback
           EnableFanPower(false);
@@ -774,62 +776,49 @@ int main(void) {
       if(g_averageBusVoltage > g_minSupplyVoltage) {
         sleepTimer = 0;
       } else {
-        if(g_controlState == CS_Ready) {
-          FaultWarning(FC_UnderVoltage);
-          // What to do when we detect low power supply voltage
-          switch(g_controlState)
-          {
-            case CS_Ready:
-              ChangeControlState(CS_SafeStop, SCS_Internal);
+        // What to do when we detect low power supply voltage
+    	switch(g_controlState)
+        {
+        case CS_Ready:
+          FaultWarning (FC_UnderVoltage);
+          if (sleepTimer++ > 100 && !g_canBridgeMode)
+            { // In CAN bridge mode we're powered by USB anyway.
+              SendError(CET_MotorDriverWarning,0,CPI_MinSupplyVoltage);
+              ChangeControlState (CS_SafeStop, SCS_Internal);
               int8_t mode = CS_SafeStop;
-              SendParamData(CPI_ControlState, &mode, 1);
-              break;
-            case CS_SelfTest:
-            case CS_FactoryCalibrate:
-            case CS_StartUp:
-              ChangeControlState(CS_Standby, SCS_Internal);
-              break;
-            case CS_USBBridge:
-            case CS_Sleep:
-            case CS_SafeStop:
-            case CS_BootLoader:
-            case CS_Fault:
-            case CS_EmergencyStop:
-            case CS_Standby:
-              break;
-          }
-        }
-        else {
-          switch(g_controlState)
+              SendParamData (CPI_ControlState, &mode, 1);
+            }
+          break;
+        case CS_SelfTest:
+        case CS_FactoryCalibrate:
+        case CS_StartUp:
+          ChangeControlState (CS_Standby, SCS_Internal);
+          break;
+        case CS_USBBridge:
+        case CS_Sleep:
+        case CS_SafeStop:
+        case CS_BootLoader:
+          break;
+        case CS_Fault:
+        case CS_EmergencyStop:
+        case CS_Standby:
           {
-            case CS_Fault:
-            case CS_EmergencyStop:
-            case CS_Standby: {
-#if 1
-              // Don't shut down on a glitch.
-              if(sleepTimer++ > 15 &&
-                  !g_canBridgeMode // In CAN bridge mode we're powered by USB anyway.
-                  )
+#if 0
+            // Don't shut down on a glitch.
+            if (sleepTimer++ > 15 && !g_canBridgeMode // In CAN bridge mode we're powered by USB anyway.
+                )
               {
+                SendError(CET_MotorDriverWarning,0,CPI_MinSupplyVoltage);
                 int8_t mode = CS_Sleep;
-                SendParamData(CPI_ControlState, &mode, 1);
-                chThdSleepMilliseconds(50); // Wait a bit for message to get out
-                ChangeControlState(CS_Sleep, SCS_Internal);
+                SendParamData (CPI_ControlState, &mode, 1);
+                chThdSleepMilliseconds (50); // Wait a bit for message to get out
+                ChangeControlState (CS_Sleep, SCS_Internal);
               }
 #endif
-            } break;
-            case CS_USBBridge:
-            case CS_FactoryCalibrate:
-            case CS_StartUp:
-            case CS_SelfTest:
-            case CS_Ready:
-            case CS_Sleep:
-            case CS_SafeStop:
-            case CS_BootLoader:
-              break;
           }
+          break;
         }
-      }
+}
     }
   }
 
