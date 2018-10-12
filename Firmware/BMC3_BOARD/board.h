@@ -465,7 +465,7 @@
                                      PIN_AFIO_AF(GPIOA_PIN2, 0U) |      \
                                      PIN_AFIO_AF(GPIOA_PIN3, 0U) |      \
                                      PIN_AFIO_AF(GPIOA_PIN4, 0U) |          \
-                                     PIN_AFIO_AF(GPIOA_PIN5, 0U) |     \
+                                     PIN_AFIO_AF(GPIOA_PIN5, 5U) |     \
                                      PIN_AFIO_AF(GPIOA_PIN6, 0U) |          \
                                      PIN_AFIO_AF(GPIOA_PIN7, 0U))
 #define VAL_GPIOA_AFRH              (PIN_AFIO_AF(GPIOA_PIN8, 1U) |          \
