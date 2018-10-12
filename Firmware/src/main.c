@@ -400,7 +400,7 @@ void SendBackgroundStateReport(void)
     SendParamUpdate(CPI_DebugFloat);
 
   {
-    bool isOn = palReadPad(GPIOC, GPIOC_PIN8);
+    bool isOn = palReadPad(POSITION_INDEX_GPIO_Port, POSITION_INDEX_Pin);
     if(lastIndexSensor != isOn) {
       lastIndexSensor = isOn;
       SendParamUpdate(CPI_IndexSensor);
@@ -747,19 +747,25 @@ int main(void) {
       }
       // fall through
       case FM_On: {
+#if 0
+        // FIXME:- Over current on ethercat chip.
         if(!palReadPad(GPIOB, GPIOB_PIN11)) { // Status feedback
           EnableFanPower(false);
           FaultDetected(FC_FanOverCurrent);
           g_fanMode = FM_Off; // Turn it off.
         }
+#endif
       } break;
     }
 
+#if 0
     // Check sensor over current input.
+    // FIXME:- Pin on ethercat chip
     if(!palReadPad(GPIOB, GPIOB_PIN10)) {
       EnableSensorPower(false);
       FaultDetected(FC_SensorOverCurrent);
     }
+#endif
 #endif
 
     // We can only read motor temperatures when sensors are enabled.

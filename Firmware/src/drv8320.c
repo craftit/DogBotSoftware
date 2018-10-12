@@ -96,19 +96,6 @@ void InitDrv8320(void)
 
 uint16_t Drv8320Test(void)
 {
-  // Turn everything off
-  palClearPad(GPIOA, GPIOA_PIN8);  // HC
-  palClearPad(GPIOA, GPIOA_PIN9);  // HB
-  palClearPad(GPIOA, GPIOA_PIN10); // HA
-  palClearPad(GPIOB, GPIOB_PIN13); // LC
-  palClearPad(GPIOB, GPIOB_PIN14); // LB
-  palClearPad(GPIOB, GPIOB_PIN15); // LA
-
-  palSetPad(GPIOC, GPIOC_PIN13); // Wake
-  palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
-
-  palSetPad(GPIOA, GPIOA_PIN10); // HA
-  palSetPad(GPIOB, GPIOB_PIN14); // LB
 
 
   return 0;

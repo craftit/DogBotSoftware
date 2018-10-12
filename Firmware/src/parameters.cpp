@@ -722,7 +722,7 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       break;
     case CPI_IndexSensor:
       *len = 1;
-      data->uint8[0] = palReadPad(GPIOC, GPIOC_PIN8);
+      data->uint8[0] = palReadPad(POSITION_INDEX_GPIO_Port,POSITION_INDEX_Pin);
       break;
     case CPI_MainLoopTimeout:
       *len = 4;
@@ -742,9 +742,12 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
     } break;
     case CPI_FanState: {
       *len = 1;
-      int i = palReadPad(GPIOA, GPIOA_PIN7); // Pin State.
+      int i = palReadPad(FAN_POWER_GPIO_Port, FAN_POWER_Pin); // Pin State.
+#if 0
+      // FIXME:- From ethercat chip
       if(palReadPad(GPIOB, GPIOB_PIN11)) // Status feedback
         i |= 2;
+#endif
       data->uint8[0] = i;
     } break;
 

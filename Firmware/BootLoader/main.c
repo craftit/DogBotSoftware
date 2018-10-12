@@ -44,8 +44,8 @@ int main(void) {
    */
   halInit();
 
-  bool forceBootload = !palReadPad(GPIOB, GPIOB_PIN2);
-  if(forceBootload || 1)
+  bool forceBootload = !palReadPad(BUTTON1_GPIO_Port, BUTTON1_Pin);
+  if(forceBootload)
     g_controlState = CS_BootLoader;
   else {
     if (RCC->CSR & RCC_CSR_SFTRSTF) { // Software reset ?

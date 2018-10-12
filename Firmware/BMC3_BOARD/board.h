@@ -484,7 +484,7 @@
  * PB1  - INLC                      (alternate 1).
  * PB2  - ETH_IRQ                   (input).
  * PB3  - SWO                       (alternate 0).
- * PB4  - JTRST (Option)            (input pullup).
+ * PB4  - DRIVE_SPI_MOSI            (alternate 5).
  * PB5  - DRIVE_SPI_MISO            (alternate 5).
  * PB6  - USART1_TX                 (alternate 7).
  * PB7  - USART1_RX                 (alternate 7).

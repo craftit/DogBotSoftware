@@ -269,7 +269,7 @@ bool MotionReport(int16_t position,int16_t velocity,int16_t torque,PositionRefer
   }
 
   // Report endstop switch.
-  if(palReadPad(GPIOC, GPIOC_PIN8))
+  if(palReadPad(POSITION_INDEX_GPIO_Port, POSITION_INDEX_Pin))
     mode |= DOGBOT_SERVOREPORTMODE_INDEXSENSOR;
 
   if(g_canBridgeMode) {

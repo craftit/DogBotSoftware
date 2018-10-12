@@ -94,6 +94,18 @@ void EnableGateDriver(bool enable)
   }
 }
 
+void EnableGateOutputs(bool enable)
+{
+  //...
+}
+
+bool IsGateDriverFault()
+{
+  return palReadPad(DRIVE_FAULT_GPIO_Port,DRIVE_FAULT_Pin) == 0;
+}
+
+
+
 void PWMUpdateDrivePhase(int pa,int pb,int pc);
 
 static bool SensorlessEstimatorUpdate(float *eta);
@@ -681,7 +693,7 @@ static void MotorControlLoop(void)
     // warning pulses. We poll the register at 250Hz, and it is not
     // clear that responding faster to errors brings any benefit as
     // the chip shuts down itself in the case of a fault.
-    if(!palReadPad(GPIOC, GPIOC_PIN15)) { // Check the fault pin
+    if(!IsGateDriverFault()) { // Check the fault pin
       faultTimer++;
       if(faultTimer > 3) {
         SetMotorControlMode(CM_Brake);
@@ -864,7 +876,7 @@ static void MotorControlLoop(void)
 
     // Check home index switch.
     {
-      bool es3 = palReadPad(GPIOC, GPIOC_PIN8);
+      bool es3 = palReadPad(POSITION_INDEX_GPIO_Port, POSITION_INDEX_Pin);
       if(es3 != g_lastLimitState) {
         g_lastLimitState = es3;
         MotionUpdateIndex(es3,g_currentPhasePosition,g_currentPhaseVelocity);
@@ -943,12 +955,11 @@ static THD_FUNCTION(ThreadPWM, arg) {
   SetMotorControlMode(CM_Brake);
 
   EnableGateDriver(true);
-
   //! Wait for power up to complete
   int timeOut = 10;
-  while (!palReadPad(DRIVE_FAULT_GPIO_Port, DRIVE_FAULT_Pin) && g_pwmRun ) {
+  while (IsGateDriverFault() && g_pwmRun ) {
     if(timeOut-- < 0) {
-      palClearPad(DRIVE_GATE_ENABLE_GPIO_Port, DRIVE_GATE_ENABLE_Pin); // Wake
+      EnableGateDriver(false);
       g_gateDriverFault = true;
       g_pwmRun = false;
       g_pwmThreadRunning = false;
@@ -956,7 +967,7 @@ static THD_FUNCTION(ThreadPWM, arg) {
     }
     chThdSleepMilliseconds(100);
   }
-
+  EnableGateOutputs(true);
 
   //! Read initial state of index switch
   g_lastLimitState = palReadPad(POSITION_INDEX_GPIO_Port, POSITION_INDEX_Pin); // Index
@@ -978,7 +989,7 @@ static THD_FUNCTION(ThreadPWM, arg) {
   }
 
   // Double check with the fault bit.
-  if(!palReadPad(GPIOC, GPIOC_PIN15)) { // Fault pin
+  if(IsGateDriverFault()) { // Fault pin
     g_gateDriverWarning = true;
     g_gateDriverFault = false; // Should only be a warning.
   } else {
@@ -1021,7 +1032,7 @@ static THD_FUNCTION(ThreadPWM, arg) {
   // Make sure motor isn't being driven.
   PWMUpdateDrivePhase(TIM_1_8_PERIOD_CLOCKS/2,TIM_1_8_PERIOD_CLOCKS/2,TIM_1_8_PERIOD_CLOCKS/2);
 
-  EnableGateDriver(false);
+  EnableGateOutputs(false);
 
   // Disable the PWM timer to save some power
   rccEnableTIM1(FALSE);
@@ -1201,11 +1212,11 @@ int PWMSVMScan(BaseSequentialStream *chp)
 
       queue_modulation_timings(v_alpha, v_beta,false);
 
-      if (!palReadPad(GPIOB, GPIOA_PIN2)) {
+      if (!palReadPad(BUTTON1_GPIO_Port, BUTTON1_Pin)) {
         break;
       }
     }
-    if (!palReadPad(GPIOB, GPIOA_PIN2)) {
+    if (!palReadPad(BUTTON1_GPIO_Port, BUTTON1_Pin)) {
       break;
     }
   }
@@ -1231,12 +1242,13 @@ enum FaultCodeT PWMSelfTest()
   if(g_vbus_voltage < g_minSupplyVoltage)
     return FC_UnderVoltage;
 
-#if CHECK_OVERCURRENT
+#if CHECK_OVERCURRENT && 0
   if(!palReadPad(GPIOB, GPIOB_PIN11)) { // Sensor over current fault
     EnableSensorPower(false);
     return FC_SensorOverCurrent;
   }
 #endif
+
 
   //if(g_vbus_voltage < 8.0) return FC_UnderVoltage;
 
@@ -1259,17 +1271,17 @@ enum FaultCodeT PWMSelfTest()
   for(int i = 0;i < 3;i++) {
     // If pins are floating, pull them into a fixed state.
 
-    palSetPadMode(GPIOC,GPIOC_PIN0,PAL_MODE_INPUT_PULLUP);
-    palSetPadMode(GPIOC,GPIOC_PIN1,PAL_MODE_INPUT_PULLUP);
-    palSetPadMode(GPIOC,GPIOC_PIN2,PAL_MODE_INPUT_PULLUP);
+    palSetPadMode(HALL_A_GPIO_Port,HALL_A_Pin,PAL_MODE_INPUT_PULLUP);
+    palSetPadMode(HALL_B_GPIO_Port,HALL_B_Pin,PAL_MODE_INPUT_PULLUP);
+    palSetPadMode(HALL_C_GPIO_Port,HALL_C_Pin,PAL_MODE_INPUT_PULLUP);
 
     chThdSleepMilliseconds(100);
 
     // Change them back to analog inputs.
 
-    palSetPadMode(GPIOC,GPIOC_PIN0,PAL_MODE_INPUT_ANALOG);
-    palSetPadMode(GPIOC,GPIOC_PIN1,PAL_MODE_INPUT_ANALOG);
-    palSetPadMode(GPIOC,GPIOC_PIN2,PAL_MODE_INPUT_ANALOG);
+    palSetPadMode(HALL_A_GPIO_Port,HALL_A_Pin,PAL_MODE_INPUT_ANALOG);
+    palSetPadMode(HALL_B_GPIO_Port,HALL_B_Pin,PAL_MODE_INPUT_ANALOG);
+    palSetPadMode(HALL_C_GPIO_Port,HALL_C_Pin,PAL_MODE_INPUT_ANALOG);
 
     // Wait for next measurement
 
@@ -1287,7 +1299,10 @@ enum FaultCodeT PWMSelfTest()
   if(errCode != FC_Ok)
     return errCode;
 
-#if CHECK_OVERCURRENT
+  EnableGateOutputs(true);
+
+#if CHECK_OVERCURRENT && 0
+  // FIXME:- The over-current pin is now on the ethercat chip/
   // Check fan
   bool fanState = !palReadPad(GPIOA, GPIOA_PIN7); // Read fan power.
   EnableFanPower(true);
@@ -1319,27 +1334,32 @@ enum FaultCodeT PWMMotorCal()
 {
   enum FaultCodeT ret = FC_Ok;
 
-  //! Wait for powerup to complete
-  // TODO: Add a timeout and report and error
-  while (!palReadPad(GPIOD, GPIOD_PIN2)) {
-    chThdSleepMilliseconds(100);
+  //! Wait for power up to complete
+  {
+    int timeOut = 20;
+    while (IsGateDriverFault() && timeOut-- > 0) {
+      chThdSleepMilliseconds(100);
+    }
+    if(timeOut <= 0)
+      return FC_DriverFault;
   }
 
   // Make sure PWM is running.
   InitPWM();
 
+  EnableGateOutputs(true);
 
   // Calibrate shunts.
   ShuntCalibration();
 
   if((ret = PWMMotorCalResistance()) != FC_Ok) {
-    palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
+    EnableGateOutputs(false);
     return ret;
   }
   SendParamUpdate(CPI_MotorResistance);
 
   if((ret = PWMMotorCalInductance()) != FC_Ok) {
-    palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
+     EnableGateOutputs(false);
     return ret;
   }
   SendParamUpdate(CPI_MotorInductance);
@@ -1654,6 +1674,7 @@ enum FaultCodeT PWMMotorPhaseCal()
 
 int PWMCalSVM(BaseSequentialStream *chp)
 {
+  EnableGateOutputs(true);
 
   float voltage_magnitude = 0.06; // FIXME:- SHould change depending on supply voltage
 
@@ -1674,7 +1695,7 @@ int PWMCalSVM(BaseSequentialStream *chp)
     for(int i = 0;i < 3;i++) {
       g_phaseAngles[phaseStep][i] += g_hall[i];
     }
-    if (!palReadPad(GPIOB, GPIOA_PIN2)) {
+    if (!palReadPad(BUTTON1_GPIO_Port, BUTTON1_Pin)) {
       return 0;
     }
     chprintf(chp, "Cal %d : %04d %04d %04d   \r\n",phase,g_hall[0],g_hall[1],g_hall[2]);
@@ -1687,7 +1708,8 @@ int PWMCalSVM(BaseSequentialStream *chp)
         i,g_phaseAngles[i][0],g_phaseAngles[i][1],g_phaseAngles[i][2]);
   }
 
-  palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
+  EnableGateOutputs(false);
+
   //DisplayAngle(chp);
   return 0;
 }

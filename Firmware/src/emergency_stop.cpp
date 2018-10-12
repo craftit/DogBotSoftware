@@ -8,14 +8,16 @@ static bool g_currentOutputState = false;
 static int g_timeSinceLastComsOk = 5;
 static int g_masterEmergencyStopDevice = 0;
 
+#define ESTOP_PORT GPIOB
+#define ESTOP_PINA GPIOB_PIN7
+#define ESTOP_PINB GPIOB_PIN6
 
 void InitEmergencyStop(void)
 {
   g_currentOutputState = false;
-  palSetPadMode(GPIOC, GPIOC_PIN7,PAL_MODE_INPUT_PULLUP);
-  palSetPadMode(GPIOC, GPIOC_PIN6,PAL_MODE_OUTPUT_PUSHPULL);
-  palClearPad(GPIOC, GPIOC_PIN6);
-
+  palSetPadMode(ESTOP_PORT, ESTOP_PINB,PAL_MODE_INPUT_PULLUP);
+  palSetPadMode(ESTOP_PORT, ESTOP_PINA,PAL_MODE_OUTPUT_PUSHPULL);
+  palClearPad(ESTOP_PORT, ESTOP_PINA);
   g_emergencyButtonConfigured = true;
 }
 
@@ -37,17 +39,17 @@ bool IsEmergencyStopButtonSetToSafe(void)
 {
   bool ret = false;
   if(g_currentOutputState) {
-    if(palReadPad(GPIOC, GPIOC_PIN7) != 0)
+    if(palReadPad(ESTOP_PORT, ESTOP_PINB) != 0)
       ret = true;
     g_currentOutputState = false;
-    palClearPad(GPIOC, GPIOC_PIN6);
-    palSetPadMode(GPIOC, GPIOC_PIN7,PAL_MODE_INPUT_PULLUP);
+    palClearPad(ESTOP_PORT, ESTOP_PINA);
+    palSetPadMode(ESTOP_PORT, ESTOP_PINB,PAL_MODE_INPUT_PULLUP);
   } else {
-    if(palReadPad(GPIOC, GPIOC_PIN7) == 0)
+    if(palReadPad(ESTOP_PORT, ESTOP_PINB) == 0)
       ret = true;
     g_currentOutputState = true;
-    palSetPad(GPIOC, GPIOC_PIN6);
-    palSetPadMode(GPIOC, GPIOC_PIN7,PAL_MODE_INPUT_PULLDOWN);
+    palSetPad(ESTOP_PORT, ESTOP_PINA);
+    palSetPadMode(ESTOP_PORT, ESTOP_PINB,PAL_MODE_INPUT_PULLDOWN);
   }
   return ret;
 }
