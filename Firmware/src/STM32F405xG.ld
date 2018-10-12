@@ -23,8 +23,7 @@
 
 MEMORY
 {
-    flash : org = 0x08000000, len = 16k
-    flash2 : org = 0x08010000, len = 384k
+    flash2 : org = 0x08000000, len = 1M
     ram0  : org = 0x20000000, len = 128k    /* SRAM1 + SRAM2 */
     ram1  : org = 0x20000000, len = 112k    /* SRAM1 */
     ram2  : org = 0x2001C000, len = 16k     /* SRAM2 */
@@ -102,7 +101,7 @@ SECTIONS
     startup : ALIGN(16) SUBALIGN(16)
     {
         KEEP(*(.vectors))
-    } > flash
+    } > flash2
 
     constructors : ALIGN(4) SUBALIGN(4)
     {
@@ -134,28 +133,28 @@ SECTIONS
     .ARM.extab :
     {
         *(.ARM.extab* .gnu.linkonce.armextab.*)
-    } > flash
+    } > flash2
 
     .ARM.exidx : {
         __exidx_start = .;
         *(.ARM.exidx* .gnu.linkonce.armexidx.*)
         __exidx_end = .;
-     } > flash
+     } > flash2
 
     .eh_frame_hdr :
     {
         *(.eh_frame_hdr)
-    } > flash
+    } > flash2
 
     .eh_frame : ONLY_IF_RO
     {
         *(.eh_frame)
-    } > flash
+    } > flash2
 
     .textalign : ONLY_IF_RO
     {
         . = ALIGN(8);
-    } > flash
+    } > flash2
 
     /* Legacy symbol, not used anywhere.*/
     . = ALIGN(4);
@@ -195,7 +194,7 @@ SECTIONS
         . = ALIGN(4);
         PROVIDE(_edata = .);
         _data_end = .;
-    } > DATA_RAM AT > flash
+    } > DATA_RAM AT > flash2
 
     .bss (NOLOAD) : ALIGN(4)
     {
@@ -217,7 +216,7 @@ SECTIONS
         *(.ram0_init)
         *(.ram0_init.*)
         . = ALIGN(4);
-    } > ram0 AT > flash
+    } > ram0 AT > flash2
 
     .ram0 (NOLOAD) : ALIGN(4)
     {
@@ -241,7 +240,7 @@ SECTIONS
         *(.ram1_init)
         *(.ram1_init.*)
         . = ALIGN(4);
-    } > ram1 AT > flash
+    } > ram1 AT > flash2
 
     .ram1 (NOLOAD) : ALIGN(4)
     {
@@ -265,7 +264,7 @@ SECTIONS
         *(.ram2_init)
         *(.ram2_init.*)
         . = ALIGN(4);
-    } > ram2 AT > flash
+    } > ram2 AT > flash2
 
     .ram2 (NOLOAD) : ALIGN(4)
     {
@@ -289,7 +288,7 @@ SECTIONS
         *(.ram3_init)
         *(.ram3_init.*)
         . = ALIGN(4);
-    } > ram3 AT > flash
+    } > ram3 AT > flash2
 
     .ram3 (NOLOAD) : ALIGN(4)
     {
@@ -313,7 +312,7 @@ SECTIONS
         *(.ram4_init)
         *(.ram4_init.*)
         . = ALIGN(4);
-    } > ram4 AT > flash
+    } > ram4 AT > flash2
 
     .ram4 (NOLOAD) : ALIGN(4)
     {
@@ -337,7 +336,7 @@ SECTIONS
         *(.ram5_init)
         *(.ram5_init.*)
         . = ALIGN(4);
-    } > ram5 AT > flash
+    } > ram5 AT > flash2
 
     .ram5 (NOLOAD) : ALIGN(4)
     {
@@ -361,7 +360,7 @@ SECTIONS
         *(.ram6_init)
         *(.ram6_init.*)
         . = ALIGN(4);
-    } > ram6 AT > flash
+    } > ram6 AT > flash2
 
     .ram6 (NOLOAD) : ALIGN(4)
     {
@@ -385,7 +384,7 @@ SECTIONS
         *(.ram7_init)
         *(.ram7_init.*)
         . = ALIGN(4);
-    } > ram7 AT > flash
+    } > ram7 AT > flash2
 
     .ram7 (NOLOAD) : ALIGN(4)
     {

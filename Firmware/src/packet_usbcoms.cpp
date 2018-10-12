@@ -26,10 +26,10 @@ static THD_FUNCTION(ThreadRxComs, arg) {
    * Note, a delay is inserted in order to not have to disconnect the cable
    * after a reset.
    */
-  usbDisconnectBus(&USBD1);
+  usbDisconnectBus(&USBD2);
   chThdSleepMilliseconds(1500);
-  usbStart(&USBD1,&usbcfg);
-  usbConnectBus(&USBD1);
+  usbStart(&USBD2,&usbcfg);
+  usbConnectBus(&USBD2);
 
   while(true) {
     struct PacketT *pkt = g_rxPacketQueue.FetchFull(TIME_INFINITE);
@@ -94,7 +94,7 @@ static void QueueTransmitIsoI(USBDriver *usbp) {
   // Anything to send ?
   if(at == 0)
     return ;
-  usbStartTransmitI(usbp, USBD1_DATA_IN_EP, txBuffer,at);
+  usbStartTransmitI(usbp, USBD2_DATA_IN_EP, txBuffer,at);
 }
 
 void bmcDataTransmitCallback(USBDriver *usbp, usbep_t ep)
@@ -125,7 +125,7 @@ static void startRecieveDataI(USBDriver *usbp)
   }
 
   // Checking if there is already a transaction ongoing on the endpoint.
-  if (usbGetReceiveStatusI(usbp, USBD1_DATA_OUT_EP)) {
+  if (usbGetReceiveStatusI(usbp, USBD2_DATA_OUT_EP)) {
     // End point is already receiving.
     return ;
   }
@@ -140,7 +140,7 @@ static void startRecieveDataI(USBDriver *usbp)
     return ; // No empty packets ready...
 
   // Buffer found, starting a new transaction.
-  usbStartReceiveI(usbp, USBD1_DATA_OUT_EP,g_usbCurrentDataRxBuffer->m_data, BMC_MAXPACKETSIZE);
+  usbStartReceiveI(usbp, USBD2_DATA_OUT_EP,g_usbCurrentDataRxBuffer->m_data, BMC_MAXPACKETSIZE);
 }
 
 
@@ -189,7 +189,7 @@ bool bmcSOFHookI(USBDriver *usbp)
   /* If there is already a transaction ongoing then another one cannot be
      started.*/
 
-  if (!usbGetTransmitStatusI(usbp,USBD1_DATA_IN_EP)) { // Returns true if transmitting.
+  if (!usbGetTransmitStatusI(usbp,USBD2_DATA_IN_EP)) { // Returns true if transmitting.
     QueueTransmitIsoI(usbp);
   }
 

@@ -9,8 +9,8 @@
 
 #include "coms.h"
 #include "dogbot/protocol.h"
+#include "drv8320.h"
 
-#include "drv8305.h"
 #include "storedconf.h"
 
 #include "motion.h"
@@ -84,6 +84,15 @@ float g_angleStats[g_angleTableSize][2];
 #endif
 
 static THD_WORKING_AREA(waThreadPWM, 512);
+
+void EnableGateDriver(bool enable)
+{
+  if(enable) {
+    palSetPad(DRIVE_GATE_ENABLE_GPIO_Port, DRIVE_GATE_ENABLE_Pin);
+  } else {
+    palClearPad(DRIVE_GATE_ENABLE_GPIO_Port, DRIVE_GATE_ENABLE_Pin);
+  }
+}
 
 void PWMUpdateDrivePhase(int pa,int pb,int pc);
 
@@ -191,35 +200,15 @@ static void queue_voltage_timings(float v_alpha, float v_beta,bool unsymetricSwi
 void ShuntCalibration(void)
 {
 
-#if 0
-  // Set the gain
-  int gainMode = DRV8305_GAIN_CS1_40 | DRV8305_GAIN_CS2_40 | DRV8305_GAIN_CS3_40 |
-      DRV8305_CS_BLANK_2_5US ;
-
-  // The following can deal with +- 39 Amps
-
-  float ampGain = 40.0; // V/V gain
-#else
-  // Set the gain
-  int gainMode = DRV8305_GAIN_CS1_20 | DRV8305_GAIN_CS2_20 | DRV8305_GAIN_CS3_20 |
-      DRV8305_CS_BLANK_2_5US ;
-
-  // The following can deal with +- 78 Amps
   float ampGain = 20.0; // V/V gain
-#endif
-  float shuntResistance = 0.001;
+  float shuntResistance = 0.005;
 
   // 95% of half the range of possible values.
   g_maxCurrentSense = (3.3 * 0.5 * 0.95)/ (shuntResistance * ampGain);
   SendParamUpdate(CPI_MaxCurrentSense);
 
-  Drv8305SetRegister(DRV8305_REG_SHUNT_AMPLIFIER_CONTROL,
-      DRV8305_DC_CAL_CH1 |
-      DRV8305_DC_CAL_CH2 |
-      DRV8305_DC_CAL_CH3 |
-      gainMode
-      );
-
+  uint16_t driveControl = Drv8320ReadRegister(DRV8320_REG_DRIVE_CONTROL);
+  Drv8320SetRegister(DRV8320_REG_DRIVE_CONTROL,driveControl | DRV8320_DC_COAST);
 
   g_shuntADCValue2Amps  = (3.3f/((float)(1<<12) * ampGain * shuntResistance));
 
@@ -248,9 +237,7 @@ void ShuntCalibration(void)
     g_currentZeroOffset[j] = sums[j] / (float) samples;
 
   // Disable calibration mode.
-  Drv8305SetRegister(DRV8305_REG_SHUNT_AMPLIFIER_CONTROL,
-      gainMode
-      );
+  Drv8320SetRegister(DRV8320_REG_DRIVE_CONTROL,driveControl);
 
 }
 
@@ -920,12 +907,12 @@ static void MotorControlLoop(void)
   }
 }
 
-//! Check the state of the DRV8305 driver chip
+//! Check the state of the DRV8320 driver chip
 
 bool CheckDriverStatus(void)
 {
   // Check the state of the gate driver.
-  uint16_t gateDriveStatus = Drv8305ReadRegister(DRV8305_REG_WARNING);
+  uint16_t gateDriveStatus = Drv8320ReadRegister(DRV8320_REG_FAULT1);
 
   // Update gate status
   static uint16_t lastGateStatus = 0;
@@ -933,14 +920,12 @@ bool CheckDriverStatus(void)
     lastGateStatus = gateDriveStatus;
     if(g_gateDriverWarning)
       SendError(CET_MotorDriverWarning,0,0);
-    SendParamData(CPI_DRV8305_01,&gateDriveStatus,sizeof(gateDriveStatus));
+    SendParamData(CPI_DRV8305_00,&gateDriveStatus,sizeof(gateDriveStatus));
     g_gateDriverWarning = false;
-    SendParamUpdate(CPI_DRV8305_02);
-    SendParamUpdate(CPI_DRV8305_03);
-    SendParamUpdate(CPI_DRV8305_04);
+    SendParamUpdate(CPI_DRV8305_01);
   }
 
-  if(gateDriveStatus & DRV8305_WARN_FAULT) {
+  if(gateDriveStatus & DRV8320_FAULT1_FAULT) {
     FaultDetected(FC_DriverFault);
     return false;
   }
@@ -957,14 +942,13 @@ static THD_FUNCTION(ThreadPWM, arg) {
   // Set initial motor mode
   SetMotorControlMode(CM_Brake);
 
-  palSetPad(GPIOC, GPIOC_PIN13); // Wake
+  EnableGateDriver(true);
 
   //! Wait for power up to complete
   int timeOut = 10;
-  while (!palReadPad(GPIOD, GPIOD_PIN2) && g_pwmRun ) {
+  while (!palReadPad(DRIVE_FAULT_GPIO_Port, DRIVE_FAULT_Pin) && g_pwmRun ) {
     if(timeOut-- < 0) {
-      palClearPad(GPIOC, GPIOC_PIN14); // Paranoid gate disable
-      palClearPad(GPIOC, GPIOC_PIN13); // Go back to sleep
+      palClearPad(DRIVE_GATE_ENABLE_GPIO_Port, DRIVE_GATE_ENABLE_Pin); // Wake
       g_gateDriverFault = true;
       g_pwmRun = false;
       g_pwmThreadRunning = false;
@@ -975,18 +959,17 @@ static THD_FUNCTION(ThreadPWM, arg) {
 
 
   //! Read initial state of index switch
-  g_lastLimitState = palReadPad(GPIOC, GPIOC_PIN8); // Index
+  g_lastLimitState = palReadPad(POSITION_INDEX_GPIO_Port, POSITION_INDEX_Pin); // Index
 
   //! Make sure the driver is setup.
-  InitDrv8305();
+  InitDrv8320();
 
   //! Wait a bit more
   chThdSleepMilliseconds(100);
 
   //! Check the driver is happy
   if(!CheckDriverStatus()) {
-    palClearPad(GPIOC, GPIOC_PIN14); // Paranoid gate disable
-    palClearPad(GPIOC, GPIOC_PIN13); // Put to sleep.
+    EnableGateDriver(false);
     g_gateDriverWarning = true;
     g_gateDriverFault = true;
     g_pwmRun = false;
@@ -1023,8 +1006,6 @@ static THD_FUNCTION(ThreadPWM, arg) {
   // Setup PWM
   InitPWM();
 
-  palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
-
   // Reset calibration state.
   MotionResetCalibration(MHS_Measuring);
 
@@ -1040,8 +1021,7 @@ static THD_FUNCTION(ThreadPWM, arg) {
   // Make sure motor isn't being driven.
   PWMUpdateDrivePhase(TIM_1_8_PERIOD_CLOCKS/2,TIM_1_8_PERIOD_CLOCKS/2,TIM_1_8_PERIOD_CLOCKS/2);
 
-  palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
-  palClearPad(GPIOC, GPIOC_PIN13); // Put to sleep.
+  EnableGateDriver(false);
 
   // Disable the PWM timer to save some power
   rccEnableTIM1(FALSE);
@@ -1192,15 +1172,13 @@ int PWMStop()
   // Don't claim to be calibrated.
   MotionResetCalibration(MHS_Lost);
 
-  palClearPad(GPIOC, GPIOC_PIN14); // Paranoid gate disable
-  palClearPad(GPIOC, GPIOC_PIN13); // Go back to sleep
+  //EnableGateDriver(false);
 
   return 0;
 }
 
 int PWMSVMScan(BaseSequentialStream *chp)
 {
-  palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
 
   while(true) {
     float voltage_magnitude = 0.12;
@@ -1232,7 +1210,6 @@ int PWMSVMScan(BaseSequentialStream *chp)
     }
   }
 
-  palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
   return 0;
 }
 
@@ -1243,7 +1220,6 @@ void DisplayAngle(BaseSequentialStream *chp);
 
 enum FaultCodeT PWMSelfTest()
 {
-  EnableSensorPower(true);
 
   float rail5V = Read5VRailVoltage();
   if(rail5V < 4.5 || rail5V > 5.5)
@@ -1343,8 +1319,6 @@ enum FaultCodeT PWMMotorCal()
 {
   enum FaultCodeT ret = FC_Ok;
 
-  palSetPad(GPIOC, GPIOC_PIN13); // Wake
-
   //! Wait for powerup to complete
   // TODO: Add a timeout and report and error
   while (!palReadPad(GPIOD, GPIOD_PIN2)) {
@@ -1353,8 +1327,6 @@ enum FaultCodeT PWMMotorCal()
 
   // Make sure PWM is running.
   InitPWM();
-
-  palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
 
 
   // Calibrate shunts.
@@ -1377,10 +1349,8 @@ enum FaultCodeT PWMMotorCal()
   SendParamUpdate(CPI_MotorPGain);
 
   if((ret = PWMMotorPhaseCal()) != FC_Ok) {
-    palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
     return ret;
   }
-  palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
 
   // Restore igain
 
@@ -1633,8 +1603,6 @@ enum FaultCodeT PWMMotorPhaseCal()
   // Make sure PWM is running.
   InitPWM();
 
-  palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
-
   int phaseRotations = 7;
   int numberOfReadings = 8;
   float torqueValue = 12.0;
@@ -1677,8 +1645,6 @@ enum FaultCodeT PWMMotorPhaseCal()
     }
   }
 
-  palClearPad(GPIOC, GPIOC_PIN14); // Gate disable
-
   //DisplayAngle(chp);
   return ret;
 }
@@ -1688,7 +1654,6 @@ enum FaultCodeT PWMMotorPhaseCal()
 
 int PWMCalSVM(BaseSequentialStream *chp)
 {
-  palSetPad(GPIOC, GPIOC_PIN14); // Gate enable
 
   float voltage_magnitude = 0.06; // FIXME:- SHould change depending on supply voltage
 

@@ -5,7 +5,7 @@
 
 static virtual_timer_t vt3, vt4, vt5;
 
-static const uint8_t message[] = "0123456789ABCDEF";
+//static const uint8_t message[] = "0123456789ABCDEF";
 
 static void led3off(void *p) {
 
@@ -108,7 +108,7 @@ void InitSerial()
   /*
    * Activates the UART driver 1
    */
-  uartStart(&UARTD1, &uart_cfg_1);
+  //uartStart(&UARTD1, &uart_cfg_1);
 
 
 }

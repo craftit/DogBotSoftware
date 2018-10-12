@@ -10,7 +10,6 @@
 extern "C" {
 #endif
 
-
 extern int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT changeSource);
 extern void FaultDetected(enum FaultCodeT faultCode);
 extern void FaultWarning(enum FaultCodeT faultCode);

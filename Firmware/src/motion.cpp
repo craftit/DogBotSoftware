@@ -389,7 +389,9 @@ void MotionStep()
 
 
 enum FaultCodeT LoadSetup(void) {
-  StoredConf_Load(&g_storedConfig);
+  if(!StoredConf_Load(&g_storedConfig)) {
+    return FC_Internal;
+  }
 
   //g_deviceId = g_storedConfig.deviceId; //!< This can cause Id conflicts, better to let controller give id again
   g_motionPositionReference = (enum PositionReferenceT) g_storedConfig.m_motionPositionReference;
@@ -423,6 +425,7 @@ enum FaultCodeT LoadSetup(void) {
   g_safetyMode = g_storedConfig.m_safetyMode;
   g_supplyVoltageScale = g_storedConfig.m_supplyVoltageScale;
   g_deviceType = g_storedConfig.m_deviceType;
+
   SetupEndStops();
 
   return FC_Ok;

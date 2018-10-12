@@ -179,11 +179,11 @@ extern "C" {
     CPI_PositionGain   = 31,
 
     CPI_DRV8305         = 32,
-    CPI_DRV8305_01      = 32,
-    CPI_DRV8305_02      = 33,
-    CPI_DRV8305_03      = 34,
-    CPI_DRV8305_04      = 35,
-    CPI_DRV8305_05      = 36,
+    CPI_DRV8305_00      = 32,
+    CPI_DRV8305_01      = 33,
+    CPI_DRV8305_02      = 34,
+    CPI_DRV8305_03      = 35,
+    CPI_DRV8305_04      = 36,
 
     CPI_5VRail          = 37,
     CPI_DiagnosticMode  = 38,
@@ -246,9 +246,9 @@ extern "C" {
     CPI_MaxCurrentSense    = 0x69,
     CPI_DebugFloat         = 0x6A, //
     CPI_EnableAngleStats   = 0x6B,
-    CPI_DRV8305_06         = 0x6C,
-    CPI_DRV8305_07         = 0x6D,
-    CPI_DRV8305_0A         = 0x6E,
+    CPI_DRV8305_05         = 0x6C,
+    CPI_DRV8305_06         = 0x6D,
+    CPI_DRV8305_07         = 0x6E,
 
     CPI_AngleStats         = 0x80, // Including 36 entries after this
 

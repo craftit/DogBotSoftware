@@ -86,7 +86,7 @@ endif
 PROJECT = BMCV2
 
 # Imported source files and paths
-CHIBIOS = ../../../ChibiOS_17.6.3
+CHIBIOS = ../../../ChibiOS_17.6.4
 STDPERIPH = ../ext/STM32F4xx_DSP_StdPeriph_Lib/Libraries/STM32F4xx_StdPeriph_Driver
 
 # Startup files.
@@ -94,7 +94,7 @@ include $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.m
 # HAL-OSAL files (optional).
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/hal/ports/STM32/STM32F4xx/platform.mk
-include ../BMC2_BOARD/board.mk
+include ../BMC3_BOARD/board.mk
 include $(CHIBIOS)/os/hal/osal/rt/osal.mk
 # RTOS files (optional).
 include $(CHIBIOS)/os/rt/rt.mk

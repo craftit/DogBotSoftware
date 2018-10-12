@@ -1008,7 +1008,7 @@ void MainWindow::on_pushButtonDrv8305_7_clicked()
 
 void MainWindow::on_pushButton_Drv8305_A_clicked()
 {
-  m_coms->SendQueryParam(m_targetDeviceId,CPI_DRV8305_0A);
+  //m_coms->SendQueryParam(m_targetDeviceId,CPI_DRV8305_0A);
 }
 
 void MainWindow::on_pushButtonTim1_clicked()

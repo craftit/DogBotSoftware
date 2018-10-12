@@ -57,17 +57,17 @@ void ADCSampleCurrentAndHall(void)
   // See page 427 of the reference manual.
   // Set this register by hand, I don't trust the above functions, though they do set the sample
   // times.
-  ADC1->JSQR = (1 << 20) | (ADC_Channel_10 << (5 * 2)) |  (ADC_Channel_5 << (5 * 3));
+  ADC1->JSQR = (1 << 20) | (ADC_Channel_10 << (5 * 2)) |  (ADC_Channel_0 << (5 * 3));
 
 
   // ADC2
 
-  ADC2->JSQR = (1 << 20) | (ADC_Channel_11 << (5 * 2)) |  (ADC_Channel_4 << (5 * 3));
+  ADC2->JSQR = (1 << 20) | (ADC_Channel_11 << (5 * 2)) |  (ADC_Channel_1 << (5 * 3));
 
 
   // ADC3
 
-  ADC3->JSQR = (1 << 20) | (ADC_Channel_12 << (5 * 2)) |  (ADC_Channel_3 << (5 * 3));
+  ADC3->JSQR = (1 << 20) | (ADC_Channel_12 << (5 * 2)) |  (ADC_Channel_2 << (5 * 3));
 
 
 }
@@ -139,8 +139,8 @@ void InitADC(void)
     // NOTE:  Channels have to setup in order of rank.
     ADC_InjectedSequencerLengthConfig(ADC1,2);
     ADC_InjectedChannelSampleTime(ADC1,ADC_Channel_10, ADC_SampleTime_3Cycles); // Hall A
-    ADC_InjectedChannelSampleTime(ADC1,ADC_Channel_5,  ADC_SampleTime_3Cycles); // ISenseC
-    ADC_InjectedChannelSampleTime(ADC1,ADC_Channel_6,  ADC_SampleTime_3Cycles); // VSupply
+    ADC_InjectedChannelSampleTime(ADC1,ADC_Channel_0,  ADC_SampleTime_3Cycles); // ISenseC
+    ADC_InjectedChannelSampleTime(ADC1,ADC_Channel_7,  ADC_SampleTime_3Cycles); // VSupply
 
     ADC_ExternalTrigInjectedConvConfig(ADC1, ADC_ExternalTrigInjecConv_T1_TRGO);
     ADC_ExternalTrigInjectedConvEdgeConfig(ADC1, ADC_ExternalTrigInjecConvEdge_Falling);
@@ -149,7 +149,7 @@ void InitADC(void)
 
     ADC_InjectedSequencerLengthConfig(ADC2,2);
     ADC_InjectedChannelSampleTime(ADC2,ADC_Channel_11, ADC_SampleTime_3Cycles); // Hall B
-    ADC_InjectedChannelSampleTime(ADC2,ADC_Channel_4,  ADC_SampleTime_3Cycles); // ISenseB
+    ADC_InjectedChannelSampleTime(ADC2,ADC_Channel_1,  ADC_SampleTime_3Cycles); // ISenseB
     ADC_InjectedChannelSampleTime(ADC2,ADC_Channel_0,  ADC_SampleTime_3Cycles);  // VSenseA
     ADC_InjectedChannelSampleTime(ADC2,ADC_Channel_13, ADC_SampleTime_3Cycles); // Temp Motor
 
@@ -160,10 +160,8 @@ void InitADC(void)
 
     ADC_InjectedSequencerLengthConfig(ADC3,2);
     ADC_InjectedChannelSampleTime(ADC3,ADC_Channel_12, ADC_SampleTime_3Cycles);   // Hall C
-    ADC_InjectedChannelSampleTime(ADC3,ADC_Channel_3,  ADC_SampleTime_3Cycles);   // ISenseA
-    ADC_InjectedChannelSampleTime(ADC3,ADC_Channel_1,  ADC_SampleTime_3Cycles);   // VSenseB
-    ADC_InjectedChannelSampleTime(ADC3,ADC_Channel_2,  ADC_SampleTime_3Cycles);   // VSenseC
-    ADC_InjectedChannelSampleTime(ADC3,ADC_Channel_9,  ADC_SampleTime_3Cycles);   // Temp Driver
+    ADC_InjectedChannelSampleTime(ADC3,ADC_Channel_2,  ADC_SampleTime_3Cycles);   // ISenseA
+    ADC_InjectedChannelSampleTime(ADC3,ADC_Channel_4,  ADC_SampleTime_3Cycles);   // VSenseB
 
     ADC_ExternalTrigInjectedConvConfig(ADC3, ADC_ExternalTrigInjecConv_T1_TRGO);
     ADC_ExternalTrigInjectedConvEdgeConfig(ADC3, ADC_ExternalTrigInjecConvEdge_Falling);
@@ -296,9 +294,9 @@ uint16_t *ReadADCs(void) {
 
   static int g_convSeq[13] =  {
       ADC_Channel_0,ADC_Channel_1,ADC_Channel_2,
-      ADC_Channel_3,ADC_Channel_4,ADC_Channel_5,
-      ADC_Channel_6,ADC_Channel_8,ADC_Channel_9,
-      ADC_Channel_10,ADC_Channel_11,ADC_Channel_12,
+      ADC_Channel_3,ADC_Channel_4,ADC_Channel_6,
+      ADC_Channel_7,ADC_Channel_10,ADC_Channel_11,
+      ADC_Channel_12,ADC_Channel_13,ADC_Channel_14,
       ADC_Channel_15
   };
 
@@ -336,20 +334,20 @@ uint16_t ReadADC(uint8_t ADC_Channel)
 
 float Read5VRailVoltage(void)
 {
-  uint16_t val = ReadADC(ADC_Channel_8);
+  uint16_t val = ReadADC(ADC_Channel_14);
   return val * 2.0 * 3.3f/((float)(1<<12));
 }
 
 float ReadSupplyVoltage(void)
 {
-  uint16_t val = ReadADC(ADC_Channel_6);
+  uint16_t val = ReadADC(ADC_Channel_7);
 
-  return ((float) val) * ((3.0+39.0)/3.0) * 3.3f/((float)(1<<12)) * g_supplyVoltageScale;
+  return ((float) val) * ((22.0+390.0)/22.0) * 3.3f/((float)(1<<12)) * g_supplyVoltageScale;
 }
 
 float ReadDriveTemperature(void)
 {
-  uint16_t adcVal = ReadADC(ADC_Channel_9);
+  uint16_t adcVal = ReadADC(ADC_Channel_15);
 
   const float refResistor = 10e3;
   float res =  refResistor * adcVal / ((1<<12) - (adcVal+1));

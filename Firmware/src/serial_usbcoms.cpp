@@ -12,7 +12,8 @@
 #include "hal_channels.h"
 
 #include <string.h>
-#include "drv8305.h"
+
+#include "drv8320.h"
 
 #if !USE_PACKETUSB
 

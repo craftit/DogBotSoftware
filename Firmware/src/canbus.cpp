@@ -496,7 +496,7 @@ int InitCAN(void)
   g_nodeUId[0] = (STM32_UID[0] & 0x0ffffff); // Upper 4 bits are reserved for device type
   g_nodeUId[1] = STM32_UID[1] + STM32_UID[2];
 
-  palClearPad(GPIOB, GPIOB_PIN5);       /* Make sure transmitter is in normal mode.  */
+  //palClearPad(GPIOB, GPIOB_PIN5);       /* Make sure transmitter is in normal mode.  */
 
   if(!g_canInitDone) {
     g_canInitDone = true;
@@ -520,7 +520,7 @@ int InitCAN(void)
 
 int ShutdownCAN(void)
 {
-  palSetPad(GPIOB, GPIOB_PIN5);       /* Put transmitter is in standby mode.  */
+  //palSetPad(GPIOB, GPIOB_PIN5);       /* Put transmitter is in standby mode.  */
 
   if(!g_canInitDone)
     return 0;

@@ -94,7 +94,7 @@ include $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.m
 # HAL-OSAL files (optional).
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/hal/ports/STM32/STM32F4xx/platform.mk
-include ../BMC2_BOARD/board.mk
+include ../BMC3_BOARD/board.mk
 include $(CHIBIOS)/os/hal/osal/rt/osal.mk
 # RTOS files (optional).
 include $(CHIBIOS)/os/rt/rt.mk
@@ -124,7 +124,7 @@ CSRC = $(STARTUPSRC) \
        serial_usbcfg.c \
        coms_serial.c \
        do_adc.c \
-       drv8305.c \
+       drv8320.c \
        svm.c \
        eeprom.c \
        storedconf.c \

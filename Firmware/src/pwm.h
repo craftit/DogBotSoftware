@@ -14,6 +14,7 @@ int InitPWM(void);
 int PWMRun(void);
 int PWMStop(void);
 
+void EnableGateDriver(bool enable);
 void EnableSensorPower(bool enable);
 bool HasSensorPower(void);
 void EnableFanPower(bool enable);

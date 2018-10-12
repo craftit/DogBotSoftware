@@ -13,7 +13,8 @@
 #include "hal_channels.h"
 
 #include <string.h>
-#include "drv8305.h"
+
+#include "drv8320.h"
 
 static const uint8_t g_charSTX = 0x02;
 static const uint8_t g_charETX = 0x03;

@@ -23,7 +23,7 @@
 #include "chprintf.h"
 
 #include "coms.h"
-#include "drv8305.h"
+#include "drv8320.h"
 #include "exec.h"
 #include "shell/shell.h"
 
@@ -57,42 +57,42 @@ static THD_FUNCTION(ThreadGreenLED, arg) {
     switch(g_controlState)
     {
       case CS_Fault: {
-        palSetPad(GPIOC, GPIOC_PIN4);       /* Green.  */
+        palSetPad(LED_GREEN_GPIO_Port, LED_GREEN_Pin);       /* Green.  */
         chThdSleepMilliseconds(20);
-        palClearPad(GPIOC, GPIOC_PIN4);     /* Green.  */
+        palClearPad(LED_GREEN_GPIO_Port, LED_GREEN_Pin);     /* Green.  */
         chThdSleepMilliseconds(5000);
       } break;
       case CS_Standby:
       case CS_SafeStop: {
-        palSetPad(GPIOC, GPIOC_PIN4);       /* Green.  */
+        palSetPad(LED_GREEN_GPIO_Port, LED_GREEN_Pin);       /* Green.  */
         chThdSleepMilliseconds(20);
-        palClearPad(GPIOC, GPIOC_PIN4);     /* Green.  */
+        palClearPad(LED_GREEN_GPIO_Port, LED_GREEN_Pin);     /* Green.  */
         chThdSleepMilliseconds(2000);
       } break;
       case CS_StartUp: {
-        palSetPad(GPIOC, GPIOC_PIN4);       /* Green.  */
+        palSetPad(LED_GREEN_GPIO_Port, LED_GREEN_Pin);       /* Green.  */
         chThdSleepMilliseconds(300);
-        palClearPad(GPIOC, GPIOC_PIN4);     /* Green.  */
+        palClearPad(LED_GREEN_GPIO_Port, LED_GREEN_Pin);     /* Green.  */
         chThdSleepMilliseconds(100);
       } break;
       case CS_EmergencyStop: {
-        palSetPad(GPIOC, GPIOC_PIN4);       /* Green.  */
+        palSetPad(LED_GREEN_GPIO_Port, LED_GREEN_Pin);       /* Green.  */
         chThdSleepMilliseconds(100);
-        palClearPad(GPIOC, GPIOC_PIN4);     /* Green.  */
+        palClearPad(LED_GREEN_GPIO_Port, LED_GREEN_Pin);     /* Green.  */
         chThdSleepMilliseconds(100);
       } break;
       case CS_Ready: {
-        palSetPad(GPIOC, GPIOC_PIN4);       /* Green.  */
+        palSetPad(LED_GREEN_GPIO_Port, LED_GREEN_Pin);       /* Green.  */
         chThdSleepMilliseconds(500);
-        palClearPad(GPIOC, GPIOC_PIN4);     /* Green.  */
+        palClearPad(LED_GREEN_GPIO_Port, LED_GREEN_Pin);     /* Green.  */
         chThdSleepMilliseconds(500);
       } break;
       case CS_SelfTest:
       case CS_FactoryCalibrate:
       default: {
-        palSetPad(GPIOC, GPIOC_PIN4);       /* Green.  */
+        palSetPad(LED_GREEN_GPIO_Port, LED_GREEN_Pin);       /* Green.  */
         chThdSleepMilliseconds(500);
-        palClearPad(GPIOC, GPIOC_PIN4);     /* Green.  */
+        palClearPad(LED_GREEN_GPIO_Port, LED_GREEN_Pin);     /* Green.  */
         chThdSleepMilliseconds(20);
       } break;
     }
@@ -106,9 +106,9 @@ static THD_FUNCTION(ThreadOrangeLED, arg) {
   chRegSetThreadName("orange blinker");
   while (true) {
     if(g_indicatorState) {
-      palSetPad(GPIOC, GPIOC_PIN5);       /* Yellow led. */
+      palSetPad(LED_RED_GPIO_Port, LED_RED_Pin);       /* Yellow led. */
       chThdSleepMilliseconds(1000);
-      palClearPad(GPIOC, GPIOC_PIN5);       /* Yellow led. */
+      palClearPad(LED_RED_GPIO_Port, LED_RED_Pin);       /* Yellow led. */
       if(g_lastFaultCode == FC_Ok) continue;
     }
     if(g_lastFaultCode == FC_Ok) {
@@ -117,9 +117,9 @@ static THD_FUNCTION(ThreadOrangeLED, arg) {
     }
     for(int i = 0;i < (int) g_lastFaultCode;i++) {
       chThdSleepMilliseconds(300);
-      palSetPad(GPIOC, GPIOC_PIN5);       /* Yellow led. */
+      palSetPad(LED_RED_GPIO_Port, LED_RED_Pin);       /* Yellow led. */
       chThdSleepMilliseconds(300);
-      palClearPad(GPIOC, GPIOC_PIN5);       /* Yellow led. */
+      palClearPad(LED_RED_GPIO_Port, LED_RED_Pin);       /* Yellow led. */
     }
     chThdSleepMilliseconds(800);
   }
@@ -335,14 +335,14 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
       PWMStop();
       ShutdownCAN();
       EnableSensorPower(false);
-      usbDisconnectBus(&USBD1);
-      usbStop(&USBD1);
+      usbDisconnectBus(&USBD2);
+      usbStop(&USBD2);
       StopADC();
       EnableFanPower(false);
 
       // Make sure LEDs are off
-      palClearPad(GPIOC, GPIOC_PIN4);     /* Green.  */
-      palClearPad(GPIOC, GPIOC_PIN5);     /* Yellow.  */
+      palClearPad(LED_GREEN_GPIO_Port, LED_GREEN_Pin);     /* Green.  */
+      palClearPad(LED_RED_GPIO_Port, LED_RED_Pin);     /* Yellow.  */
 
       chSysDisable();
 
@@ -365,8 +365,8 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
       PWMStop();
       EnableSensorPower(false);
 
-      usbDisconnectBus(&USBD1);
-      usbStop(&USBD1);
+      usbDisconnectBus(&USBD2);
+      usbStop(&USBD2);
 
       StopADC();
 
@@ -543,19 +543,31 @@ int main(void) {
   halInit();
   chSysInit();
 
+
+
+  /* Create the blinker threads. */
+  chThdCreateStatic(waThreadGreenLED, sizeof(waThreadGreenLED), NORMALPRIO, ThreadGreenLED, NULL);
+  chThdCreateStatic(waThreadOrangeLED, sizeof(waThreadOrangeLED), NORMALPRIO, ThreadOrangeLED, NULL);
+
   EnableSensorPower(false);
   EnableFanPower(false);
 
   InitADC();
 
-  InitSerial();
+  //InitSerial();
   InitUSB();
+
   InitCAN();
 
   StoredConf_Init();
 
   LoadSetup();
 
+  // Make sure select is high
+  palSetPad(DRIVE_SPI_NSELECT_GPIO_Port,DRIVE_SPI_NSELECT_Pin);
+  EnableGateDriver(true);
+
+#if 1
   switch(g_deviceType)
   {
     default: // Report an error?
@@ -567,14 +579,10 @@ int main(void) {
       break;
   }
 
-#if 1
   InitComs();
 
   enum FaultCodeT faultCode = FC_Ok;
 
-  /* Create the blinker threads. */
-  chThdCreateStatic(waThreadGreenLED, sizeof(waThreadGreenLED), NORMALPRIO, ThreadGreenLED, NULL);
-  chThdCreateStatic(waThreadOrangeLED, sizeof(waThreadOrangeLED), NORMALPRIO, ThreadOrangeLED, NULL);
 
   int cycleCount = 0;
   int sleepTimer = 0;
@@ -827,12 +835,22 @@ int main(void) {
   /*
    * Shell manager initialisation.
    */
-  shellInit();
-
+  //shellInit();
+#if 0
+  palSetPad(LED_GREEN_GPIO_Port, LED_GREEN_Pin);       /* Green.  */
+  palSetPad(LED_RED_GPIO_Port, LED_RED_Pin);       /* Red led. */
   while(true) {
-    RunTerminal();
+    palTogglePad(LED_GREEN_GPIO_Port, LED_GREEN_Pin);       /* Red led. */
+    palTogglePad(LED_RED_GPIO_Port, LED_RED_Pin);       /* Green led. */
     chThdSleepMilliseconds(100);
   }
+#else
+
+  while(true) {
+    //RunTerminal();
+    chThdSleepMilliseconds(100);
+  }
+#endif
 #endif
 }
 

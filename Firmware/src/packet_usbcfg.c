@@ -84,12 +84,12 @@ static const uint8_t vcom_configuration_descriptor_data[32] = {
                          0x00,          /* bInterfaceProtocol               */
                          0x00),         /* iInterface.                      */
   /* Endpoint 1 Descriptor. 7 bytes */
-  USB_DESC_ENDPOINT     (USB_ENDPOINT_OUT(USBD1_DATA_OUT_EP), /* bEndpointAddress. OUT */
+  USB_DESC_ENDPOINT     (USB_ENDPOINT_OUT(USBD2_DATA_OUT_EP), /* bEndpointAddress. OUT */
                          0x01,          /* bmAttributes (Isochronous).      */
                          0x0040,        /* wMaxPacketSize.                  */
                          0x01),         /* bInterval.                       */
   /* Endpoint 2 Descriptor. 7 bytes */
-  USB_DESC_ENDPOINT     (USB_ENDPOINT_IN(USBD1_DATA_IN_EP),  /* bEndpointAddress. IN */
+  USB_DESC_ENDPOINT     (USB_ENDPOINT_IN(USBD2_DATA_IN_EP),  /* bEndpointAddress. IN */
                          0x01,          /* bmAttributes (Isochronous).      */
                          0x0040,        /* wMaxPacketSize.                  */
                          0x01),         /* bInterval.                       */
@@ -278,8 +278,8 @@ static void usb_event(USBDriver *usbp, usbevent_t event) {
     /* Enables the endpoints specified in the configuration.
        Note, this callback is invoked from an ISR so I-Class functions
        must be used.*/
-    usbInitEndpointI(usbp, USBD1_DATA_IN_EP, &ep1config);
-    usbInitEndpointI(usbp, USBD1_DATA_OUT_EP, &ep2config);
+    usbInitEndpointI(usbp, USBD2_DATA_IN_EP, &ep1config);
+    usbInitEndpointI(usbp, USBD2_DATA_OUT_EP, &ep2config);
 
     /* Resetting the state of the subsystem.*/
     bmcConfigureHookI(usbp);

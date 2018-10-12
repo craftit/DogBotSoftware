@@ -9,8 +9,8 @@
 /*
  * Endpoints to be used for USBD1.
  */
-#define USBD1_DATA_IN_EP     BMCUSB_DATA_IN_EP
-#define USBD1_DATA_OUT_EP    BMCUSB_DATA_OUT_EP
+#define USBD2_DATA_IN_EP     BMCUSB_DATA_IN_EP
+#define USBD2_DATA_OUT_EP    BMCUSB_DATA_OUT_EP
 
 /*
  * Endpoints to be used for USBD1.

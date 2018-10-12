@@ -3,10 +3,12 @@
 #include "hal.h"
 #include "dogbot/protocol.h"
 #include "bootloader.h"
+#include "board.h"
 #include "exec.h"
 #include "canbus.h"
 
 #include "coms.h"
+#include "bmc.h"
 
 enum FaultCodeT g_lastFaultCode = FC_Ok;
 uint32_t g_faultState = 0;
@@ -43,7 +45,7 @@ int main(void) {
   halInit();
 
   bool forceBootload = !palReadPad(GPIOB, GPIOB_PIN2);
-  if(forceBootload)
+  if(forceBootload || 1)
     g_controlState = CS_BootLoader;
   else {
     if (RCC->CSR & RCC_CSR_SFTRSTF) { // Software reset ?
@@ -68,14 +70,15 @@ int main(void) {
     InitComs();
   #endif
 
-    palSetPad(GPIOC, GPIOC_PIN4);       /* Green.  */
-    palClearPad(GPIOC, GPIOC_PIN5);       /* Yellow led. */
+
+    palSetPad(LED_GREEN_GPIO_Port, LED_GREEN_Pin);       /* Green.  */
+    palClearPad(LED_RED_GPIO_Port, LED_RED_Pin);       /* Red led. */
 
     while(g_controlState == CS_BootLoader)
     {
+      palTogglePad(LED_GREEN_GPIO_Port, LED_GREEN_Pin);       /* Red led. */
+      palTogglePad(LED_RED_GPIO_Port, LED_RED_Pin);       /* Green led. */
 
-      palTogglePad(GPIOC, GPIOC_PIN5);       /* Yellow led. */
-      palTogglePad(GPIOC, GPIOC_PIN4);       /* Green led. */
       chThdSleepMilliseconds(100);
 
       if(g_deviceId != 0 && !sentBootloaderMode) {
@@ -96,8 +99,8 @@ int main(void) {
       SendParamUpdate(CPI_ControlState);
     }
 
-    usbDisconnectBus(&USBD1);
-    usbStop(&USBD1);
+    usbDisconnectBus(&USBD2);
+    usbStop(&USBD2);
 
     //chSysLockFromIsr();
     chSysDisable();

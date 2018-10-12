@@ -11,29 +11,33 @@
 #include "motion.h"
 #include "hal_channels.h"
 #include <string.h>
-#include "drv8305.h"
+
+#include "drv8320.h"
 
 uint8_t g_debugIndex = 0x55;
 
 void EnableFanPower(bool enable)
 {
   if(enable)
-    palSetPad(GPIOA, GPIOA_PIN7); // Turn off aux power
+    palSetPad(FAN_POWER_GPIO_Port, FAN_POWER_Pin); // Turn off fan power
   else
-    palClearPad(GPIOA, GPIOA_PIN7); // Turn on aux power
+    palClearPad(FAN_POWER_GPIO_Port, FAN_POWER_Pin); // Turn on fan power
 }
 
 bool HasSensorPower()
 {
-  return palReadPad(GPIOB, GPIOB_PIN12) != 0;
+  //return palReadPad(FAN_SENSOR_GPIO_Port, FAN_SENSOR_Pin) != 0;
+  return false;
 }
 
 void EnableSensorPower(bool enable)
 {
+#if 0
   if(enable)
-    palSetPad(GPIOB, GPIOB_PIN12); // Turn off sensor power
+    palSetPad(FAN_SENSOR_GPIO_Port, FAN_SENSOR_Pin); // Turn off sensor power
   else
-    palClearPad(GPIOB, GPIOB_PIN12); // Turn off sensor power
+    palClearPad(FAN_SENSOR_GPIO_Port, FAN_SENSOR_Pin); // Turn off sensor power
+#endif
 }
 
 
@@ -94,11 +98,8 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
       break;
     case CPI_IndexSensor:
     case CPI_BoardUID:
+    case CPI_DRV8305:
     case CPI_DRV8305_01:
-    case CPI_DRV8305_02:
-    case CPI_DRV8305_03:
-    case CPI_DRV8305_04:
-    case CPI_DRV8305_0A:
     case CPI_VSUPPLY:
     case CPI_5VRail:
     case CPI_DriveTemp:
@@ -110,17 +111,21 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
     case CPI_MotorOffsetVoltage:
     case CPI_TIM1_SR:
       break;
+    case CPI_DRV8305_02:
+      if(len != 2) return false;
+      Drv8320SetRegister(2,data->uint16[0]);
+      return true;
+    case CPI_DRV8305_03:
+      if(len != 2) return false;
+      Drv8320SetRegister(3,data->uint16[0]);
+      return true;
+    case CPI_DRV8305_04:
+      if(len != 2) return false;
+      Drv8320SetRegister(4,data->uint16[0]);
+      return true;
     case CPI_DRV8305_05:
       if(len != 2) return false;
-      Drv8305SetRegister(5,data->uint16[0]);
-      return true;
-    case CPI_DRV8305_06:
-      if(len != 2) return false;
-      Drv8305SetRegister(6,data->uint16[0]);
-      return true;
-    case CPI_DRV8305_07:
-      if(len != 2) return false;
-      Drv8305SetRegister(7,data->uint16[0]);
+      Drv8320SetRegister(5,data->uint16[0]);
       return true;
     case CPI_CalibrationOffset:
       if(len != 4)
@@ -533,25 +538,22 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       data->uint32[1] = g_nodeUId[1];
       break;
     case CPI_DRV8305_01:
+    case CPI_DRV8305_00:
     case CPI_DRV8305_02:
     case CPI_DRV8305_03:
-    case CPI_DRV8305_04:
+    case CPI_DRV8305_04: {
+      int reg = ((int) index - CPI_DRV8305);
+      *len = 2;
+      data->uint16[0] = Drv8320ReadRegister(reg);
+    } break;
     case CPI_DRV8305_05: {
-      int reg = ((int) index - CPI_DRV8305)+1;
       *len = 2;
-      data->uint16[0] = Drv8305ReadRegister(reg);
+      data->uint16[0] = Drv8320ReadRegister(5);
     } break;
-    case CPI_DRV8305_06: {
-      *len = 2;
-      data->uint16[0] = Drv8305ReadRegister(6);
-    } break;
+    case CPI_DRV8305_06:
     case CPI_DRV8305_07: {
-      *len = 2;
-      data->uint16[0] = Drv8305ReadRegister(7);
-    } break;
-    case CPI_DRV8305_0A: {
-      *len = 2;
-      data->uint16[0] = Drv8305ReadRegister(0x0a);
+      *len = 0;
+      return false;
     } break;
     case CPI_TIM1_SR: {
       stm32_tim_t *tim = (stm32_tim_t *)TIM1_BASE;
