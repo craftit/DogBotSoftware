@@ -24,6 +24,7 @@
 
 #include "coms.h"
 #include "drv8320.h"
+#include "lan9252.h"
 #include "exec.h"
 #include "shell/shell.h"
 
@@ -49,8 +50,8 @@ int g_deviceZeroTimer = 0;
  * a LED.
  */
 static THD_WORKING_AREA(waThreadGreenLED, 128);
-static THD_FUNCTION(ThreadGreenLED, arg) {
-
+static THD_FUNCTION(ThreadGreenLED, arg)
+{
   (void)arg;
   chRegSetThreadName("blinker");
   while (true) {
@@ -533,6 +534,8 @@ void DoStartup(void)
  */
 int main(void) {
 
+  enum FaultCodeT faultCode = FC_Ok;
+
   /*
    * System initialisations.
    * - HAL initialisation, this also initialises the configured device drivers
@@ -559,6 +562,9 @@ int main(void) {
 
   InitCAN();
 
+  faultCode = InitLan9252();
+  // FIXME:- What do do ?
+
   StoredConf_Init();
 
   LoadSetup();
@@ -580,9 +586,6 @@ int main(void) {
   }
 
   InitComs();
-
-  enum FaultCodeT faultCode = FC_Ok;
-
 
   int cycleCount = 0;
   int sleepTimer = 0;
@@ -723,7 +726,7 @@ int main(void) {
 #endif
     }
 
-
+    PollIOStatus();
 
     // Stuff we want to check all the time.
     g_driveTemperature +=  (ReadDriveTemperature() - g_driveTemperature) * 0.05;
@@ -778,6 +781,7 @@ int main(void) {
     }
 
     {
+
       float busVoltage = ReadSupplyVoltage();
       g_vbus_voltage += (busVoltage - g_vbus_voltage) * 0.2;
       static float g_averageBusVoltage = 20;

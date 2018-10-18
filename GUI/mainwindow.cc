@@ -687,9 +687,11 @@ void MainWindow::SetupComs()
     displayStr += " Data:";
     char buff[64];
     for(unsigned i = 0;i < (size - sizeof(psp->m_header));i++) {
-      sprintf(buff,"%02x ",(unsigned) psp->m_data.uint8[i]);
+      sprintf(buff,"%02x ",(unsigned) (psp->m_data.uint8[i]));
       displayStr += buff;
     }
+    sprintf(buff," (%08x) ",(unsigned) (psp->m_data.uint32[0]));
+    displayStr += buff;
     if(ProcessParam(psp,displayStr)) {
       std::cout << "ReportParam: " << displayStr << std::endl;
       emit setLogText(displayStr.c_str());

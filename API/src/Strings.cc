@@ -159,6 +159,8 @@ namespace DogBotN {
       case CPT_Message: return "Message";
       case CPT_Range: return "Range";
       case CPT_RestoreFactorySetup: return "RestoreFactorySetup";
+      case CPT_EtherCATRead: return "EtherCATRead";
+      case CPT_EtherCATWrite: return "EtherCATWrite";
       case CPT_Final:return "!!Final!!";
     }
     printf("Unexpected packet type %d \n",(int)packetType);

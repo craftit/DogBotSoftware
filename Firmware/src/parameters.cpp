@@ -10,36 +10,12 @@
 #include "mathfunc.h"
 #include "motion.h"
 #include "hal_channels.h"
+#include "lan9252.h"
 #include <string.h>
 
 #include "drv8320.h"
 
 uint8_t g_debugIndex = 0x55;
-
-void EnableFanPower(bool enable)
-{
-  if(enable)
-    palSetPad(FAN_POWER_GPIO_Port, FAN_POWER_Pin); // Turn off fan power
-  else
-    palClearPad(FAN_POWER_GPIO_Port, FAN_POWER_Pin); // Turn on fan power
-}
-
-bool HasSensorPower()
-{
-  //return palReadPad(FAN_SENSOR_GPIO_Port, FAN_SENSOR_Pin) != 0;
-  return false;
-}
-
-void EnableSensorPower(bool enable)
-{
-#if 0
-  if(enable)
-    palSetPad(FAN_SENSOR_GPIO_Port, FAN_SENSOR_Pin); // Turn off sensor power
-  else
-    palClearPad(FAN_SENSOR_GPIO_Port, FAN_SENSOR_Pin); // Turn off sensor power
-#endif
-}
-
 
 void SetMotorControlMode(PWMControlDynamicT controlMode)
 {
@@ -475,6 +451,9 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
         return false;
       g_deviceType = static_cast<enum DeviceTypeT>(data->uint8[0]);
     } break;
+    case CPI_LAN9252: {
+      return false;
+    } break;
     case CPI_FINAL:
       return false;
     default:
@@ -828,7 +807,10 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       data->uint8[0] = 0;
 #endif
     } break;
-
+    case CPI_LAN9252: {
+      *len = 4;
+      data->uint32[0] = Lan9252ReadRegister32(0x64);
+    } break;
     case CPI_FINAL:
     default:
       *len = 0;

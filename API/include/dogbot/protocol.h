@@ -49,6 +49,9 @@ extern "C" {
     CPT_Message          = 29, // Debug message packet
     CPT_Range            = 30, // Range sensor reading
     CPT_RestoreFactorySetup  = 31, // Restore settings to factory default
+    CPT_EtherCATRead     = 32,
+    CPT_EtherCATWrite    = 33,
+
     CPT_Final                  // Use to get count of known packet types.
   };
 
@@ -249,6 +252,8 @@ extern "C" {
     CPI_DRV8305_05         = 0x6C,
     CPI_DRV8305_06         = 0x6D,
     CPI_DRV8305_07         = 0x6E,
+
+    CPI_LAN9252            = 0x70,
 
     CPI_AngleStats         = 0x80, // Including 36 entries after this
 
@@ -599,6 +604,7 @@ extern "C" {
     uint8_t m_data[7];
   };
 
+  //! Flash write request
   struct PacketFlashWriteC {
     uint8_t m_packetType;
     uint8_t m_deviceId;
@@ -607,6 +613,7 @@ extern "C" {
     uint16_t m_len;
   };
 
+  //! Flash read request
   struct PacketFlashReadC {
     uint8_t m_packetType;
     uint8_t m_deviceId;
@@ -614,6 +621,21 @@ extern "C" {
     uint32_t m_addr;
     uint16_t m_len;
   };
+
+  //! Read bytes from lan
+  struct PacketEtherCATReadC {
+    uint8_t m_packetType;
+    uint8_t m_deviceId;
+    uint16_t m_addr;
+    uint8_t m_len;
+  } __attribute__((packed));
+
+  //! The packet length is used to determine the size of the write
+  struct PacketEtherCATWriteC {
+    uint8_t m_packetType;
+    uint8_t m_deviceId;
+    uint16_t m_addr;
+  } __attribute__((packed));
 
 
 #ifdef __cplusplus

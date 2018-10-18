@@ -509,6 +509,27 @@ void ProcessPacket(const uint8_t *m_data,int m_packetLen)
       }
     }
   } break;
+  case CPT_EtherCATRead: {
+    if(m_packetLen != sizeof(struct PacketEtherCATReadC)) {
+      USBSendError(g_deviceId,CET_UnexpectedPacketSize,cpt,m_packetLen);
+      break;
+    }
+    auto *psp = (struct PacketEtherCATReadC *) m_data;
+    if(psp->m_deviceId == g_deviceId || psp->m_deviceId == 0) {
+      //Lan9252Read(psp->m_addr,)
+    }
+  } break;
+  case CPT_EtherCATWrite: {
+    if(m_packetLen <= sizeof(struct PacketEtherCATWriteC)) {
+      USBSendError(g_deviceId,CET_UnexpectedPacketSize,cpt,m_packetLen);
+      break;
+    }
+    auto *psp = (struct PacketEtherCATWriteC *) m_data;
+    if(psp->m_deviceId == g_deviceId || psp->m_deviceId == 0) {
+
+    }
+
+  } break;
 #if 1
   default: {
     USBSendError(g_deviceId,CET_UnknownPacketType,m_data[0],m_packetLen);

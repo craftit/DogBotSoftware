@@ -159,7 +159,9 @@ CPPSRC = \
   parameters.cpp \
   flashStubs.cpp \
   do_pwm.cpp \
-  emergency_stop.cpp 
+  emergency_stop.cpp \
+  lan9252.cpp \
+  power.cpp
 
 
 # C sources to be compiled in ARM mode regardless of the global setting.

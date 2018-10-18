@@ -27,7 +27,7 @@ static THD_FUNCTION(ThreadRxComs, arg) {
    * after a reset.
    */
   usbDisconnectBus(&USBD2);
-  chThdSleepMilliseconds(1500);
+  chThdSleepMilliseconds(750);
   usbStart(&USBD2,&usbcfg);
   usbConnectBus(&USBD2);
 
