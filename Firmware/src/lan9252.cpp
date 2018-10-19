@@ -26,7 +26,7 @@ static void Lan9252SPIExchange(const uint8_t *txbuff,uint8_t *rxbuff,int len)
   spiStart(&LANSPI, &ls_spicfg);       /* Setup transfer parameters.       */
   spiSelect(&LANSPI);                  /* Slave Select assertion.          */
   spiExchange(&LANSPI,len,
-              &txbuff, &rxbuff);          /* Atomic transfer operations.      */
+              txbuff, rxbuff);          /* Atomic transfer operations.      */
   spiUnselect(&LANSPI);                /* Slave Select de-assertion.       */
   spiReleaseBus(&LANSPI);              /* Ownership release.               */
 }
@@ -45,25 +45,7 @@ void Lan9252ResetSQI()
 
 const int g_bufferSize = 16;
 
-uint16_t Lan9252SetRegister16(uint16_t addr,uint16_t value)
-{
-  uint8_t rxbuff[5];
-  uint8_t txbuff[5];
 
-  txbuff[0] = 0x02; // Low speed write, no dummy data
-  txbuff[1] = 0x40 | ((addr >> 8) & 0x3f);
-  txbuff[2] = addr & 0xff;
-
-  for(int i = 0;i < 2;i++)
-    txbuff[i+3] =(value >> (8 * i)) & 0xff;
-
-  Lan9252SPIExchange(txbuff,rxbuff,5);
-
-  uint16_t result = 0;
-  for(int i = 0;i < 2;i++)
-    result = result | (((uint16_t) rxbuff[i+3]) << (8 * i));
-  return result;
-}
 
 
 uint32_t Lan9252SetRegister32(uint16_t addr,uint32_t value)
@@ -72,7 +54,7 @@ uint32_t Lan9252SetRegister32(uint16_t addr,uint32_t value)
   uint8_t txbuff[7];
 
   txbuff[0] = 0x02; // Low speed write, no dummy data
-  txbuff[1] = 0x40 | ((addr >> 8) & 0x3f);
+  txbuff[1] = 0x00 | ((addr >> 8) & 0x3f);
   txbuff[2] = addr & 0xff;
 
   for(int i = 0;i < 4;i++)
@@ -86,32 +68,11 @@ uint32_t Lan9252SetRegister32(uint16_t addr,uint32_t value)
   return result;
 }
 
-uint16_t Lan9252ReadRegister16(uint16_t addr)
-{
-  uint8_t txbuff[5] ;
-  uint8_t rxbuff[5];
-
-  txbuff[0] = 0x03; // Low speed read, no dummy data
-  txbuff[1] = 0x00 | ((addr >> 8) & 0x3f); // Address with auto increment
-  txbuff[2] = addr & 0xff;
-  txbuff[3] = 0;
-  txbuff[4] = 0;
-
-  Lan9252SPIExchange(txbuff,rxbuff,5);
-
-  uint16_t result = 0;
-  for(int i = 0;i < 2;i++)
-    result = result | (((uint16_t) rxbuff[i+3]) << (8 * i));
-  return result;
-}
-
 
 uint32_t Lan9252ReadRegister32(uint16_t addr)
 {
   uint8_t txbuff[7] ;
   uint8_t rxbuff[7];
-
-  memset(rxbuff,0,7);
 
   txbuff[0] = 0x03; // Low speed read, no dummy data
   txbuff[1] = 0x00 | ((addr >> 8) & 0x3f);

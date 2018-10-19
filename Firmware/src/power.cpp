@@ -17,20 +17,20 @@
 
 #include "drv8320.h"
 
-static int16_t g_ioStatus = 0;
-static int16_t g_ioOutput = 0;
+static int32_t g_ioStatus = 0;
+static int32_t g_ioOutput = 0;
 
-static int16_t g_ioBitSensorPower = 0x0001;
-static int16_t g_ioBitFanPower    = 0x0002;
-static int16_t g_ioBitCANPower    = 0x0004;
-static int16_t g_ioBitUSARTPower  = 0x0008;
-static int16_t g_ioBitUSBPower    = 0x0010;
-static int16_t g_ioBitCANStandby  = 0x20;
+static int32_t g_ioBitSensorPower = 0x0001;
+static int32_t g_ioBitFanPower    = 0x0002;
+static int32_t g_ioBitCANPower    = 0x0004;
+static int32_t g_ioBitUSARTPower  = 0x0008;
+static int32_t g_ioBitUSBPower    = 0x0010;
+static int32_t g_ioBitCANStandby  = 0x0020;
 
 void PollIOStatus()
 {
   SendParamUpdate(CPI_LAN9252);
-  //g_ioStatus = Lan9252ReadRegister16(0x0f18);
+  g_ioStatus = Lan9252ReadRegister32(0x0f18);
 }
 
 void EnableFanPower(bool enable)
@@ -45,7 +45,7 @@ void EnableFanPower(bool enable)
     g_ioOutput = g_ioOutput & (~g_ioBitFanPower);
   }
   // Update output
-  //Lan9252SetRegister16(0x0F10,g_ioOutput);
+  Lan9252SetRegister32(0x0F10,g_ioOutput);
 }
 
 bool HasSensorPower()
@@ -61,6 +61,6 @@ void EnableSensorPower(bool enable)
     g_ioOutput = g_ioOutput & (~g_ioBitSensorPower);
   }
   // Update output
-  //Lan9252SetRegister16(0x0F10,g_ioOutput);
+  Lan9252SetRegister32(0x0F10,g_ioOutput);
 }
 

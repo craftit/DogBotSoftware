@@ -8,8 +8,6 @@ extern "C" {
 #endif
 
 extern uint16_t Lan9252ReadStatus(void);
-extern uint16_t Lan9252ReadRegister16(uint16_t addr);
-extern uint16_t Lan9252SetRegister16(uint16_t addr,uint16_t value);
 extern uint32_t Lan9252ReadRegister32(uint16_t addr);
 extern uint32_t Lan9252SetRegister32(uint16_t addr,uint32_t value);
 
