@@ -130,6 +130,73 @@ enum FaultCodeT Lan9252Write(uint16_t addr,const uint8_t *data,uint8_t len)
   return FC_Ok;
 }
 
+#define ESC_CSR_CMD_REG         0x304
+#define ESC_CSR_DATA_REG        0x300
+#define ESC_WRITE_BYTE          0x80
+#define ESC_READ_BYTE           0xC0
+#define ESC_CSR_BUSY            0x80
+
+union param32_t {
+  uint32_t uint32;
+  uint8_t uint8[4];
+} ;
+
+
+enum FaultCodeT Lan9252ReadCSR(uint16_t addr,uint8_t *data,uint8_t len)
+{
+  if(len != 1 && len != 2 && len != 4)
+    return FC_Internal;
+
+  union param32_t buff;
+
+  // Send write command
+  buff.uint8[0] = addr & 0xff;
+  buff.uint8[1] = (addr >> 8) & 0xff;
+  buff.uint8[2] = len;
+  buff.uint8[3] = ESC_READ_BYTE;
+
+  Lan9252SetRegister32(ESC_CSR_CMD_REG,buff.uint32);
+
+  do {
+    buff.uint32 = Lan9252ReadRegister32(ESC_CSR_CMD_REG);
+  } while(buff.uint32 & ESC_CSR_BUSY);
+
+  buff.uint32 = Lan9252ReadRegister32(ESC_CSR_DATA_REG);
+
+  memcpy(data,buff.uint8,len);
+
+  return FC_Ok;
+}
+
+enum FaultCodeT Lan9252WriteCSR(uint16_t addr,const uint8_t *data,uint8_t len)
+{
+  if(len != 1 && len != 2 && len != 4)
+    return FC_Internal;
+
+  union param32_t buff;
+  memcpy(buff.uint8,data,len);
+
+  // Set data register
+  Lan9252SetRegister32(ESC_CSR_DATA_REG,buff.uint32);
+
+
+  // Send write command
+  buff.uint8[0] = addr & 0xff;
+  buff.uint8[1] = (addr >> 8) & 0xff;
+  buff.uint8[2] = len;
+  buff.uint8[3] = ESC_WRITE_BYTE;
+
+  Lan9252SetRegister32(ESC_CSR_CMD_REG,buff.uint32);
+
+  // Wait until write is complete
+  do {
+    buff.uint32 = Lan9252ReadRegister32(ESC_CSR_CMD_REG);
+  } while(buff.uint32 & ESC_CSR_BUSY);
+
+  return FC_Ok;
+}
+
+
 
 uint16_t Lan9252ReadStatus(void)
 {

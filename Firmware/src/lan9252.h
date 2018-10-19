@@ -14,6 +14,9 @@ extern uint32_t Lan9252SetRegister32(uint16_t addr,uint32_t value);
 extern enum FaultCodeT Lan9252Read(uint16_t addr,uint8_t *data,uint8_t len);
 extern enum FaultCodeT Lan9252Write(uint16_t addr,const uint8_t *data,uint8_t len);
 
+extern enum FaultCodeT Lan9252ReadCSR(uint16_t addr,uint8_t *data,uint8_t len);
+extern enum FaultCodeT Lan9252WriteCSR(uint16_t addr,const uint8_t *data,uint8_t len);
+
 extern uint16_t Lan9252Test(void);
 extern enum FaultCodeT InitLan9252(void);
 

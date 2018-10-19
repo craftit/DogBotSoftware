@@ -30,7 +30,7 @@ static int32_t g_ioBitCANStandby  = 0x0020;
 void PollIOStatus()
 {
   SendParamUpdate(CPI_LAN9252);
-  g_ioStatus = Lan9252ReadRegister32(0x0f18);
+  Lan9252ReadCSR(0x0F10,(uint8_t *)&g_ioStatus,4);
 }
 
 void EnableFanPower(bool enable)
@@ -45,7 +45,8 @@ void EnableFanPower(bool enable)
     g_ioOutput = g_ioOutput & (~g_ioBitFanPower);
   }
   // Update output
-  Lan9252SetRegister32(0x0F10,g_ioOutput);
+  Lan9252WriteCSR(0x0F10,(uint8_t *)&g_ioOutput,4);
+  //Lan9252SetRegister32(0x0F10,g_ioOutput);
 }
 
 bool HasSensorPower()
@@ -61,6 +62,6 @@ void EnableSensorPower(bool enable)
     g_ioOutput = g_ioOutput & (~g_ioBitSensorPower);
   }
   // Update output
-  Lan9252SetRegister32(0x0F10,g_ioOutput);
+  Lan9252WriteCSR(0x0F10,(uint8_t *)&g_ioOutput,4);
 }
 
