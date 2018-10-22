@@ -96,7 +96,13 @@ void EnableGateDriver(bool enable)
 
 void EnableGateOutputs(bool enable)
 {
-  //...
+  if(enable) {
+    uint16_t driveControl = Drv8320ReadRegister(DRV8320_REG_DRIVE_CONTROL);
+    Drv8320SetRegister(DRV8320_REG_DRIVE_CONTROL,driveControl & ~DRV8320_DC_COAST);
+  } else {
+    uint16_t driveControl = Drv8320ReadRegister(DRV8320_REG_DRIVE_CONTROL);
+    Drv8320SetRegister(DRV8320_REG_DRIVE_CONTROL,driveControl | DRV8320_DC_COAST);
+  }
 }
 
 bool IsGateDriverFault()
@@ -213,12 +219,13 @@ void ShuntCalibration(void)
 {
 
   float ampGain = 20.0; // V/V gain
-  float shuntResistance = 0.005;
+  float shuntResistance = 0.0005;
 
   // 95% of half the range of possible values.
   g_maxCurrentSense = (3.3 * 0.5 * 0.95)/ (shuntResistance * ampGain);
   SendParamUpdate(CPI_MaxCurrentSense);
 
+  // Disable outputs
   uint16_t driveControl = Drv8320ReadRegister(DRV8320_REG_DRIVE_CONTROL);
   Drv8320SetRegister(DRV8320_REG_DRIVE_CONTROL,driveControl | DRV8320_DC_COAST);
 
@@ -248,7 +255,7 @@ void ShuntCalibration(void)
   for(int j = 0;j < 3;j++)
     g_currentZeroOffset[j] = sums[j] / (float) samples;
 
-  // Disable calibration mode.
+  // Restore control state.
   Drv8320SetRegister(DRV8320_REG_DRIVE_CONTROL,driveControl);
 
 }
@@ -1183,7 +1190,7 @@ int PWMStop()
   // Don't claim to be calibrated.
   MotionResetCalibration(MHS_Lost);
 
-  //EnableGateDriver(false);
+  EnableGateDriver(false);
 
   return 0;
 }
@@ -1347,19 +1354,31 @@ enum FaultCodeT PWMMotorCal()
   // Make sure PWM is running.
   InitPWM();
 
-  EnableGateOutputs(true);
+  EnableGateDriver(true);
+  //! Wait for power up to complete
+  int timeOut = 10;
+  while (IsGateDriverFault()) {
+    if(timeOut-- < 0) {
+      EnableGateDriver(false);
+      g_gateDriverFault = true;
+      return FC_DriverFault;
+    }
+    chThdSleepMilliseconds(100);
+  }
 
   // Calibrate shunts.
   ShuntCalibration();
 
   if((ret = PWMMotorCalResistance()) != FC_Ok) {
+    EnableGateDriver(false);
     EnableGateOutputs(false);
     return ret;
   }
   SendParamUpdate(CPI_MotorResistance);
 
   if((ret = PWMMotorCalInductance()) != FC_Ok) {
-     EnableGateOutputs(false);
+    EnableGateDriver(false);
+    EnableGateOutputs(false);
     return ret;
   }
   SendParamUpdate(CPI_MotorInductance);
@@ -1419,7 +1438,6 @@ enum FaultCodeT PWMMotorCalResistance()
       ret = FC_InternalTiming;
       break;
     }
-    // Update in case we're monitoring currents from another thread.
     UpdateCurrentMeasurementsFromADCValues();
 
     float Ialpha = -(g_current[1] + g_current[2]);

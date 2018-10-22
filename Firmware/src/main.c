@@ -532,7 +532,8 @@ void DoStartup(void)
 /*
  * Application entry point.
  */
-int main(void) {
+int main(void)
+{
 
   enum FaultCodeT faultCode = FC_Ok;
 

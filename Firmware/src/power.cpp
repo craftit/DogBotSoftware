@@ -46,7 +46,6 @@ void EnableFanPower(bool enable)
   }
   // Update output
   Lan9252WriteCSR(0x0F10,(uint8_t *)&g_ioOutput,4);
-  //Lan9252SetRegister32(0x0F10,g_ioOutput);
 }
 
 bool HasSensorPower()

@@ -139,7 +139,7 @@ void InitADC(void)
     // NOTE:  Channels have to setup in order of rank.
     ADC_InjectedSequencerLengthConfig(ADC1,2);
     ADC_InjectedChannelSampleTime(ADC1,ADC_Channel_10, ADC_SampleTime_3Cycles); // Hall A
-    ADC_InjectedChannelSampleTime(ADC1,ADC_Channel_0,  ADC_SampleTime_3Cycles); // ISenseC
+    ADC_InjectedChannelSampleTime(ADC1,ADC_Channel_0,  ADC_SampleTime_3Cycles); // ISenseA
     ADC_InjectedChannelSampleTime(ADC1,ADC_Channel_7,  ADC_SampleTime_3Cycles); // VSupply
 
     ADC_ExternalTrigInjectedConvConfig(ADC1, ADC_ExternalTrigInjecConv_T1_TRGO);
@@ -160,7 +160,7 @@ void InitADC(void)
 
     ADC_InjectedSequencerLengthConfig(ADC3,2);
     ADC_InjectedChannelSampleTime(ADC3,ADC_Channel_12, ADC_SampleTime_3Cycles);   // Hall C
-    ADC_InjectedChannelSampleTime(ADC3,ADC_Channel_2,  ADC_SampleTime_3Cycles);   // ISenseA
+    ADC_InjectedChannelSampleTime(ADC3,ADC_Channel_2,  ADC_SampleTime_3Cycles);   // ISenseC
     ADC_InjectedChannelSampleTime(ADC3,ADC_Channel_4,  ADC_SampleTime_3Cycles);   // VSenseB
 
     ADC_ExternalTrigInjectedConvConfig(ADC3, ADC_ExternalTrigInjecConv_T1_TRGO);
