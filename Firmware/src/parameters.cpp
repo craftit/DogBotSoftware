@@ -516,8 +516,8 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       data->uint32[0] = g_nodeUId[0];
       data->uint32[1] = g_nodeUId[1];
       break;
-    case CPI_DRV8305_01:
     case CPI_DRV8305_00:
+    case CPI_DRV8305_01:
     case CPI_DRV8305_02:
     case CPI_DRV8305_03:
     case CPI_DRV8305_04: {

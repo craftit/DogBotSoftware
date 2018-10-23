@@ -57,8 +57,6 @@ private slots:
 
   void on_pushButtonOpenLog_clicked();
 
-  void on_pushButtonQueryState_clicked();
-
   void on_pushButtonDrv8305_2_clicked();
 
   void on_pushButtonDrv8305_3_clicked();
@@ -247,6 +245,10 @@ private slots:
   void on_comboBox_HSDriveTime_activated(int index);
 
   void on_comboBox_LSDriveTime_activated(int index);
+
+  void on_pushButtonDrv8305_0_clicked();
+
+  void on_pushButtonDrv8305_1_clicked();
 
 signals:
   void setLogText(const QString &str);

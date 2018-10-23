@@ -344,16 +344,21 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     ret = false;
     break;
     break;
+  case CPI_DRV8305_00:
   case CPI_DRV8305_01:
   case CPI_DRV8305_02:
   case CPI_DRV8305_03:
-  case CPI_DRV8305_04:
-  case CPI_DRV8305_05: {
+  case CPI_DRV8305_04: {
     int reg = (psp->m_header.m_index - (int) CPI_DRV8305_01)+1;
     sprintf(buff,"\n Reg %d contents: %04X ",reg,(int) psp->m_data.uint16[0]);
     displayStr += buff;
 
    } break;
+  case CPI_DRV8305_05: {
+    int reg = 5;
+    sprintf(buff,"\n Reg %d contents: %04X ",reg,(int) psp->m_data.uint16[0]);
+    displayStr += buff;
+  } break;
   case CPI_DRV8305_06: {
     int reg = 6;
     sprintf(buff,"\n Reg %d contents: %04X ",reg,(int) psp->m_data.uint16[0]);
@@ -973,7 +978,12 @@ void MainWindow::on_pushButtonOpenLog_clicked()
   m_logStrm = std::shared_ptr<std::ostream>(new std::ofstream(fileName.toLocal8Bit().data()));
 }
 
-void MainWindow::on_pushButtonQueryState_clicked()
+void MainWindow::on_pushButtonDrv8305_0_clicked()
+{
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_DRV8305_00);
+}
+
+void MainWindow::on_pushButtonDrv8305_1_clicked()
 {
   m_coms->SendQueryParam(m_targetDeviceId,CPI_DRV8305_01);
 }
@@ -1966,5 +1976,7 @@ void MainWindow::on_comboBox_DeadTime_activated(int index)
 
   m_coms->SendSetParam(m_targetDeviceId,CPI_DRV8305_07,static_cast<uint16_t>(value));
 }
+
+
 
 

@@ -109,7 +109,7 @@
        <bool>true</bool>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>3</number>
       </property>
       <widget class="QWidget" name="tab_connect">
        <attribute name="title">
@@ -298,8 +298,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>861</width>
-             <height>878</height>
+             <width>843</width>
+             <height>940</height>
             </rect>
            </property>
            <layout class="QGridLayout" name="gridLayout_15">
@@ -1028,8 +1028,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>861</width>
-             <height>878</height>
+             <width>843</width>
+             <height>928</height>
             </rect>
            </property>
            <layout class="QGridLayout" name="gridLayout_8">
@@ -1039,31 +1039,31 @@
                <string>Queries</string>
               </property>
               <layout class="QGridLayout" name="gridLayout_6">
-               <item row="11" column="1">
+               <item row="12" column="1">
                 <widget class="QPushButton" name="pushButtonDrv8305_6">
                  <property name="text">
                   <string>Drv8305_6</string>
                  </property>
                 </widget>
                </item>
-               <item row="15" column="1">
+               <item row="16" column="1">
                 <widget class="QPushButton" name="pushButton_3">
                  <property name="text">
                   <string>Phase Resistance</string>
                  </property>
                 </widget>
                </item>
-               <item row="0" column="0" rowspan="21">
+               <item row="0" column="0" rowspan="22">
                 <widget class="QTextEdit" name="textEditLog"/>
                </item>
-               <item row="9" column="1">
+               <item row="10" column="1">
                 <widget class="QPushButton" name="pushButtonDrv8305_4">
                  <property name="text">
                   <string>Drv8305_4</string>
                  </property>
                 </widget>
                </item>
-               <item row="18" column="1">
+               <item row="19" column="1">
                 <widget class="QPushButton" name="pushButton_2">
                  <property name="text">
                   <string>DebugIndex</string>
@@ -1077,7 +1077,7 @@
                  </property>
                 </widget>
                </item>
-               <item row="17" column="1">
+               <item row="18" column="1">
                 <widget class="QPushButton" name="pushButton_5">
                  <property name="text">
                   <string>5V Rail</string>
@@ -1091,7 +1091,7 @@
                  </property>
                 </widget>
                </item>
-               <item row="14" column="1">
+               <item row="15" column="1">
                 <widget class="QPushButton" name="pushButton_4">
                  <property name="text">
                   <string>Phase Inductance</string>
@@ -1105,14 +1105,14 @@
                  </property>
                 </widget>
                </item>
-               <item row="8" column="1">
+               <item row="9" column="1">
                 <widget class="QPushButton" name="pushButtonDrv8305_3">
                  <property name="text">
                   <string>Drv8305_3</string>
                  </property>
                 </widget>
                </item>
-               <item row="7" column="1">
+               <item row="8" column="1">
                 <widget class="QPushButton" name="pushButtonDrv8305_2">
                  <property name="text">
                   <string>Drv8305_2</string>
@@ -1126,14 +1126,14 @@
                  </property>
                 </widget>
                </item>
-               <item row="19" column="1">
+               <item row="20" column="1">
                 <widget class="QPushButton" name="pushButtonPhaseEndStops">
                  <property name="text">
                   <string>Phase EndStops</string>
                  </property>
                 </widget>
                </item>
-               <item row="20" column="1">
+               <item row="21" column="1">
                 <widget class="QPushButton" name="pushButtonTim1">
                  <property name="text">
                   <string>Tim1</string>
@@ -1147,7 +1147,7 @@
                  </property>
                 </widget>
                </item>
-               <item row="10" column="1">
+               <item row="11" column="1">
                 <widget class="QPushButton" name="pushButtonDrv8305_5">
                  <property name="text">
                   <string>Drv8305_5</string>
@@ -1161,31 +1161,38 @@
                  </property>
                 </widget>
                </item>
-               <item row="6" column="1">
-                <widget class="QPushButton" name="pushButtonQueryState">
+               <item row="7" column="1">
+                <widget class="QPushButton" name="pushButtonDrv8305_1">
                  <property name="text">
-                  <string>Query Drv8305</string>
+                  <string>Drv8305_1</string>
                  </property>
                 </widget>
                </item>
-               <item row="16" column="1">
+               <item row="17" column="1">
                 <widget class="QPushButton" name="pushButtonQueryHomed">
                  <property name="text">
                   <string>Query Homed</string>
                  </property>
                 </widget>
                </item>
-               <item row="13" column="1">
+               <item row="14" column="1">
                 <widget class="QPushButton" name="pushButton_Drv8305_A">
                  <property name="text">
                   <string>Drv8305_A</string>
                  </property>
                 </widget>
                </item>
-               <item row="12" column="1">
+               <item row="13" column="1">
                 <widget class="QPushButton" name="pushButtonDrv8305_7">
                  <property name="text">
                   <string>Drv8305_7</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="6" column="1">
+                <widget class="QPushButton" name="pushButtonDrv8305_0">
+                 <property name="text">
+                  <string>Drv8305_0</string>
                  </property>
                 </widget>
                </item>
@@ -1569,7 +1576,7 @@
               <item row="1" column="1">
                <widget class="QComboBox" name="comboBox_HSSourceCurrent">
                 <property name="currentText">
-                 <string>125</string>
+                 <string>10</string>
                 </property>
                 <item>
                  <property name="text">
@@ -1643,7 +1650,7 @@
               <item row="1" column="3">
                <widget class="QComboBox" name="comboBox_LSSourceCurrent">
                 <property name="currentText">
-                 <string>125</string>
+                 <string>10</string>
                 </property>
                 <item>
                  <property name="text">
@@ -1717,7 +1724,7 @@
               <item row="3" column="3">
                <widget class="QComboBox" name="comboBox_LSSinkCurrent">
                 <property name="currentText">
-                 <string>80</string>
+                 <string>20</string>
                 </property>
                 <item>
                  <property name="text">
@@ -1784,7 +1791,7 @@
               <item row="5" column="1">
                <widget class="QComboBox" name="comboBox_HSDriveTime">
                 <property name="currentText">
-                 <string>440ns</string>
+                 <string>220ns</string>
                 </property>
                 <item>
                  <property name="text">
@@ -1821,7 +1828,7 @@
               <item row="7" column="1">
                <widget class="QComboBox" name="comboBox_DeadTime">
                 <property name="currentText">
-                 <string>52ns</string>
+                 <string>35ns</string>
                 </property>
                 <item>
                  <property name="text">
@@ -1868,7 +1875,7 @@
               <item row="3" column="1">
                <widget class="QComboBox" name="comboBox_HSSinkCurrent">
                 <property name="currentText">
-                 <string>80</string>
+                 <string>20</string>
                 </property>
                 <item>
                  <property name="text">
@@ -1949,7 +1956,7 @@
               <item row="5" column="3">
                <widget class="QComboBox" name="comboBox_LSDriveTime">
                 <property name="currentText">
-                 <string>440ns</string>
+                 <string>220ns</string>
                 </property>
                 <item>
                  <property name="text">
@@ -2727,12 +2734,12 @@
      <x>0</x>
      <y>0</y>
      <width>899</width>
-     <height>19</height>
+     <height>30</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
     <property name="title">
-     <string>File</string>
+     <string>Fi&amp;le</string>
     </property>
     <addaction name="actionLoadConfig"/>
     <addaction name="actionSaveConfig"/>
@@ -2753,22 +2760,22 @@
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionLoadConfig">
    <property name="text">
-    <string>Load Config</string>
+    <string>&amp;Load Config</string>
    </property>
   </action>
   <action name="actionSaveConfig">
    <property name="text">
-    <string>Save Config</string>
+    <string>&amp;Save Config</string>
    </property>
   </action>
   <action name="actionExit">
    <property name="text">
-    <string>Exit</string>
+    <string>&amp;Exit</string>
    </property>
   </action>
   <action name="actionSave_Config_As">
    <property name="text">
-    <string>Save Config As</string>
+    <string>Save &amp;Config As</string>
    </property>
   </action>
  </widget>

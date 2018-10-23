@@ -564,7 +564,7 @@ int main(void)
   InitCAN();
 
   faultCode = InitLan9252();
-  // FIXME:- What do do ?
+  // FIXME:- What to do if we have a fault here?
 
   StoredConf_Init();
 
@@ -572,7 +572,6 @@ int main(void)
 
   // Make sure select is high
   palSetPad(DRIVE_SPI_NSELECT_GPIO_Port,DRIVE_SPI_NSELECT_Pin);
-  EnableGateDriver(true);
 
 #if 1
   switch(g_deviceType)
