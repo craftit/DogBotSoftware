@@ -4,6 +4,7 @@
 #include "hal.h"
 
 #include "drv8320.h"
+#include "pwm.h"
 
 #define DRVSPI SPID1
 /*
@@ -66,8 +67,11 @@ void InitDrv8320(void)
   // before being enabled
 
   Drv8320SetRegister(DRV8320_REG_DRIVE_CONTROL,
-                     DRV8320_DC_PWM6x |      // Enable over temperature shutdown
-                     DRV8320_DC_1PWM_COM |   // Enable sense amplifier clamp to 3.3V
+#if USE_PWM3
+                     DRV8320_DC_PWM3x |
+#else
+                     DRV8320_DC_PWM6x |
+#endif
                      DRV8320_DC_CLR_FLTS         // Clear faults
                     );
 

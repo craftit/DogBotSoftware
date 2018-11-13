@@ -137,11 +137,11 @@
 #define LED_GREEN_GPIO_Port GPIOC
 #define LED_RED_Pin GPIO_PIN_9
 #define LED_RED_GPIO_Port GPIOC
-#define DRIVE_INHA_Pin GPIO_PIN_8
+#define DRIVE_INHA_Pin GPIO_PIN_10
 #define DRIVE_INHA_GPIO_Port GPIOA
 #define DRIVE_INHB_Pin GPIO_PIN_9
 #define DRIVE_INHB_GPIO_Port GPIOA
-#define DRIVE_INHC_Pin GPIO_PIN_10
+#define DRIVE_INHC_Pin GPIO_PIN_8
 #define DRIVE_INHC_GPIO_Port GPIOA
 #define ETH_SPI_SCK_Pin GPIO_PIN_10
 #define ETH_SPI_SCK_GPIO_Port GPIOC
@@ -371,9 +371,9 @@
  * PA6  - VSENSEC                   (analog in)
  * PA7  - MONITOR_VSUPPLY           (analog in)
  *
- * PA8  - INHA                      (alternate 1)
+ * PA8  - INHC                      (alternate 1)
  * PA9  - INHB                      (alternate 1)
- * PA10 - INHC                      (alternate 1)
+ * PA10 - INHA                      (alternate 1)
  * PA11 - CAN1_RX                   (alternate 9).
  * PA12 - CAN1_TX                   (alternate 9).
  * PA13 - SWDIO                     (alternate 0).
@@ -389,7 +389,7 @@
                                      PIN_MODE_ANALOG(GPIOA_PIN6) |           \
                                      PIN_MODE_ANALOG(GPIOA_PIN7) |           \
                                      PIN_MODE_ALTERNATE(GPIOA_PIN8) |           \
-                                     PIN_MODE_ALTERNATE(GPIOA_PIN9) |           \
+                                     PIN_MODE_OUTPUT(GPIOA_PIN9) |           \
                                      PIN_MODE_ALTERNATE(GPIOA_PIN10) |          \
                                      PIN_MODE_ALTERNATE(GPIOA_PIN11) |  \
                                      PIN_MODE_ALTERNATE(GPIOA_PIN12) |  \
@@ -497,8 +497,8 @@
  * PB14 - USB_DM                    (alternate 12).
  * PB15 - USB_DP                    (alternate 12).
  */
-#define VAL_GPIOB_MODER             (PIN_MODE_OUTPUT(GPIOB_PIN0) |           \
-                                     PIN_MODE_OUTPUT(GPIOB_PIN1) |           \
+#define VAL_GPIOB_MODER             (PIN_MODE_ALTERNATE(GPIOB_PIN0) |           \
+                                     PIN_MODE_ALTERNATE(GPIOB_PIN1) |           \
                                      PIN_MODE_INPUT(GPIOB_PIN2) |           \
                                      PIN_MODE_ALTERNATE(GPIOB_SWO) |        \
                                      PIN_MODE_ALTERNATE(GPIOB_PIN4) |           \

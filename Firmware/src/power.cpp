@@ -29,8 +29,9 @@ static int32_t g_ioBitCANStandby  = 0x0020;
 
 void PollIOStatus()
 {
-  SendParamUpdate(CPI_LAN9252);
-  Lan9252ReadCSR(0x0F10,(uint8_t *)&g_ioStatus,4);
+  //SendParamUpdate(CPI_LAN9252);
+  //Lan9252ReadCSR(0x0F10,(uint8_t *)&g_ioStatus,4);
+  // TODO: Check fault bits...
 }
 
 void EnableFanPower(bool enable)

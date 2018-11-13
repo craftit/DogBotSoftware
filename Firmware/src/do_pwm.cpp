@@ -15,6 +15,7 @@
 
 #include "motion.h"
 
+
 #define SYSTEM_CORE_CLOCK     168000000
 
 #include "stm32f4xx_adc.h"
@@ -97,11 +98,23 @@ void EnableGateDriver(bool enable)
 void EnableGateOutputs(bool enable)
 {
   if(enable) {
+#if USE_PWM3
+    palSetPad(DRIVE_INLA_GPIO_Port,DRIVE_INLA_Pin);
+    palSetPad(DRIVE_INHB_GPIO_Port,DRIVE_INHB_Pin);
+    palSetPad(DRIVE_INLC_GPIO_Port,DRIVE_INLC_Pin);
+#else
     uint16_t driveControl = Drv8320ReadRegister(DRV8320_REG_DRIVE_CONTROL);
     Drv8320SetRegister(DRV8320_REG_DRIVE_CONTROL,driveControl & ~DRV8320_DC_COAST);
+#endif
   } else {
+#if USE_PWM3
+    palClearPad(DRIVE_INLA_GPIO_Port,DRIVE_INLA_Pin);
+    palClearPad(DRIVE_INHB_GPIO_Port,DRIVE_INHB_Pin);
+    palClearPad(DRIVE_INLC_GPIO_Port,DRIVE_INLC_Pin);
+#else
     uint16_t driveControl = Drv8320ReadRegister(DRV8320_REG_DRIVE_CONTROL);
     Drv8320SetRegister(DRV8320_REG_DRIVE_CONTROL,driveControl | DRV8320_DC_COAST);
+#endif
   }
 }
 
@@ -226,6 +239,8 @@ void ShuntCalibration(void)
   SendParamUpdate(CPI_MaxCurrentSense);
 
   // Disable outputs
+  // FIXME:- SetRegister should return the old values, so two calls
+  // are not needed.  Need to double check though
   uint16_t driveControl = Drv8320ReadRegister(DRV8320_REG_DRIVE_CONTROL);
   Drv8320SetRegister(DRV8320_REG_DRIVE_CONTROL,driveControl | DRV8320_DC_COAST);
 
@@ -749,12 +764,14 @@ static void MotorControlLoop(void)
         // FIXME:- This doesn't actually turn the MOSFETs off, but the switching losses
         // stop too much breaking.
 
+#if 0
         // Zero out and drift in motor current readings.
         if(fabs(g_currentPhaseVelocity) < 15) {
           for(int i = 0;i < 3;i++) {
             g_currentZeroOffset[i] = (((float) g_currentADCValue[i] * g_shuntADCValue2Amps) - g_currentZeroOffset[i]) * 0.005;
           }
         }
+#endif
 
         PWMUpdateDrivePhase(
             TIM_1_8_PERIOD_CLOCKS/2,
@@ -961,6 +978,17 @@ static THD_FUNCTION(ThreadPWM, arg) {
   // Set initial motor mode
   SetMotorControlMode(CM_Brake);
 
+  // Setup PWM.
+  // Make sure output pins are in a sensible state before
+  // starting anything
+  InitPWM();
+
+#if USE_PWM3
+  // Depending if this works via SPI, then it won't do anything before
+  // the driver chip is powered up
+  EnableGateOutputs(false);
+#endif
+
   EnableGateDriver(true);
   //! Wait for power up to complete
   int timeOut = 10;
@@ -974,16 +1002,17 @@ static THD_FUNCTION(ThreadPWM, arg) {
     }
     chThdSleepMilliseconds(100);
   }
-  EnableGateOutputs(true);
-
-  //! Read initial state of index switch
-  g_lastLimitState = palReadPad(POSITION_INDEX_GPIO_Port, POSITION_INDEX_Pin); // Index
 
   //! Make sure the driver is setup.
   InitDrv8320();
 
+  //! Read initial state of index switch
+  g_lastLimitState = palReadPad(POSITION_INDEX_GPIO_Port, POSITION_INDEX_Pin); // Index
+
   //! Wait a bit more
   chThdSleepMilliseconds(100);
+
+  EnableGateOutputs(true);
 
   //! Check the driver is happy
   if(!CheckDriverStatus()) {
@@ -1021,9 +1050,6 @@ static THD_FUNCTION(ThreadPWM, arg) {
   }
 #endif
 
-  // Setup PWM
-  InitPWM();
-
   // Reset calibration state.
   MotionResetCalibration(MHS_Measuring);
 
@@ -1032,6 +1058,9 @@ static THD_FUNCTION(ThreadPWM, arg) {
 
   // Setup motor PID.
   SetupMotorCurrentPID();
+
+  // Enable gate outputs
+  EnableGateOutputs(true);
 
   // Do main control loop
   MotorControlLoop();
@@ -1089,7 +1118,7 @@ void InitHall2Angle(void);
 
 int InitPWM(void)
 {
-
+  EnableGateOutputs(false);
 
   InitHall2Angle();
 
@@ -1107,10 +1136,17 @@ int InitPWM(void)
   tim->ARR  = TIM_1_8_PERIOD_CLOCKS; // This should give about 20KHz
   tim->CR2  = 0;
 
+#if USE_PWM3
+  tim->CCER  =
+      (STM32_TIM_CCER_CC1E | STM32_TIM_CCER_CC1NE ) |
+      (STM32_TIM_CCER_CC2E | STM32_TIM_CCER_CC2NE | STM32_TIM_CCER_CC2NP) |
+      (STM32_TIM_CCER_CC3E | STM32_TIM_CCER_CC3NE );
+#else
   tim->CCER  =
       (STM32_TIM_CCER_CC1E | STM32_TIM_CCER_CC1NE ) |
       (STM32_TIM_CCER_CC2E | STM32_TIM_CCER_CC2NE ) |
       (STM32_TIM_CCER_CC3E | STM32_TIM_CCER_CC3NE );
+#endif
   tim->CCMR1 = STM32_TIM_CCMR1_OC1M(6) |
       STM32_TIM_CCMR1_OC1PE |
       STM32_TIM_CCMR1_OC2M(6) |
@@ -1153,9 +1189,15 @@ void PWMUpdateDrivePhase(int pa,int pb,int pc)
 
   stm32_tim_t *tim = (stm32_tim_t *)TIM1_BASE;
 
+#if 0
   tim->CCR[0] = pa;
   tim->CCR[1] = pb;
   tim->CCR[2] = pc;
+#else
+  tim->CCR[0] = pc;
+  tim->CCR[1] = pb;
+  tim->CCR[2] = pa;
+#endif
 
   tim->EGR = STM32_TIM_EGR_COMG;
 }
@@ -1306,9 +1348,10 @@ enum FaultCodeT PWMSelfTest()
   if(errCode != FC_Ok)
     return errCode;
 
-  EnableGateOutputs(true);
 
 #if CHECK_OVERCURRENT && 0
+  EnableGateOutputs(true);
+
   // FIXME:- The over-current pin is now on the ethercat chip/
   // Check fan
   bool fanState = !palReadPad(GPIOA, GPIOA_PIN7); // Read fan power.

@@ -9,6 +9,8 @@ extern "C" {
 #include "hal_streams.h"
 #include "bmc.h"
 
+#define USE_PWM3 1
+
 int InitPWM(void);
 
 int PWMRun(void);
