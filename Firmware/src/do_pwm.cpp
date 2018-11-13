@@ -1153,6 +1153,11 @@ void PWMUpdateDrivePhase(int pa,int pb,int pc)
 
   stm32_tim_t *tim = (stm32_tim_t *)TIM1_BASE;
 
+  // The drivers are connected in reverse order.
+  // 1 - INC
+  // 2 - INB
+  // 3-  INA
+
   tim->CCR[0] = pa;
   tim->CCR[1] = pb;
   tim->CCR[2] = pc;
@@ -1365,6 +1370,7 @@ enum FaultCodeT PWMMotorCal()
     }
     chThdSleepMilliseconds(100);
   }
+  chThdSleepMilliseconds(100);
 
   // Calibrate shunts.
   ShuntCalibration();
@@ -1571,7 +1577,14 @@ enum FaultCodeT PWMMotorCalInductance()
   return ret;
 }
 
-enum FaultCodeT PWMMotorPhaseCalReading(int phase,int cyclesPerSecond,int numberOfReadings,float torqueValue,float &lastAngle,int *readingCount)
+enum FaultCodeT PWMMotorPhaseCalReading(
+    int phase,
+    int cyclesPerSecond,
+    int numberOfReadings,
+    float torqueValue,
+    float &lastAngle,
+    int *readingCount
+    )
 {
   enum FaultCodeT ret = FC_Ok;
 
@@ -1588,7 +1601,7 @@ enum FaultCodeT PWMMotorPhaseCalReading(int phase,int cyclesPerSecond,int number
     for(int i = 0;i < shiftPeriod;i++) {
       if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
         ret = FC_InternalTiming;
-        break;
+        return ret;
       }
       UpdateCurrentMeasurementsFromADCValues();
       float fract= (float) i / (float) shiftPeriod;
@@ -1604,7 +1617,7 @@ enum FaultCodeT PWMMotorPhaseCalReading(int phase,int cyclesPerSecond,int number
   for(int i = 0;i < shiftPeriod;i++) {
     if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
       ret = FC_InternalTiming;
-      break;
+      return ret;
     }
     UpdateCurrentMeasurementsFromADCValues();
 
@@ -1617,7 +1630,7 @@ enum FaultCodeT PWMMotorPhaseCalReading(int phase,int cyclesPerSecond,int number
   for(int i = 0;i < numberOfReadings;i++) {
     if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
       ret = FC_InternalTiming;
-      break;
+      return ret;
     }
     UpdateCurrentMeasurementsFromADCValues();
 
@@ -1656,7 +1669,7 @@ enum FaultCodeT PWMMotorPhaseCal()
   for(int i = 0;i < cyclesPerSecond;i++) {
     if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
       ret = FC_InternalTiming;
-      break;
+      return ret;
     }
     UpdateCurrentMeasurementsFromADCValues();
     float tv = (float) i * torqueValue / (float) cyclesPerSecond;
@@ -1669,10 +1682,12 @@ enum FaultCodeT PWMMotorPhaseCal()
   int phase = 0;
   for(;phase < g_calibrationPointCount*phaseRotations && ret == FC_Ok;phase++) {
     ret = PWMMotorPhaseCalReading(phase,cyclesPerSecond,numberOfReadings,torqueValue,lastAngle,readingCount);
+    if(ret != FC_Ok) return ret;
   }
   phase--;
   for(;phase >= 0 && ret == FC_Ok;phase--) {
     ret = PWMMotorPhaseCalReading(phase,cyclesPerSecond,numberOfReadings,torqueValue,lastAngle,readingCount);
+    if(ret != FC_Ok) return ret;
   }
 
   if(ret == FC_Ok) {
