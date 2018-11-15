@@ -109,7 +109,7 @@
        <bool>true</bool>
       </property>
       <property name="currentIndex">
-       <number>3</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="tab_connect">
        <attribute name="title">
@@ -865,6 +865,16 @@
                  <item>
                   <property name="text">
                    <string>Sleep</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>USB Bridge</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Debug</string>
                   </property>
                  </item>
                 </widget>

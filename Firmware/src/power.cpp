@@ -27,9 +27,9 @@ static int32_t g_ioBitUSARTPower  = 0x0008;
 static int32_t g_ioBitUSBPower    = 0x0010;
 static int32_t g_ioBitCANStandby  = 0x0020;
 
-void PollIOStatus()
+void PollIOStatus(void)
 {
-  SendParamUpdate(CPI_LAN9252);
+  //SendParamUpdate(CPI_LAN9252);
   Lan9252ReadCSR(0x0F10,(uint8_t *)&g_ioStatus,4);
 }
 

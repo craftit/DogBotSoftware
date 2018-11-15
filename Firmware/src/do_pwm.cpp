@@ -23,7 +23,7 @@ const float g_pllBandwidth = 1000.0f; // [rad/s]
 
 float g_debugValue = 0;
 
-float g_maxSupplyVoltage = 40.0;
+float g_maxSupplyVoltage = 50.0;
 float g_maxOperatingTemperature = 75.0;
 
 float g_phaseResistance = 0.002;
@@ -459,7 +459,7 @@ static void UpdateCurrentMeasurementsFromADCValues(void) {
   }
   sum /= 3.0f;
   for(int i = 0;i < 3;i++) {
-    g_current[i] = tmpCurrent[i] - sum;
+    g_current[i] = (tmpCurrent[i] - sum) * -1;
   }
 #else
   //static float shuntFilter[3] = { 0.0,0.0,0.0 };
@@ -676,6 +676,79 @@ static bool MotorCheckEndStop(float demandCurrent)
   }
   return true;
 }
+
+static void MotorControlLoopDebug(void)
+{
+  int loopCount = 0;
+  g_motorControlLoopReady = true;
+
+  //int faultTimer = 0;
+
+  float angle = 0;
+  float voltage = 0.3;
+
+  while (g_pwmRun) {
+    //palClearPad(GPIOB, GPIOB_PIN12); // Turn output off to measure timing
+    if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
+      g_pwmTimeoutCount++;
+      continue;
+    }
+
+    ComputeState();
+
+    float alpha = 0;
+    float beta = 0;
+    arm_sin_cos_f32(angle,&alpha,&beta);
+    queue_voltage_timings(alpha*voltage,beta*voltage,false);
+
+    angle += CURRENT_MEAS_PERIOD * PI * 2;
+
+    // Check home index switch.
+    {
+      bool es3 = palReadPad(POSITION_INDEX_GPIO_Port, POSITION_INDEX_Pin);
+      if(es3 != g_lastLimitState) {
+        g_lastLimitState = es3;
+        MotionUpdateIndex(es3,g_currentPhasePosition,g_currentPhaseVelocity);
+      }
+    }
+
+
+    // Flag motion control update if needed.
+    if(++loopCount >= g_motorReportSampleCount) {
+      loopCount = 0;
+      chBSemSignal(&g_reportSampleReady);
+    }
+
+    // Do some sanity checks
+    FaultCodeT errCode;
+    if((errCode = CheckHallInRange()) != FC_Ok) {
+      FaultDetected(errCode);
+    }
+
+    // Last send report if needed.
+    static int g_pwmReportDownSample = 0;
+    if(g_pwmFullReport && g_pwmReportDownSample++ > 2) {
+      g_pwmReportDownSample = 0;
+      struct PacketT *pkt;
+      if((pkt = USBGetEmptyPacket(TIME_IMMEDIATE)) != 0) {
+        struct PacketPWMStateC *ps = (struct PacketPWMStateC *)&(pkt->m_data);
+        pkt->m_len = sizeof(struct PacketPWMStateC);
+        ps->m_packetType = CPT_PWMState;
+        ps->m_deviceId = g_deviceId;
+        //ps->m_tick = g_adcTickCount;
+        //for(int i = 0;i < 3;i++)
+        //  ps->m_curr[i] = g_currentADCValue[i];
+        for(int i = 0;i < 3;i++)
+          ps->m_hall[i] = g_hall[i];
+        ps->m_angle = g_phaseAngle * DOGBOT_PACKETSERVO_FLOATSCALE / (2.0 * M_PI);
+        USBPostPacket(pkt);
+      }
+    }
+
+  }
+
+}
+
 
 static void MotorControlLoop(void)
 {
@@ -961,7 +1034,12 @@ static THD_FUNCTION(ThreadPWM, arg) {
   // Set initial motor mode
   SetMotorControlMode(CM_Brake);
 
+  // Setup PWM signals to ensure they are sensible before continuing
+  InitPWM();
+
+  // Switch on the gate driver chip
   EnableGateDriver(true);
+
   //! Wait for power up to complete
   int timeOut = 10;
   while (IsGateDriverFault() && g_pwmRun ) {
@@ -970,11 +1048,20 @@ static THD_FUNCTION(ThreadPWM, arg) {
       g_gateDriverFault = true;
       g_pwmRun = false;
       g_pwmThreadRunning = false;
+      SendError(CET_MotorDriverPowerUpFailed,0,0);
       return ;
     }
     chThdSleepMilliseconds(100);
   }
-  EnableGateOutputs(true);
+  if(!g_pwmRun) {
+    g_gateDriverWarning = true;
+    g_gateDriverFault = true;
+    g_pwmRun = false;
+    g_pwmThreadRunning = false;
+    return ;
+  }
+  // Wait a little bit extra for good luck.
+  chThdSleepMilliseconds(100);
 
   //! Read initial state of index switch
   g_lastLimitState = palReadPad(POSITION_INDEX_GPIO_Port, POSITION_INDEX_Pin); // Index
@@ -995,16 +1082,6 @@ static THD_FUNCTION(ThreadPWM, arg) {
     return ;
   }
 
-  // Double check with the fault bit.
-  if(IsGateDriverFault()) { // Fault pin
-    g_gateDriverWarning = true;
-    g_gateDriverFault = false; // Should only be a warning.
-  } else {
-    //! Reset fault flags.
-    g_gateDriverFault = false;
-    g_gateDriverWarning = false;
-  }
-
   // Make sure state is reset to something sensible
   g_velocityISum = 0; // Reset velocity integral
   g_phaseRotationCount = 0; // Reset the rotation count to zero.
@@ -1021,9 +1098,6 @@ static THD_FUNCTION(ThreadPWM, arg) {
   }
 #endif
 
-  // Setup PWM
-  InitPWM();
-
   // Reset calibration state.
   MotionResetCalibration(MHS_Measuring);
 
@@ -1034,11 +1108,18 @@ static THD_FUNCTION(ThreadPWM, arg) {
   SetupMotorCurrentPID();
 
   // Do main control loop
-  MotorControlLoop();
+  if(g_controlState == CS_Debug) {
+    MotorControlLoopDebug();
+  } else {
+    MotorControlLoop();
+  }
+
+  // Shut things down after run
 
   // Make sure motor isn't being driven.
   PWMUpdateDrivePhase(TIM_1_8_PERIOD_CLOCKS/2,TIM_1_8_PERIOD_CLOCKS/2,TIM_1_8_PERIOD_CLOCKS/2);
 
+  // Turn off the driver chip.
   EnableGateOutputs(false);
 
   // Disable the PWM timer to save some power
@@ -1158,9 +1239,9 @@ void PWMUpdateDrivePhase(int pa,int pb,int pc)
   // 2 - INB
   // 3-  INA
 
-  tim->CCR[0] = pa;
+  tim->CCR[0] = pc;
   tim->CCR[1] = pb;
-  tim->CCR[2] = pc;
+  tim->CCR[2] = pa;
 
   tim->EGR = STM32_TIM_EGR_COMG;
 }

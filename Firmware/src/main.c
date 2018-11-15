@@ -187,6 +187,7 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
          newState != CS_Sleep
           )
       {
+        SendError(CET_IllegalStateTransitionRequest,g_controlState,newState);
         SendParamUpdate(CPI_ControlState);
         return false;
       }
@@ -197,6 +198,7 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
           newState != CS_Fault &&
           newState != CS_Sleep )
       {
+        SendError(CET_IllegalStateTransitionRequest,g_controlState,newState);
         SendParamUpdate(CPI_ControlState);
         return false;
       }
@@ -208,9 +210,11 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
           newState != CS_SelfTest &&
           newState != CS_StartUp  &&
           newState != CS_Fault &&
+          newState != CS_Debug &&
           newState != CS_Sleep
           )
       {
+        SendError(CET_IllegalStateTransitionRequest,g_controlState,newState);
         SendParamUpdate(CPI_ControlState);
         return false;
       }
@@ -221,6 +225,7 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
           newState != CS_SafeStop &&
           newState != CS_Fault )
       {
+        SendError(CET_IllegalStateTransitionRequest,g_controlState,newState);
         SendParamUpdate(CPI_ControlState);
         return false;
       }
@@ -230,6 +235,19 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
       if(newState == CS_BootLoader ||
           newState == CS_StartUp)
       {
+        SendError(CET_IllegalStateTransitionRequest,g_controlState,newState);
+        SendParamUpdate(CPI_ControlState);
+        return false;
+      }
+      break;
+    case CS_Debug:
+      if(newState != CS_Fault &&
+         newState != CS_Standby &&
+         newState != CS_EmergencyStop &&
+         newState != CS_Fault
+         )
+      {
+        SendError(CET_IllegalStateTransitionRequest,g_controlState,newState);
         SendParamUpdate(CPI_ControlState);
         return false;
       }
@@ -284,9 +302,22 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
       g_currentLimit = 0;
       SetMotorControlMode(CM_Brake);
       break;
+    case CS_Debug:
+      if(g_controlState != CS_Standby) {
+        SendError(CET_IllegalStateTransitionRequest,g_controlState,newState);
+        break;
+      }
+      g_stateChangeCause = changeSource;
+      g_controlState = newState;
+      EnableSensorPower(true);
+      if(PWMRun())
+        break; // If we started the PWM ok, just exit.
+      // Assume the routine has reported a fault.
+      break;
     case CS_Ready:
       // This can only happen from startup
       if(changeSource == SCS_UserRequest) {
+        SendError(CET_IllegalStateTransitionRequest,0,g_controlState);
         break;
       }
 #if 0
@@ -713,7 +744,36 @@ int main(void)
           SendBackgroundStateReport();
         }
       } break;
+      case CS_Debug: {
+        if(chBSemWaitTimeout(&g_reportSampleReady,1000) != MSG_OK) {
+          g_mainLoopTimeoutCount++;
+          //FaultDetected(FC_InternalTiming);
+          break;
+        }
 
+        if(g_gateDriverFault) {
+          FaultDetected(FC_DriverFault);
+          SendParamUpdate(CPI_DRV8305_01);
+          SendParamUpdate(CPI_DRV8305_02);
+          SendParamUpdate(CPI_DRV8305_03);
+          SendParamUpdate(CPI_DRV8305_04);
+          break;
+        }
+
+        // This runs at update rate, currently 250Hz
+        //MotionStep();
+
+        // Check the state of the driver chip
+        if(!CheckDriverStatus()) {
+          break;
+        }
+
+        // 20Hz
+        if(cycleCount++ > 5) {
+          cycleCount = 0;
+          SendBackgroundStateReport();
+        }
+      } break;
       case CS_Sleep: {
         __asm__ ("wfi;");
       } break;
@@ -774,10 +834,11 @@ int main(void)
     // We can only read motor temperatures when sensors are enabled.
     if(HasSensorPower()) {
       g_motorTemperature += (ReadMotorTemperature() - g_motorTemperature) * 0.1;
-
+#if 0
       if(g_motorTemperature > 52.0) {
         FaultDetected(FC_MotorOverTemperature);
       }
+#endif
     }
 
     {
@@ -807,6 +868,7 @@ int main(void)
               SendParamData (CPI_ControlState, &mode, 1);
             }
           break;
+        case CS_Debug:
         case CS_SelfTest:
         case CS_FactoryCalibrate:
         case CS_StartUp:

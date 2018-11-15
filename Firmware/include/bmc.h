@@ -26,7 +26,7 @@ extern void InitUSB(void);
 extern void InitADC(void);
 extern void StopADC(void);
 
-extern void PollIOStatus();
+extern void PollIOStatus(void);
 
 extern void EmergencyStopReceivedSafeFlag(int fromDeviceId);
 

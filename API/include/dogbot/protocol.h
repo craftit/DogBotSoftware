@@ -75,7 +75,9 @@ extern "C" {
     CET_BootLoaderWriteFailed = 12,
     CET_BootLoaderUnalignedAddress = 13,
     CET_UnavailableInCurrentMode = 14,
-    CET_MotorDriverWarning = 15
+    CET_MotorDriverWarning = 15,
+    CET_MotorDriverPowerUpFailed = 16,
+    CET_IllegalStateTransitionRequest = 17
   };
 
   /* Fault codes.
@@ -299,7 +301,8 @@ extern "C" {
     CS_Fault         = 8, //!< Hardware or configuration fault detected.
     CS_Sleep         = 9, //!< Sleep mode, go into lowest power mode possible, including disabling communications
     CS_USBBridge     = 10, //!< Act as a USB controller, similar to standby, but no under voltage shutdown.
-    CS_BootLoader    = 11 //!< Ready for firmware update
+    CS_BootLoader    = 11, //!< Ready for firmware update
+    CS_Debug         = 12  //!< Debug mode, for development only
   };
 
   /* Safety mode, this sets the behaviour if a fault is detected on a controller.
@@ -637,6 +640,15 @@ extern "C" {
     uint16_t m_addr;
   } __attribute__((packed));
 
+
+  //! EtherCAT status data structure
+  struct EtherCATStatusC {
+    float m_position;
+    float m_torque;
+    float m_velocity;
+    uint8_t m_mode;
+    uint8_t m_timestamp;
+  } __attribute__((packed));
 
 #ifdef __cplusplus
 }

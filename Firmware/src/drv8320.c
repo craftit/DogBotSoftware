@@ -7,13 +7,13 @@
 
 #define DRVSPI SPID1
 /*
- * Low speed SPI configuration (328.125kHz, CPHA=0, CPOL=0, MSb first).
+ * Low speed SPI configuration (1.3125MBits/s, CPHA=1, CPOL=0, MSb first).
  */
 static const SPIConfig ls_spicfg = {
   NULL,
   DRIVE_SPI_NSELECT_GPIO_Port,
   DRIVE_SPI_NSELECT_Pin,
-  SPI_CR1_BR_2 | SPI_CR1_BR_1  | SPI_CR1_CPHA,
+  SPI_CR1_BR_2 | SPI_CR1_BR_1 | SPI_CR1_CPHA,
   0
 };
 
@@ -68,7 +68,7 @@ void InitDrv8320(void)
   Drv8320SetRegister(DRV8320_REG_DRIVE_CONTROL,
                      DRV8320_DC_PWM6x |      // Enable over temperature shutdown
                      DRV8320_DC_1PWM_COM |   // Enable sense amplifier clamp to 3.3V
-                     DRV8320_DC_CLR_FLTS         // Clear faults
+                     DRV8320_DC_CLR_FLTS     // Clear faults
                     );
 
   Drv8320SetRegister(DRV8320_GATE_DRIVE_HS,
@@ -86,8 +86,12 @@ void InitDrv8320(void)
                      DRV8320_DEAD_TIME_100ns |
                      DRV8320_OCP_MODE_RETRY |
                      DRV8320_OCP_DEG_4us |
-                     DRV8320_VDS_LVL_0V26  // 0V26 is around 185 amps at 100C,
+                     DRV8320_VDS_LVL_0V20 // Limit to 142 amps for safety, we don't need this much for now.
                      );
+
+  // 0V13 is around 92 amps at 100C,
+  // 0V20 is around 142 amps at 100C,
+  // 0V26 is around 185 amps at 100C
 
 
 }

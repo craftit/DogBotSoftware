@@ -244,7 +244,7 @@ bool MotionSetDemand(uint8_t jointMode,uint8_t timestamp,int16_t demand,int16_t 
 }
 
 
-bool MotionReport(int16_t position,int16_t velocity,int16_t torque,PositionReferenceT posRef,uint8_t timestamp)
+uint8_t GenerateModeByte(PositionReferenceT posRef)
 {
   uint8_t mode = posRef & DOGBOT_SERVOREPORTMODE_POSITIONREF;
   if(g_safetyMode == SM_MasterEmergencyStop) {
@@ -271,6 +271,19 @@ bool MotionReport(int16_t position,int16_t velocity,int16_t torque,PositionRefer
   // Report endstop switch.
   if(palReadPad(POSITION_INDEX_GPIO_Port, POSITION_INDEX_Pin))
     mode |= DOGBOT_SERVOREPORTMODE_INDEXSENSOR;
+
+  return mode;
+}
+
+bool MotionReport(
+    int16_t position,
+    int16_t velocity,
+    int16_t torque,
+    PositionReferenceT posRef,
+    uint8_t timestamp
+    )
+{
+  uint8_t mode = GenerateModeByte(posRef);
 
   if(g_canBridgeMode) {
     PacketServoReportC servo;
@@ -318,7 +331,6 @@ bool MotionCalZero()
 void MotionStep()
 {
 #if 1
-  int16_t torque = g_torqueAverage * (32767.0/g_absoluteMaxCurrent);
 
   g_motionTime++;
   EmergencyStopTick();
@@ -361,10 +373,24 @@ void MotionStep()
     } break;
   }
 
+  int16_t torque = g_torqueAverage * (32767.0/g_absoluteMaxCurrent);
   float position = g_currentPhasePosition;
   int16_t reportVelocity = PhaseVelocityToInt16(g_filteredPhaseVelocity);
 
   enum PositionReferenceT posRef = g_motionPositionReference;
+
+  {
+    EtherCATStatusC ecData;
+    ecData.m_position = g_currentPhasePosition;
+    ecData.m_torque = g_torqueAverage;
+    ecData.m_velocity = g_filteredPhaseVelocity;
+    ecData.m_timestamp = g_motionTime;
+    ecData.m_mode = GenerateModeByte(posRef);
+    enum FaultCodeT fc = Lan9252WritePDRam(0x1000,(const uint8_t *)&ecData,sizeof(ecData));
+    if(fc != FC_Ok) {
+      SendError(CET_InternalError,0,1);
+    }
+  }
 
   switch(g_motionPositionReference)
   {

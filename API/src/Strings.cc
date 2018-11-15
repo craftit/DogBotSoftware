@@ -77,6 +77,7 @@ namespace DogBotN {
     case CS_BootLoader: return "Boot Loader";
     case CS_Sleep: return "Sleep";
     case CS_USBBridge: return "USB Bridge";
+    case CS_Debug:     return "Debug";
     }
     printf("Unexpected state %d \n",(int)controlState);
     return "Invalid";
@@ -118,6 +119,8 @@ namespace DogBotN {
       case CET_BootLoaderUnalignedAddress: return "BootLoader unaligned address";
       case CET_UnavailableInCurrentMode: return "Command unavailable in current mode.";
       case CET_MotorDriverWarning: return "Motor driver warning";
+      case CET_MotorDriverPowerUpFailed: return "Driver power up failed";
+      case CET_IllegalStateTransitionRequest: return "Illegal state transition requested";
     }
     printf("Unexpected error code %d \n",(int)errorCode);
     return "Invalid";

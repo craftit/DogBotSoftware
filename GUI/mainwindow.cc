@@ -1085,6 +1085,12 @@ void MainWindow::on_comboBoxControlState_activated(const QString &arg1)
   if(arg1 == "Sleep") {
     controlState = CS_Sleep;
   }
+  if(arg1 == "USBBridge") {
+    controlState = CS_Debug;
+  }
+  if(arg1 == "Debug") {
+    controlState = CS_Debug;
+  }
   if(controlState != CS_Fault)  {
     m_coms->SendSetParam(m_targetDeviceId,CPI_ControlState,controlState);
   } else {

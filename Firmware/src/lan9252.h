@@ -17,6 +17,9 @@ extern enum FaultCodeT Lan9252Write(uint16_t addr,const uint8_t *data,uint8_t le
 extern enum FaultCodeT Lan9252ReadCSR(uint16_t addr,uint8_t *data,uint8_t len);
 extern enum FaultCodeT Lan9252WriteCSR(uint16_t addr,const uint8_t *data,uint8_t len);
 
+extern enum FaultCodeT Lan9252ReadPDRam(uint16_t address, uint8_t *writeBuffer, uint16_t count);
+extern enum FaultCodeT Lan9252WritePDRam(uint16_t address, const uint8_t *writeBuffer, uint16_t count);
+
 extern uint16_t Lan9252Test(void);
 extern enum FaultCodeT InitLan9252(void);
 

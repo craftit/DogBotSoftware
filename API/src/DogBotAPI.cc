@@ -917,13 +917,26 @@ namespace DogBotN {
                             return;
                           }
                           const PacketErrorC *pkt = (const PacketErrorC *) data;
-
-                          m_log->error("Received packet error code from device {} : {} ({}) Packet:{} ({}) Arg:{} ",
+                          enum ComsErrorTypeT errorCode = (enum ComsErrorTypeT) pkt->m_errorCode;
+                          switch(errorCode) {
+                            case CET_IllegalStateTransitionRequest:
+                              m_log->error("Received illegal state request error from device {} : {} ({})  From state '{}' to state '{}' ",
                                        (int) pkt->m_deviceId,
-                                       DogBotN::ComsErrorTypeToString((enum ComsErrorTypeT)pkt->m_errorCode),
+                                       DogBotN::ComsErrorTypeToString(errorCode),
+                                       (int) pkt->m_errorCode,
+                                       ControlStateToString((enum ControlStateT) pkt->m_causeType),
+                                       ControlStateToString((enum ControlStateT) pkt->m_errorData)
+                                       );
+                              break;
+                            default:
+                              m_log->error("Received packet error code from device {} : {} ({}) Packet:{} ({}) Arg:{} ",
+                                       (int) pkt->m_deviceId,
+                                       DogBotN::ComsErrorTypeToString(errorCode),
                                        (int) pkt->m_errorCode,
                                        DogBotN::ComsPacketTypeToString((enum ComsPacketTypeT) pkt->m_causeType),(int) pkt->m_causeType,
                                        (int) pkt->m_errorData);
+                              break;
+                          }
                         }
                        );
 
