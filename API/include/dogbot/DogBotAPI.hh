@@ -28,7 +28,7 @@ namespace DogBotN {
 
   class LegControllerC;
 
-  //! Dogbot device control
+  //! DogBot device control
 
   //! This does low level management of the robot, configuration of the drivers and status monitoring.
 
