@@ -325,7 +325,10 @@ namespace DogBotN
     if(effort < -1.0) effort = -1.0;
     if(effort > 1.0) effort = 1.0;
     servoPkt.m_torque = effort * DOGBOT_PACKETSERVO_FLOATSCALE;
-    servoPkt.m_mode = ((int) posRef) | (((int) CM_Position) << DOGBOT_PACKETSERVOMODE_DYNAMIC_BITOFFSET) | DOGBOT_PACKETSERVOMODE_DEMANDTORQUE;
+    servoPkt.m_mode =
+        ((int) posRef) |
+        (((int) CM_Position) << DOGBOT_PACKETSERVOMODE_DYNAMIC_BITOFFSET) |
+        DOGBOT_PACKETSERVOMODE_DEMANDTORQUE;
 
     SendPacket((uint8_t *)&servoPkt,sizeof servoPkt);
   }
@@ -338,7 +341,7 @@ namespace DogBotN
     servoPkt.m_packetType = CPT_Servo;
     servoPkt.m_deviceId = deviceId;
     servoPkt.m_timestamp = 0;
-    servoPkt.m_demand = velocity * DOGBOT_PACKETSERVO_FLOATSCALE / DOGBOT_SERVOREPORT_POSITIONRANGE;
+    servoPkt.m_demand = velocity * DOGBOT_PACKETSERVO_FLOATSCALE / DOGBOT_SERVOREPORT_VELOCITYRANGE;
     if(effort < 0) effort = 0;
     if(effort > 1.0) effort = 1.0;
     servoPkt.m_torque = effort * DOGBOT_PACKETSERVO_FLOATSCALE;

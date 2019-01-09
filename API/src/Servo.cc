@@ -907,6 +907,21 @@ namespace DogBotN {
     return DemandPosition(position,torqueLimit,m_positionRef);
   }
 
+  //! Demand a velocity for the servo
+  //! position in radians/sec
+  //! torqueLimit is in Newton-metres
+  bool ServoC::DemandVelocity(float velocity,float torqueLimit)
+  {
+    if(!m_enabled || !IsFirmwareVersionOk())
+      return false;
+    // Check motor mode?
+    JointC::DemandVelocity(velocity,torqueLimit);
+    float currentLimit = torqueLimit / (m_maxCurrent* m_servoKt);
+    m_coms->SendVelocityWithEffort(m_id,velocity,currentLimit);
+    return true;
+  }
+
+
   //! Set the trajectory update rate in Hz.
   bool ServoC::SetupTrajectory(float period,float torqueLimit)
   {

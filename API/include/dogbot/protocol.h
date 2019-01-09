@@ -136,7 +136,11 @@ extern "C" {
     JR_BackLeftRoll,
     JR_BackRightKnee,
     JR_BackRightPitch,
-    JR_BackRightRoll
+    JR_BackRightRoll,
+    JR_FrontRightWheel,
+    JR_BackRightWheel,
+    JR_FrontLeftWheel,
+    JR_BackLeftWheel,
   };
 
   /* Parameter indices

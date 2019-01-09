@@ -105,10 +105,22 @@ namespace DogBotN {
   bool JointC::DemandPosition(float position,float torqueLimit)
   {
     m_demandPosition = position;
+    m_demandVelocity = nan("");
     m_demandTorqueLimit = torqueLimit;
     for(auto &a : m_demandCallbacks.Calls()) {
       if(a) a(position,torqueLimit);
     }
+    return true;
+  }
+
+  //! Demand a velocity for the servo
+  //! position in radians/sec
+  //! torqueLimit is in Newton-metres
+  bool JointC::DemandVelocity(float position,float torqueLimit)
+  {
+    m_demandVelocity = position;
+    m_demandPosition = nan("");
+    m_demandTorqueLimit = torqueLimit;
     return true;
   }
 

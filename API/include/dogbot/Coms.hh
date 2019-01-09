@@ -69,6 +69,7 @@ namespace DogBotN {
     void SendMoveWithEffort(int deviceId,float pos,float effort,enum PositionReferenceT posRef,uint8_t timestamp = 0);
 
     //! Send velocity command with a current limit.
+    //! The velocity is in radians a second.
     void SendVelocityWithEffort(int deviceId,float velocity,float effort);
 
     //! Send torque to apply as a motor current.

@@ -108,6 +108,11 @@ static float DemandInt16ToPhasePosition(int16_t position)
   return ((((float) position) * g_actuatorRatio * DOGBOT_SERVOREPORT_POSITIONRANGE)/DOGBOT_PACKETSERVO_FLOATSCALE);
 }
 
+static float DemandInt16ToPhaseVelocity(int16_t velocity)
+{
+  return ((((float) velocity) * g_actuatorRatio * DOGBOT_SERVOREPORT_VELOCITYRANGE)/DOGBOT_PACKETSERVO_FLOATSCALE);
+}
+
 static int16_t PhasePositionToDemandInt16(float angle)
 {
   return (angle * DOGBOT_PACKETSERVO_FLOATSCALE) / (g_actuatorRatio * DOGBOT_SERVOREPORT_POSITIONRANGE);
@@ -229,8 +234,7 @@ bool MotionSetDemand(uint8_t jointMode,uint8_t timestamp,int16_t demand,int16_t 
       }
       break;
     case CM_Velocity:
-      // Uck!
-      g_demandPhaseVelocity = DemandInt16ToPhasePosition(demand);
+      g_demandPhaseVelocity = DemandInt16ToPhaseVelocity(demand);
       g_demandTorque = 0;
       break;
     case CM_Torque:

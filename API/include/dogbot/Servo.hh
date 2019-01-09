@@ -142,6 +142,11 @@ namespace DogBotN {
     //! torqueLimit is in Newton-metres
     bool DemandPosition(float position,float torqueLimit) override;
 
+    //! Demand a velocity for the servo
+    //! velocity in radians/sec
+    //! torqueLimit is in Newton-metres
+    bool DemandVelocity(float velocity,float torqueLimit) override;
+
     //! Set the trajectory.
     // period in seconds,
     // torqueLimit is in Newton-metres

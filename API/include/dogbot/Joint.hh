@@ -4,6 +4,7 @@
 #include <mutex>
 #include <string>
 #include <chrono>
+#include <functional>
 #include <jsoncpp/json/json.h>
 #include "dogbot/CallbackArray.hh"
 #include "dogbot/protocol.h"
@@ -77,6 +78,11 @@ namespace DogBotN {
     //! Demand a position for the servo, torque limit in Newton-meters
     virtual bool DemandPosition(float position,float torqueLimit);
 
+    //! Demand a velocity for the servo
+    //! position in radians/sec
+    //! torqueLimit is in Newton-metres
+    virtual bool DemandVelocity(float position,float torqueLimit);
+
     //! Set the trajectory
     //! update period in seconds, torque limit in Newton-meters
     virtual bool SetupTrajectory(float updatePeriod,float torqueLimit);
@@ -125,6 +131,7 @@ namespace DogBotN {
     std::string m_name;
 
     float m_demandPosition = nan("");
+    float m_demandVelocity = nan("");
     float m_demandTorqueLimit = nan("");
     float m_demandTorque = nan("");
 

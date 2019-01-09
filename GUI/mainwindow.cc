@@ -900,19 +900,19 @@ void MainWindow::on_sliderPosition_sliderMoved(int position)
   case CM_Position:
   {
     //std::cerr << "Sending pos: " << std::endl;
-    m_position = position * 2.0 * 3.14159265359/ 360.0;
+    m_position = position * DOGBOT_SERVOREPORT_POSITIONRANGE/ (360.0 * 2);
     //std::cout << "Sending move. Pos: " << m_position << " Torque:" << m_torque << " Ref:" << (int) g_positionReference << std::endl << std::flush;
     m_coms->SendMoveWithEffort(m_targetDeviceId,m_position,m_torque,g_positionReference);
     ui->doubleSpinBoxDemandPosition->setValue(position);
   } break;
   case CM_Velocity:
   {
-    float velocity = position * 2.0 * 3.14159265359/ 360.0;
+    float velocity = (float) position * DOGBOT_SERVOREPORT_VELOCITYRANGE/ 360.0;
     std::cout << "Sending velocity. Pos: " << velocity << " Torque:" << m_torque << " Ref:" << (int) g_positionReference << std::endl << std::flush;
     m_coms->SendVelocityWithEffort(m_targetDeviceId,velocity,m_torque);
   } break;
   case CM_Torque: {
-    float current = position * 3.0/ 360.0;
+    float current = (float) position * 3.0/ 360.0;
     std::cout << "Sending torque " << current << std::endl;
     m_coms->SendTorque(m_targetDeviceId,current);
   } break;
