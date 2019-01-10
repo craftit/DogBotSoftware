@@ -1,0 +1,14 @@
+[Unit]
+Description=DogBot server
+After=syslog.target network.target
+
+[Service]
+User=root
+WorkingDirectory=/
+EnvironmentFile=/etc/sysconfig/dogbot-server
+ExecStart=/usr/bin/dogBotServer  
+Restart=on-failure
+RestartSec=100ms
+
+[Install]
+WantedBy=multi-user.target
