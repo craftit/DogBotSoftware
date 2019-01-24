@@ -120,7 +120,7 @@
 			"notes" : "",
 			"uid1" : 2883617,
 			"uid2" : 1650753082,
-                        "motorKv" : 335.0
+       "motorKv" : 335.0
 		},
 		{
 			"deviceId" : 14,
@@ -129,7 +129,7 @@
 			"notes" : "",
 			"uid1" : 2883616,
 			"uid2" : 1650753082,
-                        "motorKv" : 335.0
+       "motorKv" : 335.0
 		},
 		{
 		      "name":"virtual_front_left_knee",
@@ -140,33 +140,33 @@
 		      "refGain":1.0,
 		      "refOffset":1.0
 		},
-                {
-                      "name":"virtual_front_right_knee",
-                      "type":"4bar",
-                      "legKinematics":"front_right",
-                      "jointRef":"front_right_pitch",
-                      "jointDrive":"front_right_knee",
-                      "refGain":1.0,
-                      "refOffset":1.0
-                },
-                {
-                      "name":"virtual_back_left_knee",
-                      "type":"4bar",
-                      "legKinematics":"back_left",
-                      "jointRef":"back_left_pitch",
-                      "jointDrive":"back_left_knee",
-                      "refGain":1.0,
-                      "refOffset":1.0
-                },
-                {
-                      "name":"virtual_back_right_knee",
-                      "type":"4bar",
-                      "legKinematics":"back_right",
-                      "jointRef":"back_right_pitch",
-                      "jointDrive":"back_right_knee",
-                      "refGain":1.0,
-                      "refOffset":1.0
-                }
+    {
+          "name":"virtual_front_right_knee",
+          "type":"4bar",
+          "legKinematics":"front_right",
+          "jointRef":"front_right_pitch",
+          "jointDrive":"front_right_knee",
+          "refGain":1.0,
+          "refOffset":1.0
+    },
+    {
+          "name":"virtual_back_left_knee",
+          "type":"4bar",
+          "legKinematics":"back_left",
+          "jointRef":"back_left_pitch",
+          "jointDrive":"back_left_knee",
+          "refGain":1.0,
+          "refOffset":1.0
+    },
+    {
+          "name":"virtual_back_right_knee",
+          "type":"4bar",
+          "legKinematics":"back_right",
+          "jointRef":"back_right_pitch",
+          "jointDrive":"back_right_knee",
+          "refGain":1.0,
+          "refOffset":1.0
+    }
 		
 	]
 }
