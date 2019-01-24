@@ -1349,18 +1349,31 @@ namespace DogBotN {
   std::shared_ptr<DeviceC> DogBotAPIC::GetDeviceByName(const std::string &name)
   {
     std::lock_guard<std::mutex> lock(m_mutexDevices);
-    for(auto &a : m_deviceById) {
+    for(auto &a : m_deviceList) {
       if(a && a->DeviceName() == name)
         return a;
     }
     return std::shared_ptr<DeviceC>();
   }
 
+  //! Dump a list of available devices to stream.
+  void DogBotAPIC::DumpDeviceList(std::ostream &strm)
+  {
+    std::lock_guard<std::mutex> lock(m_mutexDevices);
+    m_log->info("Dumping {} devices ",m_deviceById.size());
+    for(auto &a : m_deviceList) {
+      if(a) {
+        strm << "Device " << a->Id() << " Name '" << a->DeviceName() << "' Type '" << a->DeviceType() << "' " << std::endl;
+        m_log->info("Device {} Name '{}' Type '{}'",a->Id(),a->DeviceName(),a->DeviceType());
+      }
+    }
+  }
+
   //! Get servo entry by name
   std::shared_ptr<JointC> DogBotAPIC::GetJointByName(const std::string &name)
   {
     std::lock_guard<std::mutex> lock(m_mutexDevices);
-    for(auto &a : m_deviceById) {
+    for(auto &a : m_deviceList) {
       if(a && a->DeviceName() == name)
         return std::dynamic_pointer_cast<JointC>(a);
     }

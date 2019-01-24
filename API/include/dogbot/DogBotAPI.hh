@@ -171,6 +171,9 @@ namespace DogBotN {
       return true;
     }
 
+    //! Dump a list of available devices to stream.
+    void DumpDeviceList(std::ostream &strm = std::cerr);
+
     //! Get servo entry by id
     std::shared_ptr<ServoC> GetServoById(int id);
 
