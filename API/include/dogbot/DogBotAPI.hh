@@ -153,6 +153,24 @@ namespace DogBotN {
     //! Get device entry by name
     std::shared_ptr<DeviceC> GetDeviceByName(const std::string &name);
 
+    //! Get device by name
+    //! If device is found, and device is of the correct type true is returned, false otherwise.
+    template<typename DevTypeT>
+    bool GetDeviceByName(const std::string &name,std::shared_ptr<DevTypeT> &dev)
+    {
+      std::shared_ptr<DeviceC> ldev = GetDeviceByName(name);
+      if(!ldev)
+        return false;
+      std::shared_ptr<DevTypeT> adev = std::dynamic_pointer_cast<DevTypeT>(ldev);
+      if(!adev) {
+        m_log->warn("Device of unexpected type, got {} when {} was expected.",typeid(*ldev.get()).name(),typeid(DevTypeT).name());
+        return false;
+      }
+      // Don't change dev until we have the requested data.
+      dev = adev;
+      return true;
+    }
+
     //! Get servo entry by id
     std::shared_ptr<ServoC> GetServoById(int id);
 
