@@ -788,7 +788,7 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
     } break;
     case CPI_ServoReportFrequency: {
       *len = 4;
-      //data->float32[0] = GetServoReportRate();
+      data->float32[0] = GetServoReportRate();
     } break;
     case CPI_PWMFrequency: {
       *len = 4;
