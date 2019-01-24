@@ -5,7 +5,7 @@ After=syslog.target network.target
 [Service]
 User=root
 WorkingDirectory=/
-EnvironmentFile=/etc/sysconfig/dogbot-server
+EnvironmentFile=/etc/dogbot-server.conf
 ExecStart=/usr/bin/dogBotServer  
 Restart=on-failure
 RestartSec=100ms
