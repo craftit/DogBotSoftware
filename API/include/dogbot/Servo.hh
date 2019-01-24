@@ -133,6 +133,15 @@ namespace DogBotN {
     //! If the data is more than 5 ticks away from the
     bool GetStateAt(TimePointT theTime,double &position,double &velocity,double &torque) const override;
 
+    //! Estimate state at the given time.
+    //! Position in radians.
+    //! Velocity in radians/second
+    //! torque in Newton-metres
+    //! This will linearly extrapolate position, and assume velocity and torque are
+    //! the same as the last reading.
+    //! If the data is more than 5 ticks away from the
+    bool GetRawStateAt(TimePointT theTime,double &position,double &velocity,double &torque,enum PositionReferenceT &posRef) const;
+
     //! Update torque for the servo.
     // torque is in Newton-metres.
     bool DemandTorque(float torque) override;
@@ -250,6 +259,15 @@ namespace DogBotN {
     bool HandlePacketAnnounce(const PacketDeviceIdC &pkt,bool isManager) override;
 
   protected:
+    //! Estimate state at the given time.
+    //! Position in radians.
+    //! Velocity in radians/second
+    //! torque in Newton-metres
+    //! This will linearly extrapolate position, and assume velocity and torque are
+    //! the same as the last reading.
+    //! If the data is more than 5 ticks away from the
+    bool GetInternalStateAt(TimePointT theTime,double &position,double &velocity,double &torque,enum PositionReferenceT &posRef) const;
+
     //! Convert a report value to a torque
     float TorqueReport2Current(int16_t val)
     { return ((float) val * m_maxCurrent)/ 32767.0; }
@@ -343,6 +361,7 @@ namespace DogBotN {
     float m_motorInductance = 0;
     float m_motorResistance = 0;
 
+    float m_direction = 1.0; // Direction multiplier typically 1 or -1
     float m_homeOffset = 0;
     float m_defaultHomeOffset = 0; // Value as loaded from configuration.
     float m_endStopStart = 0;

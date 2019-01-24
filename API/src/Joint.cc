@@ -73,9 +73,6 @@ namespace DogBotN {
   }
 
   //! Estimate state at the given time.
-  //! This will linearly extrapolate position, and assume velocity and torque are
-  //! the same as the last reading.
-  //! If the data is more than 5 ticks away from the current time the method returns false.
   bool JointC::GetStateAt(double theTime,double &position,double &velocity,double &torque) const
   {
     TimePointT::duration timeSinceEpoch(theTime);
@@ -87,10 +84,12 @@ namespace DogBotN {
   { return -1; }
 
   //! Estimate state at the given time.
-  //! This will linearly extrapolate position, and assume velocity and torque are
-  //! the same as the last reading.
-  //! If the data is more than 5 ticks away from the
   bool JointC::GetStateAt(TimePointT theTime,double &position,double &velocity,double &torque) const
+  {
+    return false;
+  }
+
+  bool JointC::GetRawStateAt(TimePointT theTime,double &position,double &velocity,double &torque,enum PositionReferenceT &posRef) const
   {
     return false;
   }

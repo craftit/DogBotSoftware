@@ -58,6 +58,15 @@ namespace DogBotN {
     //! If the data is more than 5 ticks away from the current time the method returns false.
     virtual bool GetStateAt(TimePointT theTime,double &position,double &velocity,double &torque) const;
 
+    //! Estimate state at the given time.
+    //! Position in radians.
+    //! Velocity in radians/second
+    //! torque in Newton-metres
+    //! This will linearly extrapolate position, and assume velocity and torque are
+    //! the same as the last reading.
+    //! If the data is more than 5 ticks away from the
+    virtual bool GetRawStateAt(TimePointT theTime,double &position,double &velocity,double &torque,enum PositionReferenceT &posRef) const;
+
     //! Get last reported state of the servo and the time it was taken in seconds.
     bool GetState(double &theTime,double &position,double &velocity,double &torque) const;
 

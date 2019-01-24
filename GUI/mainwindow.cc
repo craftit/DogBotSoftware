@@ -1674,14 +1674,8 @@ bool MainWindow::SetupPlatformManager()
 {
   if(m_platformManager)
     return true;
-  std::shared_ptr<DogBotN::DeviceC> theDevice = m_dogBotAPI->GetDeviceByName("PlatformManager");
-  if(!theDevice) {
-    std::cerr << "Failed to find platform manager. " << std::endl;
-    return false;
-  }
-  m_platformManager = std::dynamic_pointer_cast<DogBotN::DevicePlatformManagerC>(theDevice);
-  if(!m_platformManager) {
-    std::cerr << "Platform manager of unexpected type '" << typeid(*theDevice.get()).name() << "'. " << std::endl;
+  if(!m_dogBotAPI->GetDeviceByName("PlatformManager",m_platformManager)) {
+    std::cerr << "Platform manager not found. " << std::endl;
     return false;
   }
   return true;

@@ -127,7 +127,9 @@ namespace DogBotN {
   
   //! Default constructor
   ServoC::ServoC()
-  {}
+  {
+    Init();
+  }
   
   ServoC::ServoC(const std::shared_ptr<ComsC> &coms, int deviceId, const PacketDeviceIdC &pktAnnounce)
    : DeviceC(coms,deviceId,pktAnnounce)
@@ -161,7 +163,7 @@ namespace DogBotN {
     m_timeOfLastReport = std::chrono::steady_clock::now();
     m_timeOfLastComs = m_timeOfLastReport;
     m_timeEpoch = m_timeOfLastReport;
-    m_tickDuration = std::chrono::milliseconds(10);
+    m_tickDuration = std::chrono::milliseconds(4);
 
     SetupConstants();
 
@@ -256,6 +258,7 @@ namespace DogBotN {
       m_deviceName = m_name;
     {
       std::lock_guard<std::mutex> lock(m_mutexAdmin);
+      m_direction = conf.get("direction",1.0).asFloat();
       m_motorKv = conf.get("motorKv",260.0).asFloat();
       m_gearRatio = conf.get("gearRatio",21.0).asFloat();
       m_endStopStart = conf.get("endStopStart",0).asFloat();
@@ -316,10 +319,8 @@ namespace DogBotN {
   {
     auto timeNow = std::chrono::steady_clock::now();
 
-    float newPosition = ComsC::PositionReport2Angle(report.m_position);
-    float newVelocity = ComsC::VelocityReport2Angle(report.m_velocity);
-
-    //m_log->info("Velocity: {}  {} -> {} ",Name().c_str(),report.m_velocity,newVelocity);
+    float newPosition = ComsC::PositionReport2Angle(report.m_position) * m_direction;
+    float newVelocity = ComsC::VelocityReport2Angle(report.m_velocity) * m_direction;
 
     {
       std::lock_guard<std::mutex> lock(m_mutexState);
@@ -347,17 +348,25 @@ namespace DogBotN {
       // FIXME:- Check the position reference frame.
       // Generate an estimate of the speed.
       if(inSync) {
-        m_velocity = (newPosition - m_position) /  (m_tickDuration.count() * (float) tickDiff);
+        float posDiff = newPosition - m_position;
+        if(fabs(posDiff) > 1.0) { // Don't get fooled by wrap around into reporting a large velocity
+          m_velocity = newVelocity;
+          // Position has wrapped....
+        } else {
+          m_velocity = posDiff /  (m_tickDuration.count() * (float) tickDiff);
+        }
+        //m_log->info("Position: {}  {} New:{} Diff:{} Vel:{} Ticks:{} Duration:{} ",Name().c_str(),m_position,newPosition,posDiff,m_velocity,tickDiff,m_tickDuration.count());
       } else {
-        m_velocity = 0; // Set it to zero until we have up to date information.
         m_velocity = newVelocity;
       }
 #endif
       m_positionRef = (enum PositionReferenceT) (report.m_mode & 0x3);
       m_homeIndexState = (report.m_mode & 0x8) != 0;
-      m_position = newPosition;
-      m_torque =  TorqueReport2Current(report.m_torque) * m_servoKt;
+      m_torque =  TorqueReport2Current(report.m_torque) * m_servoKt * m_direction;
       m_reportedMode = report.m_mode;
+      m_position = newPosition;
+
+      //m_log->info("Velocity: {}  {} -> {} ({}) Sync:{} ",Name().c_str(),report.m_velocity,newVelocity,m_velocity,inSync);
 
       // End block, and unlock m_mutexState.
     }
@@ -373,7 +382,6 @@ namespace DogBotN {
         if(a) a(timeNow,m_position,m_velocity,m_torque);
       }
     }
-
 
     return true;
   }
@@ -757,13 +765,8 @@ namespace DogBotN {
     return true;
   }
 
-
-  //! Estimate state at the given time.
-  bool ServoC::GetStateAt(TimePointT theTime,double &position,double &velocity,double &torque) const
+  bool ServoC::GetInternalStateAt(TimePointT theTime,double &position,double &velocity,double &torque,enum PositionReferenceT &posRef) const
   {
-    std::lock_guard<std::mutex> lock(m_mutexState);
-    if(m_positionRef != PR_Absolute)
-      return false;
     TimePointT lastTick = m_timeEpoch + m_tick * m_tickDuration;
     auto timeDiff = theTime - lastTick;
     if(fabs(timeDiff.count()) < m_tickDuration.count() * 5) {
@@ -778,6 +781,23 @@ namespace DogBotN {
     torque = m_torque;
     velocity = m_velocity;
     return true;
+  }
+
+  //! Estimate state at the given time.
+  bool ServoC::GetStateAt(TimePointT theTime,double &position,double &velocity,double &torque) const
+  {
+    std::lock_guard<std::mutex> lock(m_mutexState);
+    if(m_positionRef != PR_Absolute)
+      return false;
+    PositionReferenceT posRef;
+    return GetInternalStateAt(theTime,position,velocity,torque,posRef);
+  }
+
+  //! Estimate state at the given time.
+  bool ServoC::GetRawStateAt(TimePointT theTime,double &position,double &velocity,double &torque,enum PositionReferenceT &posRef) const
+  {
+    std::lock_guard<std::mutex> lock(m_mutexState);
+    return GetInternalStateAt(theTime,position,velocity,torque,posRef);
   }
 
   bool ServoC::UpdateTick(TimePointT timeNow)
@@ -880,7 +900,7 @@ namespace DogBotN {
     if(!m_enabled || !IsFirmwareVersionOk())
       return false;
     float current = torque / (m_maxCurrent* m_servoKt);
-    m_coms->SendTorque(m_id,current);
+    m_coms->SendTorque(m_id,current * m_direction);
     return true;
   }
 
@@ -889,8 +909,22 @@ namespace DogBotN {
   {
     if(!m_enabled || !IsFirmwareVersionOk())
       return false;
+    // Check motor mode?
+    switch(m_controlDynamic)
+    {
+      case CM_Off:
+      case CM_Torque:
+      case CM_Velocity:
+        m_coms->SendSetParam(m_id,CPI_PWMMode,(uint8_t) CM_Position);
+        break;
+      case CM_Position:
+        break;
+      default:
+        m_log->warn("Servo {} in unexpected mode {}.",Name(),ControlDynamicToString(m_controlDynamic));
+        return false;
+    }
     float currentLimit = torqueLimit / (m_maxCurrent* m_servoKt);
-    m_coms->SendMoveWithEffortLimit(m_id,position,currentLimit,positionRef);
+    m_coms->SendMoveWithEffortLimit(m_id,position * m_direction,currentLimit,positionRef);
     return true;
   }
 
@@ -914,10 +948,25 @@ namespace DogBotN {
   {
     if(!m_enabled || !IsFirmwareVersionOk())
       return false;
+
     // Check motor mode?
+    switch(m_controlDynamic)
+    {
+      case CM_Off:
+      case CM_Torque:
+      case CM_Position:
+        m_coms->SendSetParam(m_id,CPI_PWMMode,(uint8_t) CM_Velocity);
+        break;
+      case CM_Velocity:
+        break;
+      default:
+        m_log->warn("Servo {} in unexpected mode {}.",Name(),ControlDynamicToString(m_controlDynamic));
+        return false;
+    }
+
     JointC::DemandVelocity(velocity,torqueLimit);
     float currentLimit = torqueLimit / (m_maxCurrent* m_servoKt);
-    m_coms->SendVelocityWithEffort(m_id,velocity,currentLimit);
+    m_coms->SendVelocityWithEffort(m_id,velocity* m_direction,currentLimit);
     return true;
   }
 
@@ -957,7 +1006,7 @@ namespace DogBotN {
     }
     float effort = torque / (m_maxCurrent* m_servoKt);
     JointC::DemandTrajectory(position,torque);
-    m_coms->SendMoveWithEffort(m_id,position,effort,PR_Absolute,m_trajectoryTimestamp);
+    m_coms->SendMoveWithEffort(m_id,position * m_direction,effort,PR_Absolute,m_trajectoryTimestamp);
     m_trajectoryTimestamp++;
     return true;
   }
