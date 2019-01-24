@@ -83,10 +83,9 @@ void SimHWInterface::write(ros::Duration &elapsed_time)
 
   // NOTE: the following is a "simuation" example so that this boilerplate can be run without being
   // connected to hardware
-  // When converting to your robot, remove the built-in PID loop and instead let the higher leverl
-  // ros_control controllers take
-  // care of PID loops for you. This P-controller is only intended to mimic the delay in real
-  // hardware, somewhat like a simualator
+  // When converting to your robot, remove the built-in PID loop and instead let the higher level
+  // ros_control controllers take care of PID loops for you. This P-controller is only intended
+  // to mimic the delay in real hardware, somewhat like a simualator
   for (std::size_t joint_id = 0; joint_id < num_joints_; ++joint_id)
   {
     switch (sim_control_mode_)

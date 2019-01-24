@@ -32,7 +32,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-/* Author: Dave Coleman
+/* Author: Dave Coleman, hacked by Charles Galambos
    Desc:   Helper ros_control hardware interface that loads configurations
 */
 
@@ -262,7 +262,7 @@ void DogBotHWInterface::registerJointLimits(const hardware_interface::JointHandl
   // Copy position limits if available
   if (joint_limits.has_position_limits)
   {
-    // Slighly reduce the joint limits to prevent floating point errors
+    // Slightly reduce the joint limits to prevent floating point errors
     joint_limits.min_position += std::numeric_limits<double>::epsilon();
     joint_limits.max_position -= std::numeric_limits<double>::epsilon();
 
