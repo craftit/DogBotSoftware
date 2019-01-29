@@ -42,7 +42,9 @@ namespace DogBotN {
     zpub->bind (addrPub.c_str());
     zpub->setsockopt(ZMQ_SNDTIMEO,500);
 
-    m_genericHandlerId = m_coms->SetGenericHandler([this,zpub](const uint8_t *data,int len) mutable
+    std::mutex m_accessZPub;
+
+    m_genericHandlerId = m_coms->SetGenericHandler([this,zpub,&m_accessZPub](const uint8_t *data,int len) mutable
                               {
                                 ComsPacketTypeT cpt = (ComsPacketTypeT)data[0];
                                 switch(cpt)
@@ -69,6 +71,9 @@ namespace DogBotN {
                                 try {
                                   zmq::message_t msg (len);
                                   memcpy (msg.data (), data, len);
+                                  // This callback could come from multiple threads
+                                  // so we need to serialise access to the zmq socket.
+                                  std::lock_guard<std::mutex> lock(m_accessZPub);
                                   zpub->send(msg);
                                 } catch(zmq::error_t &err) {
                                   m_log->error("Caught exception forwarding message %d '%s' ",err.num(),err.what());
