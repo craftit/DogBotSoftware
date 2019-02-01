@@ -952,7 +952,8 @@ namespace DogBotN {
     // Check motor mode?
     switch(m_controlDynamic)
     {
-      case CM_Off:
+      case CM_Off: // If motor is off just ignore the command.
+        return false;
       case CM_Torque:
       case CM_Position:
         m_coms->SendSetParam(m_id,CPI_PWMMode,(uint8_t) CM_Velocity);
