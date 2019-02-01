@@ -65,7 +65,8 @@ namespace DogBotN
     TimePointT when = TimePointT::clock::now();
 
     Eigen::Vector3f acceleration(pkt->m_accel[0]/100.0,pkt->m_accel[1]/100.0,pkt->m_accel[2]/100.0);
-    Eigen::Vector3f rotationVelocity(pkt->m_gyro[0]/16.0,pkt->m_gyro[1]/16.0,pkt->m_gyro[2]/16.0);
+    float rotScale = (M_PI/ (180*16.0));
+    Eigen::Vector3f rotationVelocity(pkt->m_gyro[0] * rotScale,pkt->m_gyro[1] * rotScale,pkt->m_gyro[2] * rotScale);
 
     const double scale = (1.0 / (1<<14));
     Eigen::Quaternionf rot(pkt->m_rot[0]*scale,pkt->m_rot[1]*scale,pkt->m_rot[2]*scale,pkt->m_rot[3]*scale);
