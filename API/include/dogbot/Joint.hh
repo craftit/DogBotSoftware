@@ -125,6 +125,10 @@ namespace DogBotN {
     float Velocity() const
     { return m_velocity; }
 
+    //! Angle at which the position will wrap around.
+    double PositionWrapLimit() const
+    { return m_positionWrap; }
+
     //! Move to position and wait until it gets there or stalls.
     //! timeout is in seconds.
     JointMoveStatusT MoveWait(float position,float torqueLimit,double timeOut = 3.0);
@@ -138,6 +142,8 @@ namespace DogBotN {
     std::shared_ptr<spdlog::logger> m_logJoint = spdlog::get("console");
 
     std::string m_name;
+
+    double m_positionWrap = DOGBOT_SERVOREPORT_POSITIONRANGE;
 
     float m_demandPosition = nan("");
     float m_demandVelocity = nan("");
