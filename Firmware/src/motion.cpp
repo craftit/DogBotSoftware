@@ -5,6 +5,7 @@
 #include "coms.h"
 #include "canbus.h"
 #include "storedconf.h"
+#include "lan9252.h"
 
 float g_homeAngleOffset = 0;      // Offset from phase position to actuator position.
 float g_motorPhase2RotationRatio = 7.0;

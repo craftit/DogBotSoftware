@@ -4,7 +4,6 @@
 #include <stdint.h>
 
 #include "dogbot/protocol.h"
-#include "lan9252.h"
 
 #ifdef __cplusplus
 extern "C" {

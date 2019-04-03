@@ -41,6 +41,7 @@ ADD_LIBRARY (DogBotAPI STATIC
         DogBotAPI.cc 
         Servo.cc 
         LegKinematics.cc 
+        LegKinematicsV4.cc 
         Joint.cc 
         JointRelative.cc 
         Joint4BarLinkage.cc 
@@ -87,6 +88,9 @@ target_link_libraries (dumpServoState LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_
 
 add_executable (testKinematics testKinematics.cc)
 target_link_libraries (testKinematics LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT})
+
+add_executable (testKinematicsV4 testKinematicsV4.cc)
+target_link_libraries (testKinematicsV4 LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT})
 
 add_executable (dogBotServer dogBotServer.cc)
 target_link_libraries (dogBotServer LINK_PUBLIC DogBotAPI ${CMAKE_THREAD_LIBS_INIT})
