@@ -258,6 +258,7 @@ extern "C" {
     CPI_LAN9252            = 0x70,
 
     CPI_AngleStats         = 0x80, // Including 36 entries after this
+    CPI_TLE5012            = 0xA0, // Including 16 entries after this
 
     CPI_FINAL           = 0xff
   };

@@ -839,7 +839,7 @@ static void MotorControlLoop(void)
         break;
       case CM_Fault:
       case CM_Final:
-        // Just turn on the low side MOSFETs, this should passively brake the motor
+        // Just turn on the low side MOSFETs, this passively brakes the motor
         PWMUpdateDrivePhase(
             0,
             0,
@@ -848,7 +848,7 @@ static void MotorControlLoop(void)
         g_torqueAverage = 0;
         break;
       case CM_Brake:
-        // Just turn on the low side MOSFETs, this should passively brake the motor
+        // Just turn on the low side MOSFETs, this passively brakes the motor
         // as there are no switching losses this applies more breaking force.
         PWMUpdateDrivePhase(
             0,

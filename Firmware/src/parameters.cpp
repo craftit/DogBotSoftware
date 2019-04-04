@@ -14,6 +14,7 @@
 #include <string.h>
 
 #include "drv8320.h"
+#include "TLE5012B.h"
 
 uint8_t g_debugIndex = 0x55;
 
@@ -480,6 +481,14 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
     return true;
   }
 #endif
+#if 0
+  if((int) index >= CPI_TLE5012 && index <(CPI_TLE5012+16)) {
+    data->uint16[0] = TLE5012ReadRegister(index -CPI_TLE5012);
+    *len = 2;
+    return true;
+  }
+#endif
+
 
   switch(index)
   {

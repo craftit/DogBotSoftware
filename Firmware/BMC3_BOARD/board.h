@@ -117,8 +117,8 @@
 #define DRIVE_INLC_GPIO_Port GPIOB
 #define ETH_IRQ_Pin GPIO_PIN_2
 #define ETH_IRQ_GPIO_Port GPIOB
-#define POSITION_INDEX_Pin GPIO_PIN_10
-#define POSITION_INDEX_GPIO_Port GPIOB
+#define POSITION_INDEX_Pin GPIO_PIN_2
+#define POSITION_INDEX_GPIO_Port GPIOC
 #define ETH_SYNC_LATCH1_Pin GPIO_PIN_11
 #define ETH_SYNC_LATCH1_GPIO_Port GPIOB
 #define USB_ID_Pin GPIO_PIN_12
@@ -151,6 +151,10 @@
 #define ETH_SPI_MOSI_GPIO_Port GPIOC
 #define ETH_SPI_NSELECT_Pin GPIO_PIN_2
 #define ETH_SPI_NSELECT_GPIO_Port GPIOD
+
+#define ENC_SPI_NSELECT_Pin GPIO_PIN_1
+#define ENC_SPI_NSELECT_GPIO_Port GPIOC
+
 #define DRIVE_SPI_MISO_Pin GPIO_PIN_4
 #define DRIVE_SPI_MISO_GPIO_Port GPIOB
 #define DRIVE_SPI_MOSI_Pin GPIO_PIN_5
@@ -490,7 +494,7 @@
  * PB7  - USART1_RX                 (alternate 7).
  * PB8  - FAN_POWER                 (output).
  * PB9  - DRIVE_FAULT               (input).
- * PB10 - POSITION_INDEX            (input).
+ * PB10 - POSITION_INDEX            (input).  Now SPI2_SCK
  * PB11 - ETH_SYNC_LATCH1           (output).
  * PB12 - USB_ID                    (alternate 12).
  * PB13 - INLA                      (alternate 1).
@@ -507,7 +511,7 @@
                                      PIN_MODE_ALTERNATE(GPIOB_PIN7) |           \
                                      PIN_MODE_OUTPUT(GPIOB_PIN8) |           \
                                      PIN_MODE_INPUT(GPIOB_PIN9) |           \
-                                     PIN_MODE_INPUT(GPIOB_PIN10) |          \
+                                     PIN_MODE_ALTERNATE(GPIOB_PIN10) |          \
                                      PIN_MODE_OUTPUT(GPIOB_PIN11) |          \
                                      PIN_MODE_ALTERNATE(GPIOB_PIN12) |          \
                                      PIN_MODE_ALTERNATE(GPIOB_PIN13) |          \
@@ -587,7 +591,7 @@
                                      PIN_AFIO_AF(GPIOB_PIN7, 7U))
 #define VAL_GPIOB_AFRH              (PIN_AFIO_AF(GPIOB_PIN8, 0U) |          \
                                      PIN_AFIO_AF(GPIOB_PIN9, 0U) |          \
-                                     PIN_AFIO_AF(GPIOB_PIN10, 0U) |         \
+                                     PIN_AFIO_AF(GPIOB_PIN10, 5U) |         \
                                      PIN_AFIO_AF(GPIOB_PIN11, 0U) |         \
                                      PIN_AFIO_AF(GPIOB_PIN12, 12U) |         \
                                      PIN_AFIO_AF(GPIOB_PIN13, 1U) |         \
@@ -597,10 +601,10 @@
 /*
  * GPIOC setup:
  *
- * PC0  - HALLA                     (analog in).
- * PC1  - HALLB                     (analog in).
- * PC2  - HALLC                     (analog in).
- * PC3  - TEMP_MOTOR                (analog in).
+ * PC0  - HALLA                     (analog in).  Now: Motor Temp    analog
+ * PC1  - HALLB                     (analog in).  Now: Chip Select   output
+ * PC2  - HALLC                     (analog in).  INDEX_POSITION     input
+ * PC3  - TEMP_MOTOR                (analog in).  Now:  SPI2_MOSI    alternate 5
  * PC4  - MONITOR_5V                (analog in).
  * PC5  - DRIVE_TEMP                (analog in).
  * PC6  - FAN_SENSOR                (input pullup).
@@ -615,9 +619,9 @@
  * PC15 - ETH_SYNC_LATCH0           (input pullup).
  */
 #define VAL_GPIOC_MODER             (PIN_MODE_ANALOG(GPIOC_PIN0) |           \
-                                     PIN_MODE_ANALOG(GPIOC_PIN1) |           \
-                                     PIN_MODE_ANALOG(GPIOC_PIN2) |           \
-                                     PIN_MODE_ANALOG(GPIOC_PIN3) |           \
+                                     PIN_MODE_OUTPUT(GPIOC_PIN1) |           \
+                                     PIN_MODE_INPUT(GPIOC_PIN2) |           \
+                                     PIN_MODE_ALTERNATE(GPIOC_PIN3) |           \
                                      PIN_MODE_ANALOG(GPIOC_PIN4) |           \
                                      PIN_MODE_ANALOG(GPIOC_PIN5) |           \
                                      PIN_MODE_INPUT(GPIOC_PIN6) |           \
@@ -697,7 +701,7 @@
 #define VAL_GPIOC_AFRL              (PIN_AFIO_AF(GPIOC_PIN0, 0U) |          \
                                      PIN_AFIO_AF(GPIOC_PIN1, 0U) |          \
                                      PIN_AFIO_AF(GPIOC_PIN2, 0U) |          \
-                                     PIN_AFIO_AF(GPIOC_PIN3, 0U) |          \
+                                     PIN_AFIO_AF(GPIOC_PIN3, 5U) |          \
                                      PIN_AFIO_AF(GPIOC_PIN4, 0U) |          \
                                      PIN_AFIO_AF(GPIOC_PIN5, 0U) |          \
                                      PIN_AFIO_AF(GPIOC_PIN6, 0U) |          \

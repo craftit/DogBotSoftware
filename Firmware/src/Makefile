@@ -161,6 +161,7 @@ CPPSRC = \
   do_pwm.cpp \
   emergency_stop.cpp \
   lan9252.cpp \
+  TLE5012B.cpp \
   power.cpp
 
 

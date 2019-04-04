@@ -27,9 +27,11 @@
 #include "lan9252.h"
 #include "exec.h"
 #include "shell/shell.h"
+#include "TLE5012B.h"
 
 extern pid_t getpid(void);
 
+bool g_enableSensorPowerAlways = true;
 
 unsigned g_mainLoopTimeoutCount = 0;
 unsigned g_emergencyStopTimer = 0;
@@ -289,7 +291,7 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
       g_controlState = newState;
       g_stateChangeCause = changeSource;
       PWMStop();
-      EnableSensorPower(false);
+      EnableSensorPower(g_enableSensorPowerAlways);
       SendParamUpdate(CPI_HomedState);
       break;
     case CS_SafeStop:
@@ -344,7 +346,7 @@ int ChangeControlState(enum ControlStateT newState,enum StateChangeSourceT chang
         g_controlState = CS_Fault;
         g_currentLimit = 0;
         PWMStop();
-        EnableSensorPower(false);
+        EnableSensorPower(g_enableSensorPowerAlways);
         SendParamUpdate(CPI_HomedState);
         break;
       }
@@ -584,9 +586,6 @@ int main(void)
   chThdCreateStatic(waThreadGreenLED, sizeof(waThreadGreenLED), NORMALPRIO, ThreadGreenLED, NULL);
   chThdCreateStatic(waThreadOrangeLED, sizeof(waThreadOrangeLED), NORMALPRIO, ThreadOrangeLED, NULL);
 
-  EnableSensorPower(false);
-  EnableFanPower(false);
-
   InitADC();
 
   //InitSerial();
@@ -594,15 +593,21 @@ int main(void)
 
   InitCAN();
 
+  // Make sure select is high
+  palSetPad(DRIVE_SPI_NSELECT_GPIO_Port,DRIVE_SPI_NSELECT_Pin);
+  palSetPad(ENC_SPI_NSELECT_GPIO_Port,ENC_SPI_NSELECT_Pin);
+
   faultCode = InitLan9252();
   // FIXME:- What to do if we have a fault here?
+
+  EnableSensorPower(g_enableSensorPowerAlways);
+  EnableFanPower(false);
 
   StoredConf_Init();
 
   LoadSetup();
 
-  // Make sure select is high
-  palSetPad(DRIVE_SPI_NSELECT_GPIO_Port,DRIVE_SPI_NSELECT_Pin);
+  InitTLE5012B();
 
 #if 1
   switch(g_deviceType)
@@ -680,8 +685,19 @@ int main(void)
         break;
       case CS_SelfTest:
         break;
+      case CS_Standby: {
+        if(g_deviceId == 0) {
+          if(g_deviceZeroTimer++ > g_deviceZeroTimeout) {
+            g_deviceZeroTimer = 0;
+            SendAnnounceId();
+          }
+        }
+        chThdSleepMilliseconds(20);
+        g_debugValue = TLE5012ReadRegister(2);
+
+        SendBackgroundStateReport();
+      } break;
       case CS_USBBridge:
-      case CS_Standby:
       case CS_BootLoader: {
         if(g_deviceId == 0) {
           if(g_deviceZeroTimer++ > g_deviceZeroTimeout) {
