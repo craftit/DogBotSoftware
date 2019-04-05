@@ -13,22 +13,6 @@ struct StoredConfigT g_storedConfig;
 // Global variables
 uint16_t VirtAddVarTab[NB_OF_VAR];
 
-// Private variables
-uint16_t g_defaultPhaseAngles[g_calibrationPointCount][3] = {
- { 2416, 2693, 2841 },
- { 2231, 2538, 2843 },
- { 2219, 2386, 2797 },
- { 2222, 2233, 2581 },
- { 2242, 2123, 2356 },
- { 2424, 2188, 2280 },
- { 2638, 2309, 2271 },
- { 2828, 2495, 2280 },
- { 2827, 2636, 2338 },
- { 2825, 2776, 2572 },
- { 2818, 2876, 2788 },
- { 2642, 2810, 2844 }
-};
-
 
 
 void StoredConf_Init(void)
@@ -54,11 +38,6 @@ void StoredConf_Init(void)
 void StoredConf_FactoryDefaults(struct StoredConfigT *conf)
 {
   memset(conf,0,sizeof(struct StoredConfigT));
-  for(int i = 0;i < g_calibrationPointCount;i++) {
-    conf->phaseAngles[i][0] = g_defaultPhaseAngles[i][0];
-    conf->phaseAngles[i][1] = g_defaultPhaseAngles[i][1];
-    conf->phaseAngles[i][2] = g_defaultPhaseAngles[i][2];
-  }
   conf->deviceId = 0;
   conf->m_motionPositionReference = PR_Absolute;
   conf->m_phaseResistance = 0.002;
@@ -67,6 +46,9 @@ void StoredConf_FactoryDefaults(struct StoredConfigT *conf)
   conf->m_absoluteMaxCurrent = 70.0;
   conf->m_homeIndexPosition = 0.0;
   conf->m_minSupplyVoltage = 19.0;
+
+  conf->m_phaseEncoderZero = 0;
+  conf->m_phaseEncoderAngle = 1;
 
   conf->m_jointRole = JR_Spare;
   conf->m_endStopEnable = false;

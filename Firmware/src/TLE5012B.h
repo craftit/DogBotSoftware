@@ -11,7 +11,8 @@ extern enum FaultCodeT InitTLE5012B(void);
 
 uint16_t TLE5012ReadRegister(uint16_t address);
 
-uint16_t TLE5012ReadAngle();
+float TLE5012ReadAngleFloat(void);
+int16_t TLE5012ReadAngleInt(void);
 
 #ifdef __cplusplus
 }

@@ -14,6 +14,8 @@
 #include "storedconf.h"
 
 #include "motion.h"
+#include "TLE5012B.h"
+#include "math.h"
 
 #define SYSTEM_CORE_CLOCK     168000000
 
@@ -25,6 +27,9 @@ float g_debugValue = 0;
 
 float g_maxSupplyVoltage = 50.0;
 float g_maxOperatingTemperature = 75.0;
+
+float g_phaseEncoderZero = 0;
+float g_phaseEncoderAngle = 0;
 
 float g_phaseResistance = 0.002;
 float g_phaseOffsetVoltage = 0.1;
@@ -60,8 +65,7 @@ float g_motor_i_gain = 0.0;  // 0.0
 float g_lastVoltageAlpha = 0;
 float g_lastVoltageBeta = 0;
 
-int g_phaseAngles[g_calibrationPointCount][3];
-float g_phaseDistance[g_calibrationPointCount];
+int g_phaseAngles[g_calibrationPointCount];
 
 bool g_pwmThreadRunning = false;
 volatile bool g_pwmRun = false;
@@ -118,32 +122,6 @@ static bool SensorlessEstimatorUpdate(float *eta);
 
 void SetupMotorCurrentPID(void);
 
-// based on https://math.stackexchange.com/a/1105038/81278
-#define MACRO_MAX(x, y) (((x) > (y)) ? (x) : (y))
-#define MACRO_MIN(x, y) (((x) < (y)) ? (x) : (y))
-
-static float fast_atan2(float y, float x)
-{
-  // a := min (|x|, |y|) / max (|x|, |y|)
-  float abs_y = fabsf(y);
-  float abs_x = fabsf(x);
-  float a = MACRO_MIN(abs_x, abs_y) / MACRO_MAX(abs_x, abs_y);
-  //s := a * a
-  float s = a * a;
-  //r := ((-0.0464964749 * s + 0.15931422) * s - 0.327622764) * s * a + a
-  float r = ((-0.0464964749f * s + 0.15931422f) * s - 0.327622764f) * s * a + a;
-  //if |y| > |x| then r := 1.57079637 - r
-  if (abs_y > abs_x)
-      r = 1.57079637f - r;
-  // if x < 0 then r := 3.14159274 - r
-  if (x < 0.0f)
-      r = 3.14159274f - r;
-  // if y < 0 then r := -r
-  if (y < 0.0f)
-      r = -r;
-
-  return r;
-}
 
 // Set the report rate.
 // It must be a integer multiple of
@@ -272,8 +250,10 @@ static bool Monitor_FOC_Current(float phaseAngle)
   float Ibeta = one_by_sqrt3 * (g_current[1] - g_current[2]);
 
   // Park transform
-  float c = arm_cos_f32(phaseAngle);
-  float s = arm_sin_f32(phaseAngle);
+  float s = 0;
+  float c = 0;
+  arm_sin_cos_f32(phaseAngle,&s,&c);
+
   g_Id = c*Ialpha + s*Ibeta;
   g_Iq = c*Ibeta  - s*Ialpha;
 
@@ -294,8 +274,10 @@ static bool FOC_current(float phaseAngle,float Id_des, float Iq_des)
   float Ibeta = one_by_sqrt3 * (g_current[1] - g_current[2]);
 
   // Park transform
-  float c = arm_cos_f32(phaseAngle);
-  float s = arm_sin_f32(phaseAngle);
+  float s = 0;
+  float c = 0;
+  arm_sin_cos_f32(phaseAngle,&s,&c);
+
   g_Id = c*Ialpha + s*Ibeta;
   g_Iq = c*Ibeta  - s*Ialpha;
 
@@ -471,68 +453,18 @@ static void UpdateCurrentMeasurementsFromADCValues(void) {
 }
 
 static float wrapAngle(float theta) {
-    while (theta >= M_PI) theta -= (2.0f * M_PI);
-    while (theta < -M_PI) theta += (2.0f * M_PI);
-    return theta;
+  while (theta >= M_PI) theta -= (2.0f * M_PI);
+  while (theta < -M_PI) theta += (2.0f * M_PI);
+  return theta;
 }
 
-static void FastSinCos(float x,float &sin,float &cos)
-{
-  if (x < -3.14159265)
-      x += 6.28318531;
-  else
-  if (x >  3.14159265)
-      x -= 6.28318531;
-
-  //compute sine
-  if (x < 0)
-  {
-      sin = 1.27323954 * x + .405284735 * x * x;
-
-      if (sin < 0)
-          sin = .225 * (sin *-sin - sin) + sin;
-      else
-          sin = .225 * (sin * sin - sin) + sin;
-  }
-  else
-  {
-      sin = 1.27323954 * x - 0.405284735 * x * x;
-
-      if (sin < 0)
-          sin = .225 * (sin *-sin - sin) + sin;
-      else
-          sin = .225 * (sin * sin - sin) + sin;
-  }
-
-  //compute cosine: sin(x + PI/2) = cos(x)
-  x += 1.57079632;
-  if (x >  3.14159265)
-      x -= 6.28318531;
-
-  if (x < 0)
-  {
-      cos = 1.27323954 * x + 0.405284735 * x * x;
-
-      if (cos < 0)
-          cos = .225 * (cos *-cos - cos) + cos;
-      else
-          cos = .225 * (cos * cos - cos) + cos;
-  }
-  else
-  {
-      cos = 1.27323954 * x - 0.405284735 * x * x;
-
-      if (cos < 0)
-          cos = .225 * (cos *-cos - cos) + cos;
-      else
-          cos = .225 * (cos * cos - cos) + cos;
-  }
-}
 
 
 static void ComputeState(void)
 {
-  float rawPhase = hallToAngle(g_hall);
+  int16_t angle = TLE5012ReadAngleFloat();
+
+  float rawPhase = fmodf(angle - g_phaseEncoderZero,g_phaseEncoderAngle);
 
   // Compute current phase angle
   float lastAngle = g_phaseAngle;
@@ -1171,9 +1103,6 @@ void InitHall2Angle(void);
 int InitPWM(void)
 {
 
-
-  InitHall2Angle();
-
   // Make sure current integrals are reset.
   g_current_control_integral_d = 0;
   g_current_control_integral_q = 0;
@@ -1291,8 +1220,13 @@ int PWMSVMScan(BaseSequentialStream *chp)
     for (float ph = 0.0f; ph < 2.0f * M_PI; ph += omega * CURRENT_MEAS_PERIOD) {
       chThdSleepMicroseconds(5);
       //osSignalWait(M_SIGNAL_PH_CURRENT_MEAS, osWaitForever);
-      float v_alpha = voltage_magnitude * arm_cos_f32(ph);
-      float v_beta  = voltage_magnitude * arm_sin_f32(ph);
+
+      float sinv = 0;
+      float cosv = 0;
+      arm_sin_cos_f32(ph,&sinv,&cosv);
+
+      float v_alpha = voltage_magnitude * cosv;
+      float v_beta  = voltage_magnitude * sinv;
 
       float tA = 0, tB = 0, tC = 0;
       SVM(v_alpha, v_beta, &tA, &tB, &tC);
@@ -1501,7 +1435,8 @@ void SetupMotorCurrentPID()
 #endif
 }
 
-//static float sqrf(float v) { return v * v; }
+
+// Measure the effective resistance
 
 enum FaultCodeT PWMMotorCalResistance()
 {
@@ -1615,6 +1550,9 @@ enum FaultCodeT PWMMotorCalResistance()
   return ret;
 }
 
+
+// Measure the winding inductance
+
 enum FaultCodeT PWMMotorCalInductance()
 {
   enum FaultCodeT ret = FC_Ok;
@@ -1658,21 +1596,20 @@ enum FaultCodeT PWMMotorCalInductance()
   return ret;
 }
 
+
+
 enum FaultCodeT PWMMotorPhaseCalReading(
-    int phase,
+    float phaseAngle,
     int cyclesPerSecond,
     int numberOfReadings,
     float torqueValue,
     float &lastAngle,
-    int *readingCount
+    float &measuredAngle
     )
 {
   enum FaultCodeT ret = FC_Ok;
 
   g_vbus_voltage = ReadSupplyVoltage();
-
-  int phaseStep = phase % g_calibrationPointCount;
-  float phaseAngle = (float) phase * M_PI * 2.0 / ((float) g_calibrationPointCount) ;
 
   int shiftPeriod = cyclesPerSecond / 12; // 8 is ok
 
@@ -1708,6 +1645,9 @@ enum FaultCodeT PWMMotorPhaseCalReading(
   g_vbus_voltage = ReadSupplyVoltage();
   // Take some readings.
 
+  float sums = 0;
+  float sumc = 0;
+
   for(int i = 0;i < numberOfReadings;i++) {
     if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
       ret = FC_InternalTiming;
@@ -1717,14 +1657,17 @@ enum FaultCodeT PWMMotorPhaseCalReading(
 
     FOC_current(phaseAngle,torqueValue,0);
 
-    for(int i = 0;i < 3;i++) {
-      g_phaseAngles[phaseStep][i] += g_hall[i];
-    }
-    readingCount[phaseStep]++;
+    float s,c;
+    arm_sin_cos_f32(TLE5012ReadAngleFloat(),&s,&c);
+    sums += s;
+    sumc += c;
   }
+
+  measuredAngle = atan2f(sums,sumc);
 
   return ret;
 }
+
 
 enum FaultCodeT PWMMotorPhaseCal()
 {
@@ -1735,13 +1678,10 @@ enum FaultCodeT PWMMotorPhaseCal()
   // Make sure PWM is running.
   InitPWM();
 
-  int phaseRotations = 7;
-  int numberOfReadings = 8;
   float torqueValue = 12.0;
-
   int cyclesPerSecond = 1.0 / (1.0 * CURRENT_MEAS_PERIOD);
-
   float lastAngle = 0;
+  int numberOfReadings = 16;
 
   g_vbus_voltage = ReadSupplyVoltage();
 
@@ -1756,215 +1696,18 @@ enum FaultCodeT PWMMotorPhaseCal()
     float tv = (float) i * torqueValue / (float) cyclesPerSecond;
     FOC_current(lastAngle,tv,0);
   }
-  int readingCount[g_calibrationPointCount];
-  for(int i = 0;i < g_calibrationPointCount;i++)
-    readingCount[i] = 0;
 
-  int phase = 0;
-  for(;phase < g_calibrationPointCount*phaseRotations && ret == FC_Ok;phase++) {
-    ret = PWMMotorPhaseCalReading(phase,cyclesPerSecond,numberOfReadings,torqueValue,lastAngle,readingCount);
-    if(ret != FC_Ok) return ret;
-  }
-  phase--;
-  for(;phase >= 0 && ret == FC_Ok;phase--) {
-    ret = PWMMotorPhaseCalReading(phase,cyclesPerSecond,numberOfReadings,torqueValue,lastAngle,readingCount);
-    if(ret != FC_Ok) return ret;
-  }
+  float phase0 = 0;
+  float phase1 = 0;
 
-  if(ret == FC_Ok) {
-    for(int i = 0;i < g_calibrationPointCount;i++) {
-      g_phaseAngles[i][0] /= readingCount[i];
-      g_phaseAngles[i][1] /= readingCount[i];
-      g_phaseAngles[i][2] /= readingCount[i];
-    }
-  }
+  PWMMotorPhaseCalReading(0,cyclesPerSecond,numberOfReadings,torqueValue,lastAngle,phase0);
+  PWMMotorPhaseCalReading(M_PI*2,cyclesPerSecond,numberOfReadings,torqueValue,lastAngle,phase1);
 
-  //DisplayAngle(chp);
+  g_phaseEncoderZero = phase0;
+  g_phaseEncoderAngle = phase1 - phase0;
+  wrapAngle(g_phaseEncoderAngle);
+
   return ret;
-}
-
-
-
-
-int PWMCalSVM(BaseSequentialStream *chp)
-{
-  EnableGateOutputs(true);
-
-  float voltage_magnitude = 0.06; // FIXME:- SHould change depending on supply voltage
-
-  for(int phase = 0;phase <  g_calibrationPointCount*7;phase++) {
-    int phaseStep = phase % g_calibrationPointCount;
-    float phaseAngle = (float) phase * M_PI * 2.0 / ((float) g_calibrationPointCount);
-    float v_alpha = voltage_magnitude * arm_cos_f32(phaseAngle);
-    float v_beta  = voltage_magnitude * arm_sin_f32(phaseAngle);
-
-    queue_modulation_timings(v_alpha, v_beta,false);
-
-    // Wait for position to settle
-    chThdSleepMilliseconds(1000);
-
-    // Sync to avoid reading variables when they're being updated.
-    chBSemWait(&g_adcInjectedDataReady);
-
-    for(int i = 0;i < 3;i++) {
-      g_phaseAngles[phaseStep][i] += g_hall[i];
-    }
-    if (!palReadPad(BUTTON1_GPIO_Port, BUTTON1_Pin)) {
-      return 0;
-    }
-    chprintf(chp, "Cal %d : %04d %04d %04d   \r\n",phase,g_hall[0],g_hall[1],g_hall[2]);
-  }
-  for(int i = 0;i < g_calibrationPointCount;i++) {
-    g_phaseAngles[i][0] /= 7;
-    g_phaseAngles[i][1] /= 7;
-    g_phaseAngles[i][2] /= 7;
-    chprintf(chp, "Cal %d : %04d %04d %04d   \r\n",
-        i,g_phaseAngles[i][0],g_phaseAngles[i][1],g_phaseAngles[i][2]);
-  }
-
-  EnableGateOutputs(false);
-
-  //DisplayAngle(chp);
-  return 0;
-}
-
-// This returns an angle between 0 and 2 pi
-
-
-float hallToAngleRef(uint16_t *sensors)
-{
-  int distTable[g_calibrationPointCount];
-  int phase = 0;
-
-  int minDist = sqr(g_phaseAngles[0][0] - sensors[0]) +
-                sqr(g_phaseAngles[0][1] - sensors[1]) +
-                sqr(g_phaseAngles[0][2] - sensors[2]);
-  distTable[0] = minDist;
-
-  for(int i = 1;i < g_calibrationPointCount;i++) {
-    int dist = sqr(g_phaseAngles[i][0] - sensors[0]) +
-                  sqr(g_phaseAngles[i][1] - sensors[1]) +
-                  sqr(g_phaseAngles[i][2] - sensors[2]);
-    distTable[i] = dist;
-    if(dist < minDist) {
-      phase = i;
-      minDist = dist;
-    }
-  }
-  int last = phase - 1;
-  if(last < 0) last = g_calibrationPointCount;
-  int next = phase + 1;
-  if(next >= g_calibrationPointCount) next = 0;
-  int lastDist2 = distTable[last];
-  int nextDist2 = distTable[next];
-  float angle = phase * 2.0;
-  float lastDist = mysqrtf(lastDist2) / g_phaseDistance[phase];
-  float nextDist = mysqrtf(nextDist2) / g_phaseDistance[next];
-  angle -= (nextDist-lastDist)/(nextDist + lastDist);
-  const float calibRange = g_calibrationPointCount*2.0f;
-  if(angle < 0.0) angle += calibRange;
-  if(angle > calibRange) angle -= calibRange;
-  return (angle * M_PI * 2.0 / calibRange) + 1.04;
-}
-
-float g_hallToAngleOriginOffset = -2000;
-float g_phaseAnglesNormOrg[g_calibrationPointCount][3];
-
-void InitHall2Angle(void)
-{
-  {
-    // Pre-compute the distance between this position and the last.
-    int lastIndex = g_calibrationPointCount-1;
-    for(int i = 0;i < g_calibrationPointCount;i++) {
-      int sum = 0;
-      for(int k = 0;k < 3;k++) {
-        int diff = g_phaseAngles[i][k] - g_phaseAngles[lastIndex][k];
-        sum += diff * diff;
-      }
-      g_phaseDistance[i] = mysqrtf((float) sum);
-      lastIndex = i;
-    }
-  }
-
-  for(int i = 0;i < g_calibrationPointCount;i++) {
-    float sumMag = 0;
-
-    for(int k = 0;k < 3;k++) {
-      sumMag += sqr(g_phaseAngles[i][k] - g_hallToAngleOriginOffset);
-    }
-
-    sumMag = mysqrtf(sumMag);
-    for(int k = 0;k < 3;k++) {
-      g_phaseAnglesNormOrg[i][k] = (g_phaseAngles[i][k]-g_hallToAngleOriginOffset) / sumMag;
-    }
-  }
-}
-
-
-
-float hallToAngleDot2(uint16_t *sensors)
-{
-  float distTable[g_calibrationPointCount];
-  float norm[3];
-  norm[0] = (float) sensors[0] - g_hallToAngleOriginOffset;
-  norm[1] = (float) sensors[1] - g_hallToAngleOriginOffset;
-  norm[2] = (float) sensors[2] - g_hallToAngleOriginOffset;
-  float mag = mysqrtf(sqr(norm[0]) + sqr(norm[1]) + sqr(norm[2]));
-  // This shouldn't happen, but just in case of some extreme noise, avoid returning a NAN.
-  if(mag == 0) {
-    // Log an error?
-    return g_phaseAngle;
-  }
-
-  for(int j = 0;j < 3;j++)
-    norm[j] /= mag;
-
-  //RavlDebug("Vec: %f %f %f",norm[0],norm[1],norm[2]);
-
-  //mag = mysqrtf(sqr(g_phaseAngles[0][0]) + sqr(g_phaseAngles[0][1]) + sqr(g_phaseAngles[0][2]));
-
-  float maxCorr = ((g_phaseAnglesNormOrg[0][0]) * norm[0]) +
-                  ((g_phaseAnglesNormOrg[0][1]) * norm[1]) +
-                  ((g_phaseAnglesNormOrg[0][2]) * norm[2]);
-
-  distTable[0] = maxCorr;
-  int phase = 0;
-
-  for(int i = 1;i < g_calibrationPointCount;i++) {
-    //mag = mysqrtf(sqr(g_phaseAngles[i][0]) + sqr(g_phaseAngles[i][1]) + sqr(g_phaseAngles[i][2]));
-    float corr = ((g_phaseAnglesNormOrg[i][0]) * norm[0]) +
-                  ((g_phaseAnglesNormOrg[i][1]) * norm[1]) +
-                  ((g_phaseAnglesNormOrg[i][2]) * norm[2]);
-    distTable[i] = corr;
-    //RavlDebug("Corr:%f ",corr);
-    if(corr > maxCorr) {
-      phase = i;
-      maxCorr = corr;
-    }
-  }
-  int last = phase - 1;
-  if(last < 0) last = g_calibrationPointCount-1;
-  int next = phase + 1;
-  if(next >= g_calibrationPointCount) next = 0;
-  float lastDist2 = distTable[last];
-  float nextDist2 = distTable[next];
-  float angle = phase * 2.0;
-  float lastDist = maxCorr - lastDist2;
-  float nextDist = maxCorr - nextDist2;
-  //Average error:0.007239  Abs:0.207922 Mag:0.263140
-  float corr = (nextDist-lastDist)/(nextDist + lastDist);
-  angle -= corr;
-  //RavlDebug("Last:%f  Max:%f Next:%f Corr:%f ",lastDist,maxCorr,nextDist,corr);
-  const float calibRange = g_calibrationPointCount*2.0f;
-  float phaseAngle = (angle * M_PI * 2.0 / calibRange);
-  return wrapAngle(phaseAngle);
-}
-
-
-float hallToAngle(uint16_t *sensors)
-{
-  return hallToAngleDot2(sensors);
-  //return hallToAngleRef(sensors);
 }
 
 

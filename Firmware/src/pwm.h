@@ -62,6 +62,9 @@ extern uint16_t g_hall[3];
 extern int g_adcInjCount;
 extern int g_pwmTimeoutCount ;
 
+extern float g_phaseEncoderZero;
+extern float g_phaseEncoderAngle;
+
 extern bool g_hitLimitVelocity;
 extern bool g_hitLimitTorque;
 extern bool g_hitLimitPosition;
@@ -83,7 +86,7 @@ extern float g_maxCurrentSense;
 
 #define g_calibrationPointCount (18)
 
-extern int g_phaseAngles[g_calibrationPointCount][3];
+extern int g_phaseAngles[g_calibrationPointCount];
 
 extern int g_adcTickCount;
 

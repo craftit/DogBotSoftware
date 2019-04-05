@@ -436,12 +436,8 @@ enum FaultCodeT LoadSetup(void) {
   g_homeIndexPosition = g_storedConfig.m_homeIndexPosition;
   g_minSupplyVoltage = g_storedConfig.m_minSupplyVoltage;
 
-  // Setup angles.
-  for(int i = 0;i < g_calibrationPointCount;i++) {
-    g_phaseAngles[i][0] = g_storedConfig.phaseAngles[i][0];
-    g_phaseAngles[i][1] = g_storedConfig.phaseAngles[i][1];
-    g_phaseAngles[i][2] = g_storedConfig.phaseAngles[i][2];
-  }
+  g_phaseEncoderZero = g_storedConfig.m_phaseEncoderZero;
+  g_phaseEncoderAngle = g_storedConfig.m_phaseEncoderAngle;
 
   g_jointRole = g_storedConfig.m_jointRole;
   g_endStopEnable = g_storedConfig.m_endStopEnable;
@@ -471,11 +467,9 @@ enum FaultCodeT SaveSetup(void) {
   g_storedConfig.m_homeIndexPosition = g_homeIndexPosition;
   g_storedConfig.m_minSupplyVoltage = g_minSupplyVoltage;
 
-  for(int i = 0;i < g_calibrationPointCount;i++) {
-    g_storedConfig.phaseAngles[i][0] = g_phaseAngles[i][0];
-    g_storedConfig.phaseAngles[i][1] = g_phaseAngles[i][1];
-    g_storedConfig.phaseAngles[i][2] = g_phaseAngles[i][2];
-  }
+  g_storedConfig.m_phaseEncoderZero = g_phaseEncoderZero;
+  g_storedConfig.m_phaseEncoderAngle = g_phaseEncoderAngle;
+
 
   g_storedConfig.m_jointRole = g_jointRole;
   g_storedConfig.m_endStopEnable = g_endStopEnable;

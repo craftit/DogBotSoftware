@@ -50,6 +50,27 @@ void ADC_InjectedChannelSampleTime(ADC_TypeDef* ADCx, uint8_t ADC_Channel, uint8
   }
 }
 
+void ADCSampleCurrent(void)
+{
+  // ADC1
+
+  // See page 427 of the reference manual.
+  // Set this register by hand, I don't trust the above functions, though they do set the sample
+  // times.
+  ADC1->JSQR = (1 << 20) | (ADC_Channel_0 << (5 * 2));
+
+  // ADC2
+
+  ADC2->JSQR = (1 << 20) | (ADC_Channel_1 << (5 * 2));
+
+  // ADC3
+
+  ADC3->JSQR = (1 << 20) | (ADC_Channel_2 << (5 * 2));
+
+
+}
+
+
 void ADCSampleCurrentAndHall(void)
 {
   // ADC1
@@ -76,7 +97,7 @@ void ADCSampleVoltage(void) {
   // ADC1
 
   // See page 427 of the reference manual.
-  // Set this register by hand, I don't trust the above functions, though they do set the sample
+  // Set this register by hand, I don't trust the functions, though they do set the sample
   // times.
   ADC1->JSQR = (1 << 20) | (ADC_Channel_10 << (5 * 2)) |  (ADC_Channel_6 << (5 * 3));
 
@@ -130,16 +151,15 @@ void InitADC(void)
   // Setup regular channel for converting the supply voltage
   ADC_RegularChannelConfig(ADC2,ADC_Channel_6,1,ADC_SampleTime_3Cycles);
 
-  // These are just to setup the cycle times.
 
   // See page 564 of the reference manual for the Tim1 source setup.
 
   {
     // ADC1
     // NOTE:  Channels have to setup in order of rank.
-    ADC_InjectedSequencerLengthConfig(ADC1,2);
-    ADC_InjectedChannelSampleTime(ADC1,ADC_Channel_10, ADC_SampleTime_3Cycles); // Hall A
+    ADC_InjectedSequencerLengthConfig(ADC1,1);
     ADC_InjectedChannelSampleTime(ADC1,ADC_Channel_0,  ADC_SampleTime_3Cycles); // ISenseA
+    ADC_InjectedChannelSampleTime(ADC1,ADC_Channel_10, ADC_SampleTime_3Cycles); // Hall A
     ADC_InjectedChannelSampleTime(ADC1,ADC_Channel_7,  ADC_SampleTime_3Cycles); // VSupply
 
     ADC_ExternalTrigInjectedConvConfig(ADC1, ADC_ExternalTrigInjecConv_T1_TRGO);
@@ -147,9 +167,9 @@ void InitADC(void)
 
     // ADC2
 
-    ADC_InjectedSequencerLengthConfig(ADC2,2);
-    ADC_InjectedChannelSampleTime(ADC2,ADC_Channel_11, ADC_SampleTime_3Cycles); // Hall B
+    ADC_InjectedSequencerLengthConfig(ADC2,1);
     ADC_InjectedChannelSampleTime(ADC2,ADC_Channel_1,  ADC_SampleTime_3Cycles); // ISenseB
+    ADC_InjectedChannelSampleTime(ADC2,ADC_Channel_11, ADC_SampleTime_3Cycles); // Hall B
     ADC_InjectedChannelSampleTime(ADC2,ADC_Channel_0,  ADC_SampleTime_3Cycles);  // VSenseA
     ADC_InjectedChannelSampleTime(ADC2,ADC_Channel_13, ADC_SampleTime_3Cycles); // Temp Motor
 
@@ -158,15 +178,15 @@ void InitADC(void)
 
     // ADC3
 
-    ADC_InjectedSequencerLengthConfig(ADC3,2);
-    ADC_InjectedChannelSampleTime(ADC3,ADC_Channel_12, ADC_SampleTime_3Cycles);   // Hall C
+    ADC_InjectedSequencerLengthConfig(ADC3,1);
     ADC_InjectedChannelSampleTime(ADC3,ADC_Channel_2,  ADC_SampleTime_3Cycles);   // ISenseC
+    ADC_InjectedChannelSampleTime(ADC3,ADC_Channel_12, ADC_SampleTime_3Cycles);   // Hall C
     ADC_InjectedChannelSampleTime(ADC3,ADC_Channel_4,  ADC_SampleTime_3Cycles);   // VSenseB
 
     ADC_ExternalTrigInjectedConvConfig(ADC3, ADC_ExternalTrigInjecConv_T1_TRGO);
     ADC_ExternalTrigInjectedConvEdgeConfig(ADC3, ADC_ExternalTrigInjecConvEdge_Falling);
 
-    ADCSampleCurrentAndHall();
+    ADCSampleCurrent();
   }
 
 
@@ -209,48 +229,23 @@ OSAL_IRQ_HANDLER(STM32_ADC_HANDLER) {
 
   OSAL_IRQ_PROLOGUE();
 
-#if 1
   int count  = 0;
-
-  bool isRisingEdge = false;// IsRisingEdge(ADC1);
-#if 0
-  {
-    stm32_tim_t *tim = (stm32_tim_t *)TIM1_BASE;
-    isRisingEdge = tim->CR1 & STM32_TIM_CR1_DIR;
-  }
-#endif
-
 
   if(ADC_GetITStatus(ADC1, ADC_IT_JEOC) == SET) {
     ADC_ClearITPendingBit(ADC1, ADC_IT_JEOC);
-    if(isRisingEdge) {
-      g_supplyADCValue = ADC_GetInjectedConversionValue(ADC1,ADC_InjectedChannel_2);
-    } else {
-      g_currentADCValue[0] = ADC_GetInjectedConversionValue(ADC1,ADC_InjectedChannel_2);
-    }
-    g_hall[0] = ADC_GetInjectedConversionValue(ADC1,ADC_InjectedChannel_1);
+    g_currentADCValue[0] = ADC_GetInjectedConversionValue(ADC1,ADC_InjectedChannel_1);
     count++;
   }
 
   if(ADC_GetITStatus(ADC2, ADC_IT_JEOC) == SET) {
     ADC_ClearITPendingBit(ADC2, ADC_IT_JEOC);
-    if(isRisingEdge) {
-      g_driverTempADCValue = ADC_GetInjectedConversionValue(ADC2,ADC_InjectedChannel_2);
-    } else {
-      g_currentADCValue[1] = ADC_GetInjectedConversionValue(ADC2,ADC_InjectedChannel_2);
-    }
-    g_hall[1] = ADC_GetInjectedConversionValue(ADC2,ADC_InjectedChannel_1);
+    g_currentADCValue[1] = ADC_GetInjectedConversionValue(ADC2,ADC_InjectedChannel_1);
     count++;
   }
 
   if(ADC_GetITStatus(ADC3, ADC_IT_JEOC) == SET) {
     ADC_ClearITPendingBit(ADC3, ADC_IT_JEOC);
-    if(isRisingEdge) {
-      g_motorTempADCValue = ADC_GetInjectedConversionValue(ADC3,ADC_InjectedChannel_2);
-    } else {
-      g_currentADCValue[2] = ADC_GetInjectedConversionValue(ADC3,ADC_InjectedChannel_2);
-    }
-    g_hall[2] = ADC_GetInjectedConversionValue(ADC3,ADC_InjectedChannel_1);
+    g_currentADCValue[2] = ADC_GetInjectedConversionValue(ADC3,ADC_InjectedChannel_1);
     count++;
   }
 
@@ -273,19 +268,11 @@ OSAL_IRQ_HANDLER(STM32_ADC_HANDLER) {
 
   if(count > 0) {
     g_adcInjCount = count;
-    if(!isRisingEdge) {
-      //palSetPad(GPIOB, GPIOB_PIN12); // Flag data captured
-      g_adcTickCount++;
-      //ADCSampleVoltage(); // Sample voltage on next rising edge.
-      chBSemSignalI(&g_adcInjectedDataReady);
-    } else {
-      //palClearPad(GPIOB, GPIOB_PIN12); // Turn output off to measure timing
-      // Sample current next
-      ADCSampleCurrentAndHall();
-    }
-
+    //palSetPad(GPIOB, GPIOB_PIN12); // Flag data captured
+    g_adcTickCount++;
+    chBSemSignalI(&g_adcInjectedDataReady);
   }
-#endif
+
   OSAL_IRQ_EPILOGUE();
 }
 

@@ -106,6 +106,7 @@ uint16_t TLE5012ReadRegister(uint16_t address)
   spiUnselect(&ENCSPI);                /* Slave Select de-assertion.       */
   spiReleaseBus(&ENCSPI);              /* Ownership release.               */
 #else
+  // This routine takes 4.2 us to run.
 
   palClearPad(ENC_SPI_NSELECT_GPIO_Port,ENC_SPI_NSELECT_Pin);
 
@@ -145,9 +146,9 @@ uint16_t TLE5012ReadRegister(uint16_t address)
   return data;
 }
 
-uint16_t TLE5012ReadAngle()
+int16_t TLE5012ReadAngleInt()
 {
-  uint16_t rawData = TLE5012ReadRegister(2);
+  int16_t rawData = TLE5012ReadRegister(2);
 
   rawData = (rawData & (0x7fff));
 
@@ -157,6 +158,12 @@ uint16_t TLE5012ReadAngle()
     rawData = rawData - 32768;
   }
   return rawData;
+}
+
+float TLE5012ReadAngleFloat()
+{
+  int16_t rawData = TLE5012ReadAngleInt();
+  return ((rawData * 3.1415926535) / 32768.0);
 }
 
 

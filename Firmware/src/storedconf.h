@@ -14,7 +14,6 @@ extern "C" {
 struct StoredConfigT {
   uint16_t configState;  // 0-Unconfigured otherwise configuration version
   uint16_t deviceId;
-  uint16_t phaseAngles[g_calibrationPointCount][3];
   uint8_t m_motionPositionReference;
   float m_phaseResistance;
   float m_phaseOffsetVoltage;
@@ -22,6 +21,9 @@ struct StoredConfigT {
   float m_absoluteMaxCurrent;
   float m_homeIndexPosition;
   float m_minSupplyVoltage;
+
+  float m_phaseEncoderZero;
+  float m_phaseEncoderAngle;
 
   enum JointRoleT m_jointRole;
   bool m_endStopEnable;

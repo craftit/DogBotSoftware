@@ -273,8 +273,7 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
     {
       int reg = ((int) index - CPI_ANGLE_CAL);
       if(len != 6) return false;
-      for(int i = 0;i < 3;i++)
-        g_phaseAngles[reg][i] = data->uint16[i];
+      //for(int i = 0;i < 3;i++) g_phaseAngles[reg][i] = data->uint16[i];
     } break;
 
     case CPI_USBPacketDrops:
@@ -631,8 +630,7 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
     {
       int reg = ((int) index - CPI_ANGLE_CAL);
       *len = 6;
-      for(int i = 0;i < 3;i++)
-        data->uint16[i] = g_phaseAngles[reg][i];
+      //for(int i = 0;i < 3;i++) data->uint16[i] = g_phaseAngles[reg][i];
     } break;
     case CPI_DebugIndex:
       *len = 1;

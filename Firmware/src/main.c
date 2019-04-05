@@ -685,18 +685,7 @@ int main(void)
         break;
       case CS_SelfTest:
         break;
-      case CS_Standby: {
-        if(g_deviceId == 0) {
-          if(g_deviceZeroTimer++ > g_deviceZeroTimeout) {
-            g_deviceZeroTimer = 0;
-            SendAnnounceId();
-          }
-        }
-        chThdSleepMilliseconds(20);
-        g_debugValue = TLE5012ReadRegister(2);
-
-        SendBackgroundStateReport();
-      } break;
+      case CS_Standby:
       case CS_USBBridge:
       case CS_BootLoader: {
         if(g_deviceId == 0) {
