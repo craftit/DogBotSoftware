@@ -259,6 +259,8 @@ extern "C" {
 
     CPI_AngleStats         = 0x80, // Including 36 entries after this
     CPI_TLE5012            = 0xA0, // Including 16 entries after this
+    CPI_PhaseEncoderZero   = 0xB0,
+    CPI_PhaseEncoderAngle  = 0xB1,
 
     CPI_FINAL           = 0xff
   };

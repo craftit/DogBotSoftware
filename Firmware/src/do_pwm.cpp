@@ -147,11 +147,13 @@ float GetServoReportRate(void)
 
 
 FaultCodeT CheckHallInRange(void) {
+#if 0
   // Are sensor readings outside the expected range ?
   for(int i = 0;i < 3;i++) {
     if(g_hall[i] < 1000 || g_hall[i] > 3000)
       return FC_NoSensor;
   }
+#endif
   return FC_Ok;
 }
 
@@ -252,7 +254,7 @@ static bool Monitor_FOC_Current(float phaseAngle)
   // Park transform
   float s = 0;
   float c = 0;
-  arm_sin_cos_f32(phaseAngle,&s,&c);
+  arm_sin_cos_f32(Rad2Deg(phaseAngle),&s,&c);
 
   g_Id = c*Ialpha + s*Ibeta;
   g_Iq = c*Ibeta  - s*Ialpha;
@@ -276,7 +278,7 @@ static bool FOC_current(float phaseAngle,float Id_des, float Iq_des)
   // Park transform
   float s = 0;
   float c = 0;
-  arm_sin_cos_f32(phaseAngle,&s,&c);
+  arm_sin_cos_f32(Rad2Deg(phaseAngle),&s,&c);
 
   g_Id = c*Ialpha + s*Ibeta;
   g_Iq = c*Ibeta  - s*Ialpha;
@@ -458,13 +460,17 @@ static float wrapAngle(float theta) {
   return theta;
 }
 
-
-
 static void ComputeState(void)
 {
-  int16_t angle = TLE5012ReadAngleFloat();
+  float angle = wrapAngle(TLE5012ReadAngleFloat() - g_phaseEncoderZero);
+  float rawPhase;
+  {
+    float v = roundf(angle / g_phaseEncoderAngle);
+    float x = angle - v * g_phaseEncoderAngle;
+    rawPhase = 2 * M_PI * x / g_phaseEncoderAngle;
+  }
 
-  float rawPhase = fmodf(angle - g_phaseEncoderZero,g_phaseEncoderAngle);
+  g_debugValue = Rad2Deg(rawPhase);
 
   // Compute current phase angle
   float lastAngle = g_phaseAngle;
@@ -630,7 +636,7 @@ static void MotorControlLoopDebug(void)
 
     float alpha = 0;
     float beta = 0;
-    arm_sin_cos_f32(angle,&alpha,&beta);
+    arm_sin_cos_f32(Rad2Deg(angle),&alpha,&beta);
     queue_voltage_timings(alpha*voltage,beta*voltage,false);
 
     angle += CURRENT_MEAS_PERIOD * PI * 2;
@@ -1223,7 +1229,7 @@ int PWMSVMScan(BaseSequentialStream *chp)
 
       float sinv = 0;
       float cosv = 0;
-      arm_sin_cos_f32(ph,&sinv,&cosv);
+      arm_sin_cos_f32(Rad2Deg(ph),&sinv,&cosv);
 
       float v_alpha = voltage_magnitude * cosv;
       float v_beta  = voltage_magnitude * sinv;
@@ -1293,38 +1299,7 @@ enum FaultCodeT PWMSelfTest()
     return FC_Internal; // Not sure what is going on.
   }
 
-  FaultCodeT errCode = FC_Ok;
-  // Check hall sensors.
-  for(int i = 0;i < 3;i++) {
-    // If pins are floating, pull them into a fixed state.
-
-    palSetPadMode(HALL_A_GPIO_Port,HALL_A_Pin,PAL_MODE_INPUT_PULLUP);
-    palSetPadMode(HALL_B_GPIO_Port,HALL_B_Pin,PAL_MODE_INPUT_PULLUP);
-    palSetPadMode(HALL_C_GPIO_Port,HALL_C_Pin,PAL_MODE_INPUT_PULLUP);
-
-    chThdSleepMilliseconds(100);
-
-    // Change them back to analog inputs.
-
-    palSetPadMode(HALL_A_GPIO_Port,HALL_A_Pin,PAL_MODE_INPUT_ANALOG);
-    palSetPadMode(HALL_B_GPIO_Port,HALL_B_Pin,PAL_MODE_INPUT_ANALOG);
-    palSetPadMode(HALL_C_GPIO_Port,HALL_C_Pin,PAL_MODE_INPUT_ANALOG);
-
-    // Wait for next measurement
-
-    if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
-      return FC_Internal; // Not sure what is going on.
-    }
-    if(chBSemWaitTimeout(&g_adcInjectedDataReady,5) != MSG_OK) {
-      return FC_Internal; // Not sure what is going on.
-    }
-    errCode = CheckHallInRange();
-    if(errCode == FC_Ok)
-      break;
-    // Retry 3 times, the failure may be caused by noise.
-  }
-  if(errCode != FC_Ok)
-    return errCode;
+  // TODO: Check angle sensor is working..
 
   EnableGateOutputs(true);
 
@@ -1611,7 +1586,7 @@ enum FaultCodeT PWMMotorPhaseCalReading(
 
   g_vbus_voltage = ReadSupplyVoltage();
 
-  int shiftPeriod = cyclesPerSecond / 12; // 8 is ok
+  int shiftPeriod = cyclesPerSecond ;
 
   // Move to position slowly to reduce vibration
 
@@ -1658,7 +1633,7 @@ enum FaultCodeT PWMMotorPhaseCalReading(
     FOC_current(phaseAngle,torqueValue,0);
 
     float s,c;
-    arm_sin_cos_f32(TLE5012ReadAngleFloat(),&s,&c);
+    arm_sin_cos_f32(Rad2Deg(TLE5012ReadAngleFloat()),&s,&c);
     sums += s;
     sumc += c;
   }
@@ -1677,6 +1652,7 @@ enum FaultCodeT PWMMotorPhaseCal()
 
   // Make sure PWM is running.
   InitPWM();
+  EnableGateDriver(true);
 
   float torqueValue = 12.0;
   int cyclesPerSecond = 1.0 / (1.0 * CURRENT_MEAS_PERIOD);
@@ -1699,13 +1675,17 @@ enum FaultCodeT PWMMotorPhaseCal()
 
   float phase0 = 0;
   float phase1 = 0;
-
+  float loops = 1;
   PWMMotorPhaseCalReading(0,cyclesPerSecond,numberOfReadings,torqueValue,lastAngle,phase0);
-  PWMMotorPhaseCalReading(M_PI*2,cyclesPerSecond,numberOfReadings,torqueValue,lastAngle,phase1);
+  PWMMotorPhaseCalReading(M_PI*2*loops,cyclesPerSecond,numberOfReadings,torqueValue,lastAngle,phase1);
 
   g_phaseEncoderZero = phase0;
-  g_phaseEncoderAngle = phase1 - phase0;
-  wrapAngle(g_phaseEncoderAngle);
+  float rawPhaseEncoderAngle = phase1 - phase0;
+  rawPhaseEncoderAngle = wrapAngle(rawPhaseEncoderAngle);
+  float ratio = roundf(2 * M_PI * loops/rawPhaseEncoderAngle);
+  g_phaseEncoderAngle = 2 * M_PI / ratio;
+
+  EnableGateDriver(false);
 
   return ret;
 }

@@ -13,6 +13,9 @@ static const float one_by_sqrt3 = 0.57735026919f;
 //static const float two_by_sqrt3 = 1.15470053838f;
 static const float sqrt3_by_2 = 0.86602540378;
 
+inline float Rad2Deg(float deg)
+{ return deg * 180/M_PI; }
+
 inline int sqr(int val)
 {
    return val * val;

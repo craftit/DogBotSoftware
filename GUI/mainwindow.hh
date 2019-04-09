@@ -250,6 +250,10 @@ private slots:
 
   void on_pushButtonDrv8305_1_clicked();
 
+  void on_pushButtonPhaseStep_clicked();
+
+  void on_pushButtonPhaseZero_clicked();
+
 signals:
   void setLogText(const QString &str);
   void setControlState(const QString &str);

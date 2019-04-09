@@ -2,6 +2,7 @@
 #include "TLE5012B.h"
 #include "ch.h"
 #include "hal.h"
+#include "mathfunc.h"
 
 
 #define ENCSPI SPID2
@@ -163,7 +164,7 @@ int16_t TLE5012ReadAngleInt()
 float TLE5012ReadAngleFloat()
 {
   int16_t rawData = TLE5012ReadAngleInt();
-  return ((rawData * 3.1415926535) / 32768.0);
+  return ((rawData * M_PI * 2) / 32768.0);
 }
 
 

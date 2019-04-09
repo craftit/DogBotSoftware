@@ -321,6 +321,8 @@ namespace DogBotN {
       case CPI_DebugFloat: return "DebugFloat";
       case CPI_EnableAngleStats: return "EnableAngleStats";
       case CPI_AngleStats: return "AngleStats";
+      case CPI_PhaseEncoderZero: return "PhaseEncoderZero";
+      case CPI_PhaseEncoderAngle: return "PhaseEncoderAngle";
 
       case CPI_FINAL: return "FINAL";
     }
@@ -434,6 +436,8 @@ namespace DogBotN {
       case CPI_DiagnosticMode: return CPIT_bool;
       case CPI_EnableAngleStats: return CPIT_bool;
       case CPI_AngleStats: return CPIT_float32_2;
+      case CPI_PhaseEncoderZero: return CPIT_float32;
+      case CPI_PhaseEncoderAngle: return CPIT_float32;
       case CPI_FINAL: return CPIT_Invalid;
     }
 

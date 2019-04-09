@@ -109,7 +109,7 @@
        <bool>true</bool>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>3</number>
       </property>
       <widget class="QWidget" name="tab_connect">
        <attribute name="title">
@@ -1039,7 +1039,7 @@
              <x>0</x>
              <y>0</y>
              <width>843</width>
-             <height>928</height>
+             <height>1008</height>
             </rect>
            </property>
            <layout class="QGridLayout" name="gridLayout_8">
@@ -1049,6 +1049,13 @@
                <string>Queries</string>
               </property>
               <layout class="QGridLayout" name="gridLayout_6">
+               <item row="17" column="1">
+                <widget class="QPushButton" name="pushButtonPhaseStep">
+                 <property name="text">
+                  <string>PhaseStep</string>
+                 </property>
+                </widget>
+               </item>
                <item row="12" column="1">
                 <widget class="QPushButton" name="pushButtonDrv8305_6">
                  <property name="text">
@@ -1063,8 +1070,12 @@
                  </property>
                 </widget>
                </item>
-               <item row="0" column="0" rowspan="22">
-                <widget class="QTextEdit" name="textEditLog"/>
+               <item row="21" column="1">
+                <widget class="QPushButton" name="pushButton_2">
+                 <property name="text">
+                  <string>DebugIndex</string>
+                 </property>
+                </widget>
                </item>
                <item row="10" column="1">
                 <widget class="QPushButton" name="pushButtonDrv8305_4">
@@ -1073,31 +1084,13 @@
                  </property>
                 </widget>
                </item>
-               <item row="19" column="1">
-                <widget class="QPushButton" name="pushButton_2">
-                 <property name="text">
-                  <string>DebugIndex</string>
-                 </property>
-                </widget>
+               <item row="0" column="0" rowspan="24">
+                <widget class="QTextEdit" name="textEditLog"/>
                </item>
                <item row="2" column="1">
                 <widget class="QPushButton" name="pushButtonQueryDevices">
                  <property name="text">
                   <string>Query Devices</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="18" column="1">
-                <widget class="QPushButton" name="pushButton_5">
-                 <property name="text">
-                  <string>5V Rail</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="3" column="1">
-                <widget class="QPushButton" name="pushButtonQueryId">
-                 <property name="text">
-                  <string>Query UID</string>
                  </property>
                 </widget>
                </item>
@@ -1108,24 +1101,24 @@
                  </property>
                 </widget>
                </item>
+               <item row="3" column="1">
+                <widget class="QPushButton" name="pushButtonQueryId">
+                 <property name="text">
+                  <string>Query UID</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="20" column="1">
+                <widget class="QPushButton" name="pushButton_5">
+                 <property name="text">
+                  <string>5V Rail</string>
+                 </property>
+                </widget>
+               </item>
                <item row="0" column="1">
                 <widget class="QPushButton" name="pushButtonPing">
                  <property name="text">
                   <string>Ping</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="9" column="1">
-                <widget class="QPushButton" name="pushButtonDrv8305_3">
-                 <property name="text">
-                  <string>Drv8305_3</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="8" column="1">
-                <widget class="QPushButton" name="pushButtonDrv8305_2">
-                 <property name="text">
-                  <string>Drv8305_2</string>
                  </property>
                 </widget>
                </item>
@@ -1136,24 +1129,24 @@
                  </property>
                 </widget>
                </item>
-               <item row="20" column="1">
+               <item row="8" column="1">
+                <widget class="QPushButton" name="pushButtonDrv8305_2">
+                 <property name="text">
+                  <string>Drv8305_2</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="9" column="1">
+                <widget class="QPushButton" name="pushButtonDrv8305_3">
+                 <property name="text">
+                  <string>Drv8305_3</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="22" column="1">
                 <widget class="QPushButton" name="pushButtonPhaseEndStops">
                  <property name="text">
                   <string>Phase EndStops</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="21" column="1">
-                <widget class="QPushButton" name="pushButtonTim1">
-                 <property name="text">
-                  <string>Tim1</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="1">
-                <widget class="QPushButton" name="pushButtonPing1">
-                 <property name="text">
-                  <string>Ping 1</string>
                  </property>
                 </widget>
                </item>
@@ -1164,6 +1157,20 @@
                  </property>
                 </widget>
                </item>
+               <item row="1" column="1">
+                <widget class="QPushButton" name="pushButtonPing1">
+                 <property name="text">
+                  <string>Ping 1</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="23" column="1">
+                <widget class="QPushButton" name="pushButtonTim1">
+                 <property name="text">
+                  <string>Tim1</string>
+                 </property>
+                </widget>
+               </item>
                <item row="4" column="1">
                 <widget class="QPushButton" name="pushButtonState">
                  <property name="text">
@@ -1171,24 +1178,24 @@
                  </property>
                 </widget>
                </item>
-               <item row="7" column="1">
-                <widget class="QPushButton" name="pushButtonDrv8305_1">
+               <item row="14" column="1">
+                <widget class="QPushButton" name="pushButton_Drv8305_A">
                  <property name="text">
-                  <string>Drv8305_1</string>
+                  <string>Drv8305_A</string>
                  </property>
                 </widget>
                </item>
-               <item row="17" column="1">
+               <item row="19" column="1">
                 <widget class="QPushButton" name="pushButtonQueryHomed">
                  <property name="text">
                   <string>Query Homed</string>
                  </property>
                 </widget>
                </item>
-               <item row="14" column="1">
-                <widget class="QPushButton" name="pushButton_Drv8305_A">
+               <item row="7" column="1">
+                <widget class="QPushButton" name="pushButtonDrv8305_1">
                  <property name="text">
-                  <string>Drv8305_A</string>
+                  <string>Drv8305_1</string>
                  </property>
                 </widget>
                </item>
@@ -1203,6 +1210,13 @@
                 <widget class="QPushButton" name="pushButtonDrv8305_0">
                  <property name="text">
                   <string>Drv8305_0</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="18" column="1">
+                <widget class="QPushButton" name="pushButtonPhaseZero">
+                 <property name="text">
+                  <string>PhaseZero</string>
                  </property>
                 </widget>
                </item>

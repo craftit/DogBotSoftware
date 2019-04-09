@@ -1984,5 +1984,12 @@ void MainWindow::on_comboBox_DeadTime_activated(int index)
 }
 
 
+void MainWindow::on_pushButtonPhaseStep_clicked()
+{
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_PhaseEncoderAngle);
+}
 
-
+void MainWindow::on_pushButtonPhaseZero_clicked()
+{
+  m_coms->SendQueryParam(m_targetDeviceId,CPI_PhaseEncoderZero);
+}

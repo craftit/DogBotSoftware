@@ -454,6 +454,10 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
     case CPI_LAN9252: {
       return false;
     } break;
+    case CPI_PhaseEncoderZero:
+      return false;
+    case CPI_PhaseEncoderAngle:
+      return false;
     case CPI_FINAL:
       return false;
     default:
@@ -818,6 +822,14 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       *len = 4;
       data->uint32[0] = Lan9252ReadRegister32(0x64);
     } break;
+    case CPI_PhaseEncoderZero:
+      *len = 4;
+      data->float32[0] = g_phaseEncoderZero;
+      break;
+    case CPI_PhaseEncoderAngle:
+      *len = 4;
+      data->float32[0] = g_phaseEncoderAngle;
+      break;
     case CPI_FINAL:
     default:
       *len = 0;
