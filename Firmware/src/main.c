@@ -430,8 +430,10 @@ void SendBackgroundStateReport(void)
 
   static bool lastIndexSensor = false;
 
-  if(g_diagnosticMode)
+  if(g_diagnosticMode) {
     SendParamUpdate(CPI_DebugFloat);
+    SendParamUpdate(CPI_DebugInt32);
+  }
 
   {
     bool isOn = palReadPad(POSITION_INDEX_GPIO_Port, POSITION_INDEX_Pin);

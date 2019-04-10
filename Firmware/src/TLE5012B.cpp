@@ -5,21 +5,17 @@
 #include "mathfunc.h"
 
 
+#define USE_DMA 1
+
 #define ENCSPI SPID2
-/*
- * Low speed SPI configuration 5.125MHz
- * This is clocked from APB1 peripheral clock running at 41MHz
- *
- */
-static const SPIConfig magencoder_spicfg = {
-  NULL,
-  ENC_SPI_NSELECT_GPIO_Port,
-  ENC_SPI_NSELECT_Pin,
-  SPI_CR1_CPHA | SPI_CR1_BIDIMODE | SPI_CR1_BR_1,
-  0
-};
 
+#define SPI2_RX_DMA_CHANNEL                                                 \
+  STM32_DMA_GETCHANNEL(STM32_SPI_SPI2_RX_DMA_STREAM,                        \
+                       STM32_SPI2_RX_DMA_CHN)
 
+#define SPI2_TX_DMA_CHANNEL                                                 \
+  STM32_DMA_GETCHANNEL(STM32_SPI_SPI2_TX_DMA_STREAM,                        \
+                       STM32_SPI2_TX_DMA_CHN)
 
 
 static const int16_t g_TLE5012CommandReadBit   = 1 << 15;
@@ -79,92 +75,192 @@ uint16_t TLE5012WriteRegisterStatus(uint16_t address, uint16_t data)
 }
 #endif
 
-uint16_t TLE5012ReadRegister(uint16_t address)
+
+
+// Compute the CRC
+
+uint8_t crc8(uint8_t *data ,uint8_t length)
 {
-  uint16_t data = 0;
-#if 0
-  spiAcquireBus(&ENCSPI);              /* Acquire ownership of the bus.    */
-  spiStart(&ENCSPI, &magencoder_spicfg);       /* Setup transfer parameters.       */
-  spiSelect(&ENCSPI);                  /* Slave Select assertion.          */
+  const uint32_t CRC_POLYNOMIAL=0x1D;
+  const uint32_t CRC_SEED =0xFF;
 
-  // Turn on transmit
-  SPIEnableWrite(ENCSPI->spi);
+  uint32_t crc = CRC_SEED;
+  int16_t i,bit;
+
+  for ( i=0 ; i<length ; i++ )
+  {
+    crc ^= data[i];
+    for ( bit=0 ; bit<8 ; bit++)
+    {
+      if ( (crc & 0x80)!=0 )
+      {
+          crc <<= 1;
+          crc ^= CRC_POLYNOMIAL;
+      }
+      else
+      {
+          crc <<= 1;
+      }
+    }
+  }
+
+  return (~crc) & CRC_SEED;
+}
 
 
-  uint16_t rxbuff;
-  spiExchange(&ENCSPI,2,&command, &rxbuff);
-  //spiPolledExchange(&ENCSPI,command);
+static uint16_t g_spi2Buffer[8];
+thread_reference_t g_spi2thread = 0;
 
-  chThdSleepMicroseconds(1);
+#if USE_DMA
 
-  // Switch to receive
-  SPIEnableRead(ENCSPI->spi);
+static const stm32_dma_stream_t  *g_spi2dmarx = STM32_DMA_STREAM(STM32_SPI_SPI2_RX_DMA_STREAM);
+static const uint32_t g_spi2rxdmamode = STM32_DMA_CR_CHSEL(SPI2_RX_DMA_CHANNEL) |
+    STM32_DMA_CR_PL(STM32_SPI_SPI2_DMA_PRIORITY) |
+    STM32_DMA_CR_DIR_P2M |
+    STM32_DMA_CR_TCIE |
+    STM32_DMA_CR_DMEIE |
+    STM32_DMA_CR_TEIE |
+    STM32_DMA_CR_PSIZE_HWORD |
+    STM32_DMA_CR_MSIZE_HWORD;
 
-  //spiPolledExchange(&ENCSPI,0);
-  spiExchange(&ENCSPI,2,&command, &data);
+static void StartDMARecieve(uint16_t *rxbuf,int n)
+{
+  dmaStreamSetMemory0(g_spi2dmarx, rxbuf);
+  dmaStreamSetTransactionSize(g_spi2dmarx, n);
+  dmaStreamSetMode(g_spi2dmarx, g_spi2rxdmamode | STM32_DMA_CR_MINC);
+  dmaStreamEnable(g_spi2dmarx);
+}
+
+static void spi_rx_interrupt(void *chan, uint32_t flags) {
+
+  /* DMA errors handling.*/
+  (void)flags;
+  (void) chan;
+
+  SPI_TypeDef *SPIx = SPI2;
+  SPIEnableWrite(SPIx);
+
+  /* Stop everything.*/
+  dmaStreamDisable(g_spi2dmarx);
+
+  osalSysLockFromISR();
+  osalThreadResumeI(&g_spi2thread, MSG_OK);
+  osalSysUnlockFromISR();
+}
 
 
-  spiUnselect(&ENCSPI);                /* Slave Select de-assertion.       */
-  spiReleaseBus(&ENCSPI);              /* Ownership release.               */
-#else
-  // This routine takes 4.2 us to run.
+#endif
+extern uint32_t g_debugUInt32;
+
+bool TLE5012ReadRegister(uint16_t address,uint16_t *value)
+{
+  uint16_t data;
+  SPI_TypeDef *SPIx = SPI2;
+
+  // This routine typically takes 4.2 us to run.
+  SPIEnableWrite(SPIx);
+
+  SPIx->CR1 |= SPI_CR1_SPE; // SPI Enable
 
   palClearPad(ENC_SPI_NSELECT_GPIO_Port,ENC_SPI_NSELECT_Pin);
 
-  SPI_TypeDef *SPIx = SPI2;
-
-  SPIEnableWrite(SPIx);
-  SPIx->CR1 |= SPI_CR1_SPE;
-
   data = SPIx->DR; // This clears the read bit
 
-  uint16_t command = TLE5012CommandAddress(address) | g_TLE5012CommandReadBit;
+  uint16_t command = TLE5012CommandAddress(address) | g_TLE5012CommandReadBit | 1 ;
   SPIx->DR = command;
   while((SPIx->SR & SPI_SR_BSY) != 0) ;
 
-  //data = SPIx->DR; // This clears the read bit
-
-  for(int i = 0 ;i < 20;i++)
+  // Introduce a short delay
+  for(int i = 0 ;i < 55;i++)
     data += SPIx->SR;
 
+#if USE_DMA
+  osalSysLock();
+  StartDMARecieve(g_spi2Buffer,2);
   SPIEnableRead(SPIx);
-
-  while((SPIx->SR & SPI_SR_RXNE) == 0) ;
-
-  data = SPIx->DR; // This clears the read bit
-
-  while((SPIx->SR & SPI_SR_RXNE) == 0) ;
-
-  data = SPIx->DR; // This clears the read bit
-
-  SPIEnableWrite(SPIx);
-
-  SPIx->CR1 &= ~SPI_CR1_SPE;
+  (void) osalThreadSuspendS(&g_spi2thread);
+  osalSysUnlock();
 
   palSetPad(ENC_SPI_NSELECT_GPIO_Port,ENC_SPI_NSELECT_Pin);
 
+  data = g_spi2Buffer[0];
+
+  *value = data;
+  uint16_t safetyWord = g_spi2Buffer[1];
+
+  if((safetyWord & 0x7000) != 0x7000)
+    return false;
+
+  // Check the CRC
+  {
+      uint8_t temp[8];
+
+      temp[0] = command >> 8;
+      temp[1] = command;
+
+      temp[2] = data >> 8;
+      temp[3] = data;
+
+      uint8_t crcReceived = safetyWord;
+
+      uint8_t crc = crc8(temp, 4);
+
+      if (crc != crcReceived)
+        return false;
+
+      g_debugUInt32 = (uint32_t) crcReceived | ((uint32_t) crc << 8);
+
+  }
+
+
+#else
+  SPIEnableRead(SPIx);
+
+#if 0
+  while((SPIx->SR & SPI_SR_RXNE) == 0) ;
+  data = SPIx->DR; // This clears the read bit
 #endif
-  return data;
+
+  while((SPIx->SR & SPI_SR_RXNE) == 0) ;
+
+  data = SPIx->DR; // This clears the read bit
+
+  while((SPIx->SR & SPI_SR_RXNE) == 0) ;
+
+  g_debugUInt32 = SPIx->DR; // This clears the read bit
+
+  SPIEnableWrite(SPIx);
+
+  SPIx->CR1 &= ~SPI_CR1_SPE; // Disable SPI
+  palSetPad(ENC_SPI_NSELECT_GPIO_Port,ENC_SPI_NSELECT_Pin);
+#endif
+  *value = data;
+  return true;
 }
 
-int16_t TLE5012ReadAngleInt()
+bool TLE5012ReadAngleInt(int16_t *data)
 {
-  int16_t rawData = TLE5012ReadRegister(2);
+  uint16_t rawData;
+  if(!TLE5012ReadRegister(2,&rawData))
+    return false;
 
   rawData = (rawData & (0x7fff));
 
   // check if the value received is positive or negative
   if (rawData & (1 << 14))
-  {
-    rawData = rawData - 32768;
-  }
-  return rawData;
+    *data = rawData - 32768;
+  else
+    *data = rawData;
+  return true;
 }
 
-float TLE5012ReadAngleFloat()
+bool TLE5012ReadAngleFloat(float *angle)
 {
-  int16_t rawData = TLE5012ReadAngleInt();
-  return ((rawData * M_PI * 2) / 32768.0);
+  int16_t rawData;
+  if(!TLE5012ReadAngleInt(&rawData))
+    return false;
+  *angle = ((rawData * M_PI * 2) / 32768.0);
+  return true;
 }
 
 
@@ -181,18 +277,32 @@ enum FaultCodeT InitTLE5012B(void)
 
   spiReleaseBus(&ENCSPI);              /* Ownership release.               */
 #else
+  for(int i = 0;i < 4;i++)
+    g_spi2Buffer[i] = 0;
+
   palSetPad(ENC_SPI_NSELECT_GPIO_Port,ENC_SPI_NSELECT_Pin);
   rccEnableSPI2(TRUE);
 
   SPI_TypeDef *SPIx = SPI2;
 
   // Set things up
-  SPIx->CR1 = SPI_CR1_CPHA | SPI_CR1_BIDIMODE | SPI_CR1_BR_1 | SPI_CR1_DFF | SPI_CR1_MSTR | SPI_CR1_SSM | SPI_CR1_SSI;
+  SPIx->CR1 = SPI_CR1_CPHA | SPI_CR1_BIDIMODE | SPI_CR1_BR_1| SPI_CR1_BR_0 | SPI_CR1_DFF | SPI_CR1_MSTR | SPI_CR1_SSM | SPI_CR1_SSI;
   SPIx->I2SCFGR &= (uint16_t)~((uint16_t)SPI_I2SCFGR_I2SMOD);
   SPIx->CR2 = 0;
 
-  // Enable
-  SPIx->CR1 |= SPI_CR1_SPE;
+  //nvicEnableVector(36, 1);
+  palClearPad(GPIOA,GPIOA_PIN15);
+
+#if USE_DMA
+
+  dmaStreamAllocate(g_spi2dmarx,
+                        STM32_SPI_SPI2_IRQ_PRIORITY,
+                        (stm32_dmaisr_t)spi_rx_interrupt,
+                        (void *)SPIx);
+  dmaStreamSetPeripheral(g_spi2dmarx, &SPIx->DR);
+  SPIx->CR2 = SPI_CR2_RXDMAEN;
+
+#endif
 #endif
 
   return FC_Ok;

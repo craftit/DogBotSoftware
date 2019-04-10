@@ -149,7 +149,7 @@ extern float g_endStopPhaseMax;
 extern float g_endStopTargetAcceleration;
 
 extern float g_debugValue;
-
+extern uint32_t g_debugUInt32;
 #define ENABLE_ANGLESTATS 0
 #define g_angleTableSize 36
 extern bool g_enableAngleStats;

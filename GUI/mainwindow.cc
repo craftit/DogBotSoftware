@@ -484,7 +484,11 @@ bool MainWindow::ProcessParam(struct PacketParam8ByteC *psp,std::string &display
     emit PlatformProcessParam(*psp);
   } break;
   case CPI_DebugFloat: {
-    std::cerr << "Debug " << psp->m_data.float32[0] << std::endl;
+    std::cerr << "Debug F32 :" << psp->m_data.float32[0] << std::endl;
+    ret = false;
+  } break;
+  case CPI_DebugInt32: {
+    std::cerr << "Debug U32 :" << std::hex << psp->m_data.uint32[0] << std::dec << std::endl;
     ret = false;
   } break;
   default:

@@ -254,6 +254,7 @@ extern "C" {
     CPI_DRV8305_05         = 0x6C,
     CPI_DRV8305_06         = 0x6D,
     CPI_DRV8305_07         = 0x6E,
+    CPI_DebugInt32         = 0x6F, //
 
     CPI_LAN9252            = 0x70,
 

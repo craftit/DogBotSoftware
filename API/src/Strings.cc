@@ -319,6 +319,7 @@ namespace DogBotN {
       case CPI_MaxCurrentSense: return "MaxCurrentSense";
       case CPI_DiagnosticMode: return "DiagnosticMode";
       case CPI_DebugFloat: return "DebugFloat";
+      case CPI_DebugInt32: return "DebugInt32";
       case CPI_EnableAngleStats: return "EnableAngleStats";
       case CPI_AngleStats: return "AngleStats";
       case CPI_PhaseEncoderZero: return "PhaseEncoderZero";
@@ -433,6 +434,7 @@ namespace DogBotN {
       case CPI_RequestedPlatformActivity: return CPIT_Custom;
       case CPI_MaxCurrentSense: return CPIT_float32;
       case CPI_DebugFloat: return CPIT_float32;
+      case CPI_DebugInt32: return CPIT_uint32;
       case CPI_DiagnosticMode: return CPIT_bool;
       case CPI_EnableAngleStats: return CPIT_bool;
       case CPI_AngleStats: return CPIT_float32_2;

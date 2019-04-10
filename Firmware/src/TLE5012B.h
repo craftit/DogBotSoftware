@@ -9,10 +9,9 @@ extern "C" {
 
 extern enum FaultCodeT InitTLE5012B(void);
 
-uint16_t TLE5012ReadRegister(uint16_t address);
-
-float TLE5012ReadAngleFloat(void);
-int16_t TLE5012ReadAngleInt(void);
+bool TLE5012ReadRegister(uint16_t address,uint16_t *value);
+bool TLE5012ReadAngleFloat(float *angle); // Assigns angle in radians to 'angle'
+bool TLE5012ReadAngleInt(int16_t *value);
 
 #ifdef __cplusplus
 }

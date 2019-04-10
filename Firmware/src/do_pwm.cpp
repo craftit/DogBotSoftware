@@ -24,7 +24,7 @@
 const float g_pllBandwidth = 1000.0f; // [rad/s]
 
 float g_debugValue = 0;
-
+uint32_t g_debugUInt32 = 0;
 float g_maxSupplyVoltage = 50.0;
 float g_maxOperatingTemperature = 75.0;
 
@@ -462,12 +462,17 @@ static float wrapAngle(float theta) {
 
 static void ComputeState(void)
 {
-  float angle = wrapAngle(TLE5012ReadAngleFloat() - g_phaseEncoderZero);
-  float rawPhase;
-  {
-    float v = roundf(angle / g_phaseEncoderAngle);
-    float x = angle - v * g_phaseEncoderAngle;
-    rawPhase = 2 * M_PI * x / g_phaseEncoderAngle;
+  float rawAngle = 0;
+  float rawPhase = 0;
+  bool haveNewPhase = false;
+  if(TLE5012ReadAngleFloat(&rawAngle)) {
+    float angle = wrapAngle(rawAngle - g_phaseEncoderZero);
+    {
+      float v = roundf(angle / g_phaseEncoderAngle);
+      float x = angle - v * g_phaseEncoderAngle;
+      rawPhase = 2 * M_PI * x / g_phaseEncoderAngle;
+    }
+    haveNewPhase = true;
   }
 
   g_debugValue = Rad2Deg(rawPhase);
@@ -513,11 +518,12 @@ static void ComputeState(void)
 
     // predict PLL phase with velocity
     pllPhase = wrapAngle(pllPhase + CURRENT_MEAS_PERIOD * pllVel);
-    float phaseError = wrapAngle(rawPhase - pllPhase);
-    pllPhase = wrapAngle(pllPhase + CURRENT_MEAS_PERIOD * pllKp * phaseError);
-
     // update PLL velocity
-    pllVel += CURRENT_MEAS_PERIOD * pllKi * phaseError;
+    if(haveNewPhase) {
+      float phaseError = wrapAngle(rawPhase - pllPhase);
+      pllVel += CURRENT_MEAS_PERIOD * pllKi * phaseError;
+      pllPhase = wrapAngle(pllPhase + CURRENT_MEAS_PERIOD * pllKp * phaseError);
+    }
 
     g_currentPhaseVelocity = pllVel;
     g_filteredPhaseVelocity += (g_currentPhaseVelocity - g_filteredPhaseVelocity) * g_phaseVelocityFilter;
@@ -1632,8 +1638,9 @@ enum FaultCodeT PWMMotorPhaseCalReading(
 
     FOC_current(phaseAngle,torqueValue,0);
 
-    float s,c;
-    arm_sin_cos_f32(Rad2Deg(TLE5012ReadAngleFloat()),&s,&c);
+    float s,c,angle = 0;
+    TLE5012ReadAngleFloat(&angle);
+    arm_sin_cos_f32(Rad2Deg(angle),&s,&c);
     sums += s;
     sumc += c;
   }

@@ -437,6 +437,11 @@ bool SetParam(enum ComsParameterIndexT index,union BufferTypeT *data,int len)
         return false;
       memcpy(&g_debugValue,data->float32,sizeof(float));
       break;
+    case CPI_DebugInt32:
+      if(len != 4)
+        return false;
+      g_debugUInt32 = data->uint32[0];
+      break;
     case CPI_EnableAngleStats: {
 #if ENABLE_ANGLESTATS
       if(len != 1)
@@ -809,6 +814,11 @@ bool ReadParam(enum ComsParameterIndexT index,int *len,union BufferTypeT *data)
       *len = 4;
       data->float32[0] = g_debugValue;
     } break;
+    case CPI_DebugInt32: {
+      *len = 4;
+      data->uint32[0] = g_debugUInt32;
+    } break;
+
     case CPI_EnableAngleStats: {
 #if ENABLE_ANGLESTATS
       *len = 4;
