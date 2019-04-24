@@ -157,7 +157,7 @@ bool TLE5012ReadRegister(uint16_t address,uint16_t *value)
   uint16_t data;
   SPI_TypeDef *SPIx = SPI2;
 
-  // This routine typically takes 4.2 us to run.
+  // This routine typically takes 23 us to run.
   SPIEnableWrite(SPIx);
 
   SPIx->CR1 |= SPI_CR1_SPE; // SPI Enable
@@ -233,8 +233,8 @@ bool TLE5012ReadRegister(uint16_t address,uint16_t *value)
 
   SPIx->CR1 &= ~SPI_CR1_SPE; // Disable SPI
   palSetPad(ENC_SPI_NSELECT_GPIO_Port,ENC_SPI_NSELECT_Pin);
-#endif
   *value = data;
+#endif
   return true;
 }
 
@@ -285,8 +285,9 @@ enum FaultCodeT InitTLE5012B(void)
 
   SPI_TypeDef *SPIx = SPI2;
 
+  //
   // Set things up
-  SPIx->CR1 = SPI_CR1_CPHA | SPI_CR1_BIDIMODE | SPI_CR1_BR_1| SPI_CR1_BR_0 | SPI_CR1_DFF | SPI_CR1_MSTR | SPI_CR1_SSM | SPI_CR1_SSI;
+  SPIx->CR1 = SPI_CR1_CPHA | SPI_CR1_BIDIMODE | SPI_CR1_BR_1| SPI_CR1_BR_0| SPI_CR1_DFF | SPI_CR1_MSTR | SPI_CR1_SSM | SPI_CR1_SSI;
   SPIx->I2SCFGR &= (uint16_t)~((uint16_t)SPI_I2SCFGR_I2SMOD);
   SPIx->CR2 = 0;
 

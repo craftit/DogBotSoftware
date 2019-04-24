@@ -8,7 +8,7 @@
 #include "lan9252.h"
 
 float g_homeAngleOffset = 0;      // Offset from phase position to actuator position.
-float g_motorPhase2RotationRatio = 7.0;
+float g_motorPhase2RotationRatio = 20.0;
 float g_actuatorRatio = g_motorPhase2RotationRatio * 21.0; // Gear ratio
 
 float g_absoluteMaxCurrent = 70.0; // Maximum torque allowed
