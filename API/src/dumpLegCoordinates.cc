@@ -21,7 +21,7 @@ int main(int argc,char **argv)
   float torqueLimit = 1.0;
 
   bool dryRun = false;
-  auto logger = spdlog::stdout_logger_mt("console");
+  auto logger = spdlog::default_logger();;
   try
   {
     cxxopts::Options options(argv[0], "DogBot hardware manager");

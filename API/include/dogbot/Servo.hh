@@ -140,7 +140,7 @@ namespace DogBotN {
     //! This will linearly extrapolate position, and assume velocity and torque are
     //! the same as the last reading.
     //! If the data is more than 5 ticks away from the
-    bool GetRawStateAt(TimePointT theTime,double &position,double &velocity,double &torque,enum PositionReferenceT &posRef) const;
+    bool GetRawStateAt(TimePointT theTime,double &position,double &velocity,double &torque,enum PositionReferenceT &posRef) const override;
 
     //! Update torque for the servo.
     // torque is in Newton-metres.

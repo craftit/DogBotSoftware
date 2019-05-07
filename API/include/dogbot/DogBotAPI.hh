@@ -60,7 +60,7 @@ namespace DogBotN {
     DogBotAPIC(
         const std::string &connectionName,
         const std::string &configurationFile = "",
-        const std::shared_ptr<spdlog::logger> &log = spdlog::stdout_logger_mt("console"),
+        const std::shared_ptr<spdlog::logger> &log = spdlog::default_logger(),
         DeviceManagerModeT devManager = DMM_Auto
         );
 
@@ -72,7 +72,7 @@ namespace DogBotN {
     DogBotAPIC(
         const std::shared_ptr<ComsC> &coms,
         const std::string &configurationFile,
-        const std::shared_ptr<spdlog::logger> &log = spdlog::stdout_logger_mt("console"),
+        const std::shared_ptr<spdlog::logger> &log = spdlog::default_logger(),
         bool manageComs = false,
         DeviceManagerModeT devMasterMode = DMM_Auto
         );

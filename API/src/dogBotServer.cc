@@ -30,7 +30,7 @@ int main(int argc,char **argv)
   std::string logFile;
   std::string zmqAddress = "tcp://*";
   bool managerMode = true;
-  auto logger = spdlog::stdout_logger_mt("console");
+  auto logger = spdlog::default_logger();;
 
 #if defined(__APPLE__)
 #elif defined(__linux__)
