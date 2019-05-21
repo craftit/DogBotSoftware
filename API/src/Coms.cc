@@ -105,10 +105,12 @@ namespace DogBotN
       default: {
         {
           bool hasHandler = false;
-          for(auto a : m_packetHandler[packetId].Calls()) {
-            if(a) {
-              hasHandler =  true;
-              a(packetData,packetLen);
+          if(m_packetHandler.size() > packetId) {
+            for(auto a : m_packetHandler[packetId].Calls()) {
+              if(a) {
+                hasHandler =  true;
+                a(packetData,packetLen);
+              }
             }
           }
           if(hasHandler)

@@ -142,7 +142,9 @@ namespace DogBotN
     }
     std::string serialNumber((char *)buff);
     m_log->info("SerialNumber:{}  ",serialNumber);
-    if(serialNumber != "reactai.com:BMCV2") {
+    if(serialNumber != "reactai.com:BMCV2" &&
+        serialNumber != "reactai.com:LASV1"
+        ) {
       // Not our device.  Close handle.
       libusb_close(handle);
       handle = 0;
@@ -461,7 +463,7 @@ namespace DogBotN
               break;
             }
             if(packetLen < 0 || packetLen > 15) {
-              m_log->error("Unexpected packet size at {} of {} ",dat,packetLen);
+              m_log->error("Unexpected packet size of {} at {} of {} ",packetLen,dat,packetLen);
               break;
             }
             ONDEBUG(m_log->info("Packet in iso at {} Len:{} Type:{} ",dat,packetLen,(int) pdata[dat+1]));
