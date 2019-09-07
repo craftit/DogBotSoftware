@@ -20,7 +20,7 @@ int main(int argc,char **argv)
   std::string jointName = "front_right_knee";
   std::string firmwareFile;
 
-  auto logger = spdlog::stdout_logger_mt("console");
+  auto logger = DogBotN::DefaultLogger();
   bool cycle = false;
   bool dumpLimits = false;
   int jointId = -1;

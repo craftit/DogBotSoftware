@@ -20,7 +20,7 @@ int main(int argc,char **argv)
 
   bool dryRun = false;
   bool stayInBootloader = false;
-  auto logger = spdlog::stdout_logger_mt("console");
+  auto logger = DogBotN::DefaultLogger();
   bool updateAll = false;
   try
   {

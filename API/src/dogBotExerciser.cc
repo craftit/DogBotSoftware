@@ -21,7 +21,7 @@ int main(int argc,char **argv)
   std::string firmwareFile;
   std::string loadPoseFile;
 
-  auto logger = spdlog::stdout_logger_mt("console");
+  auto logger = DogBotN::DefaultLogger();
   bool dumpPose = false;
   bool cycle = false;
   bool dumpLimits = false;

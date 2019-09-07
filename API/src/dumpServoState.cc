@@ -8,7 +8,7 @@
 
 int main(int nargs,char **argv)
 {
-  auto logger = spdlog::stdout_logger_mt("console");
+  auto logger = DogBotN::DefaultLogger();
 
   logger->info("Starting dtalk");
 

@@ -33,6 +33,16 @@
 
 namespace DogBotN {
 
+  std::shared_ptr<spdlog::logger> DefaultLogger()
+  {
+#ifdef __linux__
+  return spdlog::stdout_logger_mt("console");
+#else
+  return spdlog::default_logger();
+#endif
+  }
+
+
   //! Constructor
   DogBotAPIC::DogBotAPIC()
   {

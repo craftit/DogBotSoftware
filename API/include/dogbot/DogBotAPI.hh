@@ -28,6 +28,8 @@ namespace DogBotN {
 
   class LegControllerC;
 
+  std::shared_ptr<spdlog::logger> DefaultLogger();
+
   //! Dogbot device control
 
   //! This does low level management of the robot, configuration of the drivers and status monitoring.
@@ -60,7 +62,7 @@ namespace DogBotN {
     DogBotAPIC(
         const std::string &connectionName,
         const std::string &configurationFile = "",
-        const std::shared_ptr<spdlog::logger> &log = spdlog::stdout_logger_mt("console"),
+        const std::shared_ptr<spdlog::logger> &log = DefaultLogger(),
         DeviceManagerModeT devManager = DMM_Auto
         );
 
@@ -72,7 +74,7 @@ namespace DogBotN {
     DogBotAPIC(
         const std::shared_ptr<ComsC> &coms,
         const std::string &configurationFile,
-        const std::shared_ptr<spdlog::logger> &log = spdlog::stdout_logger_mt("console"),
+        const std::shared_ptr<spdlog::logger> &log = DefaultLogger(),
         bool manageComs = false,
         DeviceManagerModeT devMasterMode = DMM_Auto
         );
