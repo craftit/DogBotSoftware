@@ -3,6 +3,7 @@
 
 #include "dogbot/Servo.hh"
 #include <jsoncpp/json/json.h>
+#include <spdlog/sinks/stdout_sinks.h>
 #include "dogbot/Coms.hh"
 #include "dogbot/LegKinematics.hh"
 #include "dogbot/CallbackArray.hh"
